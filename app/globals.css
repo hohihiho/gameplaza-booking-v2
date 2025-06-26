@@ -2,26 +2,139 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
+/* 기본 스타일 설정 */
+@layer base {
+  /* 부드러운 스크롤 */
+  html {
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+  /* 기본 텍스트 색상 - 다크모드 지원 */
+  body {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  /* 헤딩 스타일 */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+  
+  /* 기본 포커스 스타일 - 토스 스타일 */
+  *:focus {
+    @apply outline-none;
+  }
+  
+  /* 포커스 비지블 스타일 */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-gray-900 dark:ring-white ring-offset-2;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+/* 컴포넌트 스타일 */
+@layer components {
+  /* 토스 스타일 버튼 */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-offset-2 
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* 버튼 변형 */
+  .btn-primary {
+    @apply bg-gray-900 dark:bg-white text-white dark:text-gray-900 
+           hover:bg-gray-800 dark:hover:bg-gray-100 
+           focus:ring-gray-900 dark:focus:ring-white;
+  }
+
+  .btn-secondary {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+           border border-gray-300 dark:border-gray-700
+           hover:bg-gray-50 dark:hover:bg-gray-800 
+           focus:ring-gray-900 dark:focus:ring-white;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 
+           focus:ring-red-600 active:bg-red-800;
+  }
+
+  /* 카드 컴포넌트 - 토스 스타일 */
+  .card {
+    @apply bg-white rounded-2xl border border-gray-200 p-6 
+           dark:bg-gray-900 dark:border-gray-800 
+           transition-shadow hover:shadow-sm;
+  }
+
+  /* 입력 필드 - 토스 스타일 */
+  .input {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-lg 
+           focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900
+           dark:bg-gray-800 dark:border-gray-700 dark:text-white
+           dark:focus:ring-white dark:focus:border-white
+           placeholder-gray-400 dark:placeholder-gray-500;
+  }
+
+  /* 라벨 */
+  .label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+  }
+
+  /* 상태 배지 */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .badge-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+
+  .badge-approved {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+
+  .badge-rejected {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+}
+
+/* 유틸리티 클래스 */
+@layer utilities {
+  /* 스크롤바 스타일 - 토스 스타일 */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.300') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+  }
+  
+  /* 토스 스타일 애니메이션 */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
 }
