@@ -264,15 +264,38 @@
 - display_order: integer
 ```
 
+### Time_Slots Table
+```sql
+- id: UUID (PK)
+- name: string
+- start_time: time
+- end_time: time
+- base_price: integer
+- slot_type: enum (default, custom)
+- is_active: boolean
+- created_at: timestamp
+- updated_at: timestamp
+```
+
+### Time_Slot_Schedules Table
+```sql
+- id: UUID (PK)
+- time_slot_id: UUID (FK)
+- applicable_date: date
+- day_of_week: integer[]
+- is_recurring: boolean
+- priority: integer
+- created_at: timestamp
+```
+
 ### Reservations Table
 ```sql
 - id: UUID (PK)
 - user_id: UUID (FK)
-- rental_device_id: UUID (FK)
+- device_id: UUID (FK)
+- time_slot_id: UUID (FK)
 - device_number: integer
 - date: date
-- time_slot: string
-- duration: integer (minutes)
 - total_price: integer
 - player_count: integer
 - status: enum (pending, approved, rejected, completed, cancelled)
