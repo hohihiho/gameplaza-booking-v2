@@ -1,8 +1,11 @@
-# 시간대 예약 시스템 상세 설계
+# 기기별 시간대 예약 시스템 상세 설계
 
 ## 1. 시스템 개요
 
-광주 게임플라자는 고정된 시간 단위(30분, 1시간 등)가 아닌, 관리자가 설정한 특정 시간대를 예약하는 시스템을 사용합니다.
+광주 게임플라자는 **기기별로 시간대를 설정**하여 예약받는 시스템을 사용합니다.
+- 예: "8~12 발키리 2대", "24~28 마이마이 1대"
+- 관리자가 날짜별로 각 기기의 대여 가능 시간대를 자유롭게 설정
+- 같은 날짜에 같은 기기를 여러 시간대로 나눠서 대여 가능
 
 ## 2. 시간대 유형
 
@@ -49,62 +52,84 @@ const DEFAULT_TIME_SLOTS = {
 
 ## 3. 데이터베이스 설계
 
-### 3.1 time_slots 테이블
+### 3.1 device_types 테이블 (기기 종류)
 ```sql
-CREATE TABLE time_slots (
+CREATE TABLE device_types (
   id UUID PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL, -- 마이마이, 츄니즘, 발키리, 라이트닝
+  total_count INTEGER NOT NULL, -- 보유 대수
+  is_rentable BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 3.2 device_time_slots 테이블 (기기별 시간대)
+```sql
+CREATE TABLE device_time_slots (
+  id UUID PRIMARY KEY,
+  date DATE NOT NULL,
+  device_type_id UUID REFERENCES device_types(id),
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  base_price INTEGER NOT NULL,
-  slot_type ENUM('default', 'custom') DEFAULT 'custom',
-  is_active BOOLEAN DEFAULT true,
+  available_count INTEGER NOT NULL, -- 대여 가능 대수
+  reserved_count INTEGER DEFAULT 0, -- 예약된 대수
+  price INTEGER NOT NULL,
+  slot_type ENUM('regular', 'early', 'overnight', 'custom'),
+  notes TEXT, -- "조기개장", "밤샘영업" 등
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(date, device_type_id, start_time, end_time)
+);
+```
+
+### 3.3 reservations 테이블 (수정)
+```sql
+CREATE TABLE reservations (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  device_time_slot_id UUID REFERENCES device_time_slots(id),
+  quantity INTEGER DEFAULT 1, -- 예약 대수
+  total_price INTEGER NOT NULL,
+  player_count INTEGER DEFAULT 1, -- 마이마이 2P 등
+  status ENUM('pending', 'approved', 'rejected', 'completed', 'cancelled'),
+  approved_by UUID REFERENCES users(id),
+  approved_at TIMESTAMP,
+  check_in_at TIMESTAMP,
+  payment_method ENUM('cash', 'transfer'),
+  payment_confirmed_at TIMESTAMP,
+  notes TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
-### 3.2 time_slot_schedules 테이블
+### 3.4 special_operations 테이블 (특별 영업)
 ```sql
-CREATE TABLE time_slot_schedules (
-  id UUID PRIMARY KEY,
-  time_slot_id UUID REFERENCES time_slots(id),
-  applicable_date DATE, -- 특정 날짜
-  day_of_week INTEGER[], -- 요일 (0=일요일, 6=토요일)
-  is_recurring BOOLEAN DEFAULT false,
-  priority INTEGER DEFAULT 0, -- 우선순위 (높을수록 우선)
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### 3.3 time_slot_availability 테이블
-```sql
-CREATE TABLE time_slot_availability (
+CREATE TABLE special_operations (
   id UUID PRIMARY KEY,
   date DATE NOT NULL,
-  time_slot_id UUID REFERENCES time_slots(id),
-  device_id UUID REFERENCES devices(id),
-  is_available BOOLEAN DEFAULT true,
-  max_reservations INTEGER DEFAULT 1,
-  current_reservations INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(date, time_slot_id, device_id)
+  operation_type ENUM('early', 'overnight'),
+  min_devices INTEGER DEFAULT 2, -- 최소 예약 대수
+  is_confirmed BOOLEAN DEFAULT false,
+  confirmed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
 ## 4. 관리자 기능
 
-### 4.1 시간대 관리
-- **시간대 생성**: 시작/종료 시간, 가격 설정
-- **시간대 수정**: 기존 시간대 정보 변경
-- **시간대 활성화/비활성화**: 특정 시간대 사용 여부
-- **일괄 적용**: 여러 날짜에 동일 시간대 적용
+### 4.1 기기별 시간대 관리
+- **슬롯 생성**: 날짜, 기기, 시간, 대수, 가격 설정
+- **일별 관리**: 달력 뷰에서 날짜별 기기 시간대 설정
+- **복사 기능**: 이전 날짜 설정 복사
+- **템플릿**: 자주 쓰는 패턴 저장 (금요일 밤샘 등)
 
-### 4.2 스케줄 관리
-- **날짜별 설정**: 특정 날짜의 시간대 구성
-- **요일별 반복**: 매주 특정 요일 자동 적용
-- **예외 날짜**: 공휴일, 특별 영업일 설정
-- **우선순위**: 중복 시 적용할 시간대 결정
+### 4.2 특별 영업 관리
+- **조기개장**: 2대 이상 예약 시 자동 제안
+- **밤샘영업**: 금~토, 토~일 정기 설정
+- **조건 확인**: 최소 예약 대수 충족 확인
+- **추가 오픈**: 확정 후 추가 슬롯 생성
 
 ### 4.3 가격 정책
 - **기본 가격**: 시간대별 기본 요금
@@ -114,18 +139,21 @@ CREATE TABLE time_slot_availability (
 
 ## 5. 사용자 예약 플로우
 
-### 5.1 시간대 조회
+### 5.1 기기별 시간대 조회
 ```javascript
-// 특정 날짜의 예약 가능한 시간대 조회
-async function getAvailableTimeSlots(date, deviceId) {
-  // 1. 해당 날짜에 적용되는 시간대 조회
-  const applicableSlots = await getApplicableTimeSlots(date);
+// 특정 날짜와 기기의 예약 가능한 시간대 조회
+async function getAvailableSlots(date, deviceTypeId) {
+  // 1. 해당 날짜의 기기 시간대 조회
+  const deviceSlots = await getDeviceTimeSlots(date, deviceTypeId);
   
-  // 2. 각 시간대의 예약 가능 여부 확인
-  const availability = await checkAvailability(date, applicableSlots, deviceId);
+  // 2. 예약 가능 대수 계산
+  const availableSlots = deviceSlots.map(slot => ({
+    ...slot,
+    availableCount: slot.available_count - slot.reserved_count
+  }));
   
   // 3. 예약 가능한 시간대만 반환
-  return availability.filter(slot => slot.isAvailable);
+  return availableSlots.filter(slot => slot.availableCount > 0);
 }
 ```
 
@@ -137,28 +165,36 @@ async function getAvailableTimeSlots(date, deviceId) {
 
 ### 5.3 예약 생성
 ```javascript
-async function createReservation(userId, date, timeSlotId, deviceId, options) {
+async function createReservation(userId, deviceTimeSlotId, quantity, options) {
   // 트랜잭션 시작
   const reservation = await db.transaction(async (trx) => {
-    // 1. 가용성 재확인 (동시성 처리)
-    const available = await checkAndLockAvailability(trx, date, timeSlotId, deviceId);
+    // 1. 슬롯 정보 조회 및 잠금
+    const slot = await lockDeviceTimeSlot(trx, deviceTimeSlotId);
     
-    // 2. 예약 생성
+    // 2. 가용성 검증
+    if (slot.reserved_count + quantity > slot.available_count) {
+      throw new Error('예약 가능 대수 초과');
+    }
+    
+    // 3. 예약 생성
     const reservation = await createReservationRecord(trx, {
       userId,
-      date,
-      timeSlotId,
-      deviceId,
+      deviceTimeSlotId,
+      quantity,
+      totalPrice: slot.price * quantity,
       ...options
     });
     
-    // 3. 가용성 업데이트
-    await updateAvailability(trx, date, timeSlotId, deviceId);
+    // 4. 예약 대수 업데이트
+    await updateReservedCount(trx, deviceTimeSlotId, quantity);
+    
+    // 5. 특별 영업 체크
+    await checkSpecialOperation(trx, slot.date);
     
     return reservation;
   });
   
-  // 4. 알림 발송
+  // 6. 알림 발송
   await sendReservationNotification(reservation);
   
   return reservation;
@@ -167,56 +203,63 @@ async function createReservation(userId, date, timeSlotId, deviceId, options) {
 
 ## 6. UI/UX 설계
 
-### 6.1 관리자 시간대 설정 화면
+### 6.1 관리자 기기별 시간대 설정
 ```
-[시간대 관리]
-┌─────────────────────────────────┐
-│ + 새 시간대 추가                │
-├─────────────────────────────────┤
-│ 조기영업 (07:00-12:00) 30,000원 │
-│ [수정] [삭제]                   │
-├─────────────────────────────────┤
-│ 주간영업 (12:00-18:00) 40,000원 │
-│ [수정] [삭제]                   │
-├─────────────────────────────────┤
-│ 커스텀1 (08:00-12:00) 25,000원  │
-│ [수정] [삭제]                   │
-└─────────────────────────────────┘
+[2024년 6월 27일(금)] [< 이전] [다음 >]
 
-[스케줄 설정]
-날짜: [2024-06-26]
-적용할 시간대:
-☑ 조기영업
-☑ 주간영업
-☐ 야간영업
-☐ 밤샘영업
-☑ 커스텀1
+조기개장 ✓
+┌─────────────────────────────────────┐
+│ 🎮 발키리 (총 4대)                  │
+│ + 08:00-12:00 | 2대 | 40,000원 [삭제]│
+│ + 시간대 추가                       │
+├─────────────────────────────────────┤
+│ 🎵 마이마이 (총 3대)                │
+│ + 09:00-13:00 | 1대 | 50,000원 [삭제]│
+│ + 시간대 추가                       │
+└─────────────────────────────────────┘
 
-[일괄 적용]
+밤샘영업 ✓ (금~토)
+┌─────────────────────────────────────┐
+│ 🎵 마이마이                         │
+│ + 24:00-28:00 | 1대 | 60,000원 [삭제]│
+├─────────────────────────────────────┤
+│ ⚡ 라이트닝 (총 2대)                │
+│ + 24:00-29:00 | 1대 | 70,000원 [삭제]│
+├─────────────────────────────────────┤
+│ 🎮 발키리                           │
+│ + 24:00-29:00 | 2대 | 70,000원 [삭제]│
+└─────────────────────────────────────┘
+
+[이전 날짜에서 복사] [템플릿 저장]
 ```
 
 ### 6.2 사용자 예약 화면
 ```
 [날짜 선택]
-2024년 6월 26일 (수)
+2024년 6월 27일 (금)
+
+[기기 선택]
+🎮 발키리 | 🎵 마이마이 | 🎮 츄니즘 | ⚡ 라이트닝
+
+[선택: 🎵 마이마이]
 
 [예약 가능 시간대]
-┌─────────────────────────────┐
-│ 🌅 조기영업                 │
-│ 07:00 - 12:00 (5시간)       │
-│ 30,000원                    │
-│ [선택하기]                  │
-├─────────────────────────────┤
-│ ☀️ 주간영업                 │
-│ 12:00 - 18:00 (6시간)       │
-│ 40,000원                    │
-│ [예약마감]                  │
-├─────────────────────────────┤
-│ 🎯 특별시간대               │
-│ 08:00 - 12:00 (4시간)       │
-│ 25,000원 (특가!)            │
-│ [선택하기]                  │
-└─────────────────────────────┘
+┌─────────────────────────────────┐
+│ 🌅 조기개장                       │
+│ 09:00 - 13:00 (4시간)            │
+│ 50,000원                         │
+│ 남은 대수: 1대                   │
+│ [예약하기]                       │
+├─────────────────────────────────┤
+│ 🌙 밤샘영업 (금~토)             │
+│ 24:00 - 28:00 (+1일)             │
+│ 60,000원                         │
+│ 남은 대수: 1대                   │
+│ [예약하기]                       │
+└─────────────────────────────────┘
+
+[마이마이 2P 옵션]
+☐ 2인 플레이 (+10,000원)
 ```
 
 ## 7. 특수 케이스 처리
