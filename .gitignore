@@ -41,4 +41,4 @@ supabase-info.txt
 .idea/
 
 # MCP
-.claude/
+.claude/.env*.local
