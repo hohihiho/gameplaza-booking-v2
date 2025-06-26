@@ -239,69 +239,57 @@
 - blacklist_reason: string
 ```
 
+### Device_Types Table
+```sql
+- id: UUID (PK)
+- name: string (마이마이, 츄니즘, 발키리, 라이트닝)
+- total_count: integer
+- is_rentable: boolean
+- created_at: timestamp
+```
+
 ### Devices Table
 ```sql
 - id: UUID (PK)
-- name: string
-- type: enum (rhythm, arcade, etc)
-- model: string
+- device_type_id: UUID (FK)
+- device_number: integer (1번기, 2번기...)
 - location: string
 - status: enum (available, occupied, maintenance)
-- display_order: integer
-- is_rentable: boolean
+- is_active: boolean
 - created_at: timestamp
 - updated_at: timestamp
 ```
 
-### Rental_Devices Table
+### Device_Time_Slots Table
 ```sql
 - id: UUID (PK)
-- device_id: UUID (FK)
-- rental_type: enum (30min, 1hour, 2hour, etc)
-- base_price: integer
-- is_active: boolean
-- max_players: integer (1 or 2)
-- display_order: integer
-```
-
-### Time_Slots Table
-```sql
-- id: UUID (PK)
-- name: string
+- date: date
+- device_type_id: UUID (FK)
 - start_time: time
 - end_time: time
-- base_price: integer
-- slot_type: enum (default, custom)
-- is_active: boolean
+- available_devices: integer[] ([1, 2, 3])
+- price: integer
+- slot_type: enum (regular, early, overnight, custom)
+- notes: text
+- created_by: UUID (FK)
 - created_at: timestamp
 - updated_at: timestamp
-```
-
-### Time_Slot_Schedules Table
-```sql
-- id: UUID (PK)
-- time_slot_id: UUID (FK)
-- applicable_date: date
-- day_of_week: integer[]
-- is_recurring: boolean
-- priority: integer
-- created_at: timestamp
 ```
 
 ### Reservations Table
 ```sql
 - id: UUID (PK)
 - user_id: UUID (FK)
+- device_time_slot_id: UUID (FK)
 - device_id: UUID (FK)
-- time_slot_id: UUID (FK)
 - device_number: integer
-- date: date
 - total_price: integer
-- player_count: integer
-- status: enum (pending, approved, rejected, completed, cancelled)
+- player_count: integer (마이마이 2P)
+- status: enum (pending, approved, rejected, checked_in, completed, cancelled)
 - approved_by: UUID (FK)
 - approved_at: timestamp
 - check_in_at: timestamp
+- completed_at: timestamp
 - payment_method: enum (cash, transfer)
 - payment_confirmed_at: timestamp
 - notes: text

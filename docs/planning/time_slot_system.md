@@ -63,7 +63,21 @@ CREATE TABLE device_types (
 );
 ```
 
-### 3.2 device_time_slots 테이블 (기기별 시간대)
+### 3.2 devices 테이블 (개별 기기)
+```sql
+CREATE TABLE devices (
+  id UUID PRIMARY KEY,
+  device_type_id UUID REFERENCES device_types(id),
+  device_number INTEGER NOT NULL, -- 기기 번호 (1번기, 2번기...)
+  location VARCHAR(100), -- 위치 정보
+  status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(device_type_id, device_number)
+);
+```
+
+### 3.3 device_time_slots 테이블 (기기별 시간대)
 ```sql
 CREATE TABLE device_time_slots (
   id UUID PRIMARY KEY,
@@ -71,8 +85,7 @@ CREATE TABLE device_time_slots (
   device_type_id UUID REFERENCES device_types(id),
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  available_count INTEGER NOT NULL, -- 대여 가능 대수
-  reserved_count INTEGER DEFAULT 0, -- 예약된 대수
+  available_devices INTEGER[], -- 예약 가능한 기기 번호 배열 [1, 2, 3]
   price INTEGER NOT NULL,
   slot_type ENUM('regular', 'early', 'overnight', 'custom'),
   notes TEXT, -- "조기개장", "밤샘영업" 등
@@ -83,25 +96,32 @@ CREATE TABLE device_time_slots (
 );
 ```
 
-### 3.3 reservations 테이블 (수정)
+### 3.4 reservations 테이블 (수정)
 ```sql
 CREATE TABLE reservations (
   id UUID PRIMARY KEY,
   user_id UUID REFERENCES users(id),
   device_time_slot_id UUID REFERENCES device_time_slots(id),
-  quantity INTEGER DEFAULT 1, -- 예약 대수
+  device_id UUID REFERENCES devices(id), -- 배정된 기기
+  device_number INTEGER, -- 예약한 기기 번호
   total_price INTEGER NOT NULL,
   player_count INTEGER DEFAULT 1, -- 마이마이 2P 등
-  status ENUM('pending', 'approved', 'rejected', 'completed', 'cancelled'),
+  status ENUM('pending', 'approved', 'rejected', 'checked_in', 'completed', 'cancelled'),
   approved_by UUID REFERENCES users(id),
   approved_at TIMESTAMP,
   check_in_at TIMESTAMP,
+  completed_at TIMESTAMP,
   payment_method ENUM('cash', 'transfer'),
   payment_confirmed_at TIMESTAMP,
   notes TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- 예약 제한을 위한 인덱스
+CREATE INDEX idx_user_active_reservations 
+ON reservations(user_id, status) 
+WHERE status IN ('pending', 'approved', 'checked_in');
 ```
 
 ### 3.4 special_operations 테이블 (특별 영업)
