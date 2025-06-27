@@ -3,7 +3,10 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Navigation from './components/Navigation'
 import { ThemeProvider } from './components/ThemeProvider'
+import { Providers } from './providers'
 import { MapPin, Phone, Clock } from 'lucide-react'
+import { StagewiseToolbar } from '@stagewise/toolbar-next'
+import { ReactPlugin } from '@stagewise-plugins/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,13 +23,21 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-950`}>
-        <ThemeProvider>
-          <Navigation />
-          
-          {/* 메인 콘텐츠 */}
-          <main className="min-h-[calc(100vh-16rem)]">
-            {children}
-          </main>
+        <Providers>
+          <ThemeProvider>
+            {/* Stagewise 툴바 - 개발 모드에서만 활성화 */}
+            <StagewiseToolbar 
+              config={{
+                plugins: [ReactPlugin]
+              }}
+            />
+            
+            <Navigation />
+            
+            {/* 메인 콘텐츠 */}
+            <main className="min-h-[calc(100vh-16rem)]">
+              {children}
+            </main>
 
           {/* 푸터 */}
           <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-20">
@@ -71,7 +82,8 @@ export default function RootLayout({
               </div>
             </div>
           </footer>
-        </ThemeProvider>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )

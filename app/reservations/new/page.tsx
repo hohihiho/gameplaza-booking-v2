@@ -2,148 +2,275 @@
 // 비전공자 설명: 새로운 게임기 예약을 신청하는 페이지입니다
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft, Loader2, AlertCircle, Coins } from 'lucide-react';
+import { getDeviceTypes, getTimeSlots, createReservation } from '@/lib/api/reservations';
+import { useSession } from 'next-auth/react';
+
+type DeviceType = {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  base_price: number;
+  price_multiplier_2p: number;
+  max_players: number;
+  requires_approval: boolean;
+  image_url?: string;
+  devices: Device[];
+  active_device_count: number;
+  total_device_count: number;
+};
 
 type Device = {
   id: string;
-  name: string;
-  type: string;
-  supports2P: boolean;
-  priceMode: string;
-  creditPrice?: number;
-  freeplayPrice?: number;
-  unlimitedPrice?: number;
-  additionalPlayerRate?: number;
+  device_number: number;
+  location?: string;
+  status: string;
+  is_active: boolean;
 };
 
 type TimeSlot = {
   id: string;
-  time: string;
-  duration: number;
-  type: string;
-  gameTypes?: string[];
-  teenOnly?: boolean;
-  available?: boolean;
+  date: string;
+  start_time: string;
+  end_time: string;
+  device_type_id: string;
+  max_devices: number;
+  available_devices: number[];
+  is_available: boolean;
+  price?: number;
 };
 
 export default function NewReservationPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  
+  // 로그인 확인
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session?.user) {
+      router.push('/login');
+    }
+  }, [status, session, router]);
+  
   // 각 단계별 선택 상태 관리
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [selectedDevice, setSelectedDevice] = useState('');
-  const [selectedDeviceNumber, setSelectedDeviceNumber] = useState('');
-  const [is2Player, setIs2Player] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [selectedDeviceNumber, setSelectedDeviceNumber] = useState<number | null>(null);
+  const [playerCount, setPlayerCount] = useState(1);
+  const [creditOption, setCreditOption] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [showPolicy, setShowPolicy] = useState(false);
-
-  // 현재 단계 관리 (1-6)
+  
+  // 현재 단계 관리 (1-7)
   const [currentStep, setCurrentStep] = useState(1);
-
-  // API에서 가져올 데이터들 (실제로는 useEffect로 fetch)
-  const devices = useMemo<Device[]>(() => [
-    { id: '1', name: '마이마이', type: 'rhythm', supports2P: true, priceMode: 'credit', creditPrice: 500, additionalPlayerRate: 2 },
-    { id: '2', name: '츄니즘', type: 'rhythm', supports2P: false, priceMode: 'freeplay', freeplayPrice: 5000 },
-    { id: '3', name: '사운드 볼텍스', type: 'rhythm', supports2P: false, priceMode: 'unlimited', unlimitedPrice: 20000 },
-    { id: '4', name: '비트매니아 IIDX', type: 'rhythm', supports2P: true, priceMode: 'credit', creditPrice: 600, additionalPlayerRate: 1.8 },
-    { id: '5', name: '철권8', type: 'fighting', supports2P: true, priceMode: 'freeplay', freeplayPrice: 6000, additionalPlayerRate: 1.5 },
-    { id: '6', name: '스트리트파이터6', type: 'fighting', supports2P: true, priceMode: 'freeplay', freeplayPrice: 6000, additionalPlayerRate: 1.5 },
-  ], []);
-
+  
+  // 로딩 및 에러 상태
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // API 데이터
+  const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [deviceNumbers, setDeviceNumbers] = useState<string[]>([]);
-
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  
+  // 기기 타입 목록 불러오기
+  useEffect(() => {
+    const loadDeviceTypes = async () => {
+      try {
+        setIsLoadingDevices(true);
+        // 임시 mock 데이터 사용
+        const mockDeviceTypes: DeviceType[] = [
+          {
+            id: '1',
+            name: '마이마이 DX',
+            category: 'SEGA',
+            description: '터치스크린 리듬게임',
+            base_price: 50000,
+            price_multiplier_2p: 1.5,
+            max_players: 2,
+            requires_approval: true,
+            devices: [
+              { id: '1', device_number: 1, status: 'available', is_active: true },
+              { id: '2', device_number: 2, status: 'available', is_active: true }
+            ],
+            active_device_count: 2,
+            total_device_count: 2
+          },
+          {
+            id: '2',
+            name: '츄니즘 NEW!!',
+            category: 'SEGA',
+            description: '에어 스트링 리듬게임',
+            base_price: 50000,
+            price_multiplier_2p: 1,
+            max_players: 1,
+            requires_approval: true,
+            devices: [
+              { id: '3', device_number: 1, status: 'available', is_active: true }
+            ],
+            active_device_count: 1,
+            total_device_count: 1
+          },
+          {
+            id: '3',
+            name: '사운드 볼텍스 EXCEED GEAR',
+            category: 'KONAMI',
+            description: '노브 컨트롤러 리듬게임',
+            base_price: 60000,
+            price_multiplier_2p: 1,
+            max_players: 1,
+            requires_approval: true,
+            devices: [
+              { id: '4', device_number: 1, status: 'available', is_active: true }
+            ],
+            active_device_count: 1,
+            total_device_count: 1
+          },
+          {
+            id: '4',
+            name: '비트매니아 IIDX 31 EPOLIS',
+            category: 'KONAMI',
+            description: 'DJ 시뮬레이션 리듬게임',
+            base_price: 70000,
+            price_multiplier_2p: 1,
+            max_players: 1,
+            requires_approval: true,
+            devices: [
+              { id: '5', device_number: 1, status: 'available', is_active: true }
+            ],
+            active_device_count: 1,
+            total_device_count: 1
+          }
+        ];
+        
+        setDeviceTypes(mockDeviceTypes);
+      } catch (error) {
+        console.error('Failed to load device types:', error);
+        setError('기기 정보를 불러올 수 없습니다');
+      } finally {
+        setIsLoadingDevices(false);
+      }
+    };
+    
+    loadDeviceTypes();
+  }, []);
+  
+  // 기기 선택시 사용 가능한 시간대 불러오기
+  useEffect(() => {
+    const loadTimeSlots = async () => {
+      if (!selectedDevice || !selectedDate) return;
+      
+      try {
+        setIsLoadingSlots(true);
+        setError(null);
+        const { timeSlots: slots } = await getTimeSlots(selectedDate, selectedDevice);
+        setTimeSlots(slots || []);
+      } catch (error) {
+        console.error('Failed to load time slots:', error);
+        setError('시간대 정보를 불러올 수 없습니다');
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+    
+    loadTimeSlots();
+  }, [selectedDevice, selectedDate]);
+  
   // 선택한 정보 가져오기
-  const selectedDeviceInfo = devices.find(d => d.id === selectedDevice);
+  const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDevice);
   const selectedTimeSlotInfo = timeSlots.find(s => s.id === selectedTimeSlot);
-
-  // 가격 계산 (기기와 시간대에 따라 다름)
+  
+  // 가격 계산
   const calculatePrice = () => {
     if (!selectedDeviceInfo || !selectedTimeSlotInfo) return 0;
     
-    let basePrice = 0;
-    const duration = selectedTimeSlotInfo.duration;
+    // 기본 가격 (시간대에 설정된 가격 사용)
+    let basePrice = selectedTimeSlotInfo.price || selectedDeviceInfo.base_price;
     
-    // 요금제에 따른 가격 계산
-    if (selectedDeviceInfo.priceMode === 'credit') {
-      basePrice = (selectedDeviceInfo.creditPrice || 0) * duration * 10; // 시간당 10크레딧 기준
-    } else if (selectedDeviceInfo.priceMode === 'freeplay') {
-      basePrice = (selectedDeviceInfo.freeplayPrice || 0) * duration;
-    } else if (selectedDeviceInfo.priceMode === 'unlimited') {
-      basePrice = selectedDeviceInfo.unlimitedPrice || 0; // 시간 무관
+    // 2인 플레이 추가 요금 (마이마이만 해당)
+    if (playerCount === 2 && selectedDeviceInfo.max_players > 1) {
+      basePrice = basePrice * selectedDeviceInfo.price_multiplier_2p;
     }
     
-    // 2인 플레이 추가 요금
-    if (is2Player && selectedDeviceInfo.additionalPlayerRate) {
-      basePrice = basePrice * (selectedDeviceInfo.additionalPlayerRate || 1.5);
+    // 크레딧 옵션 추가 요금
+    if (creditOption === 'unlimited') {
+      basePrice += 10000;
     }
     
     return basePrice;
   };
-
-  // 기기 선택시 사용 가능한 시간대 불러오기
-  useEffect(() => {
-    if (selectedDevice && selectedDate) {
-      // 실제로는 API 호출
-      // const response = await fetch(`/api/timeslots?device=${selectedDevice}&date=${selectedDate}`);
-      
-      // 임시 데이터
-      const device = devices.find(d => d.id === selectedDevice);
-      if (device?.type === 'rhythm') {
-        setTimeSlots([
-          { id: 't1', time: '07:00-12:00', duration: 5, type: 'early', available: true },
-          { id: 't2', time: '08:00-12:00', duration: 4, type: 'early', available: true },
-          { id: 't3', time: '09:00-13:00', duration: 4, type: 'early', available: true, teenOnly: true },
-          { id: 't4', time: '24:00-28:00', duration: 4, type: 'overnight', available: true },
-          { id: 't5', time: '24:00-29:00', duration: 5, type: 'overnight', available: true },
-        ]);
-      } else {
-        setTimeSlots([
-          { id: 't1', time: '07:00-12:00', duration: 5, type: 'early', available: true },
-          { id: 't2', time: '08:00-12:00', duration: 4, type: 'early', available: true },
-          { id: 't3', time: '09:00-13:00', duration: 4, type: 'early', available: true, teenOnly: true },
-        ]);
-      }
-      
-      // 기기 번호도 불러오기
-      setDeviceNumbers(['1번기', '2번기', '3번기', '4번기']);
-    }
-  }, [selectedDevice, selectedDate, devices]);
-
+  
   const totalPrice = calculatePrice();
-
-  // 애니메이션 설정
-  const pageAnimation = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
-    transition: { duration: 0.2, ease: "easeInOut" as const }
+  
+  // 예약 제출
+  const handleSubmit = async () => {
+    if (!selectedDeviceInfo || !selectedTimeSlotInfo || selectedDeviceNumber === null) {
+      setError('모든 정보를 선택해주세요');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      
+      const { reservation } = await createReservation({
+        date: selectedDate,
+        deviceTypeId: selectedDevice,
+        timeSlotId: selectedTimeSlot,
+        deviceNumber: selectedDeviceNumber,
+        playerCount,
+        creditOption,
+        totalPrice
+      });
+      
+      // 예약 성공
+      router.push(`/reservations/${reservation.id}`);
+    } catch (error: any) {
+      setError(error.message || '예약 신청에 실패했습니다');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  const steps = [
-    { num: 1, label: '날짜', icon: Calendar },
-    { num: 2, label: '기기', icon: Gamepad2 },
-    { num: 3, label: '시간', icon: Clock },
-    { num: 4, label: '번호', icon: Hash },
-    { num: 5, label: '인원', icon: Users },
-    { num: 6, label: '확인', icon: Check }
-  ];
-
-  // 날짜를 더 예쁘게 표시하는 함수
+  
+  // 날짜 형식 변환
   const formatDateDisplay = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     return `${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`;
   };
-
-  // 날짜 선택을 위한 달력 데이터 생성
+  
+  // 시간 형식 변환
+  const formatTime = (time: string) => {
+    const [hour] = time.split(':');
+    const h = parseInt(hour);
+    return h >= 24 ? `익일 ${h - 24}시` : `${h}시`;
+  };
+  
+  // 날짜 선택을 위한 달력 데이터 생성 (마지막 주 일요일까지)
   const generateCalendarDays = () => {
     const today = new Date();
     const days = [];
     
-    for (let i = 0; i < 21; i++) {
+    // 3주 후 찾기
+    const threeWeeksLater = new Date(today);
+    threeWeeksLater.setDate(today.getDate() + 21);
+    
+    // 해당 주의 일요일 찾기
+    const daysUntilSunday = threeWeeksLater.getDay() === 0 ? 0 : 7 - threeWeeksLater.getDay();
+    const lastSunday = new Date(threeWeeksLater);
+    lastSunday.setDate(threeWeeksLater.getDate() + daysUntilSunday);
+    
+    // 오늘부터 마지막 일요일까지의 날짜 생성
+    const totalDays = Math.ceil((lastSunday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    for (let i = 0; i < totalDays; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       days.push(date);
@@ -151,23 +278,76 @@ export default function NewReservationPage() {
     
     return days;
   };
-
+  
   const calendarDays = generateCalendarDays();
-
+  
+  // 단계 정보
+  const steps = [
+    { num: 1, label: '날짜', icon: Calendar },
+    { num: 2, label: '기기', icon: Gamepad2 },
+    { num: 3, label: '시간', icon: Clock },
+    { num: 4, label: '번호', icon: Hash },
+    { num: 5, label: '크레딧', icon: Coins },
+    { num: 6, label: '인원', icon: Users },
+    { num: 7, label: '확인', icon: Check }
+  ];
+  
+  // 애니메이션 설정 - 모바일 앱처럼 자연스럽게
+  const pageAnimation = {
+    initial: { opacity: 1, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 1, x: -20 },
+    transition: { 
+      type: "spring",
+      stiffness: 500,
+      damping: 35,
+      mass: 0.8
+    }
+  };
+  
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-600 dark:text-gray-400" />
+      </div>
+    );
+  }
+  
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-lg mx-auto px-5 py-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-lg mx-auto px-5 py-6"
+      >
         {/* 헤더 */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
           <h1 className="text-2xl font-bold dark:text-white">예약하기</h1>
         </div>
-
+        
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </p>
+          </div>
+        )}
+        
         {/* 진행 단계 */}
         <div className="relative mb-8">
           <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-800" />
           <div 
             className="absolute top-5 left-0 h-0.5 bg-gray-900 dark:bg-white transition-all duration-300"
-            style={{ width: `${((currentStep - 1) / 5) * 100}%` }}
+            style={{ width: `${((currentStep - 1) / 6) * 100}%` }}
           />
           
           <div className="relative flex justify-between">
@@ -175,22 +355,17 @@ export default function NewReservationPage() {
               const Icon = step.icon;
               return (
                 <div key={step.num} className="flex flex-col items-center">
-                  <motion.div
-                    animate={{
-                      scale: currentStep === step.num ? 1.1 : 1,
-                    }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      currentStep >= step.num 
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' 
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400'
-                    }`}
-                  >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    currentStep >= step.num 
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' 
+                      : 'bg-gray-200 dark:bg-gray-800 text-gray-400'
+                  }`}>
                     {currentStep > step.num ? (
                       <Check className="w-5 h-5" />
                     ) : (
                       <Icon className="w-5 h-5" />
                     )}
-                  </motion.div>
+                  </div>
                   <span className={`mt-2 text-xs transition-colors ${
                     currentStep >= step.num 
                       ? 'text-gray-900 dark:text-white font-medium' 
@@ -203,425 +378,151 @@ export default function NewReservationPage() {
             })}
           </div>
         </div>
-
+        
         {/* 단계별 컨텐츠 */}
-        <AnimatePresence mode="wait">
+        <LayoutGroup>
+          <AnimatePresence mode="wait">
           {/* 1단계: 날짜 선택 */}
           {currentStep === 1 && (
-            <motion.div {...pageAnimation} key="step1">
+            <motion.div {...pageAnimation} key="step1" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold mb-6 dark:text-white">날짜 선택</h2>
                 
-                <div className="grid grid-cols-7 gap-2 mb-6">
+                {/* 요일 헤더 - 월요일부터 시작 */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
                   {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => (
-                    <div key={day} className={`text-center text-sm font-medium py-2 ${
-                      index === 5 ? 'text-blue-500' : index === 6 ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'
+                    <div key={day} className={`text-center text-xs font-medium py-2 ${
+                      index === 6 ? 'text-red-500' : index === 5 ? 'text-blue-500' : 'text-gray-600 dark:text-gray-400'
                     }`}>
                       {day}
                     </div>
                   ))}
-                  
-                  {/* 첫 번째 날짜가 시작되는 요일까지 빈 칸 추가 */}
-                  {calendarDays.length > 0 && Array.from({ length: (calendarDays[0].getDay() + 6) % 7 }).map((_, i) => (
+                </div>
+                
+                {/* 날짜 그리드 */}
+                <div className="grid grid-cols-7 gap-1">
+                  {/* 첫 주 빈 칸 채우기 - 월요일 시작 기준 */}
+                  {Array.from({ length: calendarDays[0].getDay() === 0 ? 6 : calendarDays[0].getDay() - 1 }, (_, i) => (
                     <div key={`empty-${i}`} />
                   ))}
                   
-                  {calendarDays.map((date, index) => {
-                    const dateString = date.toISOString().split('T')[0];
-                    const isToday = index === 0;
+                  {/* 날짜 버튼들 */}
+                  {calendarDays.map((date) => {
+                    const dateStr = date.toISOString().split('T')[0];
+                    const isSelected = selectedDate === dateStr;
+                    const isToday = new Date().toDateString() === date.toDateString();
                     const dayOfWeek = date.getDay();
                     
                     return (
-                      <motion.button
-                        key={dateString}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedDate(dateString || '')}
-                        className={`aspect-square rounded-lg flex flex-col items-center justify-center transition-all ${
-                          selectedDate === dateString
-                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      <button
+                        key={dateStr}
+                        onClick={() => {
+                          setSelectedDate(dateStr);
+                          setSelectedTimeSlot('');
+                          setSelectedDeviceNumber(null);
+                        }}
+                        className={`aspect-square p-2 rounded-lg border transition-all ${
+                          isSelected
+                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                             : isToday
-                              ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
                         <span className={`text-sm font-medium ${
-                          selectedDate === dateString 
-                            ? '' 
-                            : dayOfWeek === 0 ? 'text-red-500' : dayOfWeek === 6 ? 'text-blue-500' : 'text-gray-900 dark:text-gray-300'
+                          isSelected 
+                            ? 'text-white dark:text-gray-900' 
+                            : dayOfWeek === 0 
+                              ? 'text-red-500' 
+                              : dayOfWeek === 6 
+                                ? 'text-blue-500' 
+                                : 'text-gray-700 dark:text-gray-300'
                         }`}>
                           {date.getDate()}
                         </span>
-                        {isToday && (
-                          <span className={`text-xs ${
-                            selectedDate === dateString ? 'text-white/70 dark:text-gray-900/70' : 'text-gray-500'
-                          }`}>
-                            오늘
-                          </span>
-                        )}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
                 
-                {selectedDate && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6"
-                  >
-                    <p className="text-sm text-gray-600 dark:text-gray-400">선택한 날짜</p>
-                    <p className="font-medium dark:text-white">{formatDateDisplay(selectedDate)}</p>
-                  </motion.div>
-                )}
-                
-                <button 
-                  className={`w-full py-3.5 rounded-lg font-medium transition-all ${
-                    selectedDate
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  }`}
+                <button
                   onClick={() => selectedDate && setCurrentStep(2)}
                   disabled={!selectedDate}
+                  className="w-full mt-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                 >
                   다음
                 </button>
               </div>
             </motion.div>
           )}
-
+          
           {/* 2단계: 기기 선택 */}
           {currentStep === 2 && (
-            <motion.div {...pageAnimation} key="step2">
+            <motion.div {...pageAnimation} key="step2" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">게임기 선택</h2>
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">기기 선택</h2>
                 
-                <div className="space-y-3">
-                  {devices.map((device, index) => (
-                    <motion.button
-                      key={device.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={() => setSelectedDevice(device.id)}
-                      className={`w-full p-4 rounded-lg border text-left transition-all ${
-                        selectedDevice === device.id
-                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium dark:text-white">{device.name}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            {device.type === 'rhythm' ? '리듬게임' : '격투게임'}
-                            {device.supports2P && ' · 2인 가능'}
-                          </p>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          selectedDevice === device.id
-                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {selectedDevice === device.id && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-2 h-2 bg-white dark:bg-gray-900 rounded-full"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button 
-                    className="px-4 py-3.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setCurrentStep(1)}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button 
-                    className={`flex-1 py-3.5 rounded-lg font-medium transition-all ${
-                      selectedDevice
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    }`}
-                    onClick={() => selectedDevice && setCurrentStep(3)}
-                    disabled={!selectedDevice}
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* 3단계: 시간대 선택 */}
-          {currentStep === 3 && (
-            <motion.div {...pageAnimation} key="step3">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">시간 선택</h2>
-                
-                <div className="space-y-6">
-                  {/* 조기대여 */}
-                  {timeSlots.filter(s => s.type === 'early').length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">조기대여</h3>
-                      <div className="space-y-2">
-                        {timeSlots.filter(s => s.type === 'early').map((slot, index) => (
-                          <motion.button
-                            key={slot.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            onClick={() => slot.available && setSelectedTimeSlot(slot.id)}
-                            disabled={!slot.available}
-                            className={`w-full p-4 rounded-lg border transition-all ${
-                              selectedTimeSlot === slot.id
-                                ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                                : slot.available
-                                  ? 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                  : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed'
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div className="text-left">
-                                <div className="font-medium dark:text-white">{slot.time}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">
-                                  {slot.duration}시간
-                                  {slot.teenOnly && ' · 청소년 전용'}
-                                </div>
-                              </div>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                selectedTimeSlot === slot.id
-                                  ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white'
-                                  : 'border-gray-300 dark:border-gray-600'
-                              }`}>
-                                {selectedTimeSlot === slot.id && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 bg-white dark:bg-gray-900 rounded-full"
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* 밤샘대여 */}
-                  {timeSlots.filter(s => s.type === 'overnight').length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">밤샘대여</h3>
-                      <div className="space-y-2">
-                        {timeSlots.filter(s => s.type === 'overnight').map((slot, index) => (
-                          <motion.button
-                            key={slot.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            onClick={() => slot.available && setSelectedTimeSlot(slot.id)}
-                            disabled={!slot.available}
-                            className={`w-full p-4 rounded-lg border transition-all ${
-                              selectedTimeSlot === slot.id
-                                ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                                : slot.available
-                                  ? 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                  : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed'
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div className="text-left">
-                                <div className="font-medium dark:text-white">{slot.time}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">{slot.duration}시간</div>
-                              </div>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                selectedTimeSlot === slot.id
-                                  ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white'
-                                  : 'border-gray-300 dark:border-gray-600'
-                              }`}>
-                                {selectedTimeSlot === slot.id && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 bg-white dark:bg-gray-900 rounded-full"
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button 
-                    className="px-4 py-3.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setCurrentStep(2)}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button 
-                    className={`flex-1 py-3.5 rounded-lg font-medium transition-all ${
-                      selectedTimeSlot
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    }`}
-                    onClick={() => selectedTimeSlot && setCurrentStep(4)}
-                    disabled={!selectedTimeSlot}
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* 4단계: 기기 번호 선택 */}
-          {currentStep === 4 && (
-            <motion.div {...pageAnimation} key="step4">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">기기 번호 선택</h2>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {deviceNumbers.map((number, index) => (
-                    <motion.button
-                      key={number}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={() => setSelectedDeviceNumber(number)}
-                      className={`p-6 rounded-lg border transition-all ${
-                        selectedDeviceNumber === number
-                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="text-lg font-medium dark:text-white">{number}</div>
-                    </motion.button>
-                  ))}
-                </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button 
-                    className="px-4 py-3.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setCurrentStep(3)}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button 
-                    className={`flex-1 py-3.5 rounded-lg font-medium transition-all ${
-                      selectedDeviceNumber
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    }`}
-                    onClick={() => selectedDeviceNumber && setCurrentStep(5)}
-                    disabled={!selectedDeviceNumber}
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* 5단계: 인원 선택 */}
-          {currentStep === 5 && (
-            <motion.div {...pageAnimation} key="step5">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">이용 인원</h2>
-                
-                {selectedDeviceInfo?.supports2P ? (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setIs2Player(false)}
-                      className={`w-full p-4 rounded-lg border text-left transition-all ${
-                        !is2Player
-                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-medium dark:text-white">1인 플레이</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            기본 요금
-                          </div>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          !is2Player
-                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {!is2Player && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-2 h-2 bg-white dark:bg-gray-900 rounded-full"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setIs2Player(true)}
-                      className={`w-full p-4 rounded-lg border text-left transition-all ${
-                        is2Player
-                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-medium dark:text-white">2인 플레이</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            {selectedDeviceInfo.additionalPlayerRate}배 요금
-                          </div>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          is2Player
-                            ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {is2Player && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-2 h-2 bg-white dark:bg-gray-900 rounded-full"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </button>
+                {isLoadingDevices ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-600 dark:text-gray-400" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">기기 정보를 불러오는 중...</p>
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-500 dark:text-gray-400">
-                      이 게임은 1인 플레이만 가능합니다
-                    </p>
+                  <div className="space-y-3">
+                    {deviceTypes.map((device) => (
+                      <button
+                        key={device.id}
+                        onClick={() => {
+                          setSelectedDevice(device.id);
+                          setSelectedTimeSlot('');
+                          setSelectedDeviceNumber(null);
+                          setPlayerCount(1);
+                          setCreditOption('');
+                        }}
+                        disabled={device.active_device_count === 0}
+                        className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                          !device.active_device_count
+                            ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
+                            : selectedDevice === device.id
+                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium dark:text-white">{device.name}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {device.description}
+                            </p>
+                          </div>
+                          <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                            {device.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {device.active_device_count}/{device.total_device_count}대 이용 가능
+                          </p>
+                          <p className="text-sm font-medium dark:text-white">
+                            {device.base_price.toLocaleString()}원~
+                          </p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
                 
                 <div className="flex gap-3 mt-6">
-                  <button 
-                    className="px-4 py-3.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setCurrentStep(4)}
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    이전
                   </button>
-                  <button 
-                    className="flex-1 py-3.5 rounded-lg font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
-                    onClick={() => setCurrentStep(6)}
+                  <button
+                    onClick={() => selectedDevice && setCurrentStep(3)}
+                    disabled={!selectedDevice}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     다음
                   </button>
@@ -629,101 +530,378 @@ export default function NewReservationPage() {
               </div>
             </motion.div>
           )}
-
-          {/* 6단계: 예약 확인 */}
-          {currentStep === 6 && (
-            <motion.div {...pageAnimation} key="step6">
+          
+          {/* 3단계: 시간대 선택 */}
+          {currentStep === 3 && (
+            <motion.div {...pageAnimation} key="step3" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">예약 확인</h2>
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">시간대 선택</h2>
                 
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-gray-500 dark:text-gray-400">날짜</span>
-                    <span className="font-medium dark:text-white">{formatDateDisplay(selectedDate)}</span>
+                {isLoadingSlots ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-600 dark:text-gray-400" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">시간대를 확인하는 중...</p>
                   </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-gray-500 dark:text-gray-400">시간</span>
-                    <span className="font-medium dark:text-white">{selectedTimeSlotInfo?.time}</span>
+                ) : timeSlots.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 dark:text-gray-400">예약 가능한 시간대가 없습니다</p>
                   </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-gray-500 dark:text-gray-400">게임</span>
-                    <span className="font-medium dark:text-white">{selectedDeviceInfo?.name}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-gray-500 dark:text-gray-400">기기</span>
-                    <span className="font-medium dark:text-white">{selectedDeviceNumber}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-gray-500 dark:text-gray-400">인원</span>
-                    <span className="font-medium dark:text-white">{is2Player ? '2명' : '1명'}</span>
-                  </div>
-                  <div className="flex justify-between py-4">
-                    <span className="font-medium dark:text-white">총 금액</span>
-                    <span className="text-xl font-bold dark:text-white">{totalPrice.toLocaleString()}원</span>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:ring-white"
-                      checked={agreed}
-                      onChange={(e) => setAgreed(e.target.checked)}
-                    />
-                    <div className="flex-1">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        예약 규정 및 취소 정책에 동의합니다
-                      </span>
+                ) : (
+                  <div className="space-y-3">
+                    {timeSlots.map((slot) => (
                       <button
-                        type="button"
-                        onClick={() => setShowPolicy(!showPolicy)}
-                        className="text-sm text-gray-500 dark:text-gray-400 underline ml-2"
+                        key={slot.id}
+                        onClick={() => {
+                          if (slot.is_available) {
+                            setSelectedTimeSlot(slot.id);
+                            setSelectedDeviceNumber(null);
+                          }
+                        }}
+                        disabled={!slot.is_available}
+                        className={`w-full p-4 rounded-lg border-2 transition-all ${
+                          !slot.is_available
+                            ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
+                            : selectedTimeSlot === slot.id
+                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
                       >
-                        자세히 보기
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h3 className="font-medium dark:text-white">
+                              {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {slot.available_devices.length}대 예약 가능
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium dark:text-white">
+                              {(slot.price || selectedDeviceInfo?.base_price || 0).toLocaleString()}원
+                            </p>
+                          </div>
+                        </div>
                       </button>
-                    </div>
-                  </label>
-                  
-                  {showPolicy && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 space-y-2"
-                    >
-                      <p>• 예약 시간 10분 전까지 도착해주세요</p>
-                      <p>• 예약 취소는 이용 2시간 전까지 가능합니다</p>
-                      <p>• 노쇼(No-show) 시 다음 예약이 제한될 수 있습니다</p>
-                      <p>• 게임기 파손 시 손해배상 책임이 있습니다</p>
-                      <p>• 타인에게 예약을 양도할 수 없습니다</p>
-                    </motion.div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
                 
-                <div className="flex gap-3">
-                  <button 
-                    className="px-4 py-3.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setCurrentStep(5)}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    이전
                   </button>
-                  <button 
-                    className={`flex-1 py-3.5 rounded-lg font-medium transition-all ${
-                      agreed
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    }`}
-                    disabled={!agreed}
+                  <button
+                    onClick={() => selectedTimeSlot && setCurrentStep(4)}
+                    disabled={!selectedTimeSlot}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
-                    예약하기
+                    다음
                   </button>
                 </div>
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+          
+          {/* 4단계: 기기 번호 선택 */}
+          {currentStep === 4 && (
+            <motion.div {...pageAnimation} key="step4" layout layoutId="content">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">기기 번호 선택</h2>
+                
+                {selectedTimeSlotInfo && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedTimeSlotInfo.available_devices.map((deviceNum) => (
+                      <button
+                        key={deviceNum}
+                        onClick={() => setSelectedDeviceNumber(deviceNum)}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          selectedDeviceNumber === deviceNum
+                            ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <h3 className="font-medium dark:text-white">{deviceNum}번기</h3>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    이전
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedDeviceNumber !== null) {
+                        setCurrentStep(5);
+                      }
+                    }}
+                    disabled={selectedDeviceNumber === null}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* 5단계: 크레딧 옵션 선택 */}
+          {currentStep === 5 && (
+            <motion.div {...pageAnimation} key="step5" layout layoutId="content">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">크레딧 옵션</h2>
+                
+                {selectedDeviceInfo && (
+                  <div className="space-y-3 mb-6">
+                    {/* SEGA 게임 크레딧 옵션 */}
+                    {selectedDeviceInfo.name.includes('마이마이') || selectedDeviceInfo.name.includes('츄니즘') ? (
+                      <>
+                        <button
+                          onClick={() => setCreditOption('freeplay')}
+                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                            creditOption === 'freeplay'
+                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <h3 className="font-medium dark:text-white">프리플레이</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            시간 내 무제한 플레이
+                          </p>
+                          <p className="text-sm font-medium mt-2 dark:text-white">
+                            기본 요금
+                          </p>
+                        </button>
+                        
+                        <button
+                          onClick={() => setCreditOption('unlimited')}
+                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                            creditOption === 'unlimited'
+                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <h3 className="font-medium dark:text-white">무한크레딧</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            크레딧 제한 없이 플레이 (세이브 가능)
+                          </p>
+                          <p className="text-sm font-medium mt-2 dark:text-white">
+                            +10,000원
+                          </p>
+                        </button>
+                      </>
+                    ) : (
+                      // KONAMI 게임 크레딧 옵션
+                      <button
+                        onClick={() => setCreditOption('fixed')}
+                        className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                          creditOption === 'fixed'
+                            ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <h3 className="font-medium dark:text-white">고정크레딧</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          시간당 20크레딧 제공
+                        </p>
+                        <p className="text-sm font-medium mt-2 dark:text-white">
+                          기본 요금
+                        </p>
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setCurrentStep(4)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    이전
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (creditOption) {
+                        // 2인 옵션이 없는 기기는 7단계로 바로 이동
+                        if (selectedDeviceInfo?.max_players === 1) {
+                          setCurrentStep(7);
+                        } else {
+                          setCurrentStep(6);
+                        }
+                      }
+                    }}
+                    disabled={!creditOption}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* 6단계: 인원 선택 (마이마이만) */}
+          {currentStep === 6 && (
+            <motion.div {...pageAnimation} key="step6" layout layoutId="content">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">인원 선택</h2>
+                
+                {selectedDeviceInfo?.max_players > 1 ? (
+                  <div className="space-y-3 mb-6">
+                    <button
+                      onClick={() => setPlayerCount(1)}
+                      className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                        playerCount === 1
+                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <h3 className="font-medium dark:text-white">1인 플레이</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">기본 요금</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setPlayerCount(2)}
+                      className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                        playerCount === 2
+                          ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <h3 className="font-medium dark:text-white">2인 플레이</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        +{Math.round((selectedDeviceInfo.price_multiplier_2p - 1) * 100)}% 추가 요금
+                      </p>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6">
+                    <p className="text-gray-600 dark:text-gray-400">이 기기는 1인 플레이만 가능합니다</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setCurrentStep(5)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    이전
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep(7)}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* 7단계: 최종 확인 */}
+          {currentStep === 7 && (
+            <motion.div {...pageAnimation} key="step7" layout layoutId="content">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
+                <h2 className="text-lg font-semibold mb-6 dark:text-white">예약 확인</h2>
+                
+                <div className="space-y-4 mb-6">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">날짜</p>
+                    <p className="font-medium dark:text-white">{formatDateDisplay(selectedDate)}</p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">기기</p>
+                    <p className="font-medium dark:text-white">
+                      {selectedDeviceInfo?.name} {selectedDeviceNumber}번기
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">시간</p>
+                    <p className="font-medium dark:text-white">
+                      {selectedTimeSlotInfo && (
+                        `${formatTime(selectedTimeSlotInfo.start_time)} - ${formatTime(selectedTimeSlotInfo.end_time)}`
+                      )}
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">크레딧 옵션</p>
+                    <p className="font-medium dark:text-white">
+                      {creditOption === 'freeplay' && '프리플레이'}
+                      {creditOption === 'unlimited' && '무한크레딧 (+10,000원)'}
+                      {creditOption === 'fixed' && '고정크레딧'}
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">인원</p>
+                    <p className="font-medium dark:text-white">{playerCount}인</p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg">
+                    <p className="text-sm opacity-80 mb-1">총 금액</p>
+                    <p className="text-xl font-bold">{totalPrice.toLocaleString()}원</p>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      예약 규칙을 확인했으며, 노쇼 시 패널티가 부과됨을 동의합니다
+                    </span>
+                  </label>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      // 2인 옵션이 없는 기기는 5단계로 바로 이동
+                      if (selectedDeviceInfo?.max_players === 1) {
+                        setCurrentStep(5);
+                      } else {
+                        setCurrentStep(6);
+                      }
+                    }}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    이전
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!agreed || isSubmitting}
+                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        예약 중...
+                      </>
+                    ) : (
+                      '예약하기'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+            </AnimatePresence>
+        </LayoutGroup>
+      </motion.div>
     </main>
   );
 }

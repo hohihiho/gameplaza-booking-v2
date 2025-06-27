@@ -1,0 +1,1921 @@
+// 기기 관리 페이지
+// 비전공자 설명: 관리자가 카테고리, 기종, 개별 기기를 관리하는 페이지입니다
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Gamepad2,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  CheckCircle,
+  XCircle,
+  Wrench,
+  DollarSign,
+  Hash,
+  Building2,
+  Package,
+  GripVertical
+} from 'lucide-react';
+import Link from 'next/link';
+
+// 타입 정의
+type Category = {
+  id: string;
+  name: string;
+  display_order: number;
+};
+
+type DeviceType = {
+  id: string;
+  name: string;
+  category_id: string;
+  description?: string;
+  display_order?: number;
+  play_modes: {
+    name: string;
+    price: number;
+  }[];
+  is_rentable: boolean;
+  rental_settings?: {
+    base_price: number;
+    credit_types: ('fixed' | 'freeplay' | 'unlimited')[];
+    fixed_credits?: number;
+    max_players: number;
+    price_multiplier_2p?: number;
+  };
+  device_count: number;
+  active_count: number;
+};
+
+type Device = {
+  id: string;
+  device_type_id: string;
+  device_number: number;
+  status: 'available' | 'in_use' | 'maintenance' | 'unavailable';
+  notes?: string;
+  last_maintenance?: string;
+};
+
+// 기종 카드 컴포넌트
+function DeviceTypeCard({ 
+  deviceType, 
+  index, 
+  totalCount,
+  onEdit, 
+  onDelete, 
+  onClick, 
+  onMoveUp,
+  onMoveDown,
+  _isMobile = false,
+  isDragOver = false,
+  isDragging = false,
+  handleDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop
+}: {
+  deviceType: DeviceType;
+  index: number;
+  totalCount: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  isMobile?: boolean;
+  isDragOver?: boolean;
+  isDragging?: boolean;
+  handleDragStart?: (e: React.DragEvent, index: number) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
+}) {
+  return (
+    <motion.div
+      draggable="false"
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.drag-handle') || target.closest('button')) {
+          return;
+        }
+        onClick();
+      }}
+      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all cursor-pointer ${
+        isDragging ? 'opacity-50' : ''
+      } ${
+        isDragOver ? 'ring-2 ring-blue-500' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold dark:text-white">{deviceType.name}</h3>
+          {deviceType.description && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">{deviceType.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* 모바일용 화살표 버튼 */}
+          <div className="flex md:hidden flex-col gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveUp?.();
+              }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+              disabled={index === 0}
+            >
+              <ChevronUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveDown?.();
+              }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+              disabled={index === totalCount - 1}
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+          {/* 데스크톱용 드래그 핸들 */}
+          <div className="hidden md:flex items-center gap-2">
+            <div 
+              className="drag-handle cursor-move p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+              title="드래그하여 순서 변경"
+              draggable="true"
+              onDragStart={(e) => handleDragStart(e, index)}
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+              </svg>
+            </div>
+          </div>
+          <Gamepad2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        </div>
+      </div>
+      
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+          <Hash className="w-4 h-4" />
+          <span>
+            보유: {deviceType.device_count || 0}대 / 
+            활성: {deviceType.active_count || 0}대
+          </span>
+        </div>
+        {deviceType.play_modes.length > 0 && (
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+            <DollarSign className="w-4 h-4" />
+            <span className="truncate">
+              {deviceType.play_modes.map(mode => `${mode.name}: ${mode.price.toLocaleString()}원`).join(', ')}
+            </span>
+          </div>
+        )}
+        {deviceType.is_rentable && (
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+            <Package className="w-4 h-4" />
+            <span>대여 가능</span>
+          </div>
+        )}
+      </div>
+      
+      {/* 분리된 액션 버튼들 */}
+      <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+        >
+          <Edit className="w-4 h-4 mx-auto" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+        >
+          <Trash2 className="w-4 h-4 mx-auto" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// 카테고리 카드 컴포넌트
+function CategoryCard({ 
+  category, 
+  index,
+  deviceCount, 
+  onEdit, 
+  onDelete, 
+  onClick, 
+  isDragOver = false,
+  isDragging = false,
+  handleDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop
+}: {
+  category: Category;
+  index: number;
+  deviceCount: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+  isDragOver?: boolean;
+  isDragging?: boolean;
+  handleDragStart?: (e: React.DragEvent, index: number) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
+}) {
+  return (
+    <motion.div
+      draggable="false"
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.drag-handle') || target.closest('button')) {
+          return;
+        }
+        onClick();
+      }}
+      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all cursor-pointer ${
+        isDragging ? 'opacity-50' : ''
+      } ${
+        isDragOver ? 'ring-2 ring-blue-500' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold dark:text-white">{category.name}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">카테고리</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
+            <div 
+              className="drag-handle cursor-move p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+              title="드래그하여 순서 변경"
+              draggable="true"
+              onDragStart={(e) => handleDragStart(e, index)}
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+              </svg>
+            </div>
+          </div>
+          <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        </div>
+      </div>
+      
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+          <Gamepad2 className="w-4 h-4" />
+          <span>{deviceCount}개 기종 보유</span>
+        </div>
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+          <Hash className="w-4 h-4" />
+          <span>표시 순서: {category.display_order}</span>
+        </div>
+      </div>
+      
+      {/* 분리된 액션 버튼들 */}
+      <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+        >
+          <Edit className="w-4 h-4 mx-auto" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+        >
+          <Trash2 className="w-4 h-4 mx-auto" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+export default function DeviceManagementPage() {
+  const [view, setView] = useState<'categories' | 'types' | 'devices'>('categories');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedDeviceType, setSelectedDeviceType] = useState<DeviceType | null>(null);
+  
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isEditingCategory, setIsEditingCategory] = useState<string | null>(null);
+  const [isAddingType, setIsAddingType] = useState(false);
+  const [isEditingType, setIsEditingType] = useState<string | null>(null);
+  const [_isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [lastLoadedTypeId, setLastLoadedTypeId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [draggedCategoryIndex, setDraggedCategoryIndex] = useState<number | null>(null);
+  const [dragOverCategoryIndex, setDragOverCategoryIndex] = useState<number | null>(null);
+  const [draggedTypeIndex, setDraggedTypeIndex] = useState<number | null>(null);
+  const [dragOverTypeIndex, setDragOverTypeIndex] = useState<number | null>(null);
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+
+  // 카테고리 드래그 앤 드롭 핸들러
+  const handleCategoryDragStart = (e: React.DragEvent, index: number) => {
+    // 드래그 핸들에서만 드래그 허용
+    const target = e.target as HTMLElement;
+    if (!target.closest('.drag-handle')) {
+      e.preventDefault();
+      return;
+    }
+    console.log('Category drag start:', index);
+    setDraggedCategoryIndex(index);
+  };
+
+  const handleCategoryDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverCategoryIndex(index);
+  };
+
+  const handleCategoryDragLeave = () => {
+    setDragOverCategoryIndex(null);
+  };
+
+  const handleCategoryDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    console.log('Category drop:', draggedCategoryIndex, '->', dropIndex);
+    
+    if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex || isUpdatingOrder) {
+      setDraggedCategoryIndex(null);
+      setDragOverCategoryIndex(null);
+      return;
+    }
+
+    const updatedCategories = [...categories];
+    const [draggedItem] = updatedCategories.splice(draggedCategoryIndex, 1);
+    updatedCategories.splice(dropIndex, 0, draggedItem);
+
+    // display_order 업데이트
+    updatedCategories.forEach((category, idx) => {
+      category.display_order = idx + 1;
+    });
+
+    setCategories(updatedCategories);
+    setDraggedCategoryIndex(null);
+    setDragOverCategoryIndex(null);
+
+    // 서버 업데이트
+    setIsUpdatingOrder(true);
+    try {
+      const response = await fetch('/api/admin/devices/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categories: updatedCategories.map(cat => ({
+            id: cat.id,
+            display_order: cat.display_order
+          }))
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update category order');
+    } catch (error) {
+      console.error('Error updating category order:', error);
+      // 실패 시 원래 상태로 되돌리기 (단순히 이전 상태 유지)
+      setCategories(categories);
+      alert('카테고리 순서 변경에 실패했습니다.');
+    } finally {
+      setIsUpdatingOrder(false);
+    }
+  };
+
+  // 기종 드래그 앤 드롭 핸들러
+  const handleTypeDragStart = (e: React.DragEvent, index: number) => {
+    // 드래그 핸들에서만 드래그 허용
+    const target = e.target as HTMLElement;
+    if (!target.closest('.drag-handle')) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedTypeIndex(index);
+  };
+
+  const handleTypeDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverTypeIndex(index);
+  };
+
+  const handleTypeDragLeave = () => {
+    setDragOverTypeIndex(null);
+  };
+
+  const handleTypeDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedTypeIndex === null || draggedTypeIndex === dropIndex) {
+      setDraggedTypeIndex(null);
+      setDragOverTypeIndex(null);
+      return;
+    }
+
+    const categoryTypes = deviceTypes
+      .filter(t => t.category_id === selectedCategory?.id)
+      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+
+    const updatedTypes = [...categoryTypes];
+    const [draggedItem] = updatedTypes.splice(draggedTypeIndex, 1);
+    updatedTypes.splice(dropIndex, 0, draggedItem);
+
+    // display_order 업데이트
+    updatedTypes.forEach((type, idx) => {
+      type.display_order = idx + 1;
+    });
+
+    // 전체 deviceTypes 업데이트
+    const allUpdatedTypes = deviceTypes.map(t => {
+      const updated = updatedTypes.find(ut => ut.id === t.id);
+      return updated || t;
+    });
+
+    setDeviceTypes(allUpdatedTypes);
+    setDraggedTypeIndex(null);
+    setDragOverTypeIndex(null);
+
+    // 서버 업데이트
+    try {
+      for (const type of updatedTypes) {
+        await fetch('/api/admin/devices/types', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: type.id,
+            display_order: type.display_order
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error updating type order:', error);
+    }
+  };
+
+
+  // 모바일 감지 및 드래그 이벤트 디버깅
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 데이터 로딩
+  useEffect(() => {
+    loadCategories();
+    loadDeviceTypes();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/devices/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadDeviceTypes = async () => {
+    try {
+      const response = await fetch('/api/admin/devices/types');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(`Failed to fetch device types: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setDeviceTypes(data || []);
+    } catch (error) {
+      console.error('Error loading device types:', error);
+      // 빈 배열로 설정하여 UI가 깨지지 않도록 함
+      setDeviceTypes([]);
+    }
+  };
+
+  const loadDevices = useCallback(async (deviceTypeId: string) => {
+    setIsLoadingDevices(true);
+    try {
+      const response = await fetch(`/api/admin/devices?deviceTypeId=${deviceTypeId}`);
+      if (!response.ok) throw new Error('Failed to fetch devices');
+      const data = await response.json();
+      setDevices(data);
+    } catch (error) {
+      console.error('Error loading devices:', error);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  }, []);
+
+  // 개별 기기 로딩 - view와 selectedDeviceType 변경 시
+  useEffect(() => {
+    if (view === 'devices' && selectedDeviceType?.id && selectedDeviceType.id !== lastLoadedTypeId) {
+      // Loading devices for selectedDeviceType
+      setLastLoadedTypeId(selectedDeviceType.id);
+      loadDevices(selectedDeviceType.id);
+    }
+  }, [view, selectedDeviceType?.id, lastLoadedTypeId, loadDevices]); // loadDevices는 useCallback으로 메모이제이션되어 있으므로 제외
+
+  // 카테고리 관리 뷰
+  const CategoriesView = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold dark:text-white">카테고리 관리</h2>
+          <button
+          onClick={() => setIsAddingCategory(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          카테고리 추가
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 카테고리 추가 폼 */}
+            {isAddingCategory && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4"
+              >
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const name = formData.get('name') as string;
+                  
+                  try {
+                    const response = await fetch('/api/admin/devices/categories', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        name,
+                        display_order: categories.length + 1
+                      })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to create category');
+                    
+                    loadCategories();
+                    setIsAddingCategory(false);
+                  } catch (error) {
+                    console.error('Error creating category:', error);
+                    alert('카테고리 추가에 실패했습니다.');
+                  }
+                }}>
+                  <input
+                    name="name"
+                    type="text"
+                    placeholder="카테고리 이름"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                    required
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      <Save className="w-4 h-4 mx-auto" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingCategory(false)}
+                      className="flex-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4 mx-auto" />
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+            
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                draggable="false"
+                onDragOver={(e) => handleCategoryDragOver(e, index)}
+                onDragLeave={handleCategoryDragLeave}
+                onDrop={(e) => handleCategoryDrop(e, index)}
+                className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 ${
+                  isEditingCategory === category.id ? 'p-4' : 'p-6 hover:shadow-lg cursor-pointer'
+                } transition-all ${
+                  draggedCategoryIndex === index ? 'opacity-50' : ''
+                } ${
+                  dragOverCategoryIndex === index ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={(e) => {
+                  if (isEditingCategory === category.id) return;
+                  // 드래그 핸들이나 버튼 클릭시 선택 방지
+                  const target = e.target as HTMLElement;
+                  if (!target.closest('.drag-handle') && !target.closest('button')) {
+                    setSelectedCategory(category);
+                    setView('types');
+                  }
+                }}
+                >
+                  {isEditingCategory === category.id ? (
+                    // 편집 모드
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const name = formData.get('name') as string;
+                      
+                      try {
+                        const response = await fetch('/api/admin/devices/categories', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ id: category.id, name })
+                        });
+                        
+                        if (!response.ok) throw new Error('Failed to update category');
+                        
+                        setCategories(categories.map(c => 
+                          c.id === category.id ? { ...c, name } : c
+                        ));
+                        setIsEditingCategory(null);
+                      } catch (error) {
+                        console.error('Error updating category:', error);
+                        alert('카테고리 수정에 실패했습니다.');
+                      }
+                    }}>
+                      <input
+                        name="name"
+                        type="text"
+                        defaultValue={category.name}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                        required
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                        >
+                          <Save className="w-4 h-4 mx-auto" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingCategory(null)}
+                          className="flex-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 mx-auto" />
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    // 일반 모드
+                    <>
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold dark:text-white">{category.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">카테고리</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* 모바일용 화살표 버튼 */}
+                          <div className="flex md:hidden flex-col gap-1">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const currentOrder = category.display_order ?? index;
+                            const newOrder = Math.max(0, currentOrder - 1);
+                            
+                            // 순서 업데이트
+                            const updatedCategories = [...categories];
+                            const currentIndex = updatedCategories.findIndex(c => c.id === category.id);
+                            if (currentIndex > 0) {
+                              [updatedCategories[currentIndex - 1], updatedCategories[currentIndex]] = 
+                              [updatedCategories[currentIndex], updatedCategories[currentIndex - 1]];
+                              
+                              // 각 카테고리의 순서 업데이트
+                              updatedCategories.forEach((c, idx) => {
+                                c.display_order = idx + 1;
+                              });
+                              
+                              setCategories(updatedCategories);
+                              
+                              // API 호출로 순서 저장
+                              try {
+                                await fetch('/api/admin/devices/categories', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    categories: updatedCategories.map(cat => ({
+                                      id: cat.id,
+                                      display_order: cat.display_order
+                                    }))
+                                  })
+                                });
+                              } catch (error) {
+                                console.error('Error updating order:', error);
+                              }
+                            }
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const currentOrder = category.display_order ?? index;
+                            const newOrder = currentOrder + 1;
+                            
+                            // 순서 업데이트
+                            const updatedCategories = [...categories];
+                            const currentIndex = updatedCategories.findIndex(c => c.id === category.id);
+                            if (currentIndex < updatedCategories.length - 1) {
+                              [updatedCategories[currentIndex], updatedCategories[currentIndex + 1]] = 
+                              [updatedCategories[currentIndex + 1], updatedCategories[currentIndex]];
+                              
+                              // 각 카테고리의 순서 업데이트
+                              updatedCategories.forEach((c, idx) => {
+                                c.display_order = idx + 1;
+                              });
+                              
+                              setCategories(updatedCategories);
+                              
+                              // API 호출로 순서 저장
+                              try {
+                                await fetch('/api/admin/devices/categories', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    categories: updatedCategories.map(cat => ({
+                                      id: cat.id,
+                                      display_order: cat.display_order
+                                    }))
+                                  })
+                                });
+                              } catch (error) {
+                                console.error('Error updating order:', error);
+                              }
+                            }
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                          disabled={index === categories.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* 데스크톱용 드래그 핸들 */}
+                      <div className="hidden md:flex items-center gap-2">
+                        <div 
+                          className="drag-handle cursor-move p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+                          title="드래그하여 순서 변경"
+                          draggable="true"
+                          onDragStart={(e) => handleCategoryDragStart(e, index)}
+                        >
+                          <GripVertical className="w-5 h-5 text-gray-400" />
+                        </div>
+                      </div>
+                      <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                          <Gamepad2 className="w-4 h-4" />
+                          <span>{deviceTypes.filter(t => t.category_id === category.id).length}개 기종</span>
+                        </div>
+                      </div>
+                      
+                      {/* 분리된 액션 버튼들 */}
+                      <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditingCategory(category.id);
+                          }}
+                          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4 mx-auto" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+                              try {
+                                const response = await fetch(`/api/admin/devices/categories/${category.id}`, {
+                                  method: 'DELETE'
+                                });
+                                
+                                if (!response.ok) throw new Error('Failed to delete category');
+                                
+                                loadCategories();
+                              } catch (error) {
+                                console.error('Error deleting category:', error);
+                                alert('카테고리 삭제에 실패했습니다.');
+                              }
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 mx-auto" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+            ))}
+        </div>
+
+        {/* 드래그 앤 드롭 안내 */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <GripVertical className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                순서 변경하기
+              </h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                카테고리 카드의 드래그 핸들(⋮⋮)을 잡고 드래그하여 순서를 변경할 수 있습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 기종 관리 뷰
+  const DeviceTypesView = () => {
+    const categoryTypes = deviceTypes
+      .filter(t => t.category_id === selectedCategory?.id)
+      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setView('categories');
+                setSelectedCategory(null);
+              }}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h2 className="text-lg font-semibold dark:text-white">
+              {selectedCategory?.name} 기종 관리
+            </h2>
+          </div>
+          <button
+            onClick={() => {
+              if (!selectedCategory?.id) {
+                alert('카테고리를 먼저 선택해주세요.');
+                return;
+              }
+              setIsAddingType(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            기종 추가
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 기종 추가 폼 */}
+          {isAddingType && (
+            <div
+              className="bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 col-span-full"
+            >
+              <TypeAddForm
+                categoryId={selectedCategory?.id || ''}
+                onSubmit={async (data) => {
+                  try {
+                    const response = await fetch('/api/admin/devices/types', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to create device type');
+                    
+                    loadDeviceTypes();
+                    setIsAddingType(false);
+                  } catch (error) {
+                    console.error('Error creating device type:', error);
+                    alert('기종 추가에 실패했습니다.');
+                  }
+                }}
+                onCancel={() => setIsAddingType(false)}
+              />
+            </div>
+          )}
+          
+          {categoryTypes.map((type, index) => (
+            <motion.div
+              key={type.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              draggable="false"
+              onDragOver={(e) => handleTypeDragOver(e, index)}
+              onDragLeave={handleTypeDragLeave}
+              onDrop={(e) => handleTypeDrop(e, index)}
+              className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 ${
+                isEditingType === type.id ? 'p-4 col-span-full' : 'p-6 hover:shadow-lg cursor-pointer'
+              } transition-all ${
+                draggedTypeIndex === index ? 'opacity-50' : ''
+              } ${
+                dragOverTypeIndex === index ? 'ring-2 ring-blue-500' : ''
+              }`}
+              onClick={(e) => {
+                if (isEditingType === type.id) return;
+                const target = e.target as HTMLElement;
+                if (!target.closest('.drag-handle') && !target.closest('button')) {
+                  setSelectedDeviceType(type);
+                  setView('devices');
+                }
+              }}
+            >
+              {isEditingType === type.id ? (
+                <TypeEditForm
+                  type={type}
+                  onSubmit={async (data) => {
+                    try {
+                      // 기종 정보 업데이트
+                      const response = await fetch('/api/admin/devices/types', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                          id: type.id, 
+                          name: data.name, 
+                          description: data.description 
+                        })
+                      });
+                      
+                      if (!response.ok) throw new Error('Failed to update device type');
+                      
+                      // 플레이 모드 업데이트
+                      if (data.play_modes) {
+                        const modesResponse = await fetch(`/api/admin/devices/types/${type.id}/play-modes`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ play_modes: data.play_modes })
+                        });
+                        
+                        if (!modesResponse.ok) {
+                          console.error('Failed to update play modes');
+                        }
+                      }
+                      
+                      // 보유대수 조정
+                      if (data.target_device_count !== undefined && data.target_device_count !== type.device_count) {
+                        const diff = data.target_device_count - type.device_count;
+                        
+                        if (diff > 0) {
+                          // 기기 추가
+                          const devicesData = Array.from({ length: diff }, (_, index) => ({
+                            device_type_id: type.id,
+                            device_number: type.device_count + index + 1
+                          }));
+                          
+                          for (const device of devicesData) {
+                            await fetch('/api/admin/devices', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(device)
+                            });
+                          }
+                        } else {
+                          // 기기 삭제 (마지막 번호부터)
+                          const devicesResponse = await fetch(`/api/admin/devices?deviceTypeId=${type.id}`);
+                          const devices = await devicesResponse.json();
+                          
+                          // available 상태인 기기만 삭제 가능, 높은 번호부터
+                          const deletableDevices = devices
+                            .filter((d: Device) => d.status === 'available')
+                            .sort((a: Device, b: Device) => b.device_number - a.device_number)
+                            .slice(0, Math.abs(diff));
+                          
+                          for (const device of deletableDevices) {
+                            await fetch(`/api/admin/devices/${device.id}`, {
+                              method: 'DELETE'
+                            });
+                          }
+                        }
+                      }
+                      
+                      loadDeviceTypes();
+                      setIsEditingType(null);
+                    } catch (error) {
+                      console.error('Error updating device type:', error);
+                      alert('기종 수정에 실패했습니다.');
+                    }
+                  }}
+                  onCancel={() => setIsEditingType(null)}
+                />
+              ) : (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold dark:text-white">{type.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{type.description || '설명 없음'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* 모바일용 화살표 버튼 */}
+                      <div className="flex md:hidden flex-col gap-1">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (index === 0) return;
+                            
+                            const updatedTypes = [...categoryTypes];
+                            const current = updatedTypes[index];
+                            const prev = updatedTypes[index - 1];
+                            if (current && prev) {
+                              updatedTypes[index] = prev;
+                              updatedTypes[index - 1] = current;
+                            }
+                            
+                            updatedTypes.forEach((t, idx) => {
+                              t.display_order = idx + 1;
+                            });
+                            
+                            const allUpdatedTypes = deviceTypes.map(t => {
+                              const updated = updatedTypes.find(ut => ut.id === t.id);
+                              return updated || t;
+                            });
+                            
+                            setDeviceTypes(allUpdatedTypes);
+                            
+                            try {
+                              for (const type of updatedTypes) {
+                                await fetch('/api/admin/devices/types', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    id: type.id,
+                                    display_order: type.display_order
+                                  })
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error updating order:', error);
+                            }
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (index === categoryTypes.length - 1) return;
+                            
+                            const updatedTypes = [...categoryTypes];
+                            const current = updatedTypes[index];
+                            const next = updatedTypes[index + 1];
+                            if (current && next) {
+                              updatedTypes[index] = next;
+                              updatedTypes[index + 1] = current;
+                            }
+                            
+                            updatedTypes.forEach((t, idx) => {
+                              t.display_order = idx + 1;
+                            });
+                            
+                            const allUpdatedTypes = deviceTypes.map(t => {
+                              const updated = updatedTypes.find(ut => ut.id === t.id);
+                              return updated || t;
+                            });
+                            
+                            setDeviceTypes(allUpdatedTypes);
+                            
+                            try {
+                              for (const type of updatedTypes) {
+                                await fetch('/api/admin/devices/types', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    id: type.id,
+                                    display_order: type.display_order
+                                  })
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error updating order:', error);
+                            }
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                          disabled={index === categoryTypes.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* 데스크톱용 드래그 핸들 */}
+                      <div className="hidden md:flex items-center gap-2">
+                        <div 
+                          className="drag-handle cursor-move p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+                          title="드래그하여 순서 변경"
+                          draggable="true"
+                          onDragStart={(e) => handleTypeDragStart(e, index)}
+                        >
+                          <GripVertical className="w-5 h-5 text-gray-400" />
+                        </div>
+                      </div>
+                      <Package className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Hash className="w-4 h-4" />
+                      <span>보유: {type.device_count || 0}대 / 활성: {type.active_count || 0}대</span>
+                    </div>
+                    {type.is_rentable && (
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>대여 가능</span>
+                      </div>
+                    )}
+                    {type.play_modes && type.play_modes.length > 0 && (
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <DollarSign className="w-4 h-4" />
+                        <span>{type.play_modes.map(m => `${m.name}: ${m.price.toLocaleString()}원`).join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingType(type.id);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4 mx-auto" />
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm('이 기종을 삭제하시겠습니까?')) {
+                          try {
+                            const response = await fetch(`/api/admin/devices/types/${type.id}`, {
+                              method: 'DELETE'
+                            });
+                            
+                            if (!response.ok) throw new Error('Failed to delete device type');
+                            
+                            loadDeviceTypes();
+                          } catch (error) {
+                            console.error('Error deleting device type:', error);
+                            alert('기종 삭제에 실패했습니다.');
+                          }
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 mx-auto" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* 드래그 앤 드롭 안내 */}
+        {!isMobile && categoryTypes.length > 1 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <GripVertical className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                  순서 변경하기
+                </h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  기종 카드의 드래그 핸들(⋮⋮)을 잡고 드래그하여 순서를 변경할 수 있습니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 개별 기기 상태 뷰
+  const DevicesView = () => {
+    const typeDevices = devices.filter(d => d.device_type_id === selectedDeviceType?.id);
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setView('types');
+                setSelectedDeviceType(null);
+              }}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <h2 className="text-lg font-semibold dark:text-white">
+              {selectedDeviceType?.name} 기기 상태
+            </h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {typeDevices.map((device) => (
+            <div
+              key={device.id}
+              className={`bg-white dark:bg-gray-800 rounded-xl border-2 p-6 text-center ${
+                device.status === 'available' 
+                  ? 'border-green-500' 
+                  : device.status === 'in_use'
+                  ? 'border-blue-500'
+                  : device.status === 'maintenance'
+                  ? 'border-yellow-500'
+                  : 'border-red-500'
+              }`}
+            >
+              <div className="text-3xl font-bold dark:text-white mb-2">
+                #{device.device_number}
+              </div>
+              
+              <div className="mb-4">
+                {device.status === 'available' && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    <CheckCircle className="w-4 h-4" />
+                    사용 가능
+                  </span>
+                )}
+                {device.status === 'in_use' && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                    <Gamepad2 className="w-4 h-4" />
+                    대여중
+                  </span>
+                )}
+                {device.status === 'maintenance' && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                    <Wrench className="w-4 h-4" />
+                    점검중
+                  </span>
+                )}
+                {device.status === 'unavailable' && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400">
+                    <XCircle className="w-4 h-4" />
+                    사용불가
+                  </span>
+                )}
+              </div>
+
+              {device.notes && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {device.notes}
+                </p>
+              )}
+
+              <select
+                value={device.status}
+                onChange={async (e) => {
+                  const newStatus = e.target.value as Device['status'];
+                  
+                  // 즉시 UI 업데이트
+                  setDevices(devices.map(d => 
+                    d.id === device.id 
+                      ? { ...d, status: newStatus }
+                      : d
+                  ));
+                  
+                  // 서버 업데이트
+                  try {
+                    const response = await fetch('/api/admin/devices', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        id: device.id,
+                        status: newStatus
+                      })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to update device status');
+                  } catch (error) {
+                    console.error('Error updating device status:', error);
+                    // 실패시 원래대로 되돌리기 (낙관적 업데이트이므로 원래 상태로 복원)
+                    setDevices(devices.map(d => 
+                      d.id === device.id 
+                        ? { ...d, status: device.status }  // 원래 상태로 복원
+                        : d
+                    ));
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="available">사용 가능</option>
+                <option value="in_use">대여중</option>
+                <option value="maintenance">점검중</option>
+                <option value="unavailable">사용불가</option>
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* 헤더 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-2">
+          <Link
+            href="/admin"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </Link>
+          <h1 className="text-2xl font-bold dark:text-white">기기 관리</h1>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+          카테고리, 기종, 개별 기기를 관리합니다
+        </p>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm mb-6">
+        <button
+          onClick={() => {
+            setView('categories');
+            setSelectedCategory(null);
+            setSelectedDeviceType(null);
+          }}
+          className={`${view === 'categories' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'} hover:text-blue-600 dark:hover:text-blue-400`}
+        >
+          카테고리
+        </button>
+        {selectedCategory && (
+          <>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <button
+              onClick={() => {
+                setView('types');
+                setSelectedDeviceType(null);
+              }}
+              className={`${view === 'types' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'} hover:text-blue-600 dark:hover:text-blue-400`}
+            >
+              {selectedCategory.name}
+            </button>
+          </>
+        )}
+        {selectedDeviceType && (
+          <>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <span className="text-blue-600 dark:text-blue-400">
+              {selectedDeviceType.name}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* 메인 컨텐츠 */}
+      {view === 'categories' && <CategoriesView />}
+      {view === 'types' && <DeviceTypesView />}
+      {view === 'devices' && <DevicesView />}
+
+    </div>
+  );
+}
+
+// 기종 추가 폼 컴포넌트
+function TypeAddForm({ 
+  categoryId,
+  onSubmit, 
+  onCancel 
+}: { 
+  categoryId: string;
+  onSubmit: (data: {
+    category_id: string;
+    name: string;
+    description?: string | null;
+    is_rentable: boolean;
+    play_modes: { name: string; price: number }[];
+    device_count: number;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [playModes, setPlayModes] = useState([
+    { name: '스탠다드', price: 500 }
+  ]);
+  const [isRentable, setIsRentable] = useState(false);
+  const [newModeName, setNewModeName] = useState('');
+  const [newModePrice, setNewModePrice] = useState('');
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const model = formData.get('model') as string;
+    const version = formData.get('version') as string;
+    const description = [model, version].filter(Boolean).join(' ');
+    
+    onSubmit({
+      category_id: categoryId,
+      name: formData.get('name'),
+      description: description || null,
+      is_rentable: isRentable,
+      play_modes: playModes,
+      device_count: parseInt(formData.get('device_count') as string) || 1
+    });
+  };
+
+  const addPlayMode = () => {
+    if (newModeName && newModePrice) {
+      setPlayModes([...playModes, { 
+        name: newModeName, 
+        price: parseInt(newModePrice) 
+      }]);
+      setNewModeName('');
+      setNewModePrice('');
+    }
+  };
+
+  const removePlayMode = (index: number) => {
+    setPlayModes(playModes.filter((_, i) => i !== index));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <h3 className="text-lg font-semibold dark:text-white mb-4">새 기종 추가</h3>
+      
+      {/* 기본 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            기종명 *
+          </label>
+          <input
+            name="name"
+            type="text"
+            placeholder="예: 마이마이 DX"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            모델명
+          </label>
+          <input
+            name="model"
+            type="text"
+            placeholder="예: 발키리, 구기체"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            버전명
+          </label>
+          <input
+            name="version"
+            type="text"
+            placeholder="예: PLUS"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* 플레이 모드 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          플레이 모드별 가격
+        </label>
+        
+        {/* 기존 모드 목록 */}
+        <div className="space-y-2 mb-3">
+          {playModes.map((mode, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={mode.name}
+                onChange={(e) => {
+                  const updated = [...playModes];
+                  if (updated[index]) {
+                    updated[index].name = e.target.value;
+                    setPlayModes(updated);
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="모드명"
+              />
+              <input
+                type="number"
+                value={mode.price}
+                onChange={(e) => {
+                  const updated = [...playModes];
+                  if (updated[index]) {
+                    updated[index].price = parseInt(e.target.value) || 0;
+                    setPlayModes(updated);
+                  }
+                }}
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="가격"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">원</span>
+              {playModes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removePlayMode(index)}
+                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 새 모드 추가 */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newModeName}
+            onChange={(e) => setNewModeName(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="새 모드명"
+          />
+          <input
+            type="number"
+            value={newModePrice}
+            onChange={(e) => setNewModePrice(e.target.value)}
+            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="가격"
+          />
+          <button
+            type="button"
+            onClick={addPlayMode}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* 보유대수 및 대여 가능 여부 */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            보유대수 *
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              name="device_count"
+              type="number"
+              min="1"
+              defaultValue="1"
+              className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">대</span>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              (입력한 수만큼 개별 기기가 생성됩니다)
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isRentable}
+              onChange={(e) => setIsRentable(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium dark:text-white">대여 가능</span>
+          </label>
+          {isRentable && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              (대여 설정은 &apos;대여기기관리&apos; 메뉴에서 가능합니다)
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 버튼 */}
+      <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          기종 추가
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// 기종 수정 폼 컴포넌트
+function TypeEditForm({ 
+  type,
+  onSubmit, 
+  onCancel 
+}: { 
+  type: DeviceType;
+  onSubmit: (data: {
+    category_id: string;
+    name: string;
+    description?: string | null;
+    is_rentable: boolean;
+    play_modes: { name: string; price: number }[];
+    device_count: number;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [playModes, setPlayModes] = useState(type.play_modes || []);
+  const [newModeName, setNewModeName] = useState('');
+  const [newModePrice, setNewModePrice] = useState('');
+  const [targetDeviceCount, setTargetDeviceCount] = useState(type.device_count);
+  
+  // description에서 모델명과 버전명 추출
+  const descriptionParts = type.description?.split(' ') || [];
+  const defaultModel = descriptionParts[0] || '';
+  const defaultVersion = descriptionParts.slice(1).join(' ') || '';
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const model = formData.get('model') as string;
+    const version = formData.get('version') as string;
+    const description = [model, version].filter(Boolean).join(' ');
+    
+    onSubmit({
+      name: formData.get('name'),
+      description: description || null,
+      play_modes: playModes,
+      target_device_count: targetDeviceCount
+    });
+  };
+
+  const addPlayMode = () => {
+    if (newModeName && newModePrice) {
+      setPlayModes([...playModes, { 
+        name: newModeName, 
+        price: parseInt(newModePrice)
+      }]);
+      setNewModeName('');
+      setNewModePrice('');
+    }
+  };
+
+  const removePlayMode = (index: number) => {
+    setPlayModes(playModes.filter((_, i) => i !== index));
+  };
+
+  const updatePlayMode = (index: number, field: 'name' | 'price', value: string) => {
+    const updated = [...playModes];
+    if (updated[index]) {
+      if (field === 'name') {
+        updated[index].name = value;
+      } else {
+        updated[index].price = parseInt(value) || 0;
+      }
+      setPlayModes(updated);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <h3 className="text-lg font-semibold dark:text-white mb-4">기종 수정</h3>
+      
+      {/* 기본 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            기종명 *
+          </label>
+          <input
+            name="name"
+            type="text"
+            defaultValue={type.name}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            모델명
+          </label>
+          <input
+            name="model"
+            type="text"
+            defaultValue={defaultModel}
+            placeholder="예: 발키리, 구기체"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            버전명
+          </label>
+          <input
+            name="version"
+            type="text"
+            defaultValue={defaultVersion}
+            placeholder="예: PLUS"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* 플레이 모드 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          플레이 모드별 가격
+        </label>
+        
+        {/* 기존 모드 목록 */}
+        <div className="space-y-2 mb-3">
+          {playModes.map((mode, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={mode.name}
+                onChange={(e) => updatePlayMode(index, 'name', e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="모드명"
+              />
+              <input
+                type="number"
+                value={mode.price}
+                onChange={(e) => updatePlayMode(index, 'price', e.target.value)}
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="가격"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">원</span>
+              {playModes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removePlayMode(index)}
+                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 새 모드 추가 */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newModeName}
+            onChange={(e) => setNewModeName(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="새 모드명"
+          />
+          <input
+            type="number"
+            value={newModePrice}
+            onChange={(e) => setNewModePrice(e.target.value)}
+            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="가격"
+          />
+          <button
+            type="button"
+            onClick={addPlayMode}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* 보유대수 관리 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          보유대수 관리
+        </label>
+        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium dark:text-white mb-1">현재 상태</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                전체: {type.device_count}대 (사용가능: {type.active_count}대)
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium dark:text-white block mb-1">목표 대수</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={targetDeviceCount}
+                  onChange={(e) => setTargetDeviceCount(parseInt(e.target.value) || 0)}
+                  className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">대</span>
+              </div>
+            </div>
+          </div>
+          
+          {targetDeviceCount !== type.device_count && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              {targetDeviceCount > type.device_count ? (
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  <strong>{targetDeviceCount - type.device_count}대 추가</strong>됩니다. 
+                  (#{type.device_count + 1} ~ #{targetDeviceCount})
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-sm text-orange-600 dark:text-orange-400">
+                    <strong>{type.device_count - targetDeviceCount}대 삭제</strong>됩니다.
+                  </p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">
+                    ⚠️ 마지막 번호부터 역순으로 삭제되며, 사용 중이거나 점검 중인 기기는 삭제되지 않습니다.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 대여 가능 여부 안내 */}
+      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          대여 가능 여부는 기종 목록에서 직접 토글할 수 있습니다.
+        </p>
+      </div>
+
+      {/* 버튼 */}
+      <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          수정 완료
+        </button>
+      </div>
+    </form>
+  );
+}
+

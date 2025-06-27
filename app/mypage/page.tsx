@@ -3,13 +3,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { User, Bell, LogOut, UserX } from 'lucide-react';
 
 export default function MyPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
   const [notifications, setNotifications] = useState({
     reservation: true,
     event: true,
   });
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -23,12 +32,22 @@ export default function MyPage() {
         <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-6">
           <h2 className="text-lg font-semibold mb-6 dark:text-white">프로필 정보</h2>
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center overflow-hidden">
+              {session?.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name || '프로필'}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-8 h-8 text-gray-400" />
+              )}
             </div>
             <div>
-              <h3 className="font-medium text-lg dark:text-white">홍길동</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">hong@gmail.com</p>
+              <h3 className="font-medium text-lg dark:text-white">{session?.user?.name || '사용자'}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{session?.user?.email || ''}</p>
             </div>
           </div>
           
@@ -128,7 +147,10 @@ export default function MyPage() {
 
         {/* 계정 관리 */}
         <section className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group"
+          >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-gray-400" />
               <span className="text-gray-700 dark:text-gray-300">로그아웃</span>

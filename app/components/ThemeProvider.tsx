@@ -5,27 +5,31 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 // 테마 타입 정의
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 
 // Context 생성
 const ThemeContext = createContext<{
   theme: Theme;
   setTheme: (theme: Theme) => void;
 }>({
-  theme: 'system',
+  theme: 'light',
   setTheme: () => {},
 });
 
 // Provider 컴포넌트
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system');
+  const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // 로컬 스토리지에서 저장된 테마 가져오기
     const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
+    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       setTheme(savedTheme);
+    } else {
+      // system이거나 없으면 시스템 설정 확인
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      setTheme(systemTheme);
     }
     setMounted(true);
   }, []);
@@ -36,17 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 테마 적용 로직
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-
-    if (theme === 'system') {
-      // 시스템 설정 따르기
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      root.classList.add(systemTheme);
-    } else {
-      // 사용자 설정 따르기
-      root.classList.add(theme);
-    }
+    root.classList.add(theme);
 
     // 로컬 스토리지에 저장
     localStorage.setItem('theme', theme);

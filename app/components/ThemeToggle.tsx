@@ -3,7 +3,7 @@
 'use client';
 
 import { useTheme } from './ThemeProvider';
-import { Moon, Sun, Monitor } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -11,22 +11,18 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => {
-        // 현재 테마에 따라 다음 테마로 전환
-        if (theme === 'light') {
-          setTheme('dark');
-        } else if (theme === 'dark') {
-          setTheme('system');
-        } else {
-          setTheme('light');
-        }
+        // 라이트/다크 모드만 토글
+        setTheme(theme === 'dark' ? 'light' : 'dark');
       }}
       className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       aria-label="테마 변경"
     >
-      {/* 테마별 아이콘 표시 */}
-      {theme === 'light' && <Sun className="w-5 h-5 text-gray-700" />}
-      {theme === 'dark' && <Moon className="w-5 h-5 text-gray-300" />}
-      {theme === 'system' && <Monitor className="w-5 h-5 text-gray-500" />}
+      {/* 현재 테마의 반대 아이콘 표시 (클릭시 변경될 테마) */}
+      {theme === 'dark' ? (
+        <Sun className="w-5 h-5 text-gray-300" />
+      ) : (
+        <Moon className="w-5 h-5 text-gray-700" />
+      )}
     </button>
   );
 }

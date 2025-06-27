@@ -1,6 +1,11 @@
-import { Calendar, FileText, Gamepad2, Info, MapPin, Phone, Clock } from 'lucide-react';
+'use client';
+
+import { Calendar, FileText, Gamepad2, Info, MapPin, Phone, Clock, CalendarDays } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 export default function Home() {
+  const { data: session } = useSession();
+  
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* 히어로 섹션 */}
@@ -8,17 +13,17 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 dark:text-white">
-              게임플라자 광주점
+              광주 게임플라자
             </h1>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8">
               최고의 게임 경험을 예약하세요
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="/reservations/new" className="px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                지금 예약하기
+                예약하기
               </a>
-              <a href="/guide" className="px-8 py-4 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                이용 안내
+              <a href="/machines" className="px-8 py-4 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                기기 현황
               </a>
             </div>
           </div>
@@ -32,9 +37,9 @@ export default function Home() {
             서비스
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* 예약하기 카드 */}
-            <a href="/reservations/new" className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
+            <a href={session ? "/reservations/new" : "/login"} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
                 <Calendar className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
@@ -48,7 +53,7 @@ export default function Home() {
             </a>
             
             {/* 내 예약 카드 */}
-            <a href="/reservations" className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
+            <a href={session ? "/reservations" : "/login"} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
                 <FileText className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
@@ -75,6 +80,20 @@ export default function Home() {
               </span>
             </a>
             
+            {/* 운영 일정 카드 */}
+            <a href="/schedule" className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                <CalendarDays className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">운영 일정</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                영업시간과 특별 일정을 확인하세요
+              </p>
+              <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">
+                확인하기 →
+              </span>
+            </a>
+            
             {/* 이용 안내 카드 */}
             <a href="/guide" className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
@@ -83,6 +102,20 @@ export default function Home() {
               <h3 className="text-lg font-semibold mb-2 dark:text-white">이용 안내</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 예약 방법과 이용 규칙을 확인하세요
+              </p>
+              <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">
+                자세히 보기 →
+              </span>
+            </a>
+            
+            {/* 예약 안내 카드 */}
+            <a href="/guide/reservation" className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                <FileText className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">예약 안내</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                대여 예약 방법과 FAQ를 확인하세요
               </p>
               <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">
                 자세히 보기 →

@@ -25,6 +25,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // 타입 정의
 type Category = {
@@ -65,6 +66,320 @@ type Device = {
 };
 
 type ViewType = 'categories' | 'types' | 'devices';
+
+// 기종 편집 폼 컴포넌트
+function TypeEditForm({ 
+  type,
+  categoryId,
+  onSubmit, 
+  onCancel 
+}: { 
+  type?: DeviceType;
+  categoryId?: string;
+  onSubmit: (data: {
+    name: string;
+    description?: string;
+    is_rentable: boolean;
+    play_modes?: { name: string; price: number }[];
+    rental_settings?: {
+      base_price?: number;
+      credit_types?: ('fixed' | 'freeplay' | 'unlimited')[];
+      fixed_credits?: number;
+      max_players?: number;
+      price_multiplier_2p?: number;
+    };
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [playModes, setPlayModes] = useState(type?.play_modes || []);
+  const [newModeName, setNewModeName] = useState('');
+  const [newModePrice, setNewModePrice] = useState('');
+  const [isRentable, setIsRentable] = useState(type?.is_rentable || false);
+  const [creditTypes, setCreditTypes] = useState<('fixed' | 'freeplay' | 'unlimited')[]>(
+    type?.rental_settings?.credit_types || []
+  );
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    onSubmit({
+      name: formData.get('name') as string,
+      description: formData.get('description') as string || undefined,
+      is_rentable: isRentable,
+      play_modes: playModes.length > 0 ? playModes : undefined,
+      rental_settings: isRentable ? {
+        base_price: parseInt(formData.get('base_price') as string) || undefined,
+        credit_types: creditTypes.length > 0 ? creditTypes : undefined,
+        fixed_credits: creditTypes.includes('fixed') ? parseInt(formData.get('fixed_credits') as string) || undefined : undefined,
+        max_players: parseInt(formData.get('max_players') as string) || 1,
+        price_multiplier_2p: parseFloat(formData.get('price_multiplier_2p') as string) || undefined
+      } : undefined
+    });
+  };
+
+  const addPlayMode = () => {
+    if (newModeName && newModePrice) {
+      setPlayModes([...playModes, { 
+        name: newModeName, 
+        price: parseInt(newModePrice)
+      }]);
+      setNewModeName('');
+      setNewModePrice('');
+    }
+  };
+
+  const removePlayMode = (index: number) => {
+    setPlayModes(playModes.filter((_, i) => i !== index));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <h3 className="text-lg font-semibold dark:text-white mb-4">
+        {type ? '기종 수정' : '기종 추가'}
+      </h3>
+      
+      {/* 기본 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            기종명 *
+          </label>
+          <input
+            name="name"
+            type="text"
+            defaultValue={type?.name}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            설명
+          </label>
+          <input
+            name="description"
+            type="text"
+            defaultValue={type?.description}
+            placeholder="예: 발키리 PLUS"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* 플레이 모드 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          플레이 모드별 가격
+        </label>
+        
+        {/* 기존 모드 목록 */}
+        <div className="space-y-2 mb-3">
+          {playModes.map((mode, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={mode.name}
+                onChange={(e) => {
+                  const updated = [...playModes];
+                  updated[index].name = e.target.value;
+                  setPlayModes(updated);
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="모드명"
+              />
+              <input
+                type="number"
+                value={mode.price}
+                onChange={(e) => {
+                  const updated = [...playModes];
+                  updated[index].price = parseInt(e.target.value) || 0;
+                  setPlayModes(updated);
+                }}
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="가격"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">원</span>
+              <button
+                type="button"
+                onClick={() => removePlayMode(index)}
+                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* 새 모드 추가 */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newModeName}
+            onChange={(e) => setNewModeName(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="새 모드명"
+          />
+          <input
+            type="number"
+            value={newModePrice}
+            onChange={(e) => setNewModePrice(e.target.value)}
+            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="가격"
+          />
+          <button
+            type="button"
+            onClick={addPlayMode}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* 대여 설정 */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <label className="flex items-center gap-2 mb-4">
+          <input
+            type="checkbox"
+            checked={isRentable}
+            onChange={(e) => setIsRentable(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+          />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">대여 가능</span>
+        </label>
+
+        {isRentable && (
+          <div className="space-y-4 ml-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  기본 가격 (원)
+                </label>
+                <input
+                  name="base_price"
+                  type="number"
+                  defaultValue={type?.rental_settings?.base_price}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="30000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  최대 플레이어 수
+                </label>
+                <select
+                  name="max_players"
+                  defaultValue={type?.rental_settings?.max_players || 1}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="1">1명</option>
+                  <option value="2">2명</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                크레디트 타입
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={creditTypes.includes('fixed')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCreditTypes([...creditTypes, 'fixed']);
+                      } else {
+                        setCreditTypes(creditTypes.filter(t => t !== 'fixed'));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">고정 크레디트</span>
+                </label>
+                {creditTypes.includes('fixed') && (
+                  <div className="ml-6">
+                    <input
+                      name="fixed_credits"
+                      type="number"
+                      defaultValue={type?.rental_settings?.fixed_credits}
+                      placeholder="크레디트 수"
+                      className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                )}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={creditTypes.includes('freeplay')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCreditTypes([...creditTypes, 'freeplay']);
+                      } else {
+                        setCreditTypes(creditTypes.filter(t => t !== 'freeplay'));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">프리플레이</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={creditTypes.includes('unlimited')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCreditTypes([...creditTypes, 'unlimited']);
+                      } else {
+                        setCreditTypes(creditTypes.filter(t => t !== 'unlimited'));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">무제한</span>
+                </label>
+              </div>
+            </div>
+
+            {type?.rental_settings?.max_players === 2 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  2인 플레이 가격 배수
+                </label>
+                <input
+                  name="price_multiplier_2p"
+                  type="number"
+                  step="0.1"
+                  defaultValue={type?.rental_settings?.price_multiplier_2p || 1.5}
+                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          {type ? '수정' : '추가'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors"
+        >
+          취소
+        </button>
+      </div>
+    </form>
+  );
+}
 
 // 기기 카드 컴포넌트
 function DeviceCard({ 
@@ -174,6 +489,8 @@ function DeviceCard({
 }
 
 export default function DevicesPage() {
+  const router = useRouter();
+  
   // 카테고리 관련 상태
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -197,6 +514,53 @@ export default function DevicesPage() {
 
   // 뷰 상태
   const [view, setView] = useState<ViewType>('categories');
+  const [navigationHistory, setNavigationHistory] = useState<ViewType[]>(['categories']);
+
+  // 네비게이션 함수
+  const navigateTo = (newView: ViewType) => {
+    setView(newView);
+    setNavigationHistory(prev => [...prev, newView]);
+  };
+
+  const navigateBack = () => {
+    if (navigationHistory.length > 1) {
+      const newHistory = [...navigationHistory];
+      newHistory.pop(); // 현재 뷰 제거
+      const previousView = newHistory[newHistory.length - 1];
+      
+      setView(previousView);
+      setNavigationHistory(newHistory);
+      
+      // 뷰에 따라 상태 초기화
+      if (previousView === 'categories') {
+        setSelectedCategory(null);
+        setSelectedDeviceType(null);
+      } else if (previousView === 'types') {
+        setSelectedDeviceType(null);
+      }
+    }
+  };
+
+  // 브라우저 뒤로가기 버튼 핸들링
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      // 카테고리 뷰에서 뒤로가기 시 대시보드로 이동
+      if (view === 'categories') {
+        router.push('/admin');
+      } else {
+        navigateBack();
+      }
+    };
+
+    // 초기 상태 설정 - 한 번만 설정
+    if (navigationHistory.length === 1) {
+      window.history.pushState({ page: 'devices' }, '');
+    }
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigationHistory, view, router]);
 
   // 데이터 로드 함수들
   const loadCategories = async () => {
@@ -374,12 +738,12 @@ export default function DevicesPage() {
       <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
-            <Link
-              href="/admin"
+            <button
+              onClick={() => router.push('/admin')}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            </Link>
+            </button>
             <h1 className="text-2xl font-bold dark:text-white">기기 관리</h1>
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
@@ -472,7 +836,7 @@ export default function DevicesPage() {
                 const target = e.target as HTMLElement;
                 if (!target.closest('.drag-handle') && !target.closest('button')) {
                   setSelectedCategory(category);
-                  setView('types');
+                  navigateTo('types');
                 }
               }}
             >
@@ -672,10 +1036,7 @@ export default function DevicesPage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <button
-              onClick={() => {
-                setView('categories');
-                setSelectedCategory(null);
-              }}
+              onClick={navigateBack}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -705,72 +1066,53 @@ export default function DevicesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 col-span-full"
             >
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                
-                try {
-                  await fetch('/api/admin/devices/types', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      name: formData.get('name'),
-                      description: formData.get('description'),
-                      category_id: selectedCategory.id,
-                      display_order: categoryTypes.length + 1,
-                      is_rentable: formData.get('is_rentable') === 'true'
-                    })
-                  });
-                  
-                  loadDeviceTypes();
-                  setIsAddingType(false);
-                } catch (error) {
-                  console.error('Error creating device type:', error);
-                }
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <input
-                    name="name"
-                    type="text"
-                    placeholder="기종 이름"
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                    autoFocus
-                  />
-                  <input
-                    name="description"
-                    type="text"
-                    placeholder="설명 (선택사항)"
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      name="is_rentable"
-                      type="checkbox"
-                      value="true"
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">대여 가능</span>
-                  </label>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    추가
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingType(false)}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    취소
-                  </button>
-                </div>
-              </form>
+              <TypeEditForm
+                categoryId={selectedCategory.id}
+                onSubmit={async (data) => {
+                  try {
+                    // 기종 생성
+                    const response = await fetch('/api/admin/devices/types', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name: data.name,
+                        description: data.description,
+                        category_id: selectedCategory.id,
+                        display_order: categoryTypes.length + 1,
+                        is_rentable: data.is_rentable
+                      })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to create device type');
+                    const newType = await response.json();
+                    
+                    // 플레이 모드 추가
+                    if (data.play_modes && data.play_modes.length > 0) {
+                      await fetch(`/api/admin/devices/types/${newType.id}/play-modes`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ play_modes: data.play_modes })
+                      });
+                    }
+                    
+                    // 대여 설정 추가
+                    if (data.is_rentable && data.rental_settings) {
+                      await fetch(`/api/admin/devices/types/${newType.id}/rental-settings`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data.rental_settings)
+                      });
+                    }
+                    
+                    loadDeviceTypes();
+                    setIsAddingType(false);
+                  } catch (error) {
+                    console.error('Error creating device type:', error);
+                    alert('기종 추가에 실패했습니다.');
+                  }
+                }}
+                onCancel={() => setIsAddingType(false)}
+              />
             </motion.div>
           )}
 
@@ -796,77 +1138,54 @@ export default function DevicesPage() {
                 const target = e.target as HTMLElement;
                 if (!target.closest('.drag-handle') && !target.closest('button')) {
                   setSelectedDeviceType(type);
-                  setView('devices');
+                  navigateTo('devices');
                 }
               }}
             >
               {editingType === type.id ? (
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  
-                  try {
-                    await fetch('/api/admin/devices/types', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        id: type.id,
-                        name: formData.get('name'),
-                        description: formData.get('description'),
-                        is_rentable: formData.get('is_rentable') === 'true'
-                      })
-                    });
-                    
-                    loadDeviceTypes();
-                    setEditingType(null);
-                  } catch (error) {
-                    console.error('Error updating device type:', error);
-                  }
-                }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <input
-                      name="name"
-                      type="text"
-                      defaultValue={type.name}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                    <input
-                      name="description"
-                      type="text"
-                      defaultValue={type.description}
-                      placeholder="설명 (선택사항)"
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        name="is_rentable"
-                        type="checkbox"
-                        value="true"
-                        defaultChecked={type.is_rentable}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">대여 가능</span>
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      저장
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingType(null)}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors"
-                    >
-                      취소
-                    </button>
-                  </div>
-                </form>
+                <TypeEditForm
+                  type={type}
+                  onSubmit={async (data) => {
+                    try {
+                      // 기종 정보 업데이트
+                      await fetch('/api/admin/devices/types', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: type.id,
+                          name: data.name,
+                          description: data.description,
+                          is_rentable: data.is_rentable
+                        })
+                      });
+                      
+                      // 플레이 모드 업데이트
+                      if (data.play_modes) {
+                        await fetch(`/api/admin/devices/types/${type.id}/play-modes`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ play_modes: data.play_modes })
+                        });
+                      }
+                      
+                      // 대여 설정 업데이트
+                      if (data.is_rentable && data.rental_settings) {
+                        await fetch(`/api/admin/devices/types/${type.id}/rental-settings`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(data.rental_settings)
+                        });
+                      }
+                      
+                      loadDeviceTypes();
+                      setEditingType(null);
+                    } catch (error) {
+                      console.error('Error updating device type:', error);
+                      alert('기종 수정에 실패했습니다.');
+                    }
+                  }}
+                  onCancel={() => setEditingType(null)}
+                />
               ) : (
                 <>
                   <div className="flex items-start justify-between mb-4">
@@ -1042,10 +1361,7 @@ export default function DevicesPage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <button
-              onClick={() => {
-                setView('types');
-                setSelectedDeviceType(null);
-              }}
+              onClick={navigateBack}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
