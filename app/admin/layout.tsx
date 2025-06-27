@@ -19,7 +19,11 @@ import {
   X,
   ChevronLeft,
   FileText,
-  CalendarDays
+  CalendarDays,
+  CheckSquare,
+  BarChart3,
+  Database,
+  Download
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -61,12 +65,16 @@ export default function AdminLayout({
 
   const menuItems = [
     { href: '/admin', label: '대시보드', icon: LayoutDashboard },
+    { href: '/admin/checkin', label: '체크인', icon: CheckSquare },
     { href: '/admin/devices', label: '기기 관리', icon: Gamepad2 },
     { href: '/admin/rental-devices', label: '대여기기관리', icon: Clock },
     { href: '/admin/reservations', label: '예약 관리', icon: Calendar },
     { href: '/admin/users', label: '회원 관리', icon: Users },
     { href: '/admin/schedule', label: '운영 일정', icon: CalendarDays },
+    { href: '/admin/analytics/reservations', label: '통계 분석', icon: BarChart3 },
     { href: '/admin/content', label: '콘텐츠 관리', icon: FileText },
+    { href: '/admin/export', label: '데이터 내보내기', icon: Download },
+    { href: '/admin/backup', label: '백업 관리', icon: Database },
     { href: '/admin/settings', label: '설정', icon: Settings },
   ];
 
