@@ -1,0 +1,26 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # 매일 한국시간 오전 9시에 실행 (UTC 0시)
+    - cron: '0 0 * * *'
+  
+  # 수동 실행 가능하도록 설정
+  workflow_dispatch:
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Ping Supabase Database
+      run: |
+        # Supabase REST API를 통해 간단한 쿼리 실행
+        curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/devices?select=id&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          --fail \
+          --show-error \
+          --silent
+        
+        echo "✅ Supabase database pinged successfully"

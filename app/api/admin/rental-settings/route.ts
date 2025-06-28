@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/app/lib/supabase'
+import { getKSTNow } from '@/lib/utils/date'
 
 // 대여 설정 조회
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { device_type_id, max_rental_units } = body
+    const { device_type_id, max_rental_units, color, display_order } = body
 
     if (!device_type_id) {
       return NextResponse.json({ error: 'Device type ID is required' }, { status: 400 })
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
         .from('rental_settings')
         .update({
           max_rental_units: max_rental_units || null,
-          updated_at: new Date().toISOString()
+          updated_at: getKSTNow()
         })
         .eq('device_type_id', device_type_id)
         .select()
@@ -76,12 +77,30 @@ export async function POST(request: NextRequest) {
     }
 
     // device_types 테이블도 업데이트 (호환성을 위해)
+    // 기존 rental_settings 가져오기
+    const { data: deviceType } = await supabaseAdmin
+      .from('device_types')
+      .select('rental_settings')
+      .eq('id', device_type_id)
+      .single()
+
+    const updatedSettings = {
+      ...(deviceType?.rental_settings || {}),
+      max_rental_units: max_rental_units || null
+    }
+
+    // color와 display_order가 있으면 추가
+    if (color !== undefined) {
+      updatedSettings.color = color
+    }
+    if (display_order !== undefined) {
+      updatedSettings.display_order = display_order
+    }
+
     await supabaseAdmin
       .from('device_types')
       .update({
-        rental_settings: {
-          max_rental_units: max_rental_units || null
-        }
+        rental_settings: updatedSettings
       })
       .eq('id', device_type_id)
 

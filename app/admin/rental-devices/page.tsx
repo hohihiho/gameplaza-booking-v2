@@ -5,15 +5,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  DollarSign,
   Clock,
   Plus,
-  Edit,
-  Trash2,
-  Save,
-  X,
   ChevronLeft,
-  Calendar,
   Package,
   Users,
   Hash,
@@ -198,7 +192,9 @@ export default function RentalDevicesPage() {
       if (!response.ok) throw new Error('Failed to save time slot');
 
       // 시간대 목록 새로고침
-      await loadTimeSlots(selectedDevice!.id);
+      if (selectedDevice) {
+        await loadTimeSlots(selectedDevice.id);
+      }
       setIsAddingSlot(false);
       setEditingSlot(null);
     } catch (error) {
@@ -219,7 +215,9 @@ export default function RentalDevicesPage() {
       if (!response.ok) throw new Error('Failed to delete time slot');
 
       // 시간대 목록 새로고침
-      await loadTimeSlots(selectedDevice!.id);
+      if (selectedDevice) {
+        await loadTimeSlots(selectedDevice.id);
+      }
     } catch (error) {
       console.error('Error deleting time slot:', error);
       alert('시간대 삭제에 실패했습니다.');

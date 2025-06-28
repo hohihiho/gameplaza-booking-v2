@@ -26,6 +26,7 @@ export default function ReservationsPage() {
   // 예약 목록 불러오기
   useEffect(() => {
     loadReservations();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadReservations = async () => {

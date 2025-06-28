@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   Building2,
   Package,
-  Users,
   Hash,
   ChevronUp,
   ChevronDown,
@@ -24,7 +23,6 @@ import {
   Wrench,
   GripVertical
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 // 타입 정의
@@ -60,7 +58,7 @@ type Device = {
   id: string;
   device_type_id: string;
   device_number: number;
-  status: 'available' | 'in_use' | 'maintenance' | 'unavailable';
+  status: 'available' | 'rental' | 'maintenance' | 'unavailable';
   notes?: string;
   last_maintenance?: string;
 };
@@ -70,12 +68,10 @@ type ViewType = 'categories' | 'types' | 'devices';
 // 기종 편집 폼 컴포넌트
 function TypeEditForm({ 
   type,
-  categoryId,
   onSubmit, 
   onCancel 
 }: { 
   type?: DeviceType;
-  categoryId?: string;
   onSubmit: (data: {
     name: string;
     description?: string;
@@ -403,7 +399,7 @@ function DeviceCard({
 
   const statusConfig = {
     available: { color: 'text-green-600 dark:text-green-400', icon: CheckCircle, label: '사용 가능' },
-    in_use: { color: 'text-blue-600 dark:text-blue-400', icon: Gamepad2, label: '사용 중' },
+    rental: { color: 'text-blue-600 dark:text-blue-400', icon: Gamepad2, label: '대여중' },
     maintenance: { color: 'text-orange-600 dark:text-orange-400', icon: Wrench, label: '점검 중' },
     unavailable: { color: 'text-red-600 dark:text-red-400', icon: XCircle, label: '사용 불가' }
   };
@@ -427,7 +423,7 @@ function DeviceCard({
             className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="available">사용 가능</option>
-            <option value="in_use">사용 중</option>
+            <option value="rental">대여중</option>
             <option value="maintenance">점검 중</option>
             <option value="unavailable">사용 불가</option>
           </select>
@@ -517,12 +513,12 @@ export default function DevicesPage() {
   const [navigationHistory, setNavigationHistory] = useState<ViewType[]>(['categories']);
 
   // 네비게이션 함수
-  const navigateTo = (newView: ViewType) => {
+  const navigateTo = useCallback((newView: ViewType) => {
     setView(newView);
     setNavigationHistory(prev => [...prev, newView]);
-  };
+  }, []);
 
-  const navigateBack = () => {
+  const navigateBack = useCallback(() => {
     if (navigationHistory.length > 1) {
       const newHistory = [...navigationHistory];
       newHistory.pop(); // 현재 뷰 제거
@@ -539,7 +535,7 @@ export default function DevicesPage() {
         setSelectedDeviceType(null);
       }
     }
-  };
+  }, [navigationHistory]);
 
   // 브라우저 뒤로가기 버튼 핸들링
   useEffect(() => {
@@ -560,7 +556,7 @@ export default function DevicesPage() {
     
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigationHistory, view, router]);
+  }, [navigationHistory, view, router, navigateBack]);
 
   // 데이터 로드 함수들
   const loadCategories = async () => {
@@ -1390,7 +1386,7 @@ export default function DevicesPage() {
                 <div>
                   <span className="text-sm text-blue-600 dark:text-blue-400">사용 중</span>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {devices.filter(d => d.status === 'in_use').length}
+                    {devices.filter(d => d.status === 'rental').length}
                   </p>
                 </div>
                 <div>

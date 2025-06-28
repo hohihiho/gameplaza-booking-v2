@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getKSTNow } from '@/lib/utils/date'
 
 // 예약 상세 조회
 export async function GET(
@@ -105,7 +106,7 @@ export async function DELETE(
       .from('reservations')
       .update({ 
         status: 'cancelled',
-        updated_at: new Date().toISOString()
+        updated_at: getKSTNow()
       })
       .eq('id', params.id)
 

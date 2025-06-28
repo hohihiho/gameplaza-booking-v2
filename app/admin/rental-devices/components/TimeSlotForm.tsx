@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Plus, Trash2, Users } from 'lucide-react';
+import { Trash2, Users } from 'lucide-react';
 
 interface TimeSlot {
   id?: string;
@@ -41,6 +41,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
 
   const [newCreditType, setNewCreditType] = useState<'fixed' | 'freeplay' | 'unlimited'>('freeplay');
   const [endTimeDisplay, setEndTimeDisplay] = useState(formData.end_time);
+  const [hours, setHours] = useState(0);
 
   // 실제 시간을 표시용 시간으로 변환 (새벽 시간은 24시 이상으로 표시)
   const convertToDisplayTime = (time: string, isOvernight: boolean) => {
@@ -53,14 +54,6 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
     return time;
   };
 
-  // 표시용 시간을 실제 시간으로 변환
-  const convertFromDisplayTime = (displayTime: string) => {
-    const [hour, min] = displayTime.split(':').map(Number);
-    if (hour >= 24) {
-      return `${(hour - 24).toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-    }
-    return displayTime;
-  };
 
   // 시간대 타입 변경시 기본 시간 설정
   useEffect(() => {
@@ -84,7 +77,8 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
   // 시간 계산
   const calculateHours = () => {
     const [startHour, startMin] = formData.start_time.split(':').map(Number);
-    let [endHour, endMin] = formData.end_time.split(':').map(Number);
+    let [endHour] = formData.end_time.split(':').map(Number);
+    const [, endMin] = formData.end_time.split(':').map(Number);
     
     // 종료 시간이 시작 시간보다 작으면 다음날로 계산
     if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
@@ -97,20 +91,23 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
 
   // 시간대 변경시 크레딧 옵션 초기화
   useEffect(() => {
-    const hours = calculateHours();
+    setHours(calculateHours());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.start_time, formData.end_time]);
     
-    // 크레딧 옵션이 없으면 기본값 추가
+  // 크레딧 옵션이 없으면 기본값 추가
+  useEffect(() => {
     if (formData.credit_options.length === 0 && hours > 0) {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         credit_options: [
           { type: 'fixed', price: 0, fixed_credits: 100 },
           { type: 'freeplay', price: 0 },
           { type: 'unlimited', price: 0 }
         ]
-      });
+      }));
     }
-  }, [formData.start_time, formData.end_time]);
+  }, [hours, formData.credit_options.length]);
 
   // 크레딧 옵션 추가
   const addCreditOption = () => {
@@ -144,8 +141,6 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
     e.preventDefault();
     onSave(formData);
   };
-
-  const hours = calculateHours();
 
   // 조기대여 시간 선택 옵션 생성
   const generateEarlyTimeOptions = () => {
@@ -193,7 +188,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
               name="slot_type"
               value="early"
               checked={formData.slot_type === 'early'}
-              onChange={(e) => setFormData({ ...formData, slot_type: 'early' })}
+              onChange={() => setFormData({ ...formData, slot_type: 'early' })}
               className="text-blue-600"
             />
             <span className="text-sm dark:text-white">조기 대여</span>
@@ -204,7 +199,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
               name="slot_type"
               value="overnight"
               checked={formData.slot_type === 'overnight'}
-              onChange={(e) => setFormData({ ...formData, slot_type: 'overnight' })}
+              onChange={() => setFormData({ ...formData, slot_type: 'overnight' })}
               className="text-blue-600"
             />
             <span className="text-sm dark:text-white">밤샘 대여</span>
@@ -271,7 +266,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
               generateEarlyTimeOptions().filter(opt => {
                 const hour = parseInt(opt.value.split(':')[0]);
                 const [startHour, startMin] = formData.start_time.split(':').map(Number);
-                const [optHour, optMin] = opt.value.split(':').map(Number);
+                const [, optMin] = opt.value.split(':').map(Number);
                 // 시작 시간 이후만 선택 가능
                 if (hour > startHour || (hour === startHour && optMin > startMin)) {
                   return hour <= 23;
@@ -326,7 +321,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
               <div className="flex items-center gap-2">
                 <select
                   value={newCreditType}
-                  onChange={(e) => setNewCreditType(e.target.value as any)}
+                  onChange={(e) => setNewCreditType(e.target.value as 'fixed' | 'freeplay' | 'unlimited')}
                   className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 >
                   {!formData.credit_options.find(opt => opt.type === 'fixed') && 

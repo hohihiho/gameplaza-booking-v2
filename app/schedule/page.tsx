@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 import { 
   Calendar,
   Clock,
@@ -13,7 +14,6 @@ import {
   Sun,
   Moon,
   Coffee,
-  CalendarDays,
   XCircle,
   Gamepad2
 } from 'lucide-react';
@@ -50,6 +50,8 @@ export default function SchedulePage() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
+  const [supabase] = useState(() => createClient());
+  const [isLoading, setIsLoading] = useState(false);
   
   // 기종별 색상 정보 로드
   useEffect(() => {
@@ -79,217 +81,162 @@ export default function SchedulePage() {
     loadDeviceColors();
   }, []);
   
-  // 임시 이벤트 데이터 (실제로는 API에서 가져옴)
+  // Supabase에서 운영 일정 및 예약 데이터 가져오기
+  const fetchScheduleData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // 현재 월의 시작일과 종료일 계산
+      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      
+      // 1. 특별 운영 일정 가져오기
+      const { data: specialOps, error: specialOpsError } = await supabase
+        .from('special_operations')
+        .select('*')
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
+
+      if (specialOpsError) throw specialOpsError;
+
+      // 2. 예약 데이터 가져오기
+      const { data: reservationsData, error: reservationsError } = await supabase
+        .from('reservations')
+        .select(`
+          *,
+          rental_time_slots (
+            date,
+            start_time,
+            end_time,
+            slot_type
+          ),
+          device_types (
+            name
+          )
+        `)
+        .in('status', ['approved', 'checked_in'])
+        .gte('rental_time_slots.date', startDate.toISOString().split('T')[0])
+        .lte('rental_time_slots.date', endDate.toISOString().split('T')[0]);
+
+      if (reservationsError) throw reservationsError;
+
+      // 3. 특별 운영 일정 포맷팅
+      const formattedEvents: ScheduleEvent[] = (specialOps || []).map(op => ({
+        id: op.id,
+        date: op.date,
+        title: op.operation_type === 'early' ? '조기 오픈' : '밤샘 영업',
+        type: op.operation_type === 'early' ? 'early_open' : 'overnight',
+        description: op.notes || '',
+        startTime: op.operation_type === 'early' ? '07:00' : undefined,
+        endTime: op.operation_type === 'overnight' ? '05:00' : undefined,
+        affectsReservation: false
+      }));
+
+      // 4. 예약 데이터를 날짜별로 그룹화
+      const reservationsByDate = (reservationsData || []).reduce((acc: Record<string, any[]>, res) => {
+        const date = res.rental_time_slots?.date;
+        if (!date) return acc;
+        
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        
+        acc[date].push({
+          id: res.id,
+          deviceType: res.device_types?.name || '알 수 없음',
+          deviceNumber: res.device_number,
+          playerCount: res.player_count || 1,
+          time: `${res.rental_time_slots.start_time.slice(0, 5)}-${res.rental_time_slots.end_time.slice(0, 5)}`,
+          slotType: res.rental_time_slots.slot_type || 'regular'
+        });
+        
+        return acc;
+      }, {});
+
+      // 5. 예약 이벤트 생성
+      const reservationEvents: ScheduleEvent[] = Object.entries(reservationsByDate).map(([date, reservations]) => {
+        const earlyCount = reservations.filter(r => r.slotType === 'early').length;
+        const overnightCount = reservations.filter(r => r.slotType === 'overnight').length;
+        
+        let title = '';
+        if (earlyCount > 0 && overnightCount > 0) {
+          title = `조기 ${earlyCount}건, 밤샘 ${overnightCount}건`;
+        } else if (earlyCount > 0) {
+          title = `조기 대여 ${earlyCount}건`;
+        } else if (overnightCount > 0) {
+          title = `밤샘 대여 ${overnightCount}건`;
+        } else {
+          title = `예약 ${reservations.length}건`;
+        }
+        
+        return {
+          id: `res-${date}`,
+          date,
+          title,
+          type: 'reservation',
+          reservations: reservations as ReservationInfo[]
+        };
+      });
+
+      // 6. 설정에서 추가 이벤트 가져오기 (예: 휴무일, 특별 이벤트 등)
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'special_events')
+        .single();
+
+      const additionalEvents: ScheduleEvent[] = settingsData?.value?.events || [];
+      
+      // 모든 이벤트 합치기
+      setEvents([...formattedEvents, ...reservationEvents, ...additionalEvents]);
+    } catch (error) {
+      console.error('운영 일정 불러오기 실패:', error);
+      setEvents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const mockEvents: ScheduleEvent[] = [
-      {
-        id: '1',
-        date: '2025-01-01',
-        title: '신정 특별 운영',
-        type: 'special',
-        description: '새해 첣날 특별 운영 시간',
-        startTime: '10:00',
-        endTime: '20:00',
-        affectsReservation: true
-      },
-      {
-        id: '2',
-        date: '2025-01-15',
-        title: '조기 오픈',
-        type: 'early_open',
-        description: '특별 조기 오픈',
-        startTime: '09:00',
-        affectsReservation: false
-      },
-      {
-        id: '2-1',
-        date: '2025-01-15',
-        title: '밤샘 영업',
-        type: 'overnight',
-        description: '수요일 특별 밤샘 영업',
-        endTime: '05:00',
-        affectsReservation: false
-      },
-      {
-        id: '3',
-        date: '2025-01-20',
-        title: '주말 밤샘 영업',
-        type: 'overnight',
-        description: '주말 특별 밤샘 영업',
-        endTime: '05:00',
-        affectsReservation: false
-      },
-      {
-        id: '4',
-        date: '2025-01-25',
-        title: '신규 기기 오픈 이벤트',
-        type: 'event',
-        description: '신규 기기 체험 이벤트',
-        affectsReservation: false
-      },
-      {
-        id: '5',
-        date: '2025-01-28',
-        endDate: '2025-01-30',
-        title: '시스템 점검',
-        type: 'reservation_block',
-        description: '시스템 업그레이드로 인한 예약 제한',
-        blockType: 'all_day',
-        affectsReservation: true
+    fetchScheduleData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth]);
+
+  // 실시간 업데이트 구독
+  useEffect(() => {
+    const channel = supabase
+      .channel('schedule-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'special_operations'
+        },
+        () => {
+          fetchScheduleData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations'
+        },
+        () => {
+          fetchScheduleData();
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
       }
-    ];
-    
-    // 예약 데이터 임시 추가 - 더 많은 데이터
-    const mockReservations = [
-      {
-        id: 'r1',
-        date: '2025-01-03',
-        title: '조기 대여 2건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '1', deviceType: '마이마이 DX', deviceNumber: 1, playerCount: 2, time: '07:00-12:00', slotType: 'early' as const },
-          { id: '2', deviceType: '츄니즘 NEW!!', deviceNumber: 2, playerCount: 1, time: '08:00-12:00', slotType: 'early' as const }
-        ]
-      },
-      {
-        id: 'r2',
-        date: '2025-01-05',
-        title: '밤샘 대여 3건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '3', deviceType: '마이마이 DX', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '4', deviceType: '비트매니아 IIDX', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '5', deviceType: '사운드 볼텍스', playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r3',
-        date: '2025-01-08',
-        title: '조기 3건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '6', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '07:00-11:00', slotType: 'early' as const },
-          { id: '7', deviceType: '마이마이 DX', playerCount: 2, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '8', deviceType: '비트매니아 IIDX', playerCount: 1, time: '09:00-12:00', slotType: 'early' as const }
-        ]
-      },
-      {
-        id: 'r4',
-        date: '2025-01-10',
-        title: '조기 1건, 밤샘 1건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '9', deviceType: '사운드 볼텍스', playerCount: 1, time: '07:00-11:00', slotType: 'early' as const },
-          { id: '10', deviceType: '마이마이 DX', playerCount: 2, time: '22:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r5',
-        date: '2025-01-12',
-        title: '일요일 밤샘 4건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '11', deviceType: '마이마이 DX', playerCount: 2, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '12', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '13', deviceType: '비트매니아 IIDX', playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const },
-          { id: '14', deviceType: '사운드 볼텍스', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r6',
-        date: '2025-01-15',
-        title: '대량 예약 - 12건',
-        type: 'reservation' as const,
-        reservations: [
-          // 조기 대여 6건
-          { id: '15', deviceType: '마이마이 DX', deviceNumber: 1, playerCount: 2, time: '07:00-12:00', slotType: 'early' as const },
-          { id: '16', deviceType: '마이마이 DX', deviceNumber: 2, playerCount: 1, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '17', deviceType: '츄니즘 NEW!!', deviceNumber: 1, playerCount: 1, time: '07:00-11:00', slotType: 'early' as const },
-          { id: '18', deviceType: '사운드 볼텍스', deviceNumber: 2, playerCount: 1, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '19', deviceType: '비트매니아 IIDX', deviceNumber: 1, playerCount: 1, time: '09:00-12:00', slotType: 'early' as const },
-          { id: '20', deviceType: '츄니즘 NEW!!', deviceNumber: 2, playerCount: 1, time: '09:00-12:00', slotType: 'early' as const },
-          // 밤샘 대여 6건
-          { id: '21', deviceType: '마이마이 DX', deviceNumber: 1, playerCount: 2, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '22', deviceType: '마이마이 DX', deviceNumber: 2, playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '23', deviceType: '츄니즘 NEW!!', deviceNumber: 1, playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '24', deviceType: '비트매니아 IIDX', deviceNumber: 2, playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const },
-          { id: '25', deviceType: '사운드 볼텍스', deviceNumber: 1, playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '26', deviceType: '사운드 볼텍스', deviceNumber: 2, playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r7',
-        date: '2025-01-17',
-        title: '조기 대여 4건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '27', deviceType: '마이마이 DX', playerCount: 2, time: '07:00-12:00', slotType: 'early' as const },
-          { id: '28', deviceType: '마이마이 DX', playerCount: 1, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '29', deviceType: '비트매니아 IIDX', playerCount: 1, time: '07:00-11:00', slotType: 'early' as const },
-          { id: '30', deviceType: '사운드 볼텍스', playerCount: 1, time: '09:00-12:00', slotType: 'early' as const }
-        ]
-      },
-      {
-        id: 'r8',
-        date: '2025-01-18',
-        title: '토요일 밤샘 5건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '31', deviceType: '마이마이 DX', playerCount: 2, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '32', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '33', deviceType: '비트매니아 IIDX', playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const },
-          { id: '34', deviceType: '사운드 볼텍스', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '35', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r9',
-        date: '2025-01-22',
-        title: '평일 예약 2건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '36', deviceType: '마이마이 DX', playerCount: 1, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '37', deviceType: '사운드 볼텍스', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r10',
-        date: '2025-01-24',
-        title: '금요일 예약 5건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '38', deviceType: '마이마이 DX', playerCount: 2, time: '07:00-12:00', slotType: 'early' as const },
-          { id: '39', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '40', deviceType: '사운드 볼텍스', playerCount: 1, time: '09:00-12:00', slotType: 'early' as const },
-          { id: '41', deviceType: '비트매니아 IIDX', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const },
-          { id: '42', deviceType: '사운드 볼텍스', playerCount: 1, time: '23:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r11',
-        date: '2025-01-26',
-        title: '일요일 예약 3건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '43', deviceType: '마이마이 DX', playerCount: 2, time: '08:00-12:00', slotType: 'early' as const },
-          { id: '44', deviceType: '츄니즘 NEW!!', playerCount: 1, time: '09:00-12:00', slotType: 'early' as const },
-          { id: '45', deviceType: '비트매니아 IIDX', playerCount: 1, time: '22:00-05:00', slotType: 'overnight' as const }
-        ]
-      },
-      {
-        id: 'r12',
-        date: '2025-01-29',
-        title: '예약 2건',
-        type: 'reservation' as const,
-        reservations: [
-          { id: '46', deviceType: '사운드 볼텍스', playerCount: 1, time: '07:00-11:00', slotType: 'early' as const },
-          { id: '47', deviceType: '마이마이 DX', playerCount: 1, time: '08:00-12:00', slotType: 'early' as const }
-        ]
-      }
-    ];
-    
-    setEvents([...mockEvents, ...mockReservations]);
-  }, []);
+    };
+  }, [supabase, currentMonth, fetchScheduleData]);
   
   // 날짜 관련 유틸리티 함수들
   const getDaysInMonth = (date: Date) => {

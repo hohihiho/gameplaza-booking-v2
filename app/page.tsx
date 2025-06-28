@@ -1,10 +1,49 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Calendar, FileText, Gamepad2, Info, MapPin, Phone, Clock, CalendarDays } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { createClient } from '@/lib/supabase';
 
 export default function Home() {
   const { data: session } = useSession();
+  const [supabase] = useState(() => createClient());
+  const [storeInfo, setStoreInfo] = useState({
+    phone: '062-123-4567',
+    address: '광주광역시 서구 게임로 123',
+    hours: '매일 10:00 - 22:00'
+  });
+  
+  // Supabase에서 영업 정보 가져오기
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      try {
+        const { data: settings } = await supabase
+          .from('settings')
+          .select('key, value')
+          .in('key', ['store_phone', 'store_address', 'store_hours']);
+        
+        if (settings) {
+          const info = { ...storeInfo };
+          settings.forEach(setting => {
+            if (setting.key === 'store_phone' && setting.value) {
+              info.phone = setting.value;
+            } else if (setting.key === 'store_address' && setting.value) {
+              info.address = setting.value;
+            } else if (setting.key === 'store_hours' && setting.value) {
+              info.hours = setting.value;
+            }
+          });
+          setStoreInfo(info);
+        }
+      } catch (error) {
+        console.error('Failed to fetch store info:', error);
+      }
+    };
+    
+    fetchStoreInfo();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -163,21 +202,21 @@ export default function Home() {
                 <Phone className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
               <h4 className="font-medium mb-2 dark:text-white">전화번호</h4>
-              <p className="text-gray-600 dark:text-gray-400">062-123-4567</p>
+              <p className="text-gray-600 dark:text-gray-400">{storeInfo.phone}</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <MapPin className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
               <h4 className="font-medium mb-2 dark:text-white">주소</h4>
-              <p className="text-gray-600 dark:text-gray-400">광주광역시 서구 게임로 123</p>
+              <p className="text-gray-600 dark:text-gray-400">{storeInfo.address}</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
               <h4 className="font-medium mb-2 dark:text-white">영업시간</h4>
-              <p className="text-gray-600 dark:text-gray-400">매일 10:00 - 22:00</p>
+              <p className="text-gray-600 dark:text-gray-400">{storeInfo.hours}</p>
             </div>
           </div>
         </div>

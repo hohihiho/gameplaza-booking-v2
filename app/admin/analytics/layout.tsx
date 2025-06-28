@@ -7,8 +7,7 @@ import Link from 'next/link';
 import { 
   Calendar,
   DollarSign,
-  Users,
-  ChevronRight
+  Users
 } from 'lucide-react';
 
 export default function AnalyticsLayout({

@@ -2,20 +2,18 @@
 // 비전공자 설명: 예약 관련 각종 통계를 시각화하여 보여주는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
   Calendar,
   ChevronLeft,
-  TrendingUp,
   Users,
   Clock,
   BarChart3,
   PieChart,
   Activity,
   Download,
-  Filter,
   RefreshCw,
   Gamepad2,
   Timer,

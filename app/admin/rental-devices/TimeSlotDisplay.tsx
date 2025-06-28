@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Edit, Moon, Sun, Trash2, Users } from 'lucide-react';
+import { Edit, Moon, Sun, Trash2, Users } from 'lucide-react';
 
 interface TimeSlot {
   id?: string;
@@ -28,7 +28,8 @@ export default function TimeSlotDisplay({ slot, onEdit, onDelete }: Props) {
   // 시간 계산
   const calculateHours = () => {
     const [startHour, startMin] = slot.start_time.split(':').map(Number);
-    let [endHour, endMin] = slot.end_time.split(':').map(Number);
+    let [endHour] = slot.end_time.split(':').map(Number);
+    const [, endMin] = slot.end_time.split(':').map(Number);
     
     if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
       endHour += 24;
@@ -39,8 +40,8 @@ export default function TimeSlotDisplay({ slot, onEdit, onDelete }: Props) {
   };
 
   // 시간 표시 변환 (밤샘대여의 경우 24시 이상으로 표시)
-  const formatDisplayTime = (time: string, isEnd: boolean = false) => {
-    const [hour, min] = time.split(':').map(Number);
+  const formatDisplayTime = (time: string) => {
+    const [hour] = time.split(':').map(Number);
     
     // 밤샘대여인 경우
     if (slot.slot_type === 'overnight') {

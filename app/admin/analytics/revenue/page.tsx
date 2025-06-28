@@ -2,14 +2,13 @@
 // 비전공자 설명: 일별/월별 매출 현황과 추이를 분석하는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
   Calendar,
   ChevronLeft,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   BarChart3,
   PieChart,
@@ -20,7 +19,6 @@ import {
   ArrowDown,
   Gamepad2,
   CreditCard,
-  Banknote,
   Receipt
 } from 'lucide-react';
 

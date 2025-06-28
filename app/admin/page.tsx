@@ -6,10 +6,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Calendar, 
-  Users, 
   Gamepad2, 
   Clock,
-  TrendingUp,
   AlertCircle,
   ChevronRight,
   RefreshCw,
@@ -18,7 +16,6 @@ import {
   Timer,
   DollarSign,
   Activity,
-  Banknote,
   CheckSquare,
   Zap,
   UserCheck,
@@ -61,7 +58,6 @@ type DeviceStatus = {
 
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
   
@@ -73,14 +69,6 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // 실시간 데이터 시뮬레이션 (실제로는 Supabase Realtime 사용)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLastUpdated(new Date());
-      // 여기서 실시간 데이터 업데이트
-    }, 30000); // 30초마다 자동 새로고침
-    return () => clearInterval(timer);
-  }, []);
 
   // 통계 데이터 (실제로는 API에서 가져옴)
   const stats: StatCard[] = [
@@ -104,10 +92,11 @@ export default function AdminDashboard() {
     {
       title: '오늘 매출',
       value: '₩485,000',
-      subtext: '전일 대비 +15%',
+      subtext: '실제 이용시간 기준',
       icon: DollarSign,
       trend: { value: 15, isUp: true },
-      color: 'bg-emerald-500'
+      color: 'bg-emerald-500',
+      link: '/admin/sales'
     },
     {
       title: '대여 가능',
@@ -464,6 +453,16 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-sm font-medium dark:text-white">통계 분석</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/admin/content"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <CheckSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium dark:text-white">콘텐츠 관리</span>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
             </Link>

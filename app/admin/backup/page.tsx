@@ -10,7 +10,6 @@ import {
   Upload,
   ChevronLeft,
   CloudDownload,
-  Database,
   FileArchive,
   Calendar,
   Clock,

@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react';
 import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/lib/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Device = {
   id: string;
@@ -29,138 +31,96 @@ export default function MachinesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [supabase] = useState(() => createClient());
+  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
 
-  // 임시 데이터 (실제로는 API에서 가져옴)
+  // Supabase에서 기기 정보 가져오기
   useEffect(() => {
-    const mockDeviceTypes: DeviceType[] = [
-      {
-        id: '1',
-        name: '마이마이 DX',
-        company: 'SEGA',
-        description: '터치스크린 리듬게임',
-        play_price: '스탠다드/1000원 디럭스/2000원',
-        is_rentable: true,
-        total_count: 2,
-        devices: [
-          { id: '1', device_number: 1, status: 'available' },
-          { id: '2', device_number: 2, status: 'in_use', current_user: '김**' }
-        ]
-      },
-      {
-        id: '2',
-        name: '츄니즘 NEW!!',
-        company: 'SEGA',
-        description: '에어 스트링 리듬게임',
-        play_price: '스탠다드/1000원 코스/2000원',
-        is_rentable: true,
-        total_count: 1,
-        devices: [
-          { id: '3', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '3',
-        name: '사운드 볼텍스 EXCEED GEAR',
-        company: 'KONAMI',
-        description: '노브 컨트롤러 리듬게임',
-        play_price: '라이트/1000원 스탠다드/1500원 프리미엄프리/2000원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '4', device_number: 1, status: 'maintenance' }
-        ]
-      },
-      {
-        id: '4',
-        name: '비트매니아 IIDX 31 EPOLIS',
-        company: 'KONAMI',
-        description: 'DJ 시뮬레이션 리듬게임',
-        play_price: '스탠다드/1500원 프리미엄프리/2500원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '5', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '5',
-        name: '팝픈뮤직 해명리둠',
-        company: 'KONAMI',
-        description: '9버튼 리듬게임',
-        play_price: '2곡/1000원 3곡보장/1500원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '6', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '6',
-        name: '유비트 페스토',
-        company: 'KONAMI',
-        description: '16버튼 터치 리듬게임',
-        play_price: '3튠/1000원 코스/2000원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '7', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '7',
-        name: 'DDR A3',
-        company: 'KONAMI',
-        description: '댄스 리듬게임',
-        play_price: '3스테이지/1000원 논스톱/2000원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '8', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '8',
-        name: '펌프 잇 업 피닉스',
-        company: 'Andamiro',
-        description: '5패널 댄스게임',
-        play_price: '3스테이지/1000원 풀모드/2000원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '9', device_number: 1, status: 'in_use', current_user: '박**' }
-        ]
-      },
-      {
-        id: '9',
-        name: '태고의 달인',
-        company: 'Bandai Namco',
-        description: '북 리듬게임',
-        play_price: '2곡/1000원 3곡/1500원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '10', device_number: 1, status: 'available' }
-        ]
-      },
-      {
-        id: '10',
-        name: '왓카 리버스',
-        company: 'Marvelous',
-        description: '원형 터치 리듬게임',
-        play_price: '3곡/1000원 5곡/1500원',
-        is_rentable: false,
-        total_count: 1,
-        devices: [
-          { id: '11', device_number: 1, status: 'available' }
-        ]
-      }
-    ];
+    fetchDeviceTypes();
     
-    setTimeout(() => {
-      setDeviceTypes(mockDeviceTypes);
+    // 실시간 업데이트 구독
+    const channel = supabase
+      .channel('device-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'devices'
+        },
+        () => {
+          // 기기 상태가 변경되면 다시 불러오기
+          fetchDeviceTypes();
+        }
+      )
+      .subscribe();
+
+    setRealtimeChannel(channel);
+
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [supabase]);
+
+  const fetchDeviceTypes = async () => {
+    try {
+      setLoading(true);
+
+      // device_types와 devices를 함께 가져오기
+      const { data: deviceTypesData, error: typesError } = await supabase
+        .from('device_types')
+        .select(`
+          *,
+          devices (
+            id,
+            device_number,
+            status,
+            current_user
+          )
+        `)
+        .order('name');
+
+      if (typesError) throw typesError;
+
+      // 데이터 포맷팅
+      const formattedData: DeviceType[] = (deviceTypesData || []).map(type => {
+        // 가격 정보 포맷팅
+        let play_price = '';
+        if (type.play_modes && Array.isArray(type.play_modes)) {
+          play_price = type.play_modes
+            .map((mode: any) => `${mode.name}/${mode.price}원`)
+            .join(' ');
+        }
+
+        return {
+          id: type.id,
+          name: type.name,
+          company: type.company || 'Unknown',
+          description: type.description || '',
+          play_price: play_price || '가격 정보 없음',
+          is_rentable: type.is_rentable || false,
+          total_count: type.devices?.length || 0,
+          devices: (type.devices || []).map((device: any) => ({
+            id: device.id,
+            device_number: device.device_number,
+            status: device.status,
+            current_user: device.current_user
+          }))
+        };
+      });
+
+      setDeviceTypes(formattedData);
+    } catch (error) {
+      console.error('기기 정보 불러오기 실패:', error);
+      // 에러 시 빈 배열로 설정
+      setDeviceTypes([]);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   // 필터링된 기기 타입 목록 (검색만)
   const filteredDeviceTypes = deviceTypes.filter(deviceType => {

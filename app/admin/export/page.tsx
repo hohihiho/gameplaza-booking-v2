@@ -14,12 +14,9 @@ import {
   Gamepad2,
   DollarSign,
   Clock,
-  CheckCircle,
   AlertCircle,
-  Filter,
   Settings,
   Database,
-  ArrowRight,
   FileText,
   Package,
   TrendingUp

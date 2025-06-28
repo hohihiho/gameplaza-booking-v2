@@ -1,0 +1,37 @@
+name: Scheduled Jobs
+
+on:
+  schedule:
+    # 10분마다 실행 (UTC 기준)
+    # 한국시간(KST)은 UTC+9 이므로, UTC 0시 = KST 오전 9시
+    - cron: '*/10 * * * *'
+  
+  # 수동 실행 가능하도록 설정
+  workflow_dispatch:
+
+jobs:
+  update-device-status:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Update Device Status
+      run: |
+        curl -X GET "${{ secrets.PRODUCTION_URL }}/api/cron/update-device-status" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Content-Type: application/json" \
+          --fail \
+          --show-error \
+          --silent \
+          --output response.json
+        
+        # 응답 출력
+        echo "Response:"
+        cat response.json
+        
+        # 성공 여부 확인
+        if grep -q '"success":true' response.json; then
+          echo "✅ Device status updated successfully"
+        else
+          echo "❌ Failed to update device status"
+          exit 1
+        fi

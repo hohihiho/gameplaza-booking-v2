@@ -4,21 +4,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { createClient } from '@/lib/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { 
   Calendar,
-  Clock,
   Plus,
   Trash2,
   Edit,
   Save,
-  X,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
   Gamepad2,
-  Users,
-  Hash,
-  Settings,
   DollarSign,
   Coins
 } from 'lucide-react';
@@ -61,6 +58,7 @@ export default function RentalSlotManagementPage() {
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [supabase] = useState(() => createClient());
 
   // 새 시간대 추가 폼 상태
   const [newSlot, setNewSlot] = useState({
@@ -74,98 +72,126 @@ export default function RentalSlotManagementPage() {
     }
   });
 
-  // Mock 데이터
-  useEffect(() => {
-    // 대여 가능한 기기 타입 목록
-    setDeviceTypes([
-      {
-        id: '1',
-        name: '마이마이 DX',
-        category: 'SEGA',
-        is_rentable: true,
+  // Supabase에서 대여 가능한 기기 타입 목록 가져오기
+  const fetchDeviceTypes = async () => {
+    try {
+      const { data: deviceTypesData, error } = await supabase
+        .from('device_types')
+        .select('*')
+        .eq('is_rentable', true)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+
+      // 데이터 포맷팅
+      const formattedData: DeviceType[] = (deviceTypesData || []).map(type => ({
+        id: type.id,
+        name: type.name,
+        category: type.company || 'Unknown',
+        is_rentable: type.is_rentable || false,
         rental_settings: {
-          credit_types: ['freeplay', 'unlimited'],
-          base_price: 50000,
-          price_multiplier_2p: 1.5,
-          max_players: 2
+          credit_types: type.credit_types || ['freeplay'],
+          fixed_credits: type.fixed_credits,
+          base_price: type.base_price || 50000,
+          price_multiplier_2p: type.price_multiplier_2p || 1,
+          max_players: type.max_players || 1
         }
-      },
-      {
-        id: '2',
-        name: '사운드 볼텍스',
-        category: 'KONAMI',
-        is_rentable: true,
-        rental_settings: {
-          credit_types: ['fixed'],
-          fixed_credits: 10,
-          base_price: 40000,
-          max_players: 1
-        }
-      },
-      {
-        id: '3',
-        name: '춘리즘',
-        category: 'SEGA',
-        is_rentable: true,
-        rental_settings: {
-          credit_types: ['freeplay', 'unlimited'],
-          base_price: 45000,
-          max_players: 1
-        }
-      },
-      {
-        id: '4',
-        name: 'beatmania IIDX',
-        category: 'KONAMI',
-        is_rentable: true,
-        rental_settings: {
-          credit_types: ['fixed'],
-          fixed_credits: 8,
-          base_price: 40000,
-          max_players: 1
-        }
+      }));
+
+      setDeviceTypes(formattedData);
+      
+      // 첫 번째 기기를 자동 선택
+      if (formattedData.length > 0 && !selectedDeviceType) {
+        setSelectedDeviceType(formattedData[0].id);
       }
-    ]);
+    } catch (error) {
+      console.error('기기 타입 불러오기 실패:', error);
+      setDeviceTypes([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeviceTypes();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 실시간 업데이트 구독
+  useEffect(() => {
+    const channel = supabase
+      .channel('rental-slots-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rental_time_slots'
+        },
+        (payload) => {
+          // 현재 선택된 기기와 날짜에 해당하는 변경사항만 처리
+          if (payload.new && 
+              payload.new.device_type_id === selectedDeviceType && 
+              payload.new.date === formatDate(selectedDate)) {
+            loadRentalSlots();
+          }
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [supabase, selectedDeviceType, selectedDate, formatDate, loadRentalSlots]);
 
   // 선택한 기기와 날짜에 따른 시간대 불러오기
   useEffect(() => {
     if (selectedDeviceType && selectedDate) {
       loadRentalSlots();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDeviceType, selectedDate]);
 
-  const loadRentalSlots = () => {
-    // Mock 데이터
-    const dateStr = formatDate(selectedDate);
-    setRentalSlots([
-      {
-        id: '1',
-        device_type_id: selectedDeviceType,
-        date: dateStr,
-        start_time: '10:00',
-        end_time: '12:00',
-        available_devices: [1, 2],
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadRentalSlots = async () => {
+    try {
+      setIsLoading(true);
+      const dateStr = formatDate(selectedDate);
+      
+      const { data: slotsData, error } = await supabase
+        .from('rental_time_slots')
+        .select('*')
+        .eq('device_type_id', selectedDeviceType)
+        .eq('date', dateStr)
+        .order('start_time');
+
+      if (error) throw error;
+
+      // 데이터 포맷팅
+      const formattedSlots: RentalSlot[] = (slotsData || []).map(slot => ({
+        id: slot.id,
+        device_type_id: slot.device_type_id,
+        date: slot.date,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        available_devices: slot.available_units || [],
         prices: {
-          freeplay: 50000,
-          unlimited: 60000
+          fixed: slot.credit_options?.fixed?.price,
+          freeplay: slot.credit_options?.freeplay?.price || slot.price,
+          unlimited: slot.credit_options?.unlimited?.price
         },
-        is_active: true
-      },
-      {
-        id: '2',
-        device_type_id: selectedDeviceType,
-        date: dateStr,
-        start_time: '14:00',
-        end_time: '16:00',
-        available_devices: [1],
-        prices: {
-          freeplay: 50000,
-          unlimited: 60000
-        },
-        is_active: true
-      }
-    ]);
+        is_active: slot.is_active !== false
+      }));
+
+      setRentalSlots(formattedSlots);
+    } catch (error) {
+      console.error('시간대 정보 불러오기 실패:', error);
+      setRentalSlots([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -192,21 +218,49 @@ export default function RentalSlotManagementPage() {
   };
 
   const handleAddSlot = async () => {
-    setIsLoading(true);
-    // API 호출 시뮬레이션
-    setTimeout(() => {
-      const newRentalSlot: RentalSlot = {
-        id: String(Date.now()),
-        device_type_id: selectedDeviceType,
-        date: formatDate(selectedDate),
-        start_time: newSlot.start_time,
-        end_time: newSlot.end_time,
-        available_devices: newSlot.available_devices,
-        prices: newSlot.prices,
-        is_active: true
-      };
+    try {
+      setIsLoading(true);
+      
+      const creditOptions: any = {};
+      const selectedDevice = getSelectedDeviceType();
+      
+      // 크레디트 옵션 구성
+      if (selectedDevice?.rental_settings?.credit_types.includes('fixed') && newSlot.prices.fixed) {
+        creditOptions.fixed = {
+          price: newSlot.prices.fixed,
+          credits: selectedDevice.rental_settings.fixed_credits
+        };
+      }
+      if (selectedDevice?.rental_settings?.credit_types.includes('freeplay') && newSlot.prices.freeplay) {
+        creditOptions.freeplay = {
+          price: newSlot.prices.freeplay
+        };
+      }
+      if (selectedDevice?.rental_settings?.credit_types.includes('unlimited') && newSlot.prices.unlimited) {
+        creditOptions.unlimited = {
+          price: newSlot.prices.unlimited
+        };
+      }
+      
+      const { error } = await supabase
+        .from('rental_time_slots')
+        .insert({
+          device_type_id: selectedDeviceType,
+          date: formatDate(selectedDate),
+          start_time: newSlot.start_time,
+          end_time: newSlot.end_time,
+          available_units: newSlot.available_devices,
+          max_units: newSlot.available_devices.length,
+          price: newSlot.prices.freeplay || newSlot.prices.fixed || 0,
+          credit_options: creditOptions,
+          slot_type: 'regular',
+          is_active: true
+        });
 
-      setRentalSlots([...rentalSlots, newRentalSlot]);
+      if (error) throw error;
+
+      // 성공 후 다시 불러오기
+      await loadRentalSlots();
       setIsAddingSlot(false);
       setNewSlot({
         start_time: '',
@@ -214,13 +268,31 @@ export default function RentalSlotManagementPage() {
         available_devices: [],
         prices: { fixed: 0, freeplay: 0, unlimited: 0 }
       });
+    } catch (error) {
+      console.error('시간대 추가 실패:', error);
+      alert('시간대 추가에 실패했습니다.');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
     if (!confirm('이 시간대를 삭제하시겠습니까?')) return;
-    setRentalSlots(rentalSlots.filter(slot => slot.id !== slotId));
+    
+    try {
+      const { error } = await supabase
+        .from('rental_time_slots')
+        .delete()
+        .eq('id', slotId);
+
+      if (error) throw error;
+
+      // 성공 후 목록 업데이트
+      setRentalSlots(rentalSlots.filter(slot => slot.id !== slotId));
+    } catch (error) {
+      console.error('시간대 삭제 실패:', error);
+      alert('시간대 삭제에 실패했습니다.');
+    }
   };
 
   const selectedDevice = getSelectedDeviceType();

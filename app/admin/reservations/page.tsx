@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { createClient } from '@/lib/supabase';
 import { 
   Calendar,
   Clock,
@@ -19,7 +20,10 @@ import {
   Gamepad2,
   Phone,
   MessageSquare,
-  Eye
+  Eye,
+  Edit3,
+  X,
+  Save
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -57,75 +61,122 @@ export default function ReservationManagementPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingReservationId, setRejectingReservationId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [supabase] = useState(() => createClient());
+  const [showTimeAdjustment, setShowTimeAdjustment] = useState(false);
+  const [adjustedStartTime, setAdjustedStartTime] = useState('');
+  const [adjustedEndTime, setAdjustedEndTime] = useState('');
+  const [adjustmentReason, setAdjustmentReason] = useState('');
+  const [adjustmentReasonType, setAdjustmentReasonType] = useState('');
 
-  // Mock 데이터
-  useEffect(() => {
-    setReservations([
-      {
-        id: '1',
+  // Supabase에서 예약 데이터 가져오기
+  const fetchReservations = async () => {
+    try {
+      setIsLoading(true);
+      const { data: reservationsData, error } = await supabase
+        .from('reservations')
+        .select(`
+          *,
+          users (
+            id,
+            name,
+            phone,
+            email
+          ),
+          rental_time_slots (
+            date,
+            start_time,
+            end_time,
+            device_type_id,
+            price
+          ),
+          device_types (
+            name,
+            company
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // 데이터 포맷팅
+      const formattedReservations: Reservation[] = (reservationsData || []).map(res => ({
+        id: res.id,
         user: {
-          id: '1',
-          name: '김철수',
-          phone: '010-1234-5678',
-          email: 'kim@example.com'
+          id: res.users.id,
+          name: res.users.name,
+          phone: res.users.phone,
+          email: res.users.email
         },
         device: {
-          type_name: '마이마이 DX',
-          device_number: 1
+          type_name: res.device_types?.name || '알 수 없음',
+          device_number: res.device_number
         },
-        date: '2024-01-26',
-        time_slot: '14:00-16:00',
-        player_count: 2,
-        credit_option: '프리플레이',
-        total_price: 75000,
-        status: 'pending',
-        notes: '친구와 함께 이용합니다',
-        created_at: '2024-01-25T10:30:00'
-      },
-      {
-        id: '2',
-        user: {
-          id: '2',
-          name: '이영희',
-          phone: '010-2345-6789',
-          email: 'lee@example.com'
-        },
-        device: {
-          type_name: '사운드 볼텍스',
-          device_number: 2
-        },
-        date: '2024-01-26',
-        time_slot: '16:00-18:00',
-        player_count: 1,
-        credit_option: '고정 10크레딧',
-        total_price: 40000,
-        status: 'approved',
-        created_at: '2024-01-25T09:15:00',
-        reviewed_at: '2024-01-25T11:00:00',
-        reviewed_by: '관리자'
-      },
-      {
-        id: '3',
-        user: {
-          id: '3',
-          name: '박민수',
-          phone: '010-3456-7890',
-          email: 'park@example.com'
-        },
-        device: {
-          type_name: '춘리즘',
-          device_number: 1
-        },
-        date: '2024-01-27',
-        time_slot: '10:00-12:00',
-        player_count: 1,
-        credit_option: '무한크레딧',
-        total_price: 60000,
-        status: 'pending',
-        created_at: '2024-01-25T15:45:00'
+        date: res.rental_time_slots?.date || '',
+        time_slot: res.rental_time_slots ? 
+          `${res.rental_time_slots.start_time.slice(0, 5)}-${res.rental_time_slots.end_time.slice(0, 5)}` : '',
+        player_count: res.player_count || 1,
+        credit_option: res.notes?.includes('무한크레딧') ? '무한크레딧' : 
+                       res.notes?.includes('프리플레이') ? '프리플레이' : '고정크레딧',
+        total_price: res.total_price,
+        status: res.status,
+        notes: res.notes,
+        created_at: res.created_at,
+        reviewed_at: res.approved_at || res.updated_at,
+        reviewed_by: res.approved_by || (res.status !== 'pending' ? '관리자' : undefined)
+      }));
+
+      setReservations(formattedReservations);
+    } catch (error) {
+      console.error('예약 데이터 불러오기 실패:', error);
+      setReservations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 시간 조정 이력 가져오기
+  const fetchTimeAdjustments = async (reservationId: string) => {
+    try {
+      const response = await fetch(`/api/admin/reservations/time-adjustment?reservationId=${reservationId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTimeAdjustments(data.adjustments || []);
       }
-    ]);
+    } catch (error) {
+      console.error('시간 조정 이력 조회 실패:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchReservations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+
+    // 실시간 업데이트 구독
+    const channel = supabase
+      .channel('reservations-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations'
+        },
+        () => {
+          fetchReservations();
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [supabase, fetchReservations]);
 
   // 필터링된 예약 목록
   const filteredReservations = reservations.filter(reservation => {
@@ -188,9 +239,24 @@ export default function ReservationManagementPage() {
   };
 
   const handleApprove = async (reservationId: string) => {
-    setIsLoading(true);
-    // API 호출 시뮬레이션
-    setTimeout(() => {
+    try {
+      setIsLoading(true);
+      
+      // 현재 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('reservations')
+        .update({
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id || 'admin'
+        })
+        .eq('id', reservationId);
+
+      if (error) throw error;
+
+      // 로컬 상태 업데이트 (실시간 업데이트로 자동 갱신되지만 빠른 UI 반영을 위해)
       setReservations(reservations.map(r => 
         r.id === reservationId 
           ? { 
@@ -201,8 +267,12 @@ export default function ReservationManagementPage() {
             }
           : r
       ));
+    } catch (error) {
+      console.error('예약 승인 실패:', error);
+      alert('예약 승인에 실패했습니다.');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleReject = async (reservationId: string) => {
@@ -216,9 +286,25 @@ export default function ReservationManagementPage() {
       return;
     }
 
-    setIsLoading(true);
-    // API 호출 시뮬레이션
-    setTimeout(() => {
+    try {
+      setIsLoading(true);
+      
+      // 현재 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('reservations')
+        .update({
+          status: 'rejected',
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id || 'admin',
+          notes: `거절 사유: ${rejectReason}`
+        })
+        .eq('id', rejectingReservationId);
+
+      if (error) throw error;
+
+      // 로컬 상태 업데이트
       setReservations(reservations.map(r => 
         r.id === rejectingReservationId 
           ? { 
@@ -230,11 +316,16 @@ export default function ReservationManagementPage() {
             }
           : r
       ));
-      setIsLoading(false);
+      
       setShowRejectModal(false);
       setRejectingReservationId(null);
       setRejectReason('');
-    }, 1000);
+    } catch (error) {
+      console.error('예약 거절 실패:', error);
+      alert('예약 거절에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -439,6 +530,289 @@ export default function ReservationManagementPage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 예약 상세 모달 */}
+      {selectedReservation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+          >
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold dark:text-white">예약 상세</h2>
+              <button
+                onClick={() => {
+                  setSelectedReservation(null);
+                  setShowTimeAdjustment(false);
+                  setAdjustedStartTime('');
+                  setAdjustedEndTime('');
+                  setAdjustmentReason('');
+                  setAdjustmentReasonType('');
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              </button>
+            </div>
+
+            {/* 예약 정보 */}
+            <div className="space-y-6">
+              {/* 예약자 정보 */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">예약자 정보</h3>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm dark:text-white">{selectedReservation.user.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm dark:text-white">{selectedReservation.user.phone}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 예약 상세 */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">예약 상세</h3>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">기기</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        {selectedReservation.device.type_name} #{selectedReservation.device.device_number}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">날짜</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        {new Date(selectedReservation.date).toLocaleDateString('ko-KR')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">시간</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        {selectedReservation.time_slot}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">인원</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        {selectedReservation.player_count}명
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">크레딧</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        {selectedReservation.credit_option}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">금액</p>
+                      <p className="text-sm font-medium dark:text-white">
+                        ₩{selectedReservation.total_price.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 시간 조정 섹션 */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">시간 조정</h3>
+                  {!showTimeAdjustment && (
+                    <button
+                      onClick={() => {
+                        setShowTimeAdjustment(true);
+                        const [start, end] = selectedReservation.time_slot.split('-');
+                        setAdjustedStartTime(start);
+                        setAdjustedEndTime(end);
+                      }}
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      시간 변경
+                    </button>
+                  )}
+                </div>
+
+                {showTimeAdjustment ? (
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          시작 시간
+                        </label>
+                        <input
+                          type="time"
+                          value={adjustedStartTime}
+                          onChange={(e) => setAdjustedStartTime(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          종료 시간
+                        </label>
+                        <input
+                          type="time"
+                          value={adjustedEndTime}
+                          onChange={(e) => setAdjustedEndTime(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        변경 사유
+                      </label>
+                      <div className="space-y-2 mb-3">
+                        {[
+                          { value: 'customer_request', label: '고객 요청' },
+                          { value: 'schedule_conflict', label: '일정 충돌' },
+                          { value: 'device_issue', label: '기기 문제' },
+                          { value: 'staff_shortage', label: '직원 부족' },
+                          { value: 'other', label: '기타 (직접 입력)' }
+                        ].map((reason) => (
+                          <label key={reason.value} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="adjustmentReason"
+                              value={reason.value}
+                              checked={adjustmentReasonType === reason.value}
+                              onChange={(e) => {
+                                setAdjustmentReasonType(e.target.value);
+                                if (e.target.value !== 'other') {
+                                  setAdjustmentReason(reason.label);
+                                } else {
+                                  setAdjustmentReason('');
+                                }
+                              }}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{reason.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {adjustmentReasonType === 'other' && (
+                        <textarea
+                          value={adjustmentReason}
+                          onChange={(e) => setAdjustmentReason(e.target.value)}
+                          placeholder="변경 사유를 입력해주세요 (선택사항)"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          rows={2}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setShowTimeAdjustment(false);
+                          setAdjustedStartTime('');
+                          setAdjustedEndTime('');
+                          setAdjustmentReason('');
+                          setAdjustmentReasonType('');
+                        }}
+                        className="flex-1 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            setIsLoading(true);
+                            const response = await fetch('/api/admin/reservations/time-adjustment', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                reservationId: selectedReservation.id,
+                                startTime: adjustedStartTime,
+                                endTime: adjustedEndTime,
+                                reason: adjustmentReason || '관리자 수동 조정'
+                              })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                              alert('시간이 성공적으로 조정되었습니다.');
+                              setShowTimeAdjustment(false);
+                              setSelectedReservation(null);
+                              fetchReservations();
+                            } else {
+                              alert(`시간 조정 실패: ${data.error}`);
+                            }
+                          } catch (error) {
+                            console.error('시간 조정 오류:', error);
+                            alert('시간 조정 중 오류가 발생했습니다.');
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                        disabled={isLoading}
+                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Save className="w-4 h-4" />
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      현재 예약 시간: {selectedReservation.time_slot}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 메모 */}
+              {selectedReservation.notes && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">메모</h3>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {selectedReservation.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 상태 및 타임스탬프 */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">상태 정보</h3>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">현재 상태</span>
+                    {getStatusBadge(selectedReservation.status)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">신청 시간</span>
+                    <span className="text-sm dark:text-white">
+                      {new Date(selectedReservation.created_at).toLocaleString('ko-KR')}
+                    </span>
+                  </div>
+                  {selectedReservation.reviewed_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">처리 시간</span>
+                      <span className="text-sm dark:text-white">
+                        {new Date(selectedReservation.reviewed_at).toLocaleString('ko-KR')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
 

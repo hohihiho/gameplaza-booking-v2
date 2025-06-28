@@ -881,9 +881,9 @@ export default function NewReservationPage() {
               </div>
             </motion.div>
           )}
-            </AnimatePresence>
-          </div>
+          </AnimatePresence>
         </LayoutGroup>
+        </div>
       </motion.div>
     </main>
   );

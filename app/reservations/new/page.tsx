@@ -8,6 +8,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft, Loader2, AlertCircle, Coins } from 'lucide-react';
 import { getDeviceTypes, getTimeSlots, createReservation } from '@/lib/api/reservations';
 import { useSession } from 'next-auth/react';
+import { createClient } from '@/lib/supabase';
 
 type DeviceType = {
   id: string;
@@ -22,6 +23,8 @@ type DeviceType = {
   devices: Device[];
   active_device_count: number;
   total_device_count: number;
+  max_rental_units?: number;
+  display_order: number;
 };
 
 type Device = {
@@ -42,11 +45,19 @@ type TimeSlot = {
   available_devices: number[];
   is_available: boolean;
   price?: number;
+  slot_type?: 'early' | 'overnight' | 'regular';
+  credit_options?: any[];
+  enable_2p?: boolean;
+  price_2p_extra?: number;
 };
 
 export default function NewReservationPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [supabase] = useState(() => createClient());
+  
+  // 예약 확인사항
+  const [reservationRules, setReservationRules] = useState<any[]>([]);
   
   // 로그인 확인
   useEffect(() => {
@@ -55,6 +66,30 @@ export default function NewReservationPage() {
       router.push('/login');
     }
   }, [status, session, router]);
+  
+  // 예약 확인사항 불러오기
+  useEffect(() => {
+    const loadReservationRules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('reservation_rules')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+          
+        if (error) {
+          console.error('예약 확인사항 로드 실패:', error);
+          return;
+        }
+        
+        setReservationRules(data || []);
+      } catch (error) {
+        console.error('예약 확인사항 로드 에러:', error);
+      }
+    };
+    
+    loadReservationRules();
+  }, [supabase]);
   
   // 각 단계별 선택 상태 관리
   const [selectedDate, setSelectedDate] = useState('');
@@ -84,72 +119,58 @@ export default function NewReservationPage() {
     const loadDeviceTypes = async () => {
       try {
         setIsLoadingDevices(true);
-        // 임시 mock 데이터 사용
-        const mockDeviceTypes: DeviceType[] = [
-          {
-            id: '1',
-            name: '마이마이 DX',
-            category: 'SEGA',
-            description: '터치스크린 리듬게임',
-            base_price: 50000,
-            price_multiplier_2p: 1.5,
-            max_players: 2,
-            requires_approval: true,
-            devices: [
-              { id: '1', device_number: 1, status: 'available', is_active: true },
-              { id: '2', device_number: 2, status: 'available', is_active: true }
-            ],
-            active_device_count: 2,
-            total_device_count: 2
-          },
-          {
-            id: '2',
-            name: '츄니즘 NEW!!',
-            category: 'SEGA',
-            description: '에어 스트링 리듬게임',
-            base_price: 50000,
-            price_multiplier_2p: 1,
-            max_players: 1,
-            requires_approval: true,
-            devices: [
-              { id: '3', device_number: 1, status: 'available', is_active: true }
-            ],
-            active_device_count: 1,
-            total_device_count: 1
-          },
-          {
-            id: '3',
-            name: '사운드 볼텍스 EXCEED GEAR',
-            category: 'KONAMI',
-            description: '노브 컨트롤러 리듬게임',
-            base_price: 60000,
-            price_multiplier_2p: 1,
-            max_players: 1,
-            requires_approval: true,
-            devices: [
-              { id: '4', device_number: 1, status: 'available', is_active: true }
-            ],
-            active_device_count: 1,
-            total_device_count: 1
-          },
-          {
-            id: '4',
-            name: '비트매니아 IIDX 31 EPOLIS',
-            category: 'KONAMI',
-            description: 'DJ 시뮬레이션 리듬게임',
-            base_price: 70000,
-            price_multiplier_2p: 1,
-            max_players: 1,
-            requires_approval: true,
-            devices: [
-              { id: '5', device_number: 1, status: 'available', is_active: true }
-            ],
-            active_device_count: 1,
-            total_device_count: 1
-          }
-        ];
         
-        setDeviceTypes(mockDeviceTypes);
+        // Supabase에서 대여 가능한 기기 타입만 가져오기
+        const { data: deviceTypesData, error: typesError } = await supabase
+          .from('device_types')
+          .select(`
+            *,
+            device_categories (
+              id,
+              name
+            ),
+            devices (
+              id,
+              device_number,
+              status
+            )
+          `)
+          .eq('is_rentable', true);
+
+        if (typesError) throw typesError;
+
+        console.log('Loaded device types:', deviceTypesData);
+
+        // API 형식으로 데이터 변환
+        const formattedData: DeviceType[] = (deviceTypesData || []).map(type => {
+          const activeDevices = (type.devices || []).filter((d: any) => 
+            d.status === 'available'
+          );
+          
+          // rental_settings JSONB 컬럼에서 설정 값 가져오기
+          const rentalSettings = type.rental_settings || {};
+          
+          return {
+            id: type.id,
+            name: type.name,
+            category: type.device_categories?.name || 'Unknown',
+            description: type.description || '',
+            base_price: rentalSettings.base_price || 50000,
+            price_multiplier_2p: rentalSettings.price_multiplier_2p || 1,
+            max_players: rentalSettings.max_players || 1,
+            requires_approval: type.requires_approval ?? true,
+            image_url: type.image_url,
+            devices: type.devices || [],
+            active_device_count: activeDevices.length,
+            total_device_count: (type.devices || []).length,
+            max_rental_units: rentalSettings.max_rental_units,
+            display_order: rentalSettings.display_order ?? 999
+          };
+        })
+        .sort((a, b) => a.display_order - b.display_order);
+        
+        console.log('Formatted device types:', formattedData);
+        setDeviceTypes(formattedData);
       } catch (error) {
         console.error('Failed to load device types:', error);
         setError('기기 정보를 불러올 수 없습니다');
@@ -159,18 +180,65 @@ export default function NewReservationPage() {
     };
     
     loadDeviceTypes();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // 기기 선택시 사용 가능한 시간대 불러오기
+  // 기기 선택시 고정 시간대 불러오기
   useEffect(() => {
     const loadTimeSlots = async () => {
-      if (!selectedDevice || !selectedDate) return;
+      if (!selectedDevice) return;
       
       try {
         setIsLoadingSlots(true);
         setError(null);
-        const { timeSlots: slots } = await getTimeSlots(selectedDate, selectedDevice);
-        setTimeSlots(slots || []);
+        
+        // Supabase에서 해당 기기의 고정 시간대 가져오기
+        const { data: slotsData, error: slotsError } = await supabase
+          .from('rental_time_slots')
+          .select('*')
+          .eq('device_type_id', selectedDevice)
+          .order('slot_type', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (slotsError) throw slotsError;
+
+        console.log('Loaded time slots for device:', selectedDevice, 'data:', slotsData);
+
+        // 시간대 데이터 포맷팅
+        const formattedSlots: TimeSlot[] = (slotsData || []).map(slot => {
+          // 선택한 기기의 사용 가능한 기기 번호 가져오기
+          const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDevice);
+          const availableDevices = selectedDeviceInfo?.devices
+            .filter(d => d.status === 'available')
+            .map(d => d.device_number) || [1, 2, 3, 4];
+          
+          // 크레딧 옵션에서 프리플레이 가격 가져오기
+          let price = 50000; // 기본값
+          if (slot.credit_options && Array.isArray(slot.credit_options)) {
+            const freeplayOption = slot.credit_options.find((opt: any) => opt.type === 'freeplay');
+            if (freeplayOption?.price) {
+              price = freeplayOption.price;
+            }
+          }
+          
+          return {
+            id: slot.id,
+            date: selectedDate, // 선택한 날짜 사용
+            start_time: slot.start_time,
+            end_time: slot.end_time,
+            device_type_id: slot.device_type_id,
+            max_devices: availableDevices.length,
+            available_devices: availableDevices,
+            is_available: availableDevices.length > 0,
+            price: price,
+            slot_type: slot.slot_type,
+            credit_options: slot.credit_options,
+            enable_2p: slot.enable_2p,
+            price_2p_extra: slot.price_2p_extra
+          };
+        });
+        
+        setTimeSlots(formattedSlots);
       } catch (error) {
         console.error('Failed to load time slots:', error);
         setError('시간대 정보를 불러올 수 없습니다');
@@ -180,7 +248,8 @@ export default function NewReservationPage() {
     };
     
     loadTimeSlots();
-  }, [selectedDevice, selectedDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice, deviceTypes]);
   
   // 선택한 정보 가져오기
   const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDevice);
@@ -188,19 +257,20 @@ export default function NewReservationPage() {
   
   // 가격 계산
   const calculatePrice = () => {
-    if (!selectedDeviceInfo || !selectedTimeSlotInfo) return 0;
+    if (!selectedTimeSlotInfo || !creditOption) return 0;
     
-    // 기본 가격 (시간대에 설정된 가격 사용)
-    let basePrice = selectedTimeSlotInfo.price || selectedDeviceInfo.base_price;
+    // 선택한 크레디트 옵션의 가격 찾기
+    const selectedCreditOption = selectedTimeSlotInfo.credit_options?.find(
+      (opt: any) => opt.type === creditOption
+    );
     
-    // 2인 플레이 추가 요금 (마이마이만 해당)
-    if (playerCount === 2 && selectedDeviceInfo.max_players > 1) {
-      basePrice = basePrice * selectedDeviceInfo.price_multiplier_2p;
-    }
+    if (!selectedCreditOption) return 0;
     
-    // 크레딧 옵션 추가 요금
-    if (creditOption === 'unlimited') {
-      basePrice += 10000;
+    let basePrice = selectedCreditOption.price;
+    
+    // 2인 플레이 추가 요금
+    if (playerCount === 2 && selectedTimeSlotInfo.enable_2p && selectedTimeSlotInfo.price_2p_extra) {
+      basePrice += selectedTimeSlotInfo.price_2p_extra;
     }
     
     return basePrice;
@@ -479,13 +549,10 @@ export default function NewReservationPage() {
                           setPlayerCount(1);
                           setCreditOption('');
                         }}
-                        disabled={device.active_device_count === 0}
                         className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                          !device.active_device_count
-                            ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
-                            : selectedDevice === device.id
-                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          selectedDevice === device.id
+                            ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
                         <div className="flex justify-between items-start">
@@ -500,12 +567,16 @@ export default function NewReservationPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between mt-3">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {device.active_device_count}/{device.total_device_count}대 이용 가능
-                          </p>
-                          <p className="text-sm font-medium dark:text-white">
-                            {device.base_price.toLocaleString()}원~
-                          </p>
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              대여 가능: {device.max_rental_units || device.active_device_count}대
+                            </p>
+                            {device.active_device_count === 0 && (
+                              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                현재 모든 기기가 점검 중이거나 예약됨
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -566,14 +637,31 @@ export default function NewReservationPage() {
                               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium dark:text-white">
-                              {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium dark:text-white">
+                                {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                              </h3>
+                              {slot.slot_type === 'early' && (
+                                <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full">
+                                  조기대여
+                                </span>
+                              )}
+                              {slot.slot_type === 'overnight' && (
+                                <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+                                  밤샘대여
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                               {slot.available_devices.length}대 예약 가능
                             </p>
+                            {slot.enable_2p && selectedDeviceInfo?.max_players > 1 && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                2인 플레이 가능 (+₩{slot.price_2p_extra?.toLocaleString()})
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium dark:text-white">
@@ -658,64 +746,33 @@ export default function NewReservationPage() {
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold mb-6 dark:text-white">크레딧 옵션</h2>
                 
-                {selectedDeviceInfo && (
+                {selectedTimeSlotInfo && selectedTimeSlotInfo.credit_options && (
                   <div className="space-y-3 mb-6">
-                    {/* SEGA 게임 크레딧 옵션 */}
-                    {selectedDeviceInfo.name.includes('마이마이') || selectedDeviceInfo.name.includes('츄니즘') ? (
-                      <>
-                        <button
-                          onClick={() => setCreditOption('freeplay')}
-                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                            creditOption === 'freeplay'
-                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                          }`}
-                        >
-                          <h3 className="font-medium dark:text-white">프리플레이</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            시간 내 무제한 플레이
-                          </p>
-                          <p className="text-sm font-medium mt-2 dark:text-white">
-                            기본 요금
-                          </p>
-                        </button>
-                        
-                        <button
-                          onClick={() => setCreditOption('unlimited')}
-                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                            creditOption === 'unlimited'
-                              ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                          }`}
-                        >
-                          <h3 className="font-medium dark:text-white">무한크레딧</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            크레딧 제한 없이 플레이 (세이브 가능)
-                          </p>
-                          <p className="text-sm font-medium mt-2 dark:text-white">
-                            +10,000원
-                          </p>
-                        </button>
-                      </>
-                    ) : (
-                      // KONAMI 게임 크레딧 옵션
+                    {selectedTimeSlotInfo.credit_options.map((option: any) => (
                       <button
-                        onClick={() => setCreditOption('fixed')}
+                        key={option.type}
+                        onClick={() => setCreditOption(option.type)}
                         className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                          creditOption === 'fixed'
+                          creditOption === option.type
                             ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
-                        <h3 className="font-medium dark:text-white">고정크레딧</h3>
+                        <h3 className="font-medium dark:text-white">
+                          {option.type === 'fixed' ? `고정크레딧 (${option.fixed_credits || 100}크레딧)` :
+                           option.type === 'freeplay' ? '프리플레이' : 
+                           '무한크레딧'}
+                        </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          시간당 20크레딧 제공
+                          {option.type === 'fixed' ? `시간 내 ${option.fixed_credits || 100}크레디트 제공` :
+                           option.type === 'freeplay' ? '시간 내 무제한 플레이' :
+                           '크레딧 제한 없이 플레이'}
                         </p>
                         <p className="text-sm font-medium mt-2 dark:text-white">
-                          기본 요금
+                          ₩{option.price.toLocaleString()}
                         </p>
                       </button>
-                    )}
+                    ))}
                   </div>
                 )}
                 
@@ -729,8 +786,11 @@ export default function NewReservationPage() {
                   <button
                     onClick={() => {
                       if (creditOption) {
-                        // 2인 옵션이 없는 기기는 7단계로 바로 이동
-                        if (selectedDeviceInfo?.max_players === 1) {
+                        // 2인 옵션이 없는 경우 7단계로 바로 이동
+                        console.log('selectedTimeSlotInfo?.enable_2p:', selectedTimeSlotInfo?.enable_2p);
+                        console.log('selectedDeviceInfo?.max_players:', selectedDeviceInfo?.max_players);
+                        
+                        if (!selectedTimeSlotInfo?.enable_2p || !selectedDeviceInfo || selectedDeviceInfo.max_players <= 1) {
                           setCurrentStep(7);
                         } else {
                           setCurrentStep(6);
@@ -753,7 +813,7 @@ export default function NewReservationPage() {
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold mb-6 dark:text-white">인원 선택</h2>
                 
-                {selectedDeviceInfo?.max_players > 1 ? (
+                {selectedTimeSlotInfo?.enable_2p && selectedDeviceInfo?.max_players > 1 ? (
                   <div className="space-y-3 mb-6">
                     <button
                       onClick={() => setPlayerCount(1)}
@@ -777,7 +837,7 @@ export default function NewReservationPage() {
                     >
                       <h3 className="font-medium dark:text-white">2인 플레이</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        +{Math.round((selectedDeviceInfo.price_multiplier_2p - 1) * 100)}% 추가 요금
+                        +₩{selectedTimeSlotInfo.price_2p_extra?.toLocaleString() || '0'} 추가 요금
                       </p>
                     </button>
                   </div>
@@ -836,9 +896,19 @@ export default function NewReservationPage() {
                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">크레딧 옵션</p>
                     <p className="font-medium dark:text-white">
-                      {creditOption === 'freeplay' && '프리플레이'}
-                      {creditOption === 'unlimited' && '무한크레딧 (+10,000원)'}
-                      {creditOption === 'fixed' && '고정크레딧'}
+                      {(() => {
+                        const selectedOption = selectedTimeSlotInfo?.credit_options?.find(
+                          (opt: any) => opt.type === creditOption
+                        );
+                        if (creditOption === 'fixed') {
+                          return `고정크레딧 (${selectedOption?.fixed_credits || 100}크레디트)`;
+                        } else if (creditOption === 'freeplay') {
+                          return '프리플레이';
+                        } else if (creditOption === 'unlimited') {
+                          return '무한크레디트';
+                        }
+                        return '';
+                      })()}
                     </p>
                   </div>
                   
@@ -853,6 +923,20 @@ export default function NewReservationPage() {
                   </div>
                 </div>
                 
+                {/* 이용 안내 */}
+                {reservationRules.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">이용 안내</h3>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-2">
+                      {reservationRules.map((rule) => (
+                        <p key={rule.id} className="text-sm text-gray-700 dark:text-gray-300">
+                          • {rule.content}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="mb-6">
                   <label className="flex items-start gap-3">
                     <input
@@ -862,7 +946,7 @@ export default function NewReservationPage() {
                       className="mt-1"
                     />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      예약 규칙을 확인했으며, 노쇼 시 패널티가 부과됨을 동의합니다
+                      노쇼가 반복되거나 악의적인 서비스 이용 시 제한될 수 있음을 동의합니다
                     </span>
                   </label>
                 </div>
@@ -870,8 +954,8 @@ export default function NewReservationPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      // 2인 옵션이 없는 기기는 5단계로 바로 이동
-                      if (selectedDeviceInfo?.max_players === 1) {
+                      // 2인 옵션이 없는 경우 5단계로 바로 이동
+                      if (!selectedTimeSlotInfo?.enable_2p || selectedDeviceInfo?.max_players === 1) {
                         setCurrentStep(5);
                       } else {
                         setCurrentStep(6);

@@ -5,17 +5,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Settings,
   Banknote,
   MessageSquare,
   Wifi,
-  Clock,
   Calendar,
   ChevronLeft,
   Save,
   Copy,
   Edit,
-  X
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -80,7 +78,7 @@ export default function SettingsPage() {
   const [tempSettings, setTempSettings] = useState<SystemSettings>(settings);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = async (section: string) => {
+  const handleSave = async () => {
     setIsLoading(true);
     
     // API 호출 시뮬레이션
@@ -92,7 +90,7 @@ export default function SettingsPage() {
     }, 1000);
   };
 
-  const handleCancel = (section: string) => {
+  const handleCancel = () => {
     setTempSettings(settings);
     setEditingSection(null);
   };
@@ -135,13 +133,13 @@ export default function SettingsPage() {
             {editingSection === 'bankAccount' ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleCancel('bankAccount')}
+                  onClick={() => handleCancel()}
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   취소
                 </button>
                 <button
-                  onClick={() => handleSave('bankAccount')}
+                  onClick={() => handleSave()}
                   disabled={isLoading}
                   className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                 >
@@ -250,13 +248,13 @@ export default function SettingsPage() {
             {editingSection === 'wifi' ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleCancel('wifi')}
+                  onClick={() => handleCancel()}
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   취소
                 </button>
                 <button
-                  onClick={() => handleSave('wifi')}
+                  onClick={() => handleSave()}
                   disabled={isLoading}
                   className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                 >
@@ -347,13 +345,13 @@ export default function SettingsPage() {
             {editingSection === 'hours' ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleCancel('hours')}
+                  onClick={() => handleCancel()}
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   취소
                 </button>
                 <button
-                  onClick={() => handleSave('hours')}
+                  onClick={() => handleSave()}
                   disabled={isLoading}
                   className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                 >
@@ -471,13 +469,13 @@ export default function SettingsPage() {
             {editingSection === 'rules' ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleCancel('rules')}
+                  onClick={() => handleCancel()}
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   취소
                 </button>
                 <button
-                  onClick={() => handleSave('rules')}
+                  onClick={() => handleSave()}
                   disabled={isLoading}
                   className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                 >
