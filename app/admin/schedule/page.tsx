@@ -6,17 +6,17 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar,
-  CalendarDays,
+  // CalendarDays,
   Plus,
-  Edit,
+  // Edit,
   Trash2,
-  Save,
-  X,
+  // Save,
+  // X,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
   Clock,
-  Info,
+  // Info,
   Sun,
   Moon,
   Coffee,
@@ -258,7 +258,7 @@ export default function ScheduleManagementPage() {
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((date, index) => {
                 const dateStr = formatDate(date);
-                const dayEvents = getEventsForDate(dateStr);
+                const dayEvents = dateStr ? getEventsForDate(dateStr) : [];
                 const isCurrentMonth = date.getMonth() === selectedMonth.getMonth();
                 const isToday = formatDate(new Date()) === dateStr;
                 
@@ -274,7 +274,7 @@ export default function ScheduleManagementPage() {
                         : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-600'
                     } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => {
-                      if (isCurrentMonth) {
+                      if (isCurrentMonth && dateStr) {
                         setSelectedDate(dateStr);
                         setIsAddingEvent(true);
                       }
@@ -413,7 +413,7 @@ export default function ScheduleManagementPage() {
             </h2>
             
             <EventForm
-              event={editingEvent || { date: selectedDate || formatDate(new Date()) }}
+              event={editingEvent || { date: selectedDate || formatDate(new Date()) || '' }}
               onSave={handleSaveEvent}
               onCancel={() => {
                 setIsAddingEvent(false);
@@ -488,7 +488,7 @@ function EventForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const dataToSave = { ...formData };
+    const dataToSave: any = { ...formData };
     if (!isPeriod) {
       delete dataToSave.endDate;
     }

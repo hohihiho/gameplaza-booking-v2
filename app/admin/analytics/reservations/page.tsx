@@ -107,10 +107,10 @@ export default function ReservationAnalyticsPage() {
   };
 
   // 신규 vs 재방문 고객
-  const customerTypeData = [
-    { type: '신규 고객', count: 108, percentage: 31.5 },
-    { type: '재방문 고객', count: 234, percentage: 68.5 }
-  ];
+  // const customerTypeData = [
+  //   { type: '신규 고객', count: 108, percentage: 31.5 },
+  //   { type: '재방문 고객', count: 234, percentage: 68.5 }
+  // ];
 
   const handleRefresh = () => {
     setIsLoading(true);

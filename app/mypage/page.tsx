@@ -4,13 +4,11 @@
 
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User, Bell, LogOut, UserX } from 'lucide-react';
 
 export default function MyPage() {
   const { data: session } = useSession();
-  const router = useRouter();
   const [notifications, setNotifications] = useState({
     reservation: true,
     event: true,

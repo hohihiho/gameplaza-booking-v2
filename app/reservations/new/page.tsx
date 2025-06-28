@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft, Loader2, AlertCircle, Coins } from 'lucide-react';
-import { getDeviceTypes, getTimeSlots, createReservation } from '@/lib/api/reservations';
+import { createReservation } from '@/lib/api/reservations';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 
@@ -104,7 +104,6 @@ export default function NewReservationPage() {
   const [currentStep, setCurrentStep] = useState(1);
   
   // 로딩 및 에러 상태
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -295,7 +294,6 @@ export default function NewReservationPage() {
         timeSlotId: selectedTimeSlot,
         deviceNumber: selectedDeviceNumber,
         playerCount,
-        creditOption,
         totalPrice
       });
       
@@ -319,6 +317,7 @@ export default function NewReservationPage() {
   // 시간 형식 변환
   const formatTime = (time: string) => {
     const [hour] = time.split(':');
+    if (!hour) return '';
     const h = parseInt(hour);
     return h >= 24 ? `익일 ${h - 24}시` : `${h}시`;
   };
@@ -368,7 +367,7 @@ export default function NewReservationPage() {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 1, x: -20 },
     transition: { 
-      type: "spring",
+      type: "spring" as const,
       stiffness: 500,
       damping: 35,
       mass: 0.8
@@ -472,13 +471,14 @@ export default function NewReservationPage() {
                 {/* 날짜 그리드 */}
                 <div className="grid grid-cols-7 gap-1">
                   {/* 첫 주 빈 칸 채우기 - 월요일 시작 기준 */}
-                  {Array.from({ length: calendarDays[0].getDay() === 0 ? 6 : calendarDays[0].getDay() - 1 }, (_, i) => (
+                  {calendarDays[0] && Array.from({ length: calendarDays[0].getDay() === 0 ? 6 : calendarDays[0].getDay() - 1 }, (_, i) => (
                     <div key={`empty-${i}`} />
                   ))}
                   
                   {/* 날짜 버튼들 */}
                   {calendarDays.map((date) => {
-                    const dateStr = date.toISOString().split('T')[0];
+                    const dateParts = date.toISOString().split('T');
+                    const dateStr = dateParts[0] || '';
                     const isSelected = selectedDate === dateStr;
                     const isToday = new Date().toDateString() === date.toDateString();
                     const dayOfWeek = date.getDay();
@@ -487,9 +487,11 @@ export default function NewReservationPage() {
                       <button
                         key={dateStr}
                         onClick={() => {
-                          setSelectedDate(dateStr);
-                          setSelectedTimeSlot('');
-                          setSelectedDeviceNumber(null);
+                          if (dateStr) {
+                            setSelectedDate(dateStr);
+                            setSelectedTimeSlot('');
+                            setSelectedDeviceNumber(null);
+                          }
                         }}
                         className={`aspect-square p-2 rounded-lg border transition-all ${
                           isSelected
@@ -657,7 +659,7 @@ export default function NewReservationPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                               {slot.available_devices.length}대 예약 가능
                             </p>
-                            {slot.enable_2p && selectedDeviceInfo?.max_players > 1 && (
+                            {slot.enable_2p && selectedDeviceInfo?.max_players && selectedDeviceInfo.max_players > 1 && (
                               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                 2인 플레이 가능 (+₩{slot.price_2p_extra?.toLocaleString()})
                               </p>
@@ -813,7 +815,7 @@ export default function NewReservationPage() {
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold mb-6 dark:text-white">인원 선택</h2>
                 
-                {selectedTimeSlotInfo?.enable_2p && selectedDeviceInfo?.max_players > 1 ? (
+                {selectedTimeSlotInfo?.enable_2p && selectedDeviceInfo?.max_players && selectedDeviceInfo.max_players > 1 ? (
                   <div className="space-y-3 mb-6">
                     <button
                       onClick={() => setPlayerCount(1)}

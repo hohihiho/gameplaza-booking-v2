@@ -6,10 +6,10 @@ import { motion } from 'framer-motion';
 import { 
   ChevronLeft,
   ChevronRight,
-  FileText,
+  // FileText,
   Info,
   Calendar,
-  Settings,
+  // Settings,
   Edit3
 } from 'lucide-react';
 

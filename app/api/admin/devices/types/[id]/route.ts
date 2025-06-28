@@ -4,9 +4,10 @@ import { supabaseAdmin } from '@/app/lib/supabase'
 // 기기 타입 업데이트
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const { is_rentable } = body
 
@@ -14,7 +15,7 @@ export async function PATCH(
     const { data, error } = await supabaseAdmin
       .from('device_types')
       .update({ is_rentable })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -29,14 +30,15 @@ export async function PATCH(
 
 // 기기 타입 삭제
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { error } = await supabaseAdmin
       .from('device_types')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
 

@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
+  const [_lastUpdated, setLastUpdated] = useState(new Date());
   
   // 1초마다 현재 시간 업데이트
   useEffect(() => {

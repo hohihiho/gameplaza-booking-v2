@@ -39,7 +39,7 @@ interface DeviceType {
 }
 
 interface TimeSlot {
-  id: string;
+  id?: string;
   device_type_id: string;
   slot_type: 'early' | 'overnight';
   start_time: string;
@@ -134,13 +134,11 @@ export default function RentalDevicesPage() {
           credit_options: [
             {
               type: 'freeplay',
-              hours: [4, 5],
-              prices: { '4': 30000, '5': 35000 }
+              price: 30000
             },
             {
               type: 'unlimited',
-              hours: [4, 5],
-              prices: { '4': 40000, '5': 50000 }
+              price: 40000
             }
           ],
           enable_2p: true,
@@ -155,8 +153,7 @@ export default function RentalDevicesPage() {
           credit_options: [
             {
               type: 'freeplay',
-              hours: [8, 10],
-              prices: { '8': 50000, '10': 60000 }
+              price: 50000
             }
           ],
           enable_2p: false
@@ -255,15 +252,17 @@ export default function RentalDevicesPage() {
 
     const updatedDevices = [...deviceTypes];
     const [draggedItem] = updatedDevices.splice(draggedIndex, 1);
-    updatedDevices.splice(dropIndex, 0, draggedItem);
+    
+    if (draggedItem) {
+      updatedDevices.splice(dropIndex, 0, draggedItem);
 
-    // 각 기기의 순서 업데이트
-    updatedDevices.forEach((device, idx) => {
-      device.rental_settings = {
-        ...device.rental_settings,
-        display_order: idx
-      };
-    });
+      // 각 기기의 순서 업데이트
+      updatedDevices.forEach((device, idx) => {
+        if (device.rental_settings) {
+          device.rental_settings.display_order = idx;
+        }
+      });
+    }
 
     setDeviceTypes(updatedDevices);
     setDraggedIndex(null);
@@ -348,16 +347,19 @@ export default function RentalDevicesPage() {
                         const updatedDevices = [...deviceTypes];
                         const currentIndex = updatedDevices.findIndex(d => d.id === device.id);
                         if (currentIndex > 0) {
-                          [updatedDevices[currentIndex - 1], updatedDevices[currentIndex]] = 
-                          [updatedDevices[currentIndex], updatedDevices[currentIndex - 1]];
-                          
-                          // 각 기기의 순서 업데이트
-                          updatedDevices.forEach((d, idx) => {
-                            d.rental_settings = {
-                              ...d.rental_settings,
-                              display_order: idx
-                            };
-                          });
+                          const temp = updatedDevices[currentIndex];
+                          const prev = updatedDevices[currentIndex - 1];
+                          if (temp && prev) {
+                            updatedDevices[currentIndex] = prev;
+                            updatedDevices[currentIndex - 1] = temp;
+                            
+                            // 각 기기의 순서 업데이트
+                            updatedDevices.forEach((d, idx) => {
+                              if (d.rental_settings) {
+                                d.rental_settings.display_order = idx;
+                              }
+                            });
+                          }
                           
                           setDeviceTypes(updatedDevices);
                           
@@ -391,16 +393,19 @@ export default function RentalDevicesPage() {
                         const updatedDevices = [...deviceTypes];
                         const currentIndex = updatedDevices.findIndex(d => d.id === device.id);
                         if (currentIndex < updatedDevices.length - 1) {
-                          [updatedDevices[currentIndex], updatedDevices[currentIndex + 1]] = 
-                          [updatedDevices[currentIndex + 1], updatedDevices[currentIndex]];
-                          
-                          // 각 기기의 순서 업데이트
-                          updatedDevices.forEach((d, idx) => {
-                            d.rental_settings = {
-                              ...d.rental_settings,
-                              display_order: idx
-                            };
-                          });
+                          const temp = updatedDevices[currentIndex];
+                          const next = updatedDevices[currentIndex + 1];
+                          if (temp && next) {
+                            updatedDevices[currentIndex] = next;
+                            updatedDevices[currentIndex + 1] = temp;
+                            
+                            // 각 기기의 순서 업데이트
+                            updatedDevices.forEach((d, idx) => {
+                              if (d.rental_settings) {
+                                d.rental_settings.display_order = idx;
+                              }
+                            });
+                          }
                           
                           setDeviceTypes(updatedDevices);
                           
@@ -576,7 +581,9 @@ export default function RentalDevicesPage() {
                   setSelectedDevice({
                     ...selectedDevice,
                     rental_settings: {
-                      ...(selectedDevice.rental_settings || {}),
+                      credit_types: selectedDevice.rental_settings?.credit_types || ['freeplay'],
+                      max_players: selectedDevice.rental_settings?.max_players || 1,
+                      ...selectedDevice.rental_settings,
                       max_rental_units: newValue || undefined
                     }
                   });
@@ -617,7 +624,9 @@ export default function RentalDevicesPage() {
                           const updatedDevice = {
                             ...selectedDevice,
                             rental_settings: {
-                              ...(selectedDevice.rental_settings || {}),
+                              credit_types: selectedDevice.rental_settings?.credit_types || ['freeplay'],
+                              max_players: selectedDevice.rental_settings?.max_players || 1,
+                              ...selectedDevice.rental_settings,
                               color: color.value
                             }
                           };
@@ -689,8 +698,8 @@ export default function RentalDevicesPage() {
             ) : (
               <TimeSlotDisplay
                 slot={slot}
-                onEdit={() => setEditingSlot(slot.id)}
-                onDelete={() => handleDeleteTimeSlot(slot.id)}
+                onEdit={() => setEditingSlot(slot.id || null)}
+                onDelete={() => slot.id && handleDeleteTimeSlot(slot.id)}
               />
             )}
           </motion.div>
@@ -739,8 +748,8 @@ export default function RentalDevicesPage() {
                 ) : (
                   <TimeSlotDisplay
                     slot={slot}
-                    onEdit={() => setEditingSlot(slot.id)}
-                    onDelete={() => handleDeleteTimeSlot(slot.id)}
+                    onEdit={() => setEditingSlot(slot.id || null)}
+                    onDelete={() => slot.id && handleDeleteTimeSlot(slot.id)}
                   />
                 )}
               </motion.div>

@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   // 이미 로그인한 사용자는 콜백 페이지로 리다이렉트하여 프로필 확인
   useEffect(() => {

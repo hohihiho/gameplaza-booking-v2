@@ -47,11 +47,11 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [reservations, setReservations] = useState<any[]>([]);
+  // const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
   const [supabase] = useState(() => createClient());
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   
   // 기종별 색상 정보 로드
   useEffect(() => {
@@ -239,13 +239,13 @@ export default function SchedulePage() {
   }, [supabase, currentMonth, fetchScheduleData]);
   
   // 날짜 관련 유틸리티 함수들
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
+  // const getDaysInMonth = (date: Date) => {
+  //   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  // };
   
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
+  // const getFirstDayOfMonth = (date: Date) => {
+  //   return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  // };
   
   const formatMonth = (date: Date) => {
     return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
@@ -319,7 +319,7 @@ export default function SchedulePage() {
   };
   
   // 기종별 색상 (연한 색상) - 사용자가 지정한 색상
-  const deviceTypeColors = {
+  const deviceTypeColors: Record<string, string> = {
     '사운드 볼텍스': 'bg-blue-200 dark:bg-blue-800',      // 파랑
     '비트매니아 IIDX': 'bg-pink-200 dark:bg-pink-800',    // 핑크
     '마이마이 DX': 'bg-purple-200 dark:bg-purple-800',    // 보라
@@ -529,7 +529,7 @@ export default function SchedulePage() {
                                       const overnightReservations = event.reservations.filter(r => r.slotType === 'overnight');
                                       
                                       // 기종별로 카운트
-                                      const deviceCounts = {};
+                                      const deviceCounts: Record<string, number> = {};
                                       event.reservations.forEach(r => {
                                         const key = `${r.slotType}-${r.deviceType}`;
                                         deviceCounts[key] = (deviceCounts[key] || 0) + 1;
@@ -791,7 +791,7 @@ export default function SchedulePage() {
                                     if (!acc[res.deviceType]) {
                                       acc[res.deviceType] = [];
                                     }
-                                    acc[res.deviceType].push(res);
+                                    acc[res.deviceType]!.push(res);
                                     return acc;
                                   }, {} as Record<string, typeof event.reservations>);
 
@@ -812,7 +812,7 @@ export default function SchedulePage() {
                                       </span>
                                     </div>
                                     <div className="space-y-0.5">
-                                      {reservations.map((res, idx) => (
+                                      {reservations.map((res) => (
                                         <div key={res.id} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                                           <span>
                                             {res.deviceNumber && `${res.deviceNumber}번기 • `}
@@ -848,7 +848,7 @@ export default function SchedulePage() {
                                     if (!acc[res.deviceType]) {
                                       acc[res.deviceType] = [];
                                     }
-                                    acc[res.deviceType].push(res);
+                                    acc[res.deviceType]!.push(res);
                                     return acc;
                                   }, {} as Record<string, typeof event.reservations>);
 
@@ -869,7 +869,7 @@ export default function SchedulePage() {
                                       </span>
                                     </div>
                                     <div className="space-y-0.5">
-                                      {reservations.map((res, idx) => (
+                                      {reservations.map((res) => (
                                         <div key={res.id} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                                           <span>
                                             {res.deviceNumber && `${res.deviceNumber}번기 • `}

@@ -179,8 +179,10 @@ function TypeEditForm({
                 value={mode.name}
                 onChange={(e) => {
                   const updated = [...playModes];
-                  updated[index].name = e.target.value;
-                  setPlayModes(updated);
+                  if (updated[index]) {
+                    updated[index].name = e.target.value;
+                    setPlayModes(updated);
+                  }
                 }}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="모드명"
@@ -190,8 +192,10 @@ function TypeEditForm({
                 value={mode.price}
                 onChange={(e) => {
                   const updated = [...playModes];
-                  updated[index].price = parseInt(e.target.value) || 0;
-                  setPlayModes(updated);
+                  if (updated[index]) {
+                    updated[index].price = parseInt(e.target.value) || 0;
+                    setPlayModes(updated);
+                  }
                 }}
                 className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="가격"
@@ -524,7 +528,9 @@ export default function DevicesPage() {
       newHistory.pop(); // 현재 뷰 제거
       const previousView = newHistory[newHistory.length - 1];
       
-      setView(previousView);
+      if (previousView) {
+        setView(previousView);
+      }
       setNavigationHistory(newHistory);
       
       // 뷰에 따라 상태 초기화
@@ -637,7 +643,9 @@ export default function DevicesPage() {
 
     const updatedCategories = [...categories];
     const [draggedItem] = updatedCategories.splice(draggedCategoryIndex, 1);
-    updatedCategories.splice(dropIndex, 0, draggedItem);
+    if (draggedItem) {
+      updatedCategories.splice(dropIndex, 0, draggedItem);
+    }
 
     updatedCategories.forEach((category, idx) => {
       category.display_order = idx + 1;
@@ -697,11 +705,15 @@ export default function DevicesPage() {
 
     const updatedTypes = [...categoryTypes];
     const [draggedItem] = updatedTypes.splice(draggedTypeIndex, 1);
-    updatedTypes.splice(dropIndex, 0, draggedItem);
+    
+    // draggedItem이 undefined가 아닌 경우에만 처리
+    if (draggedItem) {
+      updatedTypes.splice(dropIndex, 0, draggedItem);
 
-    updatedTypes.forEach((type, idx) => {
-      type.display_order = idx + 1;
-    });
+      updatedTypes.forEach((type, idx) => {
+        type.display_order = idx + 1;
+      });
+    }
 
     const allUpdatedTypes = deviceTypes.map(t => {
       const updated = updatedTypes.find(ut => ut.id === t.id);
@@ -894,12 +906,16 @@ export default function DevicesPage() {
                             if (index === 0) return;
                             
                             const updatedCategories = [...categories];
-                            [updatedCategories[index - 1], updatedCategories[index]] = 
-                            [updatedCategories[index], updatedCategories[index - 1]];
-                            
-                            updatedCategories.forEach((c, idx) => {
-                              c.display_order = idx + 1;
-                            });
+                            const temp = updatedCategories[index];
+                            const prev = updatedCategories[index - 1];
+                            if (temp && prev) {
+                              updatedCategories[index] = prev;
+                              updatedCategories[index - 1] = temp;
+                              
+                              updatedCategories.forEach((c, idx) => {
+                                c.display_order = idx + 1;
+                              });
+                            }
                             
                             setCategories(updatedCategories);
                             
@@ -929,12 +945,16 @@ export default function DevicesPage() {
                             if (index === categories.length - 1) return;
                             
                             const updatedCategories = [...categories];
-                            [updatedCategories[index], updatedCategories[index + 1]] = 
-                            [updatedCategories[index + 1], updatedCategories[index]];
-                            
-                            updatedCategories.forEach((c, idx) => {
-                              c.display_order = idx + 1;
-                            });
+                            const temp = updatedCategories[index];
+                            const next = updatedCategories[index + 1];
+                            if (temp && next) {
+                              updatedCategories[index] = next;
+                              updatedCategories[index + 1] = temp;
+                              
+                              updatedCategories.forEach((c, idx) => {
+                                c.display_order = idx + 1;
+                              });
+                            }
                             
                             setCategories(updatedCategories);
                             
@@ -1063,7 +1083,6 @@ export default function DevicesPage() {
               className="bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 col-span-full"
             >
               <TypeEditForm
-                categoryId={selectedCategory.id}
                 onSubmit={async (data) => {
                   try {
                     // 기종 생성
@@ -1197,12 +1216,16 @@ export default function DevicesPage() {
                             if (index === 0) return;
                             
                             const updatedTypes = [...categoryTypes];
-                            [updatedTypes[index - 1], updatedTypes[index]] = 
-                            [updatedTypes[index], updatedTypes[index - 1]];
-                            
-                            updatedTypes.forEach((t, idx) => {
-                              t.display_order = idx + 1;
-                            });
+                            const temp = updatedTypes[index];
+                            const prev = updatedTypes[index - 1];
+                            if (temp && prev) {
+                              updatedTypes[index] = prev;
+                              updatedTypes[index - 1] = temp;
+                              
+                              updatedTypes.forEach((t, idx) => {
+                                t.display_order = idx + 1;
+                              });
+                            }
                             
                             const allUpdatedTypes = deviceTypes.map(t => {
                               const updated = updatedTypes.find(ut => ut.id === t.id);
@@ -1237,12 +1260,16 @@ export default function DevicesPage() {
                             if (index === categoryTypes.length - 1) return;
                             
                             const updatedTypes = [...categoryTypes];
-                            [updatedTypes[index], updatedTypes[index + 1]] = 
-                            [updatedTypes[index + 1], updatedTypes[index]];
-                            
-                            updatedTypes.forEach((t, idx) => {
-                              t.display_order = idx + 1;
-                            });
+                            const temp = updatedTypes[index];
+                            const next = updatedTypes[index + 1];
+                            if (temp && next) {
+                              updatedTypes[index] = next;
+                              updatedTypes[index + 1] = temp;
+                              
+                              updatedTypes.forEach((t, idx) => {
+                                t.display_order = idx + 1;
+                              });
+                            }
                             
                             const allUpdatedTypes = deviceTypes.map(t => {
                               const updated = updatedTypes.find(ut => ut.id === t.id);

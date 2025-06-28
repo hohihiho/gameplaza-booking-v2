@@ -2,14 +2,15 @@
 // 비전공자 설명: 관리자가 실제 이용시간을 조정할 때 호출되는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 세션 확인
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -17,7 +18,7 @@ export async function POST(
     }
 
     // 관리자 권한 확인
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('email')
@@ -54,7 +55,7 @@ export async function POST(
           price
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (reservationError || !reservation) {
@@ -70,7 +71,7 @@ export async function POST(
     const { error: adjustmentError } = await supabase
       .from('time_adjustments')
       .insert({
-        reservation_id: params.id,
+        reservation_id: id,
         adjusted_by: session.user.id,
         adjustment_type: adjustment_type || 'both',
         old_start_time: reservation.actual_start_time || `${reservation.rental_time_slots.date}T${reservation.rental_time_slots.start_time}`,
@@ -98,10 +99,10 @@ export async function POST(
       updateData.actual_end_time = actual_end_time;
     }
 
-    const { data: updatedReservation, error: updateError } = await supabase
+    const { data: _updatedReservation, error: updateError } = await supabase
       .from('reservations')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -132,7 +133,7 @@ export async function POST(
       await supabase
         .from('reservations')
         .update({ adjusted_amount: adjustedAmount })
-        .eq('id', params.id);
+        .eq('id', id);
     }
 
     return NextResponse.json({

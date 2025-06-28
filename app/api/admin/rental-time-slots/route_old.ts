@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // 응답 데이터 변환
     const formattedData = (data || []).map(slot => {
-      let parsedNotes = {}
+      let parsedNotes: any = {}
       try {
         parsedNotes = slot.notes ? JSON.parse(slot.notes) : {}
       } catch (e) {

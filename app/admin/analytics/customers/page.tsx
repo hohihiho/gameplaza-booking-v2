@@ -103,14 +103,14 @@ export default function CustomerAnalyticsPage() {
     { hour: '20-22', customers: 90, percentage: 10 }
   ];
 
-  // 선호 기기 분석
-  const devicePreference = [
-    { device: '마이마이 DX', customers: 312, percentage: 35 },
-    { device: '사운드 볼텍스', customers: 223, percentage: 25 },
-    { device: '춘리즘', customers: 178, percentage: 20 },
-    { device: '태고의달인', customers: 134, percentage: 15 },
-    { device: '기타', customers: 45, percentage: 5 }
-  ];
+  // 선호 기기 분석 (향후 구현 예정)
+  // const devicePreference = [
+  //   { device: '마이마이 DX', customers: 312, percentage: 35 },
+  //   { device: '사운드 볼텍스', customers: 223, percentage: 25 },
+  //   { device: '춘리즘', customers: 178, percentage: 20 },
+  //   { device: '태고의달인', customers: 134, percentage: 15 },
+  //   { device: '기타', customers: 45, percentage: 5 }
+  // ];
 
   // 고객 만족도
   const satisfactionData = {

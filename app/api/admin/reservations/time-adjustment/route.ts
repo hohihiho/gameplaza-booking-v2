@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // 인증 확인
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 // 시간 조정 이력 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const reservationId = searchParams.get('reservationId');
 
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
       .from('time_adjustments')
       .select(`
         *,
-        adjusted_by_user:users!adjusted_by (
+        users!adjusted_by (
           name,
           email
         )
@@ -154,7 +154,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '이력 조회 실패' }, { status: 500 });
     }
 
-    return NextResponse.json({ adjustments });
+    // 조회 결과에 adjusted_by_user 필드 추가
+    const formattedAdjustments = adjustments?.map(adj => ({
+      ...adj,
+      adjusted_by_user: adj.users || null
+    })) || [];
+
+    return NextResponse.json({ adjustments: formattedAdjustments });
 
   } catch (error) {
     console.error('이력 조회 오류:', error);

@@ -11,7 +11,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 type Device = {
   id: string;
   device_number: number;
-  status: 'available' | 'in_use' | 'maintenance';
+  status: 'available' | 'in_use' | 'maintenance' | 'reserved';
   current_user?: string;
 };
 
@@ -32,7 +32,7 @@ export default function MachinesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedType, setExpandedType] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
-  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+  const [, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
 
   // Supabase에서 기기 정보 가져오기
   useEffect(() => {

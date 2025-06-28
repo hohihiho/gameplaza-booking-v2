@@ -4,10 +4,11 @@ import { getKSTNow } from '@/lib/utils/date'
 
 // 예약 상세 조회
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // 현재 사용자 확인
@@ -37,7 +38,7 @@ export async function GET(
           location
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -55,10 +56,11 @@ export async function GET(
 
 // 예약 취소
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // 현재 사용자 확인
@@ -77,7 +79,7 @@ export async function DELETE(
           start_time
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -108,7 +110,7 @@ export async function DELETE(
         status: 'cancelled',
         updated_at: getKSTNow()
       })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (updateError) {
       console.error('Cancel reservation error:', updateError)
@@ -122,7 +124,7 @@ export async function DELETE(
         type: 'broadcast',
         event: 'cancelled_reservation',
         payload: { 
-          reservationId: params.id,
+          reservationId: id,
           timeSlotId: reservation.device_time_slot_id,
           deviceNumber: reservation.device_number
         }

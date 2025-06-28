@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 // 개별 기기 삭제
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
+    const supabase = await createClient()
 
     // 기기 상태 확인
-    const { data: device, error: fetchError } = await supabaseAdmin
+    const { data: device, error: fetchError } = await supabase
       .from('devices')
       .select('status')
       .eq('id', id)
@@ -27,7 +28,7 @@ export async function DELETE(
     }
 
     // 기기 삭제
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('devices')
       .delete()
       .eq('id', id)

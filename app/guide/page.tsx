@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from 'react';
 import { Clock, MapPin, Phone, CreditCard, Users, Shield, Gift, ChevronRight, Calendar, Edit2, Save, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 type GuideContent = {
   hours: string;
@@ -36,7 +35,6 @@ type GuideContent = {
 };
 
 export default function GuidePage() {
-  const router = useRouter();
   const [content, setContent] = useState<GuideContent>({
     hours: '오전 10:00 - 익일 오전 2:00 (연중무휴)',
     address: '광주광역시 서구 게임로 123',
@@ -156,10 +154,16 @@ export default function GuidePage() {
     let current: any = newContent;
     
     for (let i = 0; i < keys.length - 1; i++) {
-      current = current[keys[i]];
+      const key = keys[i];
+      if (key !== undefined) {
+        current = current[key];
+      }
     }
     
-    current[keys[keys.length - 1]] = value;
+    const lastKey = keys[keys.length - 1];
+    if (lastKey !== undefined) {
+      current[lastKey] = value;
+    }
     setEditingContent(newContent);
   };
 
@@ -170,7 +174,10 @@ export default function GuidePage() {
     let current: any = newContent;
     
     for (let i = 0; i < keys.length; i++) {
-      current = current[keys[i]];
+      const key = keys[i];
+      if (key !== undefined) {
+        current = current[key];
+      }
     }
     
     current[index] = value;
@@ -184,7 +191,10 @@ export default function GuidePage() {
     let current: any = newContent;
     
     for (let i = 0; i < keys.length; i++) {
-      current = current[keys[i]];
+      const key = keys[i];
+      if (key !== undefined) {
+        current = current[key];
+      }
     }
     
     current.push('');
@@ -198,7 +208,10 @@ export default function GuidePage() {
     let current: any = newContent;
     
     for (let i = 0; i < keys.length; i++) {
-      current = current[keys[i]];
+      const key = keys[i];
+      if (key !== undefined) {
+        current = current[key];
+      }
     }
     
     current.splice(index, 1);
@@ -208,8 +221,11 @@ export default function GuidePage() {
   // 서비스 편집 헬퍼
   const updateService = (index: number, field: string, value: string) => {
     const newServices = [...editingContent.services];
-    newServices[index] = { ...newServices[index], [field]: value };
-    setEditingContent({ ...editingContent, services: newServices });
+    const currentService = newServices[index];
+    if (currentService) {
+      newServices[index] = { ...currentService, [field]: value };
+      setEditingContent({ ...editingContent, services: newServices });
+    }
   };
 
   const getIcon = (iconName: string) => {

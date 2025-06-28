@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { ThemeToggle } from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, Info, ShieldCheck } from 'lucide-react';
@@ -13,11 +13,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const { data: session, status, update } = useSession();
+  const { data: session, status } = useSession();
   
   const user = session?.user;
   // 임시로 직접 이메일 체크

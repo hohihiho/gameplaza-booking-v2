@@ -31,6 +31,10 @@ export default function TimeSlotDisplay({ slot, onEdit, onDelete }: Props) {
     let [endHour] = slot.end_time.split(':').map(Number);
     const [, endMin] = slot.end_time.split(':').map(Number);
     
+    if (startHour === undefined || startMin === undefined || endHour === undefined || endMin === undefined) {
+      return 0;
+    }
+    
     if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
       endHour += 24;
     }
@@ -42,6 +46,8 @@ export default function TimeSlotDisplay({ slot, onEdit, onDelete }: Props) {
   // 시간 표시 변환 (밤샘대여의 경우 24시 이상으로 표시)
   const formatDisplayTime = (time: string) => {
     const [hour] = time.split(':').map(Number);
+    
+    if (hour === undefined) return 0;
     
     // 밤샘대여인 경우
     if (slot.slot_type === 'overnight') {
@@ -55,8 +61,8 @@ export default function TimeSlotDisplay({ slot, onEdit, onDelete }: Props) {
   };
 
   const hours = calculateHours();
-  const displayStartTime = formatDisplayTime(slot.start_time, false);
-  const displayEndTime = formatDisplayTime(slot.end_time, true);
+  const displayStartTime = formatDisplayTime(slot.start_time);
+  const displayEndTime = formatDisplayTime(slot.end_time);
 
   return (
     <div className="flex items-center justify-between">

@@ -8,7 +8,7 @@ import {
   Edit, 
   Trash2, 
   Save, 
-  X, 
+  // X, 
   ChevronLeft,
   AlertCircle,
   Eye,
@@ -211,7 +211,7 @@ export default function ReservationRulesPage() {
         await supabase
           .from('reservation_rules')
           .update({ display_order: i })
-          .eq('id', newOrder[i].id);
+          .eq('id', newOrder[i]?.id || '');
       }
     } catch (error) {
       console.error('순서 변경 실패:', error);

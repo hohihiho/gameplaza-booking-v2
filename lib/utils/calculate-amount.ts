@@ -36,77 +36,7 @@ export function calculateAdjustedAmount(
   const actualDurationHours = Math.ceil(actualDurationMinutes / 60);
   
   // 시간당 요금 계산
-  const hourly<section id="rate" className="mt-16 pt-16 border-t border-gray-200">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">이용 요금</h2>
-          <p className="text-xl text-gray-600">합리적인 가격으로 프리미엄 게임을 즐기세요</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-200 hover:border-blue-500 transition-colors">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">기본 요금</h3>
-            <div className="text-4xl font-bold text-blue-600 mb-2">₩5,000</div>
-            <div className="text-gray-600 mb-6">시간당</div>
-            <ul className="space-y-3 text-gray-700">
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                최소 2시간부터
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                모든 게임 이용 가능
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                쾌적한 게임 환경
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-8 text-white transform scale-105">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-black px-4 py-1 rounded-full text-sm font-bold">
-              BEST
-            </div>
-            <h3 className="text-2xl font-bold mb-4">2P 플레이</h3>
-            <div className="text-4xl font-bold mb-2">₩15,000</div>
-            <div className="text-blue-100 mb-6">2시간 기준</div>
-            <ul className="space-y-3">
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-white mr-2" />
-                마이마이 2P 전용
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-white mr-2" />
-                친구와 함께 플레이
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-white mr-2" />
-                더블 스코어 경쟁
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-200 hover:border-blue-500 transition-colors">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">밤샘 대여</h3>
-            <div className="text-4xl font-bold text-blue-600 mb-2">₩30,000</div>
-            <div className="text-gray-600 mb-6">22:00 ~ 익일 06:00</div>
-            <ul className="space-y-3 text-gray-700">
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                8시간 무제한
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                심야 할인 적용
-              </li>
-              <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                예약 필수
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>Rate = originalAmount / originalDurationHours;
+  const hourlyRate = originalAmount / originalDurationHours;
   
   // 조정된 금액 계산
   const adjustedAmount = hourlyRate * actualDurationHours;

@@ -94,8 +94,10 @@ export default function ReservationsPage() {
   };
 
   const calculateDuration = (startTime: string, endTime: string) => {
-    const [startHour] = startTime.split(':').map(Number);
-    let [endHour] = endTime.split(':').map(Number);
+    const startParts = startTime.split(':').map(Number);
+    const endParts = endTime.split(':').map(Number);
+    const startHour = startParts[0] || 0;
+    let endHour = endParts[0] || 0;
     if (endHour < startHour) endHour += 24;
     return endHour - startHour;
   };

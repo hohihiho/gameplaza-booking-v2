@@ -32,8 +32,8 @@ type RevenueTrend = {
 
 export default function RevenueAnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('30days');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // const [startDate, setStartDate] = useState('');
+  // const [endDate, setEndDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
 

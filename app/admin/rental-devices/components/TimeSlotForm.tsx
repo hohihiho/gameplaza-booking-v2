@@ -48,7 +48,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
     if (!isOvernight) return time;
     
     const [hour, min] = time.split(':').map(Number);
-    if (hour < 6) { // 새벽 0~5시는 24~29시로 표시
+    if (hour !== undefined && min !== undefined && hour < 6) { // 새벽 0~5시는 24~29시로 표시
       return `${hour + 24}:${min.toString().padStart(2, '0')}`;
     }
     return time;
@@ -79,6 +79,11 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
     const [startHour, startMin] = formData.start_time.split(':').map(Number);
     let [endHour] = formData.end_time.split(':').map(Number);
     const [, endMin] = formData.end_time.split(':').map(Number);
+    
+    // 값이 유효한지 확인
+    if (startHour === undefined || startMin === undefined || endHour === undefined || endMin === undefined) {
+      return 0;
+    }
     
     // 종료 시간이 시작 시간보다 작으면 다음날로 계산
     if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
@@ -133,8 +138,11 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
   // 가격 업데이트
   const updatePrice = (optionIndex: number, price: number) => {
     const options = [...formData.credit_options];
-    options[optionIndex].price = price;
-    setFormData({ ...formData, credit_options: options });
+    const option = options[optionIndex];
+    if (option) {
+      option.price = price;
+      setFormData({ ...formData, credit_options: options });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -223,7 +231,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
             {formData.slot_type === 'early' ? (
               // 조기대여: 7시부터 20시까지 선택 가능
               generateEarlyTimeOptions().filter(opt => {
-                const hour = parseInt(opt.value.split(':')[0]);
+                const hour = parseInt(opt.value.split(':')[0] || '0');
                 return hour >= 7 && hour <= 20;
               }).map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -231,7 +239,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
             ) : (
               // 밤샘대여: 20시부터 새벽 2시까지만 시작 가능
               generateOvernightTimeOptions().filter(opt => {
-                const hour = parseInt(opt.value.split(':')[0]);
+                const hour = parseInt(opt.value.split(':')[0] || '0');
                 return hour >= 20 || hour <= 2;
               }).map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -251,7 +259,7 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
               // 밤샘대여의 경우 표시용 시간 업데이트
               if (formData.slot_type === 'overnight') {
                 const [hour] = actualTime.split(':').map(Number);
-                if (hour <= 5) {
+                if (hour !== undefined && hour <= 5) {
                   setEndTimeDisplay(convertToDisplayTime(actualTime, true));
                 } else {
                   setEndTimeDisplay(actualTime);
@@ -264,11 +272,12 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
             {formData.slot_type === 'early' ? (
               // 조기대여: 시작 시간 이후부터 23시까지 선택 가능
               generateEarlyTimeOptions().filter(opt => {
-                const hour = parseInt(opt.value.split(':')[0]);
+                const hour = parseInt(opt.value.split(':')[0] || '0');
                 const [startHour, startMin] = formData.start_time.split(':').map(Number);
                 const [, optMin] = opt.value.split(':').map(Number);
                 // 시작 시간 이후만 선택 가능
-                if (hour > startHour || (hour === startHour && optMin > startMin)) {
+                if (startHour !== undefined && startMin !== undefined && optMin !== undefined && 
+                    (hour > startHour || (hour === startHour && optMin > startMin))) {
                   return hour <= 23;
                 }
                 return false;
@@ -278,8 +287,8 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
             ) : (
               // 밤샘대여: 기존 로직 유지
               generateOvernightTimeOptions().filter(opt => {
-                const hour = parseInt(opt.value.split(':')[0]);
-                const startHour = parseInt(formData.start_time.split(':')[0]);
+                const hour = parseInt(opt.value.split(':')[0] || '0');
+                const startHour = parseInt(formData.start_time.split(':')[0] || '0');
                 // 시작 시간 이후부터 29시(새벽 5시)까지만 선택 가능
                 if (startHour >= 20) {
                   // 20시 이후 시작인 경우, 다음날 새벽까지 가능
@@ -359,8 +368,11 @@ export default function TimeSlotForm({ deviceTypeId, slot, onSave, onCancel }: P
                         value={option.fixed_credits || 100}
                         onChange={(e) => {
                           const options = [...formData.credit_options];
-                          options[optionIndex].fixed_credits = Number(e.target.value);
-                          setFormData({ ...formData, credit_options: options });
+                          const option = options[optionIndex];
+                          if (option) {
+                            option.fixed_credits = Number(e.target.value);
+                            setFormData({ ...formData, credit_options: options });
+                          }
                         }}
                         className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />

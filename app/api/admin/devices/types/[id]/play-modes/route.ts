@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/app/lib/supabase'
 // 플레이 모드 업데이트 (전체 교체)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: deviceTypeId } = params
+    const { id: deviceTypeId } = await params
     const { play_modes } = await request.json()
 
     // 기존 플레이 모드 삭제

@@ -11,7 +11,7 @@ import {
   Eye,
   AlertCircle,
   Type,
-  Image,
+  Image as ImageIcon,
   Layout,
   Plus,
   Copy,
@@ -285,7 +285,9 @@ export default function ContentManagementPage() {
 
     const newBlocks = [...selectedPage.blocks];
     const [removed] = newBlocks.splice(draggedIndex, 1);
-    newBlocks.splice(targetIndex, 0, removed);
+    if (removed) {
+      newBlocks.splice(targetIndex, 0, removed);
+    }
 
     const updatedPage = {
       ...selectedPage,
@@ -404,7 +406,7 @@ export default function ContentManagementPage() {
 
     switch (block.type) {
       case 'heading':
-        const HeadingTag = block.style.level as keyof JSX.IntrinsicElements;
+        const HeadingTag = block.style.level as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
         return (
           <div className={baseClass}>
             <HeadingTag 
@@ -414,7 +416,7 @@ export default function ContentManagementPage() {
                 block.style.level === 'h3' ? 'text-xl' : 'text-lg'
               } ${!isPreview && isEditing && selectedBlock === block.id ? 'cursor-text' : ''}`}
               style={{ 
-                textAlign: block.style.align,
+                textAlign: block.style.align as React.CSSProperties['textAlign'],
                 color: block.style.color 
               }}
               contentEditable={!isPreview && isEditing && selectedBlock === block.id}
@@ -436,7 +438,7 @@ export default function ContentManagementPage() {
             <p 
               className={`${!isPreview && isEditing && selectedBlock === block.id ? 'cursor-text' : ''}`}
               style={{ 
-                textAlign: block.style.align,
+                textAlign: block.style.align as React.CSSProperties['textAlign'],
                 fontSize: block.style.fontSize,
                 color: block.style.color,
                 whiteSpace: 'pre-wrap'
@@ -456,11 +458,12 @@ export default function ContentManagementPage() {
 
       case 'image':
         return (
-          <div className={baseClass} style={{ textAlign: block.style.align }}>
+          <div className={baseClass} style={{ textAlign: block.style.align as React.CSSProperties['textAlign'] }}>
             {block.content.src ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img 
                 src={block.content.src}
-                alt={block.content.alt}
+                alt={block.content.alt || ''}
                 style={{
                   width: block.style.width,
                   borderRadius: block.style.borderRadius,
@@ -470,7 +473,7 @@ export default function ContentManagementPage() {
               />
             ) : (
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center">
-                <Image className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <ImageIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <p className="text-gray-500">이미지를 추가하세요</p>
               </div>
             )}
@@ -479,7 +482,7 @@ export default function ContentManagementPage() {
 
       case 'button':
         return (
-          <div className={baseClass} style={{ textAlign: block.style.align }}>
+          <div className={baseClass} style={{ textAlign: block.style.align as React.CSSProperties['textAlign'] }}>
             <button
               className="font-medium transition-opacity hover:opacity-80"
               style={{
@@ -536,7 +539,7 @@ export default function ContentManagementPage() {
             )}
             {block.content.items && block.content.items.length > 0 && (
               <ul className="space-y-1 ml-5" style={{ listStyleType: 'disc' }}>
-                {block.content.items.map((item: string, index: number) => (
+                {block.content.items?.map((item: string, index: number) => (
                   <li key={index} style={{ opacity: 0.9 }}>{item}</li>
                 ))}
               </ul>
@@ -555,7 +558,7 @@ export default function ContentManagementPage() {
                 color: block.style.color
               }}
             >
-              {block.content.items.map((item: string, index: number) => (
+              {block.content.items?.map((item: string, index: number) => (
                 <li key={index}>{item}</li>
               ))}
             </ul>
@@ -609,7 +612,7 @@ export default function ContentManagementPage() {
       title: newPageTitle,
       slug: newPageSlug,
       status: 'draft',
-      lastUpdated: getKSTNow().split('T')[0],
+      lastUpdated: getKSTNow().split('T')[0] || '',
       blocks: []
     };
 
@@ -627,7 +630,7 @@ export default function ContentManagementPage() {
 
     const updatedPage = {
       ...selectedPage,
-      lastUpdated: getKSTNow().split('T')[0]
+      lastUpdated: getKSTNow().split('T')[0] || ''
     };
 
     setPages(pages.map(p => p.id === selectedPage.id ? updatedPage : p));
@@ -728,7 +731,7 @@ export default function ContentManagementPage() {
                 {[
                   { type: 'heading' as const, icon: Type, label: '제목' },
                   { type: 'text' as const, icon: FileText, label: '텍스트' },
-                  { type: 'image' as const, icon: Image, label: '이미지' },
+                  { type: 'image' as const, icon: ImageIcon, label: '이미지' },
                   { type: 'button' as const, icon: Square, label: '버튼' },
                   { type: 'alert' as const, icon: AlertCircle, label: '알림' },
                   { type: 'card' as const, icon: Layout, label: '카드' },
@@ -876,7 +879,7 @@ export default function ContentManagementPage() {
                           {isEditing && !showPreview && (
                             <div className="absolute -top-2 -left-2 px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
                               {(() => {
-                                const labels: Record<ContentBlock['type'], string> = {
+                                const labels: Partial<Record<ContentBlock['type'], string>> = {
                                   heading: '제목',
                                   text: '텍스트',
                                   image: '이미지',
@@ -887,7 +890,7 @@ export default function ContentManagementPage() {
                                   spacer: '공백',
                                   divider: '구분선'
                                 };
-                                return labels[block.type];
+                                return labels[block.type] || block.type;
                               })()}
                             </div>
                           )}

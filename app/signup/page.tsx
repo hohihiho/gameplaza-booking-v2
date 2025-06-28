@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase/client';
-import { User, Phone, Loader2, Check } from 'lucide-react';
+import { /* User, Phone, */ Loader2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function SignupPage() {

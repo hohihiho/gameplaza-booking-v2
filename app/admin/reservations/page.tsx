@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { 
   Calendar,
   Clock,
@@ -12,9 +12,9 @@ import {
   XCircle,
   Timer,
   Search,
-  Filter,
+  // Filter,
   ChevronLeft,
-  ChevronRight,
+  // ChevronRight,
   AlertCircle,
   User,
   Gamepad2,
@@ -44,7 +44,7 @@ type Reservation = {
   player_count: number;
   credit_option: string;
   total_price: number;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed' | 'checked_in';
   notes?: string;
   created_at: string;
   reviewed_at?: string;
@@ -99,7 +99,7 @@ export default function ReservationManagementPage() {
       if (error) throw error;
 
       // 데이터 포맷팅
-      const formattedReservations: Reservation[] = (reservationsData || []).map(res => ({
+      const formattedReservations: Reservation[] = (reservationsData || []).map((res: any) => ({
         id: res.id,
         user: {
           id: res.users.id,
@@ -135,17 +135,17 @@ export default function ReservationManagementPage() {
   };
 
   // 시간 조정 이력 가져오기
-  const fetchTimeAdjustments = async (reservationId: string) => {
-    try {
-      const response = await fetch(`/api/admin/reservations/time-adjustment?reservationId=${reservationId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTimeAdjustments(data.adjustments || []);
-      }
-    } catch (error) {
-      console.error('시간 조정 이력 조회 실패:', error);
-    }
-  };
+  // const fetchTimeAdjustments = async (reservationId: string) => {
+  //   try {
+  //     const response = await fetch(`/api/admin/reservations/time-adjustment?reservationId=${reservationId}`);
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setTimeAdjustments(data.adjustments || []);
+  //     }
+  //   } catch (error) {
+  //     console.error('시간 조정 이력 조회 실패:', error);
+  //   }
+  // };
 
   useEffect(() => {
     fetchReservations();
@@ -235,6 +235,8 @@ export default function ReservationManagementPage() {
             완료됨
           </span>
         );
+      default:
+        return null;
     }
   };
 
@@ -261,7 +263,7 @@ export default function ReservationManagementPage() {
         r.id === reservationId 
           ? { 
               ...r, 
-              status: 'approved', 
+              status: 'approved' as const, 
               reviewed_at: new Date().toISOString(),
               reviewed_by: '관리자'
             }
@@ -309,7 +311,7 @@ export default function ReservationManagementPage() {
         r.id === rejectingReservationId 
           ? { 
               ...r, 
-              status: 'rejected', 
+              status: 'rejected' as const, 
               reviewed_at: new Date().toISOString(),
               reviewed_by: '관리자',
               notes: `거절 사유: ${rejectReason}`
@@ -630,8 +632,8 @@ export default function ReservationManagementPage() {
                       onClick={() => {
                         setShowTimeAdjustment(true);
                         const [start, end] = selectedReservation.time_slot.split('-');
-                        setAdjustedStartTime(start);
-                        setAdjustedEndTime(end);
+                        setAdjustedStartTime(start || '');
+                        setAdjustedEndTime(end || '');
                       }}
                       className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     >
@@ -762,7 +764,7 @@ export default function ReservationManagementPage() {
                         className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Save className="w-4 h-4" />
-                        저장
+                        {isLoading ? '처리 중...' : '저장'}
                       </button>
                     </div>
                   </div>
@@ -786,6 +788,39 @@ export default function ReservationManagementPage() {
                   </div>
                 </div>
               )}
+
+              {/* 시간 조정 이력 
+              timeAdjustments && timeAdjustments.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">시간 조정 이력</h3>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-3">
+                    {timeAdjustments.map((adjustment: any, index: number) => (
+                      <div key={adjustment.id} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="text-sm">
+                            <p className="font-medium dark:text-white">
+                              {new Date(adjustment.old_start_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} - 
+                              {new Date(adjustment.old_end_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                              <span className="mx-2 text-gray-400">→</span>
+                              {new Date(adjustment.new_start_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} - 
+                              {new Date(adjustment.new_end_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              사유: {adjustment.reason}
+                            </p>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(adjustment.created_at).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          조정자: {adjustment.adjusted_by_user?.name || '관리자'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) */}
 
               {/* 상태 및 타임스탬프 */}
               <div>

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { 
   Download,
   ChevronLeft,
-  FileSpreadsheet,
+  // FileSpreadsheet,
   Calendar,
   Users,
   Gamepad2,
@@ -155,7 +155,7 @@ export default function DataExportPage() {
   // 카테고리별 그룹화
   const groupedExports = exportTypes.reduce((acc, type) => {
     if (!acc[type.category]) acc[type.category] = [];
-    acc[type.category].push(type);
+    acc[type.category]!.push(type);
     return acc;
   }, {} as Record<string, ExportType[]>);
 
@@ -170,7 +170,10 @@ export default function DataExportPage() {
   // 전체 선택/해제
   const toggleAll = (category?: string) => {
     if (category) {
-      const categoryIds = groupedExports[category].map(e => e.id);
+      const categoryExports = groupedExports[category];
+      if (!categoryExports) return;
+      
+      const categoryIds = categoryExports.map(e => e.id);
       const allSelected = categoryIds.every(id => selectedExports.includes(id));
       
       if (allSelected) {

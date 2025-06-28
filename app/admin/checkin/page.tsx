@@ -23,7 +23,7 @@ import {
   Timer,
   Users,
   Copy,
-  Send,
+  // Send,
   Eye,
   Edit2,
   Save,
@@ -392,12 +392,25 @@ export default function CheckInPage() {
   // 시간대 상태 확인
   const getTimeSlotStatus = (timeSlot: string) => {
     const [start, end] = timeSlot.split('-');
+    if (!start || !end) {
+      return { status: 'unknown', message: '알 수 없음' };
+    }
+    
     const now = currentTime;
     const startTime = new Date(now);
     const endTime = new Date(now);
     
-    const [startHour, startMin] = start.split(':').map(Number);
-    const [endHour, endMin] = end.split(':').map(Number);
+    const startParts = start.split(':').map(Number);
+    const endParts = end.split(':').map(Number);
+    
+    const startHour = startParts[0] ?? 0;
+    const startMin = startParts[1] ?? 0;
+    const endHour = endParts[0] ?? 0;
+    const endMin = endParts[1] ?? 0;
+    
+    if (isNaN(startHour) || isNaN(startMin) || isNaN(endHour) || isNaN(endMin)) {
+      return { status: 'unknown', message: '알 수 없음' };
+    }
     
     startTime.setHours(startHour, startMin, 0, 0);
     endTime.setHours(endHour, endMin, 0, 0);
@@ -621,12 +634,12 @@ export default function CheckInPage() {
                                   setAdjustedStartTime(
                                     reservation.actual_start_time 
                                       ? new Date(reservation.actual_start_time).toTimeString().slice(0, 5)
-                                      : originalStart
+                                      : originalStart || ''
                                   );
                                   setAdjustedEndTime(
                                     reservation.actual_end_time 
                                       ? new Date(reservation.actual_end_time).toTimeString().slice(0, 5)
-                                      : originalEnd
+                                      : originalEnd || ''
                                   );
                                   setAdjustmentReason('');
                                   setSelectedReason('');
@@ -662,8 +675,6 @@ export default function CheckInPage() {
                               )}
                             </div>
                           )}
-                            </div>
-                          )}
                           
                           {/* 시간 조정 버튼 */}
                           <button
@@ -675,11 +686,11 @@ export default function CheckInPage() {
                               const [startTime, endTime] = reservation.time_slot.split('-');
                               setAdjustedStartTime(reservation.actual_start_time ? 
                                 new Date(reservation.actual_start_time).toTimeString().slice(0, 5) : 
-                                startTime
+                                startTime || ''
                               );
                               setAdjustedEndTime(reservation.actual_end_time ? 
                                 new Date(reservation.actual_end_time).toTimeString().slice(0, 5) : 
-                                endTime
+                                endTime || ''
                               );
                               setAdjustmentReason('');
                               setSelectedReason('');

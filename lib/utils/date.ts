@@ -68,7 +68,8 @@ export function getTodayKST(): string {
   const now = new Date();
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
   const kstTime = new Date(utc + (9 * 60 * 60 * 1000));
-  return kstTime.toISOString().split('T')[0];
+  const dateParts = kstTime.toISOString().split('T');
+  return dateParts[0] || '';
 }
 
 /**
@@ -76,15 +77,21 @@ export function getTodayKST(): string {
  */
 export function isToday(date: Date | string): boolean {
   const today = getTodayKST();
-  const checkDate = typeof date === 'string' ? date : utcToKST(date).toISOString().split('T')[0];
-  return today === checkDate.split('T')[0];
+  if (typeof date === 'string') {
+    return today === date.split('T')[0];
+  } else {
+    const kstDate = utcToKST(date).toISOString().split('T');
+    return today === (kstDate[0] || '');
+  }
 }
 
 /**
  * 시간 문자열을 12시간 형식으로 변환
  */
 export function formatTime12Hour(timeString: string): string {
-  const [hours, minutes] = timeString.split(':');
+  const timeParts = timeString.split(':');
+  const hours = timeParts[0] || '0';
+  const minutes = timeParts[1] || '00';
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? '오후' : '오전';
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;

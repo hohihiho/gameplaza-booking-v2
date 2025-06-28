@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     
     // 1. 종료된 예약의 기기 상태 업데이트 함수 호출
-    const { data: updateResult, error: updateError } = await supabase
+    const { data: _updateResult, error: updateError } = await supabase
       .rpc('update_device_status_on_rental_end');
     
     if (updateError) {

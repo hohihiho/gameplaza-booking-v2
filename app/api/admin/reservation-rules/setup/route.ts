@@ -4,37 +4,37 @@ import { supabaseAdmin } from '@/app/lib/supabase'
 export async function POST() {
   try {
     // 테이블 생성 SQL
-    const createTableSQL = `
-      -- 이용 안내 테이블 생성
-      CREATE TABLE IF NOT EXISTS reservation_rules (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        content TEXT NOT NULL,
-        is_active BOOLEAN DEFAULT true,
-        display_order INTEGER DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+    // const createTableSQL = `
+    //   -- 이용 안내 테이블 생성
+    //   CREATE TABLE IF NOT EXISTS reservation_rules (
+    //     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    //     content TEXT NOT NULL,
+    //     is_active BOOLEAN DEFAULT true,
+    //     display_order INTEGER DEFAULT 0,
+    //     created_at TIMESTAMPTZ DEFAULT NOW(),
+    //     updated_at TIMESTAMPTZ DEFAULT NOW()
+    //   );
 
-      -- 인덱스 생성
-      CREATE INDEX IF NOT EXISTS idx_reservation_rules_active ON reservation_rules(is_active);
-      CREATE INDEX IF NOT EXISTS idx_reservation_rules_order ON reservation_rules(display_order);
+    //   -- 인덱스 생성
+    //   CREATE INDEX IF NOT EXISTS idx_reservation_rules_active ON reservation_rules(is_active);
+    //   CREATE INDEX IF NOT EXISTS idx_reservation_rules_order ON reservation_rules(display_order);
 
-      -- 업데이트 트리거 함수 생성 (없으면)
-      CREATE OR REPLACE FUNCTION update_updated_at()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.updated_at = NOW();
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
+    //   -- 업데이트 트리거 함수 생성 (없으면)
+    //   CREATE OR REPLACE FUNCTION update_updated_at()
+    //   RETURNS TRIGGER AS $$
+    //   BEGIN
+    //     NEW.updated_at = NOW();
+    //     RETURN NEW;
+    //   END;
+    //   $$ LANGUAGE plpgsql;
 
-      -- 업데이트 트리거 생성
-      DROP TRIGGER IF EXISTS update_reservation_rules_updated_at ON reservation_rules;
-      CREATE TRIGGER update_reservation_rules_updated_at
-        BEFORE UPDATE ON reservation_rules
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at();
-    `;
+    //   -- 업데이트 트리거 생성
+    //   DROP TRIGGER IF EXISTS update_reservation_rules_updated_at ON reservation_rules;
+    //   CREATE TRIGGER update_reservation_rules_updated_at
+    //     BEFORE UPDATE ON reservation_rules
+    //     FOR EACH ROW
+    //     EXECUTE FUNCTION update_updated_at();
+    // `;
 
     // 테이블 생성 실행
     const { error: createError } = await supabaseAdmin

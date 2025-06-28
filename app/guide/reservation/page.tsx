@@ -5,7 +5,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Clock, Calendar, CreditCard, AlertCircle, CheckCircle, XCircle, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 
 type ReservationContent = {
   timeSlots: Array<{
@@ -38,7 +37,6 @@ type ReservationContent = {
 };
 
 export default function ReservationGuidePage() {
-  const router = useRouter();
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -169,8 +167,11 @@ export default function ReservationGuidePage() {
   // 시간대 편집
   const updateTimeSlot = (index: number, field: 'name' | 'time', value: string) => {
     const newTimeSlots = [...editingContent.timeSlots];
-    newTimeSlots[index] = { ...newTimeSlots[index], [field]: value };
-    setEditingContent({ ...editingContent, timeSlots: newTimeSlots });
+    const currentSlot = newTimeSlots[index];
+    if (currentSlot) {
+      newTimeSlots[index] = { ...currentSlot, [field]: value };
+      setEditingContent({ ...editingContent, timeSlots: newTimeSlots });
+    }
   };
 
   const addTimeSlot = () => {
@@ -188,34 +189,48 @@ export default function ReservationGuidePage() {
   // 예약 단계 편집
   const updateStepDetail = (stepIndex: number, detailIndex: number, value: string) => {
     const newSteps = [...editingContent.reservationSteps];
-    newSteps[stepIndex].details[detailIndex] = value;
-    setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    const step = newSteps[stepIndex];
+    if (step && step.details) {
+      step.details[detailIndex] = value;
+      setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    }
   };
 
   const addStepDetail = (stepIndex: number) => {
     const newSteps = [...editingContent.reservationSteps];
-    newSteps[stepIndex].details.push('');
-    setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    const step = newSteps[stepIndex];
+    if (step && step.details) {
+      step.details.push('');
+      setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    }
   };
 
   const removeStepDetail = (stepIndex: number, detailIndex: number) => {
     const newSteps = [...editingContent.reservationSteps];
-    newSteps[stepIndex].details = newSteps[stepIndex].details.filter((_, i) => i !== detailIndex);
-    setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    const step = newSteps[stepIndex];
+    if (step && step.details) {
+      step.details = step.details.filter((_, i) => i !== detailIndex);
+      setEditingContent({ ...editingContent, reservationSteps: newSteps });
+    }
   };
 
   // 취소 정책 편집
   const updateCancellationPolicy = (index: number, field: string, value: string) => {
     const newPolicy = [...editingContent.cancellationPolicy];
-    newPolicy[index] = { ...newPolicy[index], [field]: value };
-    setEditingContent({ ...editingContent, cancellationPolicy: newPolicy });
+    const currentPolicy = newPolicy[index];
+    if (currentPolicy) {
+      newPolicy[index] = { ...currentPolicy, [field]: value };
+      setEditingContent({ ...editingContent, cancellationPolicy: newPolicy });
+    }
   };
 
   // 패널티 편집
   const updatePenalty = (index: number, value: string) => {
     const newPenalties = [...editingContent.penalties];
-    newPenalties[index] = value;
-    setEditingContent({ ...editingContent, penalties: newPenalties });
+    if (index >= 0 && index < newPenalties.length) {
+      newPenalties[index] = value;
+      setEditingContent({ ...editingContent, penalties: newPenalties });
+    }
   };
 
   const addPenalty = () => {
@@ -233,8 +248,10 @@ export default function ReservationGuidePage() {
   // 체크인 단계 편집
   const updateCheckInStep = (index: number, value: string) => {
     const newCheckIn = { ...editingContent.checkIn };
-    newCheckIn.steps[index] = value;
-    setEditingContent({ ...editingContent, checkIn: newCheckIn });
+    if (index >= 0 && index < newCheckIn.steps.length) {
+      newCheckIn.steps[index] = value;
+      setEditingContent({ ...editingContent, checkIn: newCheckIn });
+    }
   };
 
   const addCheckInStep = () => {
@@ -252,8 +269,11 @@ export default function ReservationGuidePage() {
   // FAQ 편집
   const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
     const newFaqs = [...editingContent.faqs];
-    newFaqs[index] = { ...newFaqs[index], [field]: value };
-    setEditingContent({ ...editingContent, faqs: newFaqs });
+    const currentFaq = newFaqs[index];
+    if (currentFaq) {
+      newFaqs[index] = { ...currentFaq, [field]: value };
+      setEditingContent({ ...editingContent, faqs: newFaqs });
+    }
   };
 
   const addFaq = () => {

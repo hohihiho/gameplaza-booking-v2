@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+// import { RealtimeChannel } from '@supabase/supabase-js';
 import { 
   Calendar,
   Plus,
@@ -56,7 +56,7 @@ export default function RentalSlotManagementPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [rentalSlots, setRentalSlots] = useState<RentalSlot[]>([]);
   const [isAddingSlot, setIsAddingSlot] = useState(false);
-  const [editingSlot, setEditingSlot] = useState<string | null>(null);
+  // const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [supabase] = useState(() => createClient());
 
@@ -103,7 +103,10 @@ export default function RentalSlotManagementPage() {
       
       // 첫 번째 기기를 자동 선택
       if (formattedData.length > 0 && !selectedDeviceType) {
-        setSelectedDeviceType(formattedData[0].id);
+        const firstDevice = formattedData[0];
+        if (firstDevice) {
+          setSelectedDeviceType(firstDevice.id);
+        }
       }
     } catch (error) {
       console.error('기기 타입 불러오기 실패:', error);
@@ -115,6 +118,10 @@ export default function RentalSlotManagementPage() {
     fetchDeviceTypes();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
 
   // 실시간 업데이트 구독
   useEffect(() => {
@@ -130,6 +137,8 @@ export default function RentalSlotManagementPage() {
         (payload) => {
           // 현재 선택된 기기와 날짜에 해당하는 변경사항만 처리
           if (payload.new && 
+              'device_type_id' in payload.new &&
+              'date' in payload.new &&
               payload.new.device_type_id === selectedDeviceType && 
               payload.new.date === formatDate(selectedDate)) {
             loadRentalSlots();
@@ -144,7 +153,8 @@ export default function RentalSlotManagementPage() {
         supabase.removeChannel(channel);
       }
     };
-  }, [supabase, selectedDeviceType, selectedDate, formatDate, loadRentalSlots]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, selectedDeviceType, selectedDate]);
 
   // 선택한 기기와 날짜에 따른 시간대 불러오기
   useEffect(() => {
@@ -192,10 +202,6 @@ export default function RentalSlotManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
   };
 
   const formatDateDisplay = (date: Date) => {
@@ -396,7 +402,7 @@ export default function RentalSlotManagementPage() {
                       }).join(', ')
                     }</p>
                     <p>• 기본 가격: ₩{selectedDevice.rental_settings?.base_price.toLocaleString()}</p>
-                    {selectedDevice.rental_settings?.max_players > 1 && (
+                    {selectedDevice.rental_settings?.max_players && selectedDevice.rental_settings.max_players > 1 && (
                       <p>• 2P 가격 배수: {selectedDevice.rental_settings?.price_multiplier_2p}배</p>
                     )}
                   </div>
@@ -456,7 +462,7 @@ export default function RentalSlotManagementPage() {
 
                   <div className="flex items-center gap-2 ml-4">
                     <button
-                      onClick={() => setEditingSlot(slot.id)}
+                      onClick={() => {/* setEditingSlot(slot.id) */}}
                       className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       <Edit className="w-4 h-4" />
