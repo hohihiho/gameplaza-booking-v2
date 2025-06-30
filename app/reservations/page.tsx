@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Clock, CreditCard, ChevronRight, Loader2, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
+import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
 export default function ReservationsPage() {
   const [activeTab, setActiveTab] = useState('all');
@@ -84,13 +85,13 @@ export default function ReservationsPage() {
   };
 
   const formatDate = (date: string) => {
-    const d = new Date(date);
+    const d = parseKSTDate(date);
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
   };
 
   const formatTime = (startTime: string, endTime: string) => {
-    return `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`;
+    return `${formatTimeKST(startTime || '')} - ${formatTimeKST(endTime || '')}`;
   };
 
   const calculateDuration = (startTime: string, endTime: string) => {
@@ -199,7 +200,7 @@ export default function ReservationsPage() {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
-                    {new Date(reservation.created_at).toLocaleString('ko-KR')}
+                    {parseKSTDate(reservation.created_at).toLocaleString('ko-KR')}
                   </span>
                 </div>
 

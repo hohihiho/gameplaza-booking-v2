@@ -47,6 +47,7 @@
   "devDependencies": {
     "@stagewise-plugins/react": "^0.4.9",
     "@stagewise/toolbar-next": "^0.4.9",
+    "@supabase/mcp-server-supabase": "^0.4.5",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
     "eslint": "^9.29.0",

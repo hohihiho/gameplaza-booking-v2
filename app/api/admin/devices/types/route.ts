@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         play_modes(id, name, price, display_order),
         devices(id, device_number, status)
       `)
-      .order('name', { ascending: true })
+      .order('display_order', { ascending: true })
 
     if (categoryId) {
       query = query.eq('category_id', categoryId)
@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
       category_id: type.category_id,
       category_name: type.device_categories?.name || '',
       description: type.description,
+      display_order: type.display_order,
       is_rentable: type.is_rentable,
       play_modes: type.play_modes?.sort((a: any, b: any) => a.display_order - b.display_order) || [],
-      rental_settings: null,
+      rental_settings: type.rental_settings || {},  // JSONB 컬럼에서 직접 가져옴
       device_count: type.devices?.length || 0,
       active_count: type.devices?.filter((d: any) => d.status === 'available').length || 0
     }))
@@ -134,11 +135,16 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, name, description } = body
+    const { id, name, description, display_order } = body
+
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (description !== undefined) updateData.description = description
+    if (display_order !== undefined) updateData.display_order = display_order
 
     const { data, error } = await supabaseAdmin
       .from('device_types')
-      .update({ name, description })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()

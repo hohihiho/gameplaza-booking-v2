@@ -97,7 +97,14 @@ export default function SchedulePage() {
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', endDate.toISOString().split('T')[0]);
 
-      if (specialOpsError) throw specialOpsError;
+      if (specialOpsError) {
+        // 테이블이 없는 경우는 무시
+        if (specialOpsError.message?.includes('does not exist')) {
+          console.log('special_operations 테이블이 없습니다. 건너뜁니다.');
+        } else {
+          throw specialOpsError;
+        }
+      }
 
       // 2. 예약 데이터 가져오기
       const { data: reservationsData, error: reservationsError } = await supabase

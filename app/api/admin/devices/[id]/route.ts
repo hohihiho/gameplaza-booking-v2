@@ -1,5 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/app/lib/supabase'
+
+// 개별 기기 업데이트
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = supabaseAdmin
+    const body = await request.json()
+
+    // 업데이트할 데이터 준비
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    }
+
+    if (body.status !== undefined) {
+      updateData.status = body.status
+    }
+
+    if (body.notes !== undefined) {
+      updateData.notes = body.notes
+    }
+
+    if (body.last_maintenance !== undefined) {
+      updateData.last_maintenance = body.last_maintenance
+    }
+
+    // 기기 업데이트
+    const { data, error } = await supabase
+      .from('devices')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Error updating device:', error)
+    return NextResponse.json({ error: 'Failed to update device' }, { status: 500 })
+  }
+}
 
 // 개별 기기 삭제
 export async function DELETE(
@@ -8,7 +52,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = supabaseAdmin
 
     // 기기 상태 확인
     const { data: device, error: fetchError } = await supabase

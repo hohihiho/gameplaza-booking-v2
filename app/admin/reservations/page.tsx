@@ -26,6 +26,7 @@ import {
   Save
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatTimeKST } from '@/lib/utils/kst-date';
 
 type Reservation = {
   id: string;
@@ -435,7 +436,12 @@ export default function ReservationManagementPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {reservation.time_slot}
+                      {(() => {
+                        const parts = reservation.time_slot.split('-');
+                        const start = parts[0] || '';
+                        const end = parts[1] || '';
+                        return `${formatTimeKST(start)} - ${formatTimeKST(end)}`;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -598,7 +604,12 @@ export default function ReservationManagementPage() {
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">시간</p>
                       <p className="text-sm font-medium dark:text-white">
-                        {selectedReservation.time_slot}
+                        {(() => {
+                          const parts = selectedReservation.time_slot.split('-');
+                          const start = parts[0] || '';
+                          const end = parts[1] || '';
+                          return `${formatTimeKST(start)} - ${formatTimeKST(end)}`;
+                        })()}
                       </p>
                     </div>
                     <div>

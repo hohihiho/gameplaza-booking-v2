@@ -1,82 +1,134 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 // 예약 생성
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // 현재 사용자 확인 (Next-Auth 사용)
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
     const body = await request.json()
+    console.log('예약 요청 데이터:', body)
+    
     const { 
-      date: _date, 
-      deviceTypeId, 
-      timeSlotId,
-      deviceNumber, 
+      date,
+      startTime,
+      endTime,
+      deviceId,
       playerCount = 1,
-      totalPrice 
+      hourlyRate,
+      totalAmount,
+      userNotes
     } = body
 
-    // 1. 선택한 시간대가 유효한지 확인
-    const { data: timeSlot, error: slotError } = await supabase
-      .from('device_time_slots')
-      .select('*, device_types(*)')
-      .eq('id', timeSlotId)
+    // 1. 사용자 정보 조회 또는 생성
+    let { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
       .single()
 
-    if (slotError || !timeSlot) {
-      return NextResponse.json({ error: '유효하지 않은 시간대입니다' }, { status: 400 })
+    // 사용자가 없으면 생성
+    if (!userData) {
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({
+          email: session.user.email,
+          name: session.user.name || session.user.email.split('@')[0],
+          role: 'user'
+        })
+        .select('id')
+        .single()
+
+      if (createError || !newUser) {
+        console.error('사용자 생성 에러:', createError)
+        return NextResponse.json({ error: '사용자 정보를 생성할 수 없습니다' }, { status: 400 })
+      }
+      
+      userData = newUser
     }
 
-    // 2. 선택한 기기 번호가 예약 가능한지 확인
-    if (!timeSlot.available_devices.includes(deviceNumber)) {
-      return NextResponse.json({ error: '선택한 기기는 예약할 수 없습니다' }, { status: 400 })
+    // 2. 선택한 기기가 devices에 있는지 확인
+    const { data: device, error: deviceError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', deviceId)
+      .single()
+
+    if (deviceError || !device) {
+      console.error('기기 조회 에러:', deviceError)
+      return NextResponse.json({ error: '유효하지 않은 기기입니다' }, { status: 400 })
     }
 
     // 3. 해당 시간대에 이미 예약이 있는지 확인
-    const { data: existingReservations } = await supabase
+    const { data: existingReservations, error: checkError } = await supabase
       .from('reservations')
-      .select('device_number')
-      .eq('device_time_slot_id', timeSlotId)
-      .in('status', ['pending', 'approved'])
+      .select('id')
+      .eq('device_id', deviceId)
+      .eq('date', date)
+      .in('status', ['pending', 'approved', 'checked_in'])
+      .or(`start_time.lt.${endTime},end_time.gt.${startTime}`)
 
-    const reservedDevices = existingReservations?.map(r => r.device_number) || []
-    if (reservedDevices.includes(deviceNumber)) {
-      return NextResponse.json({ error: '이미 예약된 기기입니다' }, { status: 400 })
+    if (checkError) {
+      console.error('예약 확인 에러:', checkError)
+      return NextResponse.json({ error: '예약 확인 중 오류가 발생했습니다' }, { status: 500 })
     }
 
-    // 4. 기기 정보 가져오기
-    const { data: device } = await supabase
-      .from('devices')
-      .select('id')
-      .eq('device_type_id', deviceTypeId)
-      .eq('device_number', deviceNumber)
-      .single()
+    if (existingReservations && existingReservations.length > 0) {
+      return NextResponse.json({ error: '해당 시간대에 이미 예약이 있습니다' }, { status: 400 })
+    }
+
+    // 4. 예약 시간 계산
+    const startHour = parseInt(startTime.split(':')[0])
+    const startMin = parseInt(startTime.split(':')[1])
+    const endHour = parseInt(endTime.split(':')[0])
+    const endMin = parseInt(endTime.split(':')[1])
+    const hours = (endHour * 60 + endMin - startHour * 60 - startMin) / 60
 
     // 5. 예약 생성
     const { data: reservation, error: reservationError } = await supabase
       .from('reservations')
       .insert({
-        user_id: user.id,
-        device_time_slot_id: timeSlotId,
-        device_id: device?.id,
-        device_number: deviceNumber,
-        total_price: totalPrice,
+        user_id: userData.id,
+        device_id: deviceId,
+        date: date,
+        start_time: startTime,
+        end_time: endTime,
+        hours: hours,
         player_count: playerCount,
+        hourly_rate: hourlyRate,
+        total_amount: totalAmount,
         status: 'pending',
-        payment_method: 'cash' // 기본값
+        payment_method: 'cash',
+        payment_status: 'pending',
+        user_notes: userNotes || null
       })
-      .select()
+      .select(`
+        *,
+        devices!inner(
+          device_number,
+          status,
+          device_types(
+            name,
+            category
+          )
+        )
+      `)
       .single()
 
     if (reservationError) {
       console.error('Reservation error:', reservationError)
-      return NextResponse.json({ error: '예약 생성에 실패했습니다' }, { status: 500 })
+      return NextResponse.json({ 
+        error: '예약 생성에 실패했습니다',
+        details: reservationError.message || reservationError
+      }, { status: 500 })
     }
 
     // 6. 실시간 업데이트를 위한 브로드캐스트
@@ -86,9 +138,11 @@ export async function POST(request: Request) {
         type: 'broadcast',
         event: 'new_reservation',
         payload: { 
-          timeSlotId,
-          deviceNumber,
-          reservationId: reservation.id 
+          date,
+          deviceId,
+          reservationId: reservation.id,
+          startTime,
+          endTime
         }
       })
 
@@ -98,9 +152,12 @@ export async function POST(request: Request) {
       message: '예약이 접수되었습니다. 관리자 승인을 기다려주세요.'
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Reservation API error:', error)
-    return NextResponse.json({ error: '서버 오류가 발생했습니다' }, { status: 500 })
+    return NextResponse.json({ 
+      error: error.message || '서버 오류가 발생했습니다',
+      details: error
+    }, { status: 500 })
   }
 }
 
@@ -109,10 +166,37 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // 현재 사용자 확인 (Next-Auth 사용)
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
+    }
+
+    // 사용자 정보 조회 또는 생성
+    let { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single()
+
+    // 사용자가 없으면 생성
+    if (!userData) {
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({
+          email: session.user.email,
+          name: session.user.name || session.user.email.split('@')[0],
+          role: 'user'
+        })
+        .select('id')
+        .single()
+
+      if (createError || !newUser) {
+        console.error('사용자 생성 에러:', createError)
+        return NextResponse.json({ error: '사용자 정보를 생성할 수 없습니다' }, { status: 400 })
+      }
+      
+      userData = newUser
     }
 
     const { searchParams } = new URL(request.url)
@@ -123,24 +207,24 @@ export async function GET(request: Request) {
       .from('reservations')
       .select(`
         *,
-        device_time_slots!inner(
-          date,
-          start_time,
-          end_time,
-          price,
-          slot_type,
-          notes,
+        rental_machines!inner(
+          name,
+          description,
+          hourly_rate,
+          min_hours,
+          max_hours,
           device_types(
             name,
             category
           )
         ),
-        devices(
-          device_number,
-          location
+        users(
+          name,
+          email,
+          phone
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userData.id)
       .order('created_at', { ascending: false })
 
     // 상태 필터링

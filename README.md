@@ -171,6 +171,35 @@ main (production)
 - [관리자 플로우](./docs/planning/admin_flow.md)
 - [GitHub Actions 설정](./docs/GITHUB_ACTIONS_SETUP.md)
 
+## 🕐 시간대 처리 가이드 (중요!)
+
+이 프로젝트는 **한국 오락실에서만 사용**되므로 모든 시간 처리는 **KST(한국 표준시) 기준**으로 처리됩니다.
+
+### ❌ 잘못된 사용법
+```typescript
+// UTC로 파싱되어 9시간 차이 발생!
+const date = new Date("2025-07-01");  // ❌
+const time = new Date(dateString);    // ❌
+```
+
+### ✅ 올바른 사용법
+```typescript
+import { parseKSTDate, createKSTDateTime } from '@/lib/utils/kst-date';
+
+// KST 기준으로 날짜 파싱
+const date = parseKSTDate("2025-07-01");  // ✅
+
+// KST 기준으로 날짜+시간 생성
+const dateTime = createKSTDateTime("2025-07-01", "14:00");  // ✅
+```
+
+### 제공되는 KST 유틸리티 함수
+- `parseKSTDate(dateString)` - YYYY-MM-DD를 KST Date로 변환
+- `formatKSTDate(date)` - Date를 YYYY-MM-DD로 변환
+- `createKSTDateTime(dateString, timeString)` - 날짜+시간을 KST Date로 변환
+- `isWithin24Hours(targetDate)` - 24시간 이내 여부 확인
+- `formatKoreanDate(date)` - "M월 D일 요일" 형식으로 변환
+
 ## 🤝 기여 방법
 
 1. Fork the Project

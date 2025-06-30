@@ -23,7 +23,8 @@ import {
   Wrench,
   GripVertical
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
 
 // 타입 정의
 type Category = {
@@ -58,7 +59,7 @@ type Device = {
   id: string;
   device_type_id: string;
   device_number: number;
-  status: 'available' | 'rental' | 'maintenance' | 'unavailable';
+  status: 'available' | 'in_use' | 'maintenance' | 'broken';
   notes?: string;
   last_maintenance?: string;
 };
@@ -403,9 +404,9 @@ function DeviceCard({
 
   const statusConfig = {
     available: { color: 'text-green-600 dark:text-green-400', icon: CheckCircle, label: '사용 가능' },
-    rental: { color: 'text-blue-600 dark:text-blue-400', icon: Gamepad2, label: '대여중' },
+    in_use: { color: 'text-blue-600 dark:text-blue-400', icon: Gamepad2, label: '대여중' },
     maintenance: { color: 'text-orange-600 dark:text-orange-400', icon: Wrench, label: '점검 중' },
-    unavailable: { color: 'text-red-600 dark:text-red-400', icon: XCircle, label: '사용 불가' }
+    broken: { color: 'text-red-600 dark:text-red-400', icon: XCircle, label: '사용 불가' }
   };
 
   const StatusIcon = statusConfig[device.status].icon;
@@ -427,9 +428,9 @@ function DeviceCard({
             className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="available">사용 가능</option>
-            <option value="rental">대여중</option>
+            <option value="in_use">대여중</option>
             <option value="maintenance">점검 중</option>
-            <option value="unavailable">사용 불가</option>
+            <option value="broken">사용 불가</option>
           </select>
         </div>
       </div>
@@ -490,6 +491,8 @@ function DeviceCard({
 
 export default function DevicesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [supabase] = useState(() => createClient());
   
   // 카테고리 관련 상태
   const [categories, setCategories] = useState<Category[]>([]);
@@ -512,57 +515,95 @@ export default function DevicesPage() {
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
+  // URL 파라미터에서 초기 상태 읽기
+  const initialView = (searchParams.get('view') as ViewType) || 'categories';
+  const initialCategoryId = searchParams.get('categoryId');
+  const initialTypeId = searchParams.get('typeId');
+  
   // 뷰 상태
-  const [view, setView] = useState<ViewType>('categories');
-  const [navigationHistory, setNavigationHistory] = useState<ViewType[]>(['categories']);
+  const [view, setView] = useState<ViewType>(initialView);
+
+  // URL 업데이트 함수
+  const updateURL = useCallback((params: { 
+    view?: ViewType; 
+    categoryId?: string | null; 
+    typeId?: string | null 
+  }) => {
+    const url = new URL(window.location.href);
+    
+    if (params.view) url.searchParams.set('view', params.view);
+    else url.searchParams.delete('view');
+    
+    if (params.categoryId) url.searchParams.set('categoryId', params.categoryId);
+    else url.searchParams.delete('categoryId');
+    
+    if (params.typeId) url.searchParams.set('typeId', params.typeId);
+    else url.searchParams.delete('typeId');
+    
+    window.history.pushState({}, '', url.toString());
+  }, []);
 
   // 네비게이션 함수
   const navigateTo = useCallback((newView: ViewType) => {
     setView(newView);
-    setNavigationHistory(prev => [...prev, newView]);
-  }, []);
+    
+    if (newView === 'types' && selectedCategory) {
+      updateURL({ view: 'types', categoryId: selectedCategory.id });
+    } else if (newView === 'devices' && selectedCategory && selectedDeviceType) {
+      updateURL({ view: 'devices', categoryId: selectedCategory.id, typeId: selectedDeviceType.id });
+    } else {
+      updateURL({ view: newView });
+    }
+  }, [selectedCategory, selectedDeviceType, updateURL]);
 
   const navigateBack = useCallback(() => {
-    if (navigationHistory.length > 1) {
-      const newHistory = [...navigationHistory];
-      newHistory.pop(); // 현재 뷰 제거
-      const previousView = newHistory[newHistory.length - 1];
-      
-      if (previousView) {
-        setView(previousView);
-      }
-      setNavigationHistory(newHistory);
-      
-      // 뷰에 따라 상태 초기화
-      if (previousView === 'categories') {
-        setSelectedCategory(null);
-        setSelectedDeviceType(null);
-      } else if (previousView === 'types') {
-        setSelectedDeviceType(null);
-      }
+    if (view === 'devices') {
+      setView('types');
+      setSelectedDeviceType(null);
+      updateURL({ view: 'types', categoryId: selectedCategory?.id });
+    } else if (view === 'types') {
+      setView('categories');
+      setSelectedCategory(null);
+      setSelectedDeviceType(null);
+      updateURL({ view: 'categories' });
+    } else {
+      router.push('/admin');
     }
-  }, [navigationHistory]);
+  }, [view, selectedCategory, router, updateURL]);
 
   // 브라우저 뒤로가기 버튼 핸들링
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      // 카테고리 뷰에서 뒤로가기 시 대시보드로 이동
-      if (view === 'categories') {
-        router.push('/admin');
-      } else {
-        navigateBack();
+    const handlePopState = () => {
+      // URL에서 현재 상태 읽기
+      const params = new URLSearchParams(window.location.search);
+      const urlView = params.get('view') as ViewType;
+      const urlCategoryId = params.get('categoryId');
+      const urlTypeId = params.get('typeId');
+      
+      // URL에 따라 뷰 상태 복원
+      if (!urlView || urlView === 'categories') {
+        setView('categories');
+        setSelectedCategory(null);
+        setSelectedDeviceType(null);
+      } else if (urlView === 'types' && urlCategoryId) {
+        setView('types');
+        // 카테고리 찾아서 설정
+        const category = categories.find(c => c.id === urlCategoryId);
+        if (category) setSelectedCategory(category);
+        setSelectedDeviceType(null);
+      } else if (urlView === 'devices' && urlCategoryId && urlTypeId) {
+        setView('devices');
+        // 카테고리와 타입 찾아서 설정
+        const category = categories.find(c => c.id === urlCategoryId);
+        if (category) setSelectedCategory(category);
+        const type = deviceTypes.find(t => t.id === urlTypeId);
+        if (type) setSelectedDeviceType(type);
       }
     };
 
-    // 초기 상태 설정 - 한 번만 설정
-    if (navigationHistory.length === 1) {
-      window.history.pushState({ page: 'devices' }, '');
-    }
-    
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigationHistory, view, router, navigateBack]);
+  }, [categories, deviceTypes]);
 
   // 데이터 로드 함수들
   const loadCategories = async () => {
@@ -606,12 +647,60 @@ export default function DevicesPage() {
     loadCategories();
     loadDeviceTypes();
   }, []);
+  
+  // 초기 URL 파라미터에 따라 상태 설정
+  useEffect(() => {
+    if (categories.length > 0 && deviceTypes.length > 0) {
+      if (initialCategoryId) {
+        const category = categories.find(c => c.id === initialCategoryId);
+        if (category) {
+          setSelectedCategory(category);
+          if (initialTypeId) {
+            const type = deviceTypes.find(t => t.id === initialTypeId);
+            if (type) {
+              setSelectedDeviceType(type);
+            }
+          }
+        }
+      }
+    }
+  }, [categories, deviceTypes, initialCategoryId, initialTypeId]);
 
   useEffect(() => {
     if (selectedDeviceType) {
       loadDevices(selectedDeviceType.id);
     }
   }, [selectedDeviceType]);
+
+  // Realtime 구독으로 기기 상태 변경 감지
+  useEffect(() => {
+    const channel = supabase
+      .channel('devices-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'devices',
+          filter: selectedDeviceType ? `device_type_id=eq.${selectedDeviceType.id}` : undefined
+        },
+        (payload) => {
+          console.log('Device status updated:', payload);
+          if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+            setDevices(prev => prev.map(device => 
+              device.id === payload.new.id 
+                ? { ...device, ...payload.new as Device }
+                : device
+            ));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDeviceType, supabase]);
 
   // 카테고리 드래그 앤 드롭 핸들러
   const handleCategoryDragStart = (e: React.DragEvent, index: number) => {
@@ -656,7 +745,7 @@ export default function DevicesPage() {
     setDragOverCategoryIndex(null);
 
     try {
-      await fetch('/api/admin/devices/categories', {
+      const response = await fetch('/api/admin/devices/categories', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -666,8 +755,18 @@ export default function DevicesPage() {
           }))
         })
       });
-    } catch (error) {
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update category order');
+      }
+      
+      console.log('카테고리 순서 업데이트 성공');
+    } catch (error: any) {
       console.error('Error updating category order:', error);
+      alert('카테고리 순서 변경 실패: ' + error.message);
+      // 실패 시 원래 순서로 복구
+      loadCategories();
     }
   };
 
@@ -725,18 +824,31 @@ export default function DevicesPage() {
     setDragOverTypeIndex(null);
 
     try {
-      for (const type of updatedTypes) {
-        await fetch('/api/admin/devices/types', {
+      // 모든 업데이트를 병렬로 처리
+      const updatePromises = updatedTypes.map(type => 
+        fetch('/api/admin/devices/types', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: type.id,
             display_order: type.display_order
           })
-        });
+        })
+      );
+      
+      const responses = await Promise.all(updatePromises);
+      const hasError = responses.some(r => !r.ok);
+      
+      if (hasError) {
+        throw new Error('Failed to update some device types');
       }
-    } catch (error) {
+      
+      console.log('기종 순서 업데이트 성공');
+    } catch (error: any) {
       console.error('Error updating type order:', error);
+      alert('기종 순서 변경 실패: ' + error.message);
+      // 실패 시 원래 순서로 복구
+      loadDeviceTypes();
     }
   };
 
@@ -1235,18 +1347,27 @@ export default function DevicesPage() {
                             setDeviceTypes(allUpdatedTypes);
                             
                             try {
-                              for (const type of updatedTypes) {
-                                await fetch('/api/admin/devices/types', {
+                              const updatePromises = updatedTypes.map(type => 
+                                fetch('/api/admin/devices/types', {
                                   method: 'PATCH',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     id: type.id,
                                     display_order: type.display_order
                                   })
-                                });
+                                })
+                              );
+                              
+                              const responses = await Promise.all(updatePromises);
+                              const hasError = responses.some(r => !r.ok);
+                              
+                              if (hasError) {
+                                throw new Error('Failed to update some device types');
                               }
-                            } catch (error) {
+                            } catch (error: any) {
                               console.error('Error updating order:', error);
+                              alert('기종 순서 변경 실패: ' + error.message);
+                              loadDeviceTypes();
                             }
                           }}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
@@ -1279,18 +1400,27 @@ export default function DevicesPage() {
                             setDeviceTypes(allUpdatedTypes);
                             
                             try {
-                              for (const type of updatedTypes) {
-                                await fetch('/api/admin/devices/types', {
+                              const updatePromises = updatedTypes.map(type => 
+                                fetch('/api/admin/devices/types', {
                                   method: 'PATCH',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     id: type.id,
                                     display_order: type.display_order
                                   })
-                                });
+                                })
+                              );
+                              
+                              const responses = await Promise.all(updatePromises);
+                              const hasError = responses.some(r => !r.ok);
+                              
+                              if (hasError) {
+                                throw new Error('Failed to update some device types');
                               }
-                            } catch (error) {
+                            } catch (error: any) {
                               console.error('Error updating order:', error);
+                              alert('기종 순서 변경 실패: ' + error.message);
+                              loadDeviceTypes();
                             }
                           }}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
@@ -1411,9 +1541,9 @@ export default function DevicesPage() {
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-blue-600 dark:text-blue-400">사용 중</span>
+                  <span className="text-sm text-blue-600 dark:text-blue-400">대여 중</span>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {devices.filter(d => d.status === 'rental').length}
+                    {devices.filter(d => d.status === 'in_use').length}
                   </p>
                 </div>
                 <div>
@@ -1425,7 +1555,7 @@ export default function DevicesPage() {
                 <div>
                   <span className="text-sm text-red-600 dark:text-red-400">사용 불가</span>
                   <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {devices.filter(d => d.status === 'unavailable').length}
+                    {devices.filter(d => d.status === 'broken').length}
                   </p>
                 </div>
               </div>
@@ -1476,35 +1606,64 @@ export default function DevicesPage() {
                 isEditing={editingDevice === device.id}
                 onStatusChange={async (status) => {
                   try {
-                    await fetch(`/api/admin/devices/${device.id}`, {
+                    const response = await fetch(`/api/admin/devices/${device.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ status })
                     });
                     
-                    setDevices(devices.map(d => 
-                      d.id === device.id ? { ...d, status } : d
-                    ));
+                    if (!response.ok) {
+                      const error = await response.json();
+                      throw new Error(error.error || 'Failed to update device status');
+                    }
+                    
+                    const updatedDevice = await response.json();
+                    
+                    // 로컬 상태 즉시 업데이트
+                    setDevices(prevDevices => 
+                      prevDevices.map(d => 
+                        d.id === device.id ? { ...d, ...updatedDevice } : d
+                      )
+                    );
+                    
+                    // 기종별 기기 수 업데이트를 위해 다시 로드
                     loadDeviceTypes();
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Error updating device status:', error);
+                    alert('기기 상태 변경 실패: ' + error.message);
+                    // 실패 시 원래 상태로 복구
+                    setDevices(prevDevices => 
+                      prevDevices.map(d => 
+                        d.id === device.id ? { ...d, status: device.status } : d
+                      )
+                    );
                   }
                 }}
                 onEdit={() => setEditingDevice(device.id)}
                 onSave={async (notes) => {
                   try {
-                    await fetch(`/api/admin/devices/${device.id}`, {
+                    const response = await fetch(`/api/admin/devices/${device.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ notes })
                     });
                     
-                    setDevices(devices.map(d => 
-                      d.id === device.id ? { ...d, notes } : d
-                    ));
+                    if (!response.ok) {
+                      const error = await response.json();
+                      throw new Error(error.error || 'Failed to update device notes');
+                    }
+                    
+                    const updatedDevice = await response.json();
+                    
+                    setDevices(prevDevices => 
+                      prevDevices.map(d => 
+                        d.id === device.id ? { ...d, ...updatedDevice } : d
+                      )
+                    );
                     setEditingDevice(null);
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Error updating device notes:', error);
+                    alert('메모 저장 실패: ' + error.message);
                   }
                 }}
                 onCancel={() => setEditingDevice(null)}

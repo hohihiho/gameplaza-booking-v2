@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { device_type_id, max_rental_units, color, display_order } = body
+    
+    console.log('Rental settings update request:', { device_type_id, max_rental_units, color, display_order })
 
     if (!device_type_id) {
       return NextResponse.json({ error: 'Device type ID is required' }, { status: 400 })
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('rental_settings')
         .update({
-          max_rental_units: max_rental_units || null,
+          max_rental_units: max_rental_units !== undefined ? max_rental_units : existing.max_rental_units,
           updated_at: getKSTNow()
         })
         .eq('device_type_id', device_type_id)
@@ -67,7 +69,9 @@ export async function POST(request: NextRequest) {
         .from('rental_settings')
         .insert({
           device_type_id,
-          max_rental_units: max_rental_units || null
+          max_rental_units: max_rental_units || null,
+          min_rental_hours: 1,  // 기본값
+          max_rental_hours: 24  // 기본값
         })
         .select()
         .single()
@@ -86,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const updatedSettings = {
       ...(deviceType?.rental_settings || {}),
-      max_rental_units: max_rental_units || null
+      max_rental_units: max_rental_units !== undefined ? max_rental_units : (deviceType?.rental_settings?.max_rental_units || null)
     }
 
     // color와 display_order가 있으면 추가
@@ -97,12 +101,14 @@ export async function POST(request: NextRequest) {
       updatedSettings.display_order = display_order
     }
 
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('device_types')
       .update({
         rental_settings: updatedSettings
       })
       .eq('id', device_type_id)
+    
+    if (updateError) throw updateError
 
     return NextResponse.json(result)
   } catch (error) {

@@ -18,6 +18,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import TimeSlotForm from './components/TimeSlotForm';
 import TimeSlotDisplay from './TimeSlotDisplay';
 
@@ -68,6 +69,8 @@ const defaultColors = [
 ];
 
 export default function RentalDevicesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<DeviceType | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -77,6 +80,9 @@ export default function RentalDevicesPage() {
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null); // 색상 선택기 표시 상태
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  
+  // URL 파라미터에서 초기 상태 읽기
+  const initialDeviceId = searchParams.get('deviceId');
 
   // 대여 가능한 기기들만 로드
   const loadRentableDevices = async () => {
@@ -165,6 +171,52 @@ export default function RentalDevicesPage() {
   useEffect(() => {
     loadRentableDevices();
   }, []);
+  
+  // 초기 URL 파라미터에 따라 기기 선택
+  useEffect(() => {
+    if (deviceTypes.length > 0 && initialDeviceId) {
+      const device = deviceTypes.find(d => d.id === initialDeviceId);
+      if (device) {
+        setSelectedDevice(device);
+      }
+    }
+  }, [deviceTypes, initialDeviceId]);
+  
+  // 기기 선택 시 URL 업데이트
+  const selectDevice = (device: DeviceType) => {
+    setSelectedDevice(device);
+    const url = new URL(window.location.href);
+    url.searchParams.set('deviceId', device.id);
+    window.history.pushState({}, '', url.toString());
+  };
+  
+  // 뒤로가기 시 URL 업데이트
+  const goBack = () => {
+    setSelectedDevice(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('deviceId');
+    window.history.pushState({}, '', url.toString());
+  };
+  
+  // 브라우저 뒤로가기 버튼 핸들링
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const deviceId = params.get('deviceId');
+      
+      if (deviceId) {
+        const device = deviceTypes.find(d => d.id === deviceId);
+        if (device) {
+          setSelectedDevice(device);
+        }
+      } else {
+        setSelectedDevice(null);
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [deviceTypes]);
 
   useEffect(() => {
     if (selectedDevice) {
@@ -270,18 +322,30 @@ export default function RentalDevicesPage() {
 
     // API 호출로 순서 저장
     try {
-      for (const [idx, device] of updatedDevices.entries()) {
-        await fetch('/api/admin/rental-settings', {
+      const updatePromises = updatedDevices.map((device, idx) => 
+        fetch('/api/admin/rental-settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             device_type_id: device.id,
             display_order: idx
           })
-        });
+        })
+      );
+      
+      const responses = await Promise.all(updatePromises);
+      const hasError = responses.some(r => !r.ok);
+      
+      if (hasError) {
+        throw new Error('Failed to update some device orders');
       }
-    } catch (error) {
+      
+      console.log('대여기기 순서 업데이트 성공');
+    } catch (error: any) {
       console.error('Error updating order:', error);
+      alert('순서 변경 실패: ' + error.message);
+      // 실패 시 원래 순서로 복구
+      await loadRentableDevices();
     }
   };
 
@@ -325,7 +389,7 @@ export default function RentalDevicesPage() {
                 // 드래그 핸들 클릭시 선택 방지
                 const target = e.target as HTMLElement;
                 if (!target.closest('.drag-handle')) {
-                  setSelectedDevice(device);
+                  selectDevice(device);
                 }
               }}
             >
@@ -365,16 +429,27 @@ export default function RentalDevicesPage() {
                           
                           // API 호출로 순서 저장
                           try {
-                            await fetch('/api/admin/rental-settings', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                device_type_id: device.id,
-                                display_order: newOrder
+                            const updatePromises = updatedDevices.map((d, idx) => 
+                              fetch('/api/admin/rental-settings', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  device_type_id: d.id,
+                                  display_order: idx
+                                })
                               })
-                            });
-                          } catch (error) {
+                            );
+                            
+                            const responses = await Promise.all(updatePromises);
+                            const hasError = responses.some(r => !r.ok);
+                            
+                            if (hasError) {
+                              throw new Error('Failed to update device orders');
+                            }
+                          } catch (error: any) {
                             console.error('Error updating order:', error);
+                            alert('순서 변경 실패: ' + error.message);
+                            await loadRentableDevices();
                           }
                         }
                       }}
@@ -411,16 +486,27 @@ export default function RentalDevicesPage() {
                           
                           // API 호출로 순서 저장
                           try {
-                            await fetch('/api/admin/rental-settings', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                device_type_id: device.id,
-                                display_order: newOrder
+                            const updatePromises = updatedDevices.map((d, idx) => 
+                              fetch('/api/admin/rental-settings', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  device_type_id: d.id,
+                                  display_order: idx
+                                })
                               })
-                            });
-                          } catch (error) {
+                            );
+                            
+                            const responses = await Promise.all(updatePromises);
+                            const hasError = responses.some(r => !r.ok);
+                            
+                            if (hasError) {
+                              throw new Error('Failed to update device orders');
+                            }
+                          } catch (error: any) {
                             console.error('Error updating order:', error);
+                            alert('순서 변경 실패: ' + error.message);
+                            await loadRentableDevices();
                           }
                         }
                       }}
@@ -506,7 +592,7 @@ export default function RentalDevicesPage() {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-2">
           <button
-            onClick={() => setSelectedDevice(null)}
+            onClick={goBack}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -527,38 +613,6 @@ export default function RentalDevicesPage() {
               대여 가능 대수와 캘린더 표시 색상을 설정합니다
             </p>
           </div>
-          <button
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/admin/rental-settings', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    device_type_id: selectedDevice.id,
-                    max_rental_units: selectedDevice.rental_settings?.max_rental_units,
-                    color: selectedDevice.rental_settings?.color
-                  })
-                });
-                
-                if (!response.ok) throw new Error('Failed to update rental settings');
-                
-                // 전체 목록도 업데이트
-                setDeviceTypes(deviceTypes.map(d => 
-                  d.id === selectedDevice.id 
-                    ? { ...d, rental_settings: selectedDevice.rental_settings }
-                    : d
-                ));
-                
-                alert('대여 설정이 저장되었습니다.');
-              } catch (error) {
-                console.error('Error updating rental settings:', error);
-                alert('대여 설정 저장에 실패했습니다.');
-              }
-            }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            설정 저장
-          </button>
         </div>
         
         {/* 대여 가능 대수 */}
@@ -576,9 +630,9 @@ export default function RentalDevicesPage() {
                 min="0"
                 max={selectedDevice.device_count || 0}
                 value={selectedDevice.rental_settings?.max_rental_units || selectedDevice.device_count || 0}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const newValue = e.target.value === '' ? null : Number(e.target.value);
-                  setSelectedDevice({
+                  const updatedDevice = {
                     ...selectedDevice,
                     rental_settings: {
                       credit_types: selectedDevice.rental_settings?.credit_types || ['freeplay'],
@@ -586,7 +640,38 @@ export default function RentalDevicesPage() {
                       ...selectedDevice.rental_settings,
                       max_rental_units: newValue || undefined
                     }
-                  });
+                  };
+                  setSelectedDevice(updatedDevice);
+                  
+                  // 즉시 저장
+                  try {
+                    const response = await fetch('/api/admin/rental-settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        device_type_id: selectedDevice.id,
+                        max_rental_units: newValue,
+                        color: selectedDevice.rental_settings?.color,
+                        display_order: selectedDevice.rental_settings?.display_order
+                      })
+                    });
+                    
+                    if (!response.ok) {
+                      throw new Error('Failed to update rental units');
+                    }
+                    
+                    // 전체 목록도 업데이트
+                    setDeviceTypes(deviceTypes.map(d => 
+                      d.id === selectedDevice.id 
+                        ? updatedDevice
+                        : d
+                    ));
+                  } catch (error: any) {
+                    console.error('Error updating rental units:', error);
+                    alert('대여 가능 대수 변경 실패: ' + error.message);
+                    // 실패 시 원래 값으로 복구
+                    await loadRentableDevices();
+                  }
                 }}
                 className="w-20 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center"
               />
@@ -620,7 +705,7 @@ export default function RentalDevicesPage() {
                     {defaultColors.map(color => (
                       <button
                         key={color.value}
-                        onClick={() => {
+                        onClick={async () => {
                           const updatedDevice = {
                             ...selectedDevice,
                             rental_settings: {
@@ -632,6 +717,36 @@ export default function RentalDevicesPage() {
                           };
                           setSelectedDevice(updatedDevice);
                           setShowColorPicker(null);
+                          
+                          // 즉시 저장
+                          try {
+                            const response = await fetch('/api/admin/rental-settings', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                device_type_id: selectedDevice.id,
+                                max_rental_units: selectedDevice.rental_settings?.max_rental_units,
+                                color: color.value,
+                                display_order: selectedDevice.rental_settings?.display_order
+                              })
+                            });
+                            
+                            if (!response.ok) {
+                              throw new Error('Failed to update color');
+                            }
+                            
+                            // 전체 목록도 업데이트
+                            setDeviceTypes(deviceTypes.map(d => 
+                              d.id === selectedDevice.id 
+                                ? updatedDevice
+                                : d
+                            ));
+                          } catch (error: any) {
+                            console.error('Error updating color:', error);
+                            alert('색상 변경 실패: ' + error.message);
+                            // 실패 시 원래 값으로 복구
+                            await loadRentableDevices();
+                          }
                         }}
                         className={`group w-12 h-12 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                           selectedDevice.rental_settings?.color === color.value ? 'ring-2 ring-blue-500' : ''

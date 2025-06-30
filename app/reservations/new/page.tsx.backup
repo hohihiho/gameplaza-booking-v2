@@ -9,7 +9,6 @@ import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft, Loader2, Al
 import { createReservation } from '@/lib/api/reservations';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
-import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 
 type DeviceType = {
   id: string;
@@ -300,45 +299,33 @@ export default function NewReservationPage() {
       setIsSubmitting(true);
       setError(null);
       
-      // 임시 해결책: devices 테이블 직접 사용
-      // 선택한 기기 번호와 타입에 맞는 device 찾기
-      const { data: availableDevice } = await supabase
-        .from('devices')
-        .select('*')
-        .eq('device_type_id', selectedDevice)
-        .eq('device_number', selectedDeviceNumber)
-        .eq('status', 'available')
+      // rental_machines 조회 - device_types와 직접 연결되지 않으므로 모든 활성 기기 중 첫 번째 사용
+      const { data: machines } = await supabase
+        .from('rental_machines')
+        .select('*, machines!inner(*)')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(1)
         .single();
 
-      if (!availableDevice) {
-        throw new Error('선택한 기기를 사용할 수 없습니다');
+      if (!machines) {
+        throw new Error('사용 가능한 기기가 없습니다');
       }
-
-      // rental_machines가 비어있으므로 임시로 device ID를 사용
-      const deviceId = availableDevice.id;
 
       const { reservation } = await createReservation({
         date: selectedDate,
         startTime: selectedTimeSlotInfo.start_time,
         endTime: selectedTimeSlotInfo.end_time,
         deviceTypeId: selectedDevice,
-        deviceId: deviceId,
+        deviceId: machines.id,
         playerCount,
-        hourlyRate: selectedDeviceInfo.base_price || 50000,
+        hourlyRate: machines.hourly_rate || 50000,
         totalAmount: totalPrice,
         userNotes: ''
       });
       
-      // 예약 완료 페이지로 이동 - 더 많은 정보 전달
-      const params = new URLSearchParams({
-        id: reservation.id,
-        deviceName: selectedDeviceInfo.name,
-        date: selectedDate,
-        time: `${selectedTimeSlotInfo.start_time}-${selectedTimeSlotInfo.end_time}`,
-        amount: totalPrice.toString(),
-        playerCount: playerCount.toString()
-      });
-      router.push(`/reservations/complete?${params.toString()}`);
+      // 예약 완료 페이지로 이동
+      router.push(`/reservations/complete?id=${reservation.id}`);
     } catch (error: any) {
       setError(error.message || '예약 신청에 실패했습니다');
     } finally {
@@ -349,8 +336,9 @@ export default function NewReservationPage() {
   // 날짜 형식 변환
   const formatDateDisplay = (dateString: string) => {
     if (!dateString) return '';
-    const date = parseKSTDate(dateString);
-    return formatKoreanDate(date);
+    const date = new Date(dateString);
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    return `${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`;
   };
   
   // 시간 형식 변환
@@ -358,11 +346,7 @@ export default function NewReservationPage() {
     const [hour] = time.split(':');
     if (!hour) return '';
     const h = parseInt(hour);
-    // 0~5시는 24~29시로 표시
-    if (h >= 0 && h <= 5) {
-      return `${h + 24}시`;
-    }
-    return `${h}시`;
+    return h >= 24 ? `익일 ${h - 24}시` : `${h}시`;
   };
   
   // 날짜 선택을 위한 달력 데이터 생성 (마지막 주 일요일까지)
@@ -520,8 +504,8 @@ export default function NewReservationPage() {
                   
                   {/* 날짜 버튼들 */}
                   {calendarDays.map((date) => {
-                    // KST 기준 날짜 문자열 생성
-                    const dateStr = formatKSTDate(date);
+                    const dateParts = date.toISOString().split('T');
+                    const dateStr = dateParts[0] || '';
                     const isSelected = selectedDate === dateStr;
                     const now = new Date();
                     const isToday = now.toDateString() === date.toDateString();
@@ -679,19 +663,31 @@ export default function NewReservationPage() {
                     {timeSlots.map((slot) => {
                       // 24시간 이내 시간대인지 확인
                       const now = new Date();
+                      const [slotHour, slotMinute] = slot.start_time.split(':').map(Number);
                       
-                      // 슬롯의 실제 시작 시간 계산 (KST 기준)
-                      const slotDate = createKSTDateTime(selectedDate, slot.start_time);
+                      // 슬롯의 실제 시작 시간 계산
+                      const slotDate = new Date(selectedDate);
                       
-                      // 24시간 이내 여부 확인
-                      const within24Hours = isWithin24Hours(slotDate);
-                      const isAvailable = slot.is_available && !within24Hours;
+                      // 슬롯 타입이 밤샘대여(overnight)이고 시간이 0시인 경우는 24시로 간주
+                      if (slot.slot_type === 'overnight' && slotHour === 0) {
+                        // 밤샘대여 0시는 실제로는 24시 (익일 0시)
+                        slotDate.setDate(slotDate.getDate() + 1);
+                        slotDate.setHours(0, slotMinute || 0, 0, 0);
+                      } else if (slotHour >= 24) {
+                        // 24시 이후 (24-29시)
+                        slotDate.setDate(slotDate.getDate() + 1);
+                        slotDate.setHours(slotHour - 24, slotMinute || 0, 0, 0);
+                      } else {
+                        // 일반 시간
+                        slotDate.setHours(slotHour, slotMinute || 0, 0, 0);
+                      }
                       
-                      // 디버깅 로그
-                      console.log(`시간대: ${formatTime(slot.start_time)}-${formatTime(slot.end_time)} (${slot.slot_type})`);
-                      console.log(`선택 날짜: ${selectedDate}, 슬롯 시작: ${slotDate.toLocaleString('ko-KR')}`);
-                      console.log(`현재 시간: ${now.toLocaleString('ko-KR')}`);
-                      console.log(`24시간 이내: ${within24Hours}`);
+                      // 현재 시간과의 차이 계산 (시간 단위)
+                      const hoursDiff = (slotDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+                      
+                      // 24시간 이내면 예약 불가
+                      const isWithin24Hours = hoursDiff < 24;
+                      const isAvailable = slot.is_available && !isWithin24Hours;
 
                       return (
                         <button
@@ -729,7 +725,7 @@ export default function NewReservationPage() {
                               )}
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {within24Hours ? (
+                              {isWithin24Hours ? (
                                 <span className="text-red-500">24시간 이내 예약 불가</span>
                               ) : !slot.is_available ? (
                                 '예약 마감'
@@ -785,17 +781,17 @@ export default function NewReservationPage() {
                         const isAvailable = selectedTimeSlotInfo.available_devices.includes(deviceNum);
                         const isReserved = !isAvailable && device?.status === 'available';
                         const isMaintenance = device?.status === 'maintenance';
-                        const isBroken = device?.status === 'broken';
+                        const isDisabled = device?.status === 'disabled';
                         
                         const getStatusInfo = () => {
-                          if (isBroken) return { color: 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700', text: '사용불가', textColor: 'text-red-600 dark:text-red-400' };
+                          if (isDisabled) return { color: 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700', text: '사용불가', textColor: 'text-red-600 dark:text-red-400' };
                           if (isMaintenance) return { color: 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700', text: '점검중', textColor: 'text-yellow-600 dark:text-yellow-400' };
                           if (isReserved) return { color: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700', text: '예약중', textColor: 'text-blue-600 dark:text-blue-400' };
                           return null;
                         };
                         
                         const statusInfo = getStatusInfo();
-                        const canSelect = isAvailable && !isMaintenance && !isBroken;
+                        const canSelect = isAvailable && !isMaintenance && !isDisabled;
                         
                         return (
                           <button

@@ -24,11 +24,14 @@ export async function getTimeSlots(date: string, deviceTypeId?: string) {
 // 예약 생성
 export async function createReservation(data: {
   date: string
+  startTime: string
+  endTime: string
   deviceTypeId: string
-  timeSlotId: string
-  deviceNumber: number
+  deviceId: string
   playerCount: number
-  totalPrice: number
+  hourlyRate: number
+  totalAmount: number
+  userNotes?: string
 }) {
   const response = await fetch('/api/reservations', {
     method: 'POST',
@@ -38,6 +41,7 @@ export async function createReservation(data: {
   
   if (!response.ok) {
     const error = await response.json()
+    console.error('예약 API 에러:', error)
     throw new Error(error.error || '예약 생성에 실패했습니다')
   }
   

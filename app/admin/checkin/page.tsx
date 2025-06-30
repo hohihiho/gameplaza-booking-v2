@@ -32,6 +32,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatTimeKST } from '@/lib/utils/kst-date';
 
 type CheckInReservation = {
   id: string;
@@ -391,7 +392,9 @@ export default function CheckInPage() {
 
   // 시간대 상태 확인
   const getTimeSlotStatus = (timeSlot: string) => {
-    const [start, end] = timeSlot.split('-');
+    const parts = timeSlot.split('-');
+    const start = parts[0];
+    const end = parts[1];
     if (!start || !end) {
       return { status: 'unknown', message: '알 수 없음' };
     }
@@ -520,7 +523,14 @@ export default function CheckInPage() {
             return (
               <div key={timeSlot} className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold dark:text-white">{timeSlot}</h3>
+                  <h3 className="text-lg font-semibold dark:text-white">
+                    {(() => {
+                      const parts = timeSlot.split('-');
+                      const start = parts[0] || '';
+                      const end = parts[1] || '';
+                      return `${formatTimeKST(start)} - ${formatTimeKST(end)}`;
+                    })()}
+                  </h3>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     slotStatus.status === 'current' 
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
@@ -630,16 +640,18 @@ export default function CheckInPage() {
                                   setAdjustingReservation(reservation);
                                   setShowTimeAdjustModal(true);
                                   // 현재 시간 설정
-                                  const [originalStart, originalEnd] = reservation.time_slot.split('-');
+                                  const parts = reservation.time_slot.split('-');
+                                  const originalStart = parts[0] || '';
+                                  const originalEnd = parts[1] || '';
                                   setAdjustedStartTime(
                                     reservation.actual_start_time 
                                       ? new Date(reservation.actual_start_time).toTimeString().slice(0, 5)
-                                      : originalStart || ''
+                                      : originalStart
                                   );
                                   setAdjustedEndTime(
                                     reservation.actual_end_time 
                                       ? new Date(reservation.actual_end_time).toTimeString().slice(0, 5)
-                                      : originalEnd || ''
+                                      : originalEnd
                                   );
                                   setAdjustmentReason('');
                                   setSelectedReason('');
@@ -657,7 +669,12 @@ export default function CheckInPage() {
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                                 <Clock className="w-3 h-3" />
-                                <span>예약: {reservation.time_slot}</span>
+                                <span>예약: {(() => {
+                                  const parts = reservation.time_slot.split('-');
+                                  const start = parts[0] || '';
+                                  const end = parts[1] || '';
+                                  return `${formatTimeKST(start)} - ${formatTimeKST(end)}`;
+                                })()}</span>
                               </div>
                               <div className="flex items-center gap-2 text-xs">
                                 <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
@@ -683,14 +700,16 @@ export default function CheckInPage() {
                               setAdjustingReservation(reservation);
                               setShowTimeAdjustModal(true);
                               // 초기값 설정
-                              const [startTime, endTime] = reservation.time_slot.split('-');
+                              const parts = reservation.time_slot.split('-');
+                              const startTime = parts[0] || '';
+                              const endTime = parts[1] || '';
                               setAdjustedStartTime(reservation.actual_start_time ? 
                                 new Date(reservation.actual_start_time).toTimeString().slice(0, 5) : 
-                                startTime || ''
+                                startTime
                               );
                               setAdjustedEndTime(reservation.actual_end_time ? 
                                 new Date(reservation.actual_end_time).toTimeString().slice(0, 5) : 
-                                endTime || ''
+                                endTime
                               );
                               setAdjustmentReason('');
                               setSelectedReason('');
