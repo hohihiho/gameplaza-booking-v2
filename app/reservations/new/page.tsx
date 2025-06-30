@@ -317,7 +317,7 @@ export default function NewReservationPage() {
       // rental_machines가 비어있으므로 임시로 device ID를 사용
       const deviceId = availableDevice.id;
 
-      const { reservation } = await createReservation({
+      const response = await createReservation({
         date: selectedDate,
         startTime: selectedTimeSlotInfo.start_time,
         endTime: selectedTimeSlotInfo.end_time,
@@ -328,6 +328,10 @@ export default function NewReservationPage() {
         totalAmount: totalPrice,
         userNotes: ''
       });
+      
+      const reservation = response.reservation;
+      
+      setIsSubmitting(false);
       
       // 예약 완료 페이지로 이동 - 더 많은 정보 전달
       const params = new URLSearchParams({
@@ -340,8 +344,8 @@ export default function NewReservationPage() {
       });
       router.push(`/reservations/complete?${params.toString()}`);
     } catch (error: any) {
+      console.error('예약 처리 중 오류:', error);
       setError(error.message || '예약 신청에 실패했습니다');
-    } finally {
       setIsSubmitting(false);
     }
   };

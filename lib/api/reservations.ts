@@ -33,10 +33,13 @@ export async function createReservation(data: {
   totalAmount: number
   userNotes?: string
 }) {
+  // deviceTypeId는 제거하고 필요한 필드만 전송
+  const { deviceTypeId, ...apiData } = data;
+  
   const response = await fetch('/api/reservations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify(apiData)
   })
   
   if (!response.ok) {

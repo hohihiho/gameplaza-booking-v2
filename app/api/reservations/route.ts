@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/app/lib/supabase'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -27,22 +28,41 @@ export async function POST(request: Request) {
       totalAmount,
       userNotes
     } = body
+    
+    // 필수 필드 검증
+    if (!date || !startTime || !endTime || !deviceId) {
+      console.error('필수 필드 누락:', { date, startTime, endTime, deviceId })
+      return NextResponse.json({ 
+        error: '필수 정보가 누락되었습니다',
+        missing: {
+          date: !date,
+          startTime: !startTime,
+          endTime: !endTime,
+          deviceId: !deviceId
+        }
+      }, { status: 400 })
+    }
 
-    // 1. 사용자 정보 조회 또는 생성
-    let { data: userData } = await supabase
+    // 1. 사용자 정보 조회 또는 생성 (Admin 권한으로)
+    let { data: userData } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', session.user.email)
       .single()
 
-    // 사용자가 없으면 생성
+    // 사용자가 없으면 생성 (Admin 권한으로)
     if (!userData) {
-      const { data: newUser, error: createError } = await supabase
+      // UUID 생성
+      const userId = crypto.randomUUID()
+      
+      const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
+          id: userId,
           email: session.user.email,
           name: session.user.name || session.user.email.split('@')[0],
-          role: 'user'
+          role: 'user',
+          created_at: new Date().toISOString()
         })
         .select('id')
         .single()
@@ -56,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     // 2. 선택한 기기가 devices에 있는지 확인
-    const { data: device, error: deviceError } = await supabase
+    const { data: device, error: deviceError } = await supabaseAdmin
       .from('devices')
       .select('*')
       .eq('id', deviceId)
@@ -68,32 +88,37 @@ export async function POST(request: Request) {
     }
 
     // 3. 해당 시간대에 이미 예약이 있는지 확인
-    const { data: existingReservations, error: checkError } = await supabase
+    // 시간이 겹치는 경우: 새 예약의 시작이 기존 예약 끝 전이고, 새 예약의 끝이 기존 예약 시작 후
+    const { data: existingReservations, error: checkError } = await supabaseAdmin
       .from('reservations')
-      .select('id')
+      .select('id, start_time, end_time')
       .eq('device_id', deviceId)
       .eq('date', date)
       .in('status', ['pending', 'approved', 'checked_in'])
-      .or(`start_time.lt.${endTime},end_time.gt.${startTime}`)
 
     if (checkError) {
       console.error('예약 확인 에러:', checkError)
       return NextResponse.json({ error: '예약 확인 중 오류가 발생했습니다' }, { status: 500 })
     }
 
+    // 시간 중복 체크 (JavaScript로 처리)
     if (existingReservations && existingReservations.length > 0) {
-      return NextResponse.json({ error: '해당 시간대에 이미 예약이 있습니다' }, { status: 400 })
+      const hasOverlap = existingReservations.some(reservation => {
+        // 시간 문자열을 비교 가능한 형태로 변환
+        const existingStart = reservation.start_time;
+        const existingEnd = reservation.end_time;
+        
+        // 시간이 겹치는지 확인
+        return (startTime < existingEnd && endTime > existingStart);
+      });
+      
+      if (hasOverlap) {
+        return NextResponse.json({ error: '해당 시간대에 이미 예약이 있습니다' }, { status: 400 })
+      }
     }
 
-    // 4. 예약 시간 계산
-    const startHour = parseInt(startTime.split(':')[0])
-    const startMin = parseInt(startTime.split(':')[1])
-    const endHour = parseInt(endTime.split(':')[0])
-    const endMin = parseInt(endTime.split(':')[1])
-    const hours = (endHour * 60 + endMin - startHour * 60 - startMin) / 60
-
-    // 5. 예약 생성
-    const { data: reservation, error: reservationError } = await supabase
+    // 4. 예약 생성 (hours와 total_amount는 generated column이므로 제외)
+    const { data: reservation, error: reservationError } = await supabaseAdmin
       .from('reservations')
       .insert({
         user_id: userData.id,
@@ -101,14 +126,13 @@ export async function POST(request: Request) {
         date: date,
         start_time: startTime,
         end_time: endTime,
-        hours: hours,
         player_count: playerCount,
         hourly_rate: hourlyRate,
-        total_amount: totalAmount,
         status: 'pending',
         payment_method: 'cash',
         payment_status: 'pending',
-        user_notes: userNotes || null
+        user_notes: userNotes || null,
+        created_at: new Date().toISOString()
       })
       .select(`
         *,
@@ -117,7 +141,10 @@ export async function POST(request: Request) {
           status,
           device_types(
             name,
-            category
+            category_id,
+            device_categories(
+              name
+            )
           )
         )
       `)
@@ -131,20 +158,25 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // 6. 실시간 업데이트를 위한 브로드캐스트
-    await supabase
-      .channel('reservations')
-      .send({
-        type: 'broadcast',
-        event: 'new_reservation',
-        payload: { 
-          date,
-          deviceId,
-          reservationId: reservation.id,
-          startTime,
-          endTime
-        }
-      })
+    // 6. 실시간 업데이트를 위한 브로드캐스트 (클라이언트 supabase 사용)
+    try {
+      await supabase
+        .channel('reservations')
+        .send({
+          type: 'broadcast',
+          event: 'new_reservation',
+          payload: { 
+            date,
+            deviceId,
+            reservationId: reservation.id,
+            startTime,
+            endTime
+          }
+        })
+    } catch (broadcastError) {
+      console.error('Broadcast error:', broadcastError)
+      // 브로드캐스트 실패는 무시하고 계속 진행
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -172,21 +204,26 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
-    // 사용자 정보 조회 또는 생성
-    let { data: userData } = await supabase
+    // 사용자 정보 조회 또는 생성 (Admin 권한으로)
+    let { data: userData } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', session.user.email)
       .single()
 
-    // 사용자가 없으면 생성
+    // 사용자가 없으면 생성 (Admin 권한으로)
     if (!userData) {
-      const { data: newUser, error: createError } = await supabase
+      // UUID 생성
+      const userId = crypto.randomUUID()
+      
+      const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
+          id: userId,
           email: session.user.email,
           name: session.user.name || session.user.email.split('@')[0],
-          role: 'user'
+          role: 'user',
+          created_at: new Date().toISOString()
         })
         .select('id')
         .single()
@@ -202,20 +239,20 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    // 예약 목록 조회 쿼리
-    let query = supabase
+    // 예약 목록 조회 쿼리 (rental_machines 대신 devices 사용)
+    let query = supabaseAdmin
       .from('reservations')
       .select(`
         *,
-        rental_machines!inner(
-          name,
-          description,
-          hourly_rate,
-          min_hours,
-          max_hours,
+        devices!inner(
+          device_number,
+          status,
           device_types(
             name,
-            category
+            category_id,
+            device_categories(
+              name
+            )
           )
         ),
         users(
