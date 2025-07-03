@@ -2,16 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/app/lib/supabase'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // 예약 생성
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
-    // 현재 사용자 확인 (Next-Auth 사용)
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    // 현재 사용자 확인
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       playerCount = 1,
       hourlyRate,
       totalAmount,
-      userNotes
+      userNotes,
+      creditType = 'freeplay'
     } = body
     
     // 필수 필드 검증
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     let { data: userData } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('email', session.user.email)
+      .eq('email', user.email)
       .single()
 
     // 사용자가 없으면 생성 (Admin 권한으로)
@@ -59,8 +60,8 @@ export async function POST(request: Request) {
         .from('users')
         .insert({
           id: userId,
-          email: session.user.email,
-          name: session.user.name || session.user.email.split('@')[0],
+          email: user.email,
+          name: user.email?.split('@')[0] || 'User',
           role: 'user',
           created_at: new Date().toISOString()
         })
@@ -117,21 +118,43 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. 예약 생성 (hours와 total_amount는 generated column이므로 제외)
+    // 4. 예약 번호 생성 (YYMMDD-순서)
+    // 예약 날짜 기준으로 순서 생성
+    const reservationDate = new Date(date)
+    const dateStr = reservationDate.toLocaleDateString('ko-KR', { 
+      year: '2-digit', 
+      month: '2-digit', 
+      day: '2-digit',
+      timeZone: 'Asia/Seoul'
+    }).replace(/\. /g, '').replace('.', '')
+    
+    // 해당 날짜의 예약 개수 조회
+    const { count } = await supabaseAdmin
+      .from('reservations')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', date)
+    
+    const sequence = (count || 0) + 1
+    const reservationNumber = `${dateStr}-${String(sequence).padStart(3, '0')}`
+
+    // 5. 예약 생성
     const { data: reservation, error: reservationError } = await supabaseAdmin
       .from('reservations')
       .insert({
         user_id: userData.id,
         device_id: deviceId,
+        reservation_number: reservationNumber,
         date: date,
         start_time: startTime,
         end_time: endTime,
         player_count: playerCount,
         hourly_rate: hourlyRate,
+        total_amount: totalAmount,
         status: 'pending',
         payment_method: 'cash',
         payment_status: 'pending',
         user_notes: userNotes || null,
+        credit_type: creditType,
         created_at: new Date().toISOString()
       })
       .select(`
@@ -196,8 +219,6 @@ export async function POST(request: Request) {
 // 내 예약 목록 조회
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient()
-    
     // 현재 사용자 확인 (Next-Auth 사용)
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -221,7 +242,7 @@ export async function GET(request: Request) {
         .insert({
           id: userId,
           email: session.user.email,
-          name: session.user.name || session.user.email.split('@')[0],
+          name: session.user.email?.split('@')[0] || 'User',
           role: 'user',
           created_at: new Date().toISOString()
         })
@@ -255,7 +276,7 @@ export async function GET(request: Request) {
             )
           )
         ),
-        users(
+        users!reservations_user_id_fkey(
           name,
           email,
           phone

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getKSTNow } from '@/lib/utils/date'
 
 // 예약 상세 조회
 export async function GET(
@@ -72,13 +71,7 @@ export async function DELETE(
     // 예약 정보 확인
     const { data: reservation, error: fetchError } = await supabase
       .from('reservations')
-      .select(`
-        *,
-        device_time_slots!inner(
-          date,
-          start_time
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -93,7 +86,7 @@ export async function DELETE(
     }
 
     // 예약 시간 24시간 전까지만 취소 가능
-    const reservationTime = new Date(`${reservation.device_time_slots.date}T${reservation.device_time_slots.start_time}`)
+    const reservationTime = new Date(`${reservation.date}T${reservation.start_time}`)
     const now = new Date()
     const hoursUntilReservation = (reservationTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
@@ -108,9 +101,10 @@ export async function DELETE(
       .from('reservations')
       .update({ 
         status: 'cancelled',
-        updated_at: getKSTNow()
+        updated_at: new Date().toISOString()
       })
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (updateError) {
       console.error('Cancel reservation error:', updateError)
@@ -125,8 +119,10 @@ export async function DELETE(
         event: 'cancelled_reservation',
         payload: { 
           reservationId: id,
-          timeSlotId: reservation.device_time_slot_id,
-          deviceNumber: reservation.device_number
+          deviceId: reservation.device_id,
+          date: reservation.date,
+          startTime: reservation.start_time,
+          endTime: reservation.end_time
         }
       })
 

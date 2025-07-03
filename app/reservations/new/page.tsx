@@ -10,6 +10,7 @@ import { createReservation } from '@/lib/api/reservations';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
+import { useReservationStore } from '@/app/store/reservation-store';
 
 type DeviceType = {
   id: string;
@@ -26,6 +27,8 @@ type DeviceType = {
   total_device_count: number;
   max_rental_units?: number;
   display_order: number;
+  credit_types?: string[];
+  fixed_credits?: number;
 };
 
 type Device = {
@@ -50,12 +53,17 @@ type TimeSlot = {
   credit_options?: any[];
   enable_2p?: boolean;
   price_2p_extra?: number;
+  device_reservation_status?: Array<{
+    device_number: number;
+    reservation_status: string | null;
+  }>;
 };
 
 export default function NewReservationPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [supabase] = useState(() => createClient());
+  const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 예약 확인사항
   const [reservationRules, setReservationRules] = useState<any[]>([]);
@@ -148,8 +156,10 @@ export default function NewReservationPage() {
 
         // API 형식으로 데이터 변환
         const formattedData: DeviceType[] = (deviceTypesData || []).map(type => {
+          // 예약 시스템에서는 'maintenance'나 'broken' 상태가 아닌 모든 기기를 활성화된 것으로 간주
+          // broken은 사용불가 상태 (이벤트 등으로 사용 제한)
           const activeDevices = (type.devices || []).filter((d: any) => 
-            d.status === 'available'
+            d.status !== 'maintenance' && d.status !== 'broken'
           );
           
           // rental_settings JSONB 컬럼에서 설정 값 가져오기
@@ -169,7 +179,9 @@ export default function NewReservationPage() {
             active_device_count: activeDevices.length,
             total_device_count: (type.devices || []).length,
             max_rental_units: rentalSettings.max_rental_units,
-            display_order: rentalSettings.display_order ?? 999
+            display_order: rentalSettings.display_order ?? 999,
+            credit_types: rentalSettings.credit_types || [],
+            fixed_credits: rentalSettings.fixed_credits
           };
         })
         .sort((a, b) => a.display_order - b.display_order);
@@ -188,10 +200,9 @@ export default function NewReservationPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // 기기 선택시 고정 시간대 불러오기
-  useEffect(() => {
-    const loadTimeSlots = async () => {
-      if (!selectedDevice) return;
+  // loadTimeSlots 함수를 컴포넌트 레벨에서 정의
+  const loadTimeSlots = async () => {
+    if (!selectedDevice || !selectedDate || !deviceTypes.length) return;
       
       try {
         setIsLoadingSlots(true);
@@ -209,13 +220,82 @@ export default function NewReservationPage() {
 
         console.log('Loaded time slots for device:', selectedDevice, 'data:', slotsData);
 
+        // 해당 날짜의 예약 현황 조회 (API 사용)
+        const response = await fetch(`/api/reservations/check-availability?date=${selectedDate}&deviceTypeId=${selectedDevice}`);
+        const { reservations, error: apiError } = await response.json();
+        
+        if (apiError) {
+          console.error('예약 조회 오류:', apiError);
+        }
+        
+        // 선택한 기기 타입의 예약만 필터링
+        const filteredReservations = (reservations || []).filter(
+          (r: any) => r.devices?.device_type_id === selectedDevice
+        );
+        
+        console.log('모든 예약:', reservations);
+        console.log('필터링된 예약 현황:', filteredReservations);
+        console.log('선택한 날짜:', selectedDate, '선택한 기기 타입:', selectedDevice);
+        console.log('예약 데이터 상세:', filteredReservations?.map((r: any) => ({
+          device_number: r.devices?.device_number,
+          start_time: r.start_time,
+          end_time: r.end_time,
+          status: r.status
+        })));
+
         // 시간대 데이터 포맷팅
-        const formattedSlots: TimeSlot[] = (slotsData || []).map(slot => {
-          // 선택한 기기의 사용 가능한 기기 번호 가져오기
+        const formattedSlots: TimeSlot[] = await Promise.all((slotsData || []).map(async slot => {
+          // 선택한 기기의 모든 기기 번호 가져오기 (상태 관계없이)
           const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDevice);
-          const availableDevices = selectedDeviceInfo?.devices
-            .filter(d => d.status === 'available')
-            .map(d => d.device_number) || [1, 2, 3, 4];
+          const allDevices = selectedDeviceInfo?.devices
+            .map(d => d.device_number) || [];
+          
+          // 해당 시간대에 예약된 기기 정보 찾기
+          const reservedDevices = (filteredReservations || [])
+            .filter((res: any) => {
+              // 시간 겹침 확인
+              const isOverlapping = res.start_time < slot.end_time && res.end_time > slot.start_time;
+              if (isOverlapping) {
+                console.log(`시간 겹침 확인 - 슬롯: ${slot.start_time}-${slot.end_time}, 예약: ${res.start_time}-${res.end_time}`);
+              }
+              return isOverlapping;
+            })
+            .map((res: any) => ({
+              device_number: res.devices?.device_number,
+              status: res.status
+            }))
+            .filter((item: any) => item.device_number !== undefined);
+          
+          const reservedDeviceNumbers = reservedDevices.map((d: any) => d.device_number);
+          
+          console.log(`슬롯 ${slot.start_time}-${slot.end_time}: 예약된 기기:`, reservedDevices, '예약된 번호들:', reservedDeviceNumbers);
+          
+          // 사용 가능한 기기 번호 = 전체 기기 - 예약된 기기
+          const availableDevices = allDevices.filter(num => !reservedDeviceNumbers.includes(num));
+          
+          // 최대 대여 대수 체크
+          const maxRentalUnits = selectedDeviceInfo?.max_rental_units || selectedDeviceInfo?.active_device_count || 4;
+          const reservedCount = reservedDeviceNumbers.length;
+          
+          console.log(`슬롯 ${slot.start_time}-${slot.end_time} 최대 대여 대수 체크:`, {
+            maxRentalUnits,
+            reservedCount,
+            allDevices: allDevices.length,
+            availableDevices: availableDevices.length,
+            isMaxReached: reservedCount >= maxRentalUnits
+          });
+          
+          // 최대 대여 대수에 도달했으면 사용 가능한 기기를 빈 배열로 설정
+          const actualAvailableDevices = reservedCount >= maxRentalUnits ? [] : availableDevices;
+          
+          // 예약 상태 정보를 슬롯에 추가
+          const deviceReservationStatus = allDevices.map(num => {
+            const reservation = reservedDevices.find((d: any) => d.device_number === num);
+            return {
+              device_number: num,
+              reservation_status: reservation?.status || null
+            };
+          });
           
           // 크레딧 옵션에서 프리플레이 가격 가져오기
           let price = 50000; // 기본값
@@ -232,16 +312,17 @@ export default function NewReservationPage() {
             start_time: slot.start_time,
             end_time: slot.end_time,
             device_type_id: slot.device_type_id,
-            max_devices: availableDevices.length,
-            available_devices: availableDevices,
-            is_available: availableDevices.length > 0,
+            max_devices: actualAvailableDevices.length,
+            available_devices: actualAvailableDevices,
+            is_available: actualAvailableDevices.length > 0,
             price: price,
             slot_type: slot.slot_type,
             credit_options: slot.credit_options,
             enable_2p: slot.enable_2p,
-            price_2p_extra: slot.price_2p_extra
+            price_2p_extra: slot.price_2p_extra,
+            device_reservation_status: deviceReservationStatus
           };
-        });
+        }));
         
         setTimeSlots(formattedSlots);
       } catch (error) {
@@ -252,9 +333,46 @@ export default function NewReservationPage() {
       }
     };
     
+  // 기기 선택시 고정 시간대 불러오기
+  useEffect(() => {
+    if (!selectedDevice || !selectedDate || !deviceTypes.length) {
+      setTimeSlots([]);
+      return;
+    }
+    
     loadTimeSlots();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDevice, deviceTypes]);
+  }, [selectedDevice, selectedDate, deviceTypes]);
+  
+  // Realtime 구독으로 예약 상태 변경 감지
+  useEffect(() => {
+    if (!selectedDevice || !selectedDate) return;
+
+    const channel = supabase
+      .channel('reservation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `date=eq.${selectedDate}`
+        },
+        (payload) => {
+          console.log('예약 상태 변경 감지:', payload);
+          // 시간대 슬롯 다시 로드
+          if (selectedDevice && selectedDate && deviceTypes.length) {
+            loadTimeSlots();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice, selectedDate, supabase]);
   
   // 선택한 정보 가져오기
   const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDevice);
@@ -326,23 +444,29 @@ export default function NewReservationPage() {
         playerCount,
         hourlyRate: selectedDeviceInfo.base_price || 50000,
         totalAmount: totalPrice,
-        userNotes: ''
+        userNotes: '',
+        creditType: creditOption
       });
       
+      console.log('예약 API 전체 응답:', response);
+      console.log('response.reservation:', response.reservation);
+      console.log('response.success:', response.success);
+      
       const reservation = response.reservation;
+      console.log('예약 ID:', reservation?.id);
+      console.log('예약 전체 데이터:', reservation);
       
       setIsSubmitting(false);
       
-      // 예약 완료 페이지로 이동 - 더 많은 정보 전달
-      const params = new URLSearchParams({
-        id: reservation.id,
-        deviceName: selectedDeviceInfo.name,
-        date: selectedDate,
-        time: `${selectedTimeSlotInfo.start_time}-${selectedTimeSlotInfo.end_time}`,
-        amount: totalPrice.toString(),
-        playerCount: playerCount.toString()
-      });
-      router.push(`/reservations/complete?${params.toString()}`);
+      // 예약 완료 페이지로 이동
+      if (reservation?.id) {
+        console.log('예약 완료 페이지로 이동 - ID를 store에 저장');
+        setLastReservationId(reservation.id);
+        router.push('/reservations/complete');
+      } else {
+        console.error('예약 ID가 없습니다. response:', response);
+        router.push('/reservations');
+      }
     } catch (error: any) {
       console.error('예약 처리 중 오류:', error);
       setError(error.message || '예약 신청에 실패했습니다');
@@ -470,7 +594,32 @@ export default function NewReservationPage() {
             {steps.map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.num} className="flex flex-col items-center">
+                <button
+                  key={step.num}
+                  onClick={() => {
+                    if (step.num === 1) {
+                      setCurrentStep(1);
+                    } else if (step.num === 2 && selectedDate) {
+                      setCurrentStep(2);
+                    } else if (step.num === 3 && selectedDate && selectedDevice) {
+                      setCurrentStep(3);
+                    } else if (step.num === 4 && selectedDate && selectedDevice && selectedTimeSlot) {
+                      setCurrentStep(4);
+                    } else if (step.num === 5 && selectedDate && selectedDevice && selectedTimeSlot && selectedDeviceNumber !== null) {
+                      setCurrentStep(5);
+                    } else if (step.num === 6 && selectedDate && selectedDevice && selectedTimeSlot && selectedDeviceNumber !== null && playerCount > 0) {
+                      setCurrentStep(6);
+                    }
+                  }}
+                  className="flex flex-col items-center cursor-pointer"
+                  disabled={step.num > currentStep && (
+                    (step.num === 2 && !selectedDate) ||
+                    (step.num === 3 && (!selectedDate || !selectedDevice)) ||
+                    (step.num === 4 && (!selectedDate || !selectedDevice || !selectedTimeSlot)) ||
+                    (step.num === 5 && (!selectedDate || !selectedDevice || !selectedTimeSlot || selectedDeviceNumber === null)) ||
+                    (step.num === 6 && (!selectedDate || !selectedDevice || !selectedTimeSlot || selectedDeviceNumber === null || playerCount === 0))
+                  )}
+                >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                     currentStep >= step.num 
                       ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' 
@@ -489,7 +638,7 @@ export default function NewReservationPage() {
                   }`}>
                     {step.label}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -545,6 +694,7 @@ export default function NewReservationPage() {
                             setSelectedDate(dateStr);
                             setSelectedTimeSlot('');
                             setSelectedDeviceNumber(null);
+                            setCurrentStep(2); // 자동으로 다음 단계로
                           }
                         }}
                         disabled={isDisabled}
@@ -576,13 +726,7 @@ export default function NewReservationPage() {
                   })}
                 </div>
                 
-                <button
-                  onClick={() => selectedDate && setCurrentStep(2)}
-                  disabled={!selectedDate}
-                  className="w-full mt-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                >
-                  다음
-                </button>
+                {/* 다음 버튼 제거 - 날짜 선택 시 자동으로 다음 단계로 */}
               </div>
             </motion.div>
           )}
@@ -591,7 +735,16 @@ export default function NewReservationPage() {
           {currentStep === 2 && (
             <motion.div {...pageAnimation} key="step2" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">기기 선택</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold dark:text-white">기기 선택</h2>
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </button>
+                </div>
                 
                 {isLoadingDevices ? (
                   <div className="text-center py-8">
@@ -609,6 +762,7 @@ export default function NewReservationPage() {
                           setSelectedDeviceNumber(null);
                           setPlayerCount(1);
                           setCreditOption('');
+                          setCurrentStep(3); // 자동으로 다음 단계로
                         }}
                         className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                           selectedDevice === device.id
@@ -628,9 +782,9 @@ export default function NewReservationPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between mt-3">
-                          <div>
+                          <div className="flex-1">
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              대여 가능: {device.max_rental_units || device.active_device_count}대
+                              동일 시간대 최대 대여: {device.max_rental_units || device.active_device_count}대
                             </p>
                             {device.active_device_count === 0 && (
                               <p className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -638,27 +792,46 @@ export default function NewReservationPage() {
                               </p>
                             )}
                           </div>
+                          {/* 모드별 가격 표시 */}
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            {device.credit_types?.map((creditType: string) => {
+                              let priceText = '';
+                              let bgColor = '';
+                              
+                              switch(creditType) {
+                                case 'fixed':
+                                  if (device.fixed_credits) {
+                                    priceText = `${device.fixed_credits}크레딧`;
+                                    bgColor = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+                                  }
+                                  break;
+                                case 'freeplay':
+                                  priceText = '프리플레이';
+                                  bgColor = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+                                  break;
+                                case 'unlimited':
+                                  priceText = '무제한';
+                                  bgColor = 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+                                  break;
+                              }
+                              
+                              if (priceText) {
+                                return (
+                                  <span key={creditType} className={`text-xs px-2 py-1 rounded-full font-medium ${bgColor}`}>
+                                    {priceText}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
                 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setCurrentStep(1)}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={() => selectedDevice && setCurrentStep(3)}
-                    disabled={!selectedDevice}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    다음
-                  </button>
-                </div>
+                {/* 하단 버튼 제거 - 기기 선택 시 자동으로 다음 단계로 */}
               </div>
             </motion.div>
           )}
@@ -667,7 +840,16 @@ export default function NewReservationPage() {
           {currentStep === 3 && (
             <motion.div {...pageAnimation} key="step3" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">시간대 선택</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold dark:text-white">시간대 선택</h2>
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </button>
+                </div>
                 
                 {isLoadingSlots ? (
                   <div className="text-center py-8">
@@ -697,18 +879,34 @@ export default function NewReservationPage() {
                       console.log(`현재 시간: ${now.toLocaleString('ko-KR')}`);
                       console.log(`24시간 이내: ${within24Hours}`);
 
+                      // 최대 대여 대수 체크
+                      const maxRentalUnits = selectedDeviceInfo?.max_rental_units || selectedDeviceInfo?.active_device_count || 4;
+                      const availableCount = slot.available_devices.length;
+                      
+                      // 예약된 기기 수 = 전체 기기 수 - 사용 가능한 기기 수
+                      const totalDevices = selectedDeviceInfo?.devices?.length || 4;
+                      const reservedCount = totalDevices - availableCount;
+                      
+                      // 예약 가능 여부 = 예약된 수 < 최대 대여 대수
+                      const hasAvailableSlot = reservedCount < maxRentalUnits;
+                      const isFull = !hasAvailableSlot || availableCount === 0;
+                      
+                      // 실제 예약 가능한 대수
+                      const actualAvailable = Math.min(availableCount, maxRentalUnits - reservedCount);
+                      
                       return (
                         <button
                           key={slot.id}
                           onClick={() => {
-                            if (isAvailable) {
+                            if (isAvailable && !isFull) {
                               setSelectedTimeSlot(slot.id);
                               setSelectedDeviceNumber(null);
+                              setCurrentStep(4); // 자동으로 다음 단계로
                             }
                           }}
-                          disabled={!isAvailable}
+                          disabled={!isAvailable || isFull}
                           className={`w-full p-4 rounded-lg border-2 transition-all ${
-                            !isAvailable
+                            !isAvailable || isFull
                               ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
                               : selectedTimeSlot === slot.id
                                 ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
@@ -735,10 +933,10 @@ export default function NewReservationPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                               {within24Hours ? (
                                 <span className="text-red-500">24시간 이내 예약 불가</span>
-                              ) : !slot.is_available ? (
-                                '예약 마감'
+                              ) : isFull ? (
+                                <span className="text-red-500">예약 신청 마감</span>
                               ) : (
-                                `${slot.available_devices.length}대 예약 가능`
+                                `${actualAvailable}대 예약 가능`
                               )}
                             </p>
                             {slot.enable_2p && selectedDeviceInfo?.max_players && selectedDeviceInfo.max_players > 1 && (
@@ -754,21 +952,7 @@ export default function NewReservationPage() {
                   </div>
                 )}
                 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setCurrentStep(2)}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={() => selectedTimeSlot && setCurrentStep(4)}
-                    disabled={!selectedTimeSlot}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    다음
-                  </button>
-                </div>
+                {/* 하단 버튼 제거 - 시간대 선택 시 자동으로 다음 단계로 */}
               </div>
             </motion.div>
           )}
@@ -777,7 +961,16 @@ export default function NewReservationPage() {
           {currentStep === 4 && (
             <motion.div {...pageAnimation} key="step4" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">기기 번호 선택</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold dark:text-white">기기 번호 선택</h2>
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </button>
+                </div>
                 
                 {selectedTimeSlotInfo && selectedDeviceInfo && (
                   <>
@@ -787,14 +980,35 @@ export default function NewReservationPage() {
                         // 현재 기기의 상태 확인
                         const device = selectedDeviceInfo.devices.find((d: any) => d.device_number === deviceNum);
                         const isAvailable = selectedTimeSlotInfo.available_devices.includes(deviceNum);
-                        const isReserved = !isAvailable && device?.status === 'available';
                         const isMaintenance = device?.status === 'maintenance';
                         const isBroken = device?.status === 'broken';
+                        
+                        // 예약 상태 확인
+                        const reservationInfo = selectedTimeSlotInfo.device_reservation_status?.find(
+                          (d: any) => d.device_number === deviceNum
+                        );
+                        const reservationStatus = reservationInfo?.reservation_status;
+                        
+                        // 디버깅
+                        if (deviceNum === 3 || deviceNum === 4) {
+                          console.log(`기기 ${deviceNum}번 상세:`, {
+                            isAvailable,
+                            reservationStatus,
+                            canSelect: isAvailable && !isMaintenance && !isBroken,
+                            device_reservation_status: selectedTimeSlotInfo.device_reservation_status,
+                            available_devices: selectedTimeSlotInfo.available_devices
+                          });
+                        }
                         
                         const getStatusInfo = () => {
                           if (isBroken) return { color: 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700', text: '사용불가', textColor: 'text-red-600 dark:text-red-400' };
                           if (isMaintenance) return { color: 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700', text: '점검중', textColor: 'text-yellow-600 dark:text-yellow-400' };
-                          if (isReserved) return { color: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700', text: '예약중', textColor: 'text-blue-600 dark:text-blue-400' };
+                          if (reservationStatus === 'approved' || reservationStatus === 'checked_in') {
+                            return { color: 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700', text: '예약확정', textColor: 'text-green-600 dark:text-green-400' };
+                          }
+                          if (reservationStatus === 'pending') {
+                            return { color: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700', text: '예약대기', textColor: 'text-blue-600 dark:text-blue-400' };
+                          }
                           return null;
                         };
                         
@@ -804,7 +1018,12 @@ export default function NewReservationPage() {
                         return (
                           <button
                             key={deviceNum}
-                            onClick={() => canSelect && setSelectedDeviceNumber(deviceNum)}
+                            onClick={() => {
+                              if (canSelect) {
+                                setSelectedDeviceNumber(deviceNum);
+                                setCurrentStep(5); // 자동으로 다음 단계로
+                              }
+                            }}
                             disabled={!canSelect}
                             className={`p-4 rounded-lg border-2 transition-all ${
                               !canSelect
@@ -828,8 +1047,12 @@ export default function NewReservationPage() {
                     {/* 범례 */}
                     <div className="mt-4 flex flex-wrap gap-3 text-xs">
                       <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded"></div>
+                        <span className="text-gray-600 dark:text-gray-400">예약확정</span>
+                      </div>
+                      <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded"></div>
-                        <span className="text-gray-600 dark:text-gray-400">예약중</span>
+                        <span className="text-gray-600 dark:text-gray-400">예약대기</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded"></div>
@@ -843,25 +1066,7 @@ export default function NewReservationPage() {
                   </>
                 )}
                 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setCurrentStep(3)}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (selectedDeviceNumber !== null) {
-                        setCurrentStep(5);
-                      }
-                    }}
-                    disabled={selectedDeviceNumber === null}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    다음
-                  </button>
-                </div>
+                {/* 하단 버튼 제거 - 기기 번호 선택 시 자동으로 다음 단계로 */}
               </div>
             </motion.div>
           )}
@@ -870,14 +1075,31 @@ export default function NewReservationPage() {
           {currentStep === 5 && (
             <motion.div {...pageAnimation} key="step5" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">크레딧 옵션</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold dark:text-white">크레딧 옵션</h2>
+                  <button
+                    onClick={() => setCurrentStep(4)}
+                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </button>
+                </div>
                 
                 {selectedTimeSlotInfo && selectedTimeSlotInfo.credit_options && (
                   <div className="space-y-3 mb-6">
                     {selectedTimeSlotInfo.credit_options.map((option: any) => (
                       <button
                         key={option.type}
-                        onClick={() => setCreditOption(option.type)}
+                        onClick={() => {
+                          setCreditOption(option.type);
+                          // 2인 옵션이 없는 경우 7단계로 바로 이동
+                          if (!selectedTimeSlotInfo?.enable_2p || !selectedDeviceInfo || selectedDeviceInfo.max_players <= 1) {
+                            setCurrentStep(7);
+                          } else {
+                            setCurrentStep(6);
+                          }
+                        }}
                         className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                           creditOption === option.type
                             ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
@@ -902,33 +1124,7 @@ export default function NewReservationPage() {
                   </div>
                 )}
                 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setCurrentStep(4)}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (creditOption) {
-                        // 2인 옵션이 없는 경우 7단계로 바로 이동
-                        console.log('selectedTimeSlotInfo?.enable_2p:', selectedTimeSlotInfo?.enable_2p);
-                        console.log('selectedDeviceInfo?.max_players:', selectedDeviceInfo?.max_players);
-                        
-                        if (!selectedTimeSlotInfo?.enable_2p || !selectedDeviceInfo || selectedDeviceInfo.max_players <= 1) {
-                          setCurrentStep(7);
-                        } else {
-                          setCurrentStep(6);
-                        }
-                      }
-                    }}
-                    disabled={!creditOption}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    다음
-                  </button>
-                </div>
+                {/* 하단 버튼 제거 - 크레딧 옵션 선택 시 자동으로 다음 단계로 */}
               </div>
             </motion.div>
           )}
@@ -937,12 +1133,24 @@ export default function NewReservationPage() {
           {currentStep === 6 && (
             <motion.div {...pageAnimation} key="step6" layout layoutId="content">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-6 dark:text-white">인원 선택</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold dark:text-white">인원 선택</h2>
+                  <button
+                    onClick={() => setCurrentStep(5)}
+                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </button>
+                </div>
                 
                 {selectedTimeSlotInfo?.enable_2p && selectedDeviceInfo?.max_players && selectedDeviceInfo.max_players > 1 ? (
                   <div className="space-y-3 mb-6">
                     <button
-                      onClick={() => setPlayerCount(1)}
+                      onClick={() => {
+                        setPlayerCount(1);
+                        setCurrentStep(7); // 자동으로 다음 단계로
+                      }}
                       className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                         playerCount === 1
                           ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
@@ -954,7 +1162,10 @@ export default function NewReservationPage() {
                     </button>
                     
                     <button
-                      onClick={() => setPlayerCount(2)}
+                      onClick={() => {
+                        setPlayerCount(2);
+                        setCurrentStep(7); // 자동으로 다음 단계로
+                      }}
                       className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                         playerCount === 2
                           ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
@@ -968,25 +1179,17 @@ export default function NewReservationPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6">
-                    <p className="text-gray-600 dark:text-gray-400">이 기기는 1인 플레이만 가능합니다</p>
+                  <div>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6">
+                      <p className="text-gray-600 dark:text-gray-400">이 기기는 1인 플레이만 가능합니다</p>
+                    </div>
+                    {/* 1인만 가능한 경우 자동으로 7단계로 이동 */}
+                    {(() => {
+                      setTimeout(() => setCurrentStep(7), 1000);
+                      return null;
+                    })()}
                   </div>
                 )}
-                
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setCurrentStep(5)}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep(7)}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    다음
-                  </button>
-                </div>
               </div>
             </motion.div>
           )}
@@ -1053,12 +1256,17 @@ export default function NewReservationPage() {
                 {reservationRules.length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">이용 안내</h3>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-2">
-                      {reservationRules.map((rule) => (
-                        <p key={rule.id} className="text-sm text-gray-700 dark:text-gray-300">
-                          • {rule.content}
-                        </p>
-                      ))}
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <ul className="space-y-2">
+                        {reservationRules.map((rule) => (
+                          <li key={rule.id} className="flex items-start gap-2">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 flex-shrink-0">•</span>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                              {rule.content}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 )}
@@ -1077,24 +1285,10 @@ export default function NewReservationPage() {
                   </label>
                 </div>
                 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      // 2인 옵션이 없는 경우 5단계로 바로 이동
-                      if (!selectedTimeSlotInfo?.enable_2p || selectedDeviceInfo?.max_players === 1) {
-                        setCurrentStep(5);
-                      } else {
-                        setCurrentStep(6);
-                      }
-                    }}
-                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    이전
-                  </button>
-                  <button
+                <button
                     onClick={handleSubmit}
                     disabled={!agreed || isSubmitting}
-                    className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -1105,7 +1299,6 @@ export default function NewReservationPage() {
                       '예약하기'
                     )}
                   </button>
-                </div>
               </div>
             </motion.div>
           )}

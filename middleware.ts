@@ -26,7 +26,10 @@ export default withAuth(
 export const config = {
   matcher: [
     "/mypage/:path*",
-    "/reservations/:path*",
+    "/reservations/new",
+    "/reservations",
+    // 예약 완료 페이지는 제외
+    // "/reservations/complete",
     "/admin/:path*"
   ]
 }

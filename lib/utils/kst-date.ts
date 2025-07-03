@@ -7,10 +7,17 @@
 
 /**
  * YYYY-MM-DD 형식의 날짜 문자열을 KST 기준 Date 객체로 변환
- * @param dateString - YYYY-MM-DD 형식의 날짜 문자열
+ * ISO 8601 형식(2025-06-30T10:29:06.342+00)도 처리 가능
+ * @param dateString - YYYY-MM-DD 또는 ISO 8601 형식의 날짜 문자열
  * @returns KST 기준으로 파싱된 Date 객체
  */
 export function parseKSTDate(dateString: string): Date {
+  // ISO 8601 형식인 경우 (T 포함)
+  if (dateString.includes('T')) {
+    return new Date(dateString);
+  }
+  
+  // YYYY-MM-DD 형식인 경우
   const parts = dateString.split('-').map(Number);
   const year = parts[0] || 0;
   const month = parts[1] || 1;

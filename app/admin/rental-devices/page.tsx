@@ -18,7 +18,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import TimeSlotForm from './components/TimeSlotForm';
 import TimeSlotDisplay from './TimeSlotDisplay';
 
@@ -69,7 +69,6 @@ const defaultColors = [
 ];
 
 export default function RentalDevicesPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<DeviceType | null>(null);
@@ -404,8 +403,6 @@ export default function RentalDevicesPage() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        const currentOrder = device.rental_settings?.display_order ?? index;
-                        const newOrder = Math.max(0, currentOrder - 1);
                         
                         // 순서 업데이트
                         const updatedDevices = [...deviceTypes];
@@ -461,8 +458,6 @@ export default function RentalDevicesPage() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        const currentOrder = device.rental_settings?.display_order ?? index;
-                        const newOrder = currentOrder + 1;
                         
                         // 순서 업데이트
                         const updatedDevices = [...deviceTypes];

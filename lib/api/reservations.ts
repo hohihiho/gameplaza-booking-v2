@@ -32,9 +32,12 @@ export async function createReservation(data: {
   hourlyRate: number
   totalAmount: number
   userNotes?: string
+  creditType?: string
 }) {
   // deviceTypeId는 제거하고 필요한 필드만 전송
   const { deviceTypeId, ...apiData } = data;
+  
+  console.log('예약 API 요청 데이터:', apiData);
   
   const response = await fetch('/api/reservations', {
     method: 'POST',
@@ -42,25 +45,53 @@ export async function createReservation(data: {
     body: JSON.stringify(apiData)
   })
   
-  if (!response.ok) {
-    const error = await response.json()
-    console.error('예약 API 에러:', error)
-    throw new Error(error.error || '예약 생성에 실패했습니다')
+  const responseText = await response.text();
+  console.log('예약 API 응답 텍스트:', responseText);
+  
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (e) {
+    console.error('JSON 파싱 에러:', e);
+    throw new Error('서버 응답을 파싱할 수 없습니다');
   }
   
-  return response.json()
+  if (!response.ok) {
+    console.error('예약 API 에러:', result)
+    throw new Error(result.error || '예약 생성에 실패했습니다')
+  }
+  
+  console.log('예약 API 성공 응답:', result)
+  return result
 }
 
 // 내 예약 목록 조회
 export async function getMyReservations(status?: string) {
-  const params = status ? `?status=${status}` : ''
-  const response = await fetch(`/api/reservations${params}`)
-  
-  if (!response.ok) {
-    throw new Error('예약 목록을 불러올 수 없습니다')
+  try {
+    const params = status ? `?status=${status}` : ''
+    const response = await fetch(`/api/reservations${params}`)
+    
+    const responseText = await response.text()
+    console.log('예약 목록 응답:', response.status, responseText)
+    
+    let result;
+    try {
+      result = JSON.parse(responseText)
+    } catch (e) {
+      console.error('예약 목록 JSON 파싱 에러:', e)
+      throw new Error('서버 응답을 파싱할 수 없습니다')
+    }
+    
+    if (!response.ok) {
+      console.error('예약 목록 API 에러:', result)
+      throw new Error(result.error || '예약 목록을 불러올 수 없습니다')
+    }
+    
+    return result
+  } catch (error) {
+    console.error('예약 목록 조회 실패:', error)
+    throw error
   }
-  
-  return response.json()
 }
 
 // 예약 취소

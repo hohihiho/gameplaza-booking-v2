@@ -1,0 +1,103 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.ts || \"$TOOL_INPUT_FILE_PATH\" == *.tsx || \"$TOOL_INPUT_FILE_PATH\" == *.js || \"$TOOL_INPUT_FILE_PATH\" == *.jsx ]]; then echo '🔍 TypeScript 타입 체크 중...'; npm run type-check 2>&1 | grep -E '(error|Found [0-9]+ error)' || echo '✅ 타입 체크 통과!'; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.ts || \"$TOOL_INPUT_FILE_PATH\" == *.tsx || \"$TOOL_INPUT_FILE_PATH\" == *.js || \"$TOOL_INPUT_FILE_PATH\" == *.jsx ]]; then echo '🎨 Prettier 포맷팅 적용 중...'; npx prettier --write \"$TOOL_INPUT_FILE_PATH\" && echo '✅ 포맷팅 완료!'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *docs/planning/*.md ]]; then echo '📋 기획 문서가 변경되었습니다!'; echo ''; echo '🔄 관련 코드 파일 확인 중...'; grep -l 'TODO.*기획' app/**/*.{ts,tsx} lib/**/*.{ts,tsx} 2>/dev/null | head -5 && echo '⚠️  위 파일들의 TODO 항목을 확인하세요' || echo '✅ 기획 관련 TODO 없음'; echo ''; echo '📚 문서화 업데이트 체크리스트:'; echo '   □ README.md - 새 기능 설명 추가'; echo '   □ API 문서 - 엔드포인트 변경사항 반영'; echo '   □ 컴포넌트 문서 - UI 변경사항 반영'; echo '   □ CHANGELOG.md - 변경 이력 기록'; echo '   □ 주석 업데이트 - 변경된 비즈니스 로직 설명'; echo ''; changed_file=$(basename \"$TOOL_INPUT_FILE_PATH\"); echo \"💡 커밋 메시지 예시: [docs] $changed_file 기획 변경사항 반영\"; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.ts || \"$TOOL_INPUT_FILE_PATH\" == *.tsx || \"$TOOL_INPUT_FILE_PATH\" == *.js || \"$TOOL_INPUT_FILE_PATH\" == *.jsx ]]; then echo '🔒 보안 검사 중...'; grep -E '(password|secret|apiKey|api_key|private_key|token)\\s*[:=]\\s*[\"'\\x60][^\"'\\x60]+[\"'\\x60]' \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null && echo '⚠️  하드코딩된 보안 정보 발견! 환경변수로 이동하세요' || echo '✅ 보안 검사 통과'; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.ts || \"$TOOL_INPUT_FILE_PATH\" == *.tsx ]]; then echo '📊 코드 품질 검사 중...'; lines=$(wc -l < \"$TOOL_INPUT_FILE_PATH\"); if [ $lines -gt 300 ]; then echo \"⚠️  파일이 너무 깁니다 ($lines줄). 분할을 고려하세요\"; fi; complexity=$(grep -E '(if|else|for|while|switch|\\?.*:)' \"$TOOL_INPUT_FILE_PATH\" | wc -l); if [ $complexity -gt 20 ]; then echo \"⚠️  높은 복잡도 감지 ($complexity개 조건문). 리팩토링을 고려하세요\"; fi; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == **/api/**/*.ts ]] || [[ \"$TOOL_INPUT_FILE_PATH\" == **/components/**/*.tsx ]]; then echo '📝 문서화 확인:'; if [[ \"$TOOL_INPUT_FILE_PATH\" == **/api/**/*.ts ]]; then echo '   - API 문서에 엔드포인트 변경사항 반영 필요'; echo '   - Request/Response 타입 문서화'; echo '   - 에러 코드 문서화'; fi; if [[ \"$TOOL_INPUT_FILE_PATH\" == **/components/**/*.tsx ]]; then echo '   - 컴포넌트 Props 문서화'; echo '   - 사용 예시 코드 추가'; echo '   - Storybook 스토리 업데이트'; fi; echo '   💡 JSDoc 주석으로 문서화하면 자동으로 문서 생성 가능'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_COMMAND\" == *\"git commit\"* ]]; then echo '⚠️  커밋 전 체크리스트:'; echo '   - TypeScript 타입 체크 통과 확인'; echo '   - ESLint 검사 통과 확인'; echo '   - 테스트 실행 확인'; echo '   - KST 시간대 처리 확인'; echo '   - 문서화 업데이트 확인'; if [ ! -f CHANGELOG.md ]; then echo '   📝 CHANGELOG.md 파일이 없습니다. 생성을 고려하세요!'; else echo '   📝 CHANGELOG.md 업데이트 필요 여부 확인'; fi; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_COMMAND\" == *\"npm run dev\"* ]] && lsof -ti:3000 > /dev/null 2>&1; then echo '⚠️  포트 3000이 이미 사용 중입니다. 종료 후 재시작합니다...'; lsof -ti:3000 | xargs kill -9 2>/dev/null || true; sleep 1; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.tsx || \"$TOOL_INPUT_FILE_PATH\" == *.jsx ]] && ! grep -q 'React' \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null; then echo '📌 React 컴포넌트 파일 작성 시 주의사항:'; echo '   - 함수형 컴포넌트로 작성'; echo '   - TypeScript interface 사용'; echo '   - Tailwind CSS 클래스 사용'; echo '   - 모바일 퍼스트 디자인'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE_PATH\" == *.env* ]]; then echo '🚨 환경변수 파일 수정 감지!'; echo '⚠️  절대 커밋하지 마세요!'; echo '📝 .gitignore에 포함되어 있는지 확인하세요'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_COMMAND\" == *\"supabase\"* ]] || [[ \"$TOOL_INPUT_COMMAND\" == *\"database\"* ]]; then echo '💾 데이터베이스 작업 감지!'; echo '📌 다음 사항을 확인하세요:'; echo '   - RLS (Row Level Security) 정책 설정'; echo '   - 인덱스 최적화'; echo '   - 백업 생성'; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🏁 작업 완료!'; if [ -n \"$(git status --porcelain 2>/dev/null)\" ]; then echo '📝 변경된 파일이 있습니다:'; git status --short 2>/dev/null | head -5; echo ''; echo '💡 다음 명령어로 변경사항을 확인하세요: git diff'; echo ''; api_changed=$(git status --porcelain 2>/dev/null | grep -E 'app/api/.*\\.ts' | wc -l); component_changed=$(git status --porcelain 2>/dev/null | grep -E 'app/components/.*\\.tsx' | wc -l); if [ $api_changed -gt 0 ] || [ $component_changed -gt 0 ]; then echo '📚 문서화 리마인더:'; if [ $api_changed -gt 0 ]; then echo '   - API 변경사항이 있습니다. API 문서 업데이트를 확인하세요'; fi; if [ $component_changed -gt 0 ]; then echo '   - 컴포넌트 변경사항이 있습니다. 컴포넌트 문서 업데이트를 확인하세요'; fi; fi; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -99,15 +99,20 @@ GET /api/reservations
     "reservations": [
       {
         "id": "res_123",
-        "device_type": {
-          "id": "type_001",
-          "name": "마이마이 DX"
+        "reservation_number": "250701-001",
+        "devices": {
+          "device_number": 1,
+          "device_types": {
+            "name": "마이마이 DX"
+          }
         },
-        "date": "2024-01-25",
-        "time_slot": "14:00-18:00",
+        "date": "2025-07-01",
+        "start_time": "14:00",
+        "end_time": "18:00",
         "status": "approved",
-        "total_price": 40000,
-        "created_at": "2024-01-20T10:00:00Z"
+        "total_amount": 40000,
+        "credit_type": "freeplay",
+        "created_at": "2025-07-01T10:00:00Z"
       }
     ],
     "pagination": {
@@ -142,12 +147,15 @@ POST /api/reservations
 #### Request Body
 ```json
 {
-  "rental_time_slot_id": "slot_123",
-  "device_number": 1,
-  "player_count": 1,
-  "credit_option": "1시간",
-  "total_price": 40000,
-  "notes": "친구와 함께 이용 예정"
+  "date": "2025-07-01",
+  "startTime": "14:00",
+  "endTime": "18:00",
+  "deviceId": "device_123",
+  "playerCount": 1,
+  "hourlyRate": 10000,
+  "totalAmount": 40000,
+  "creditType": "freeplay",
+  "userNotes": "친구와 함께 이용 예정"
 }
 ```
 
@@ -185,31 +193,37 @@ DELETE /api/reservations/{id}
 대기 중인 예약을 승인합니다.
 
 ```http
-POST /api/admin/reservations/{id}/approve
+PATCH /api/admin/reservations
 ```
 
 #### Request Body
 ```json
 {
-  "assigned_device_number": 2,
-  "admin_notes": "승인 완료"
+  "id": "reservation_123",
+  "status": "approved"
 }
 ```
 
-### 예약 거절
-대기 중인 예약을 거절합니다.
+### 예약 취소
+대기 중인 예약을 취소합니다.
 
 ```http
-POST /api/admin/reservations/{id}/reject
+PATCH /api/admin/reservations
 ```
 
 #### Request Body
 ```json
 {
-  "reason": "해당 시간대에 이미 예약이 있습니다",
-  "admin_notes": "중복 예약"
+  "id": "reservation_123",
+  "status": "rejected",
+  "notes": "취소 사유: 대여 인원 부족"
 }
 ```
+
+#### 취소 사유 옵션
+- 대여 인원 부족
+- 회원 요청
+- 기타 (직접 입력)
 
 ### 체크인 처리
 승인된 예약을 체크인 처리합니다.

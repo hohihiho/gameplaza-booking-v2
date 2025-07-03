@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     // 먼저 기존 설정이 있는지 확인
     const { data: existing } = await supabaseAdmin
       .from('rental_settings')
-      .select('id')
+      .select('*')
       .eq('device_type_id', device_type_id)
       .single()
 

@@ -10,7 +10,8 @@ import {
   Info,
   Calendar,
   // Settings,
-  Edit3
+  Edit3,
+  Gamepad2
 } from 'lucide-react';
 
 type ContentMenuItem = {
@@ -29,6 +30,13 @@ export default function ContentMenuPage() {
       icon: Info,
       href: '/admin/content/rental-guide',
       color: 'bg-blue-500'
+    },
+    {
+      title: '기기 현황 안내',
+      description: '기기 현황 페이지 하단에 표시되는 안내사항을 관리합니다',
+      icon: Gamepad2,
+      href: '/admin/content/machine-guide',
+      color: 'bg-orange-500'
     },
     {
       title: '오락실 이용안내',

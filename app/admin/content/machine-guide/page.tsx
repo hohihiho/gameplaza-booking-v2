@@ -1,4 +1,4 @@
-// 대여 이용안내 관리 페이지
+// 기기 현황 안내 관리 페이지
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +8,6 @@ import {
   Edit, 
   Trash2, 
   Save, 
-  // X, 
   ChevronLeft,
   AlertCircle,
   Eye,
@@ -17,7 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type ReservationRule = {
+type MachineRule = {
   id: string;
   content: string;
   is_active: boolean;
@@ -26,8 +25,8 @@ type ReservationRule = {
   updated_at: string;
 };
 
-export default function ReservationRulesPage() {
-  const [rules, setRules] = useState<ReservationRule[]>([]);
+export default function MachineRulesPage() {
+  const [rules, setRules] = useState<MachineRule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingRule, setEditingRule] = useState<string | null>(null);
   const [isAddingRule, setIsAddingRule] = useState(false);
@@ -46,7 +45,7 @@ export default function ReservationRulesPage() {
   const loadRules = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/reservation-rules');
+      const response = await fetch('/api/admin/machine-rules');
       const { rules: data, error } = await response.json();
 
       if (error) {
@@ -67,7 +66,7 @@ export default function ReservationRulesPage() {
   const createTableAndSeedData = async () => {
     try {
       // 먼저 마이그레이션 시도
-      const migrateResponse = await fetch('/api/admin/reservation-rules/migrate', {
+      const migrateResponse = await fetch('/api/admin/machine-rules/migrate', {
         method: 'POST'
       });
 
@@ -75,12 +74,12 @@ export default function ReservationRulesPage() {
       
       if (!migrateResponse.ok) {
         console.error('마이그레이션 필요:', migrateResult);
-        alert(migrateResult.error || '테이블을 생성해야 합니다. Supabase 대시보드를 확인해주세요.');
+        alert('기기 현황 안내사항 테이블이 없습니다.\n\nSupabase 대시보드에서 다음 파일의 SQL을 실행해주세요:\n/supabase/migrations/20250102_create_machine_rules.sql');
         return;
       }
 
       // 테이블 생성/초기화는 기존 API 호출
-      const response = await fetch('/api/admin/reservation-rules/setup', {
+      const response = await fetch('/api/admin/machine-rules/setup', {
         method: 'POST'
       });
 
@@ -110,7 +109,7 @@ export default function ReservationRulesPage() {
       // 현재 최대 display_order 찾기
       const maxOrder = Math.max(...rules.map(r => r.display_order), 0);
       
-      const response = await fetch('/api/admin/reservation-rules', {
+      const response = await fetch('/api/admin/machine-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -144,7 +143,7 @@ export default function ReservationRulesPage() {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/admin/reservation-rules', {
+      const response = await fetch('/api/admin/machine-rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -176,7 +175,7 @@ export default function ReservationRulesPage() {
     if (!confirm('이 규칙을 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`/api/admin/reservation-rules?id=${id}`, {
+      const response = await fetch(`/api/admin/machine-rules?id=${id}`, {
         method: 'DELETE'
       });
 
@@ -194,7 +193,7 @@ export default function ReservationRulesPage() {
   // 활성화/비활성화 토글
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const response = await fetch('/api/admin/reservation-rules', {
+      const response = await fetch('/api/admin/machine-rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,13 +216,13 @@ export default function ReservationRulesPage() {
   };
 
   // 순서 변경
-  const handleReorder = async (newOrder: ReservationRule[]) => {
+  const handleReorder = async (newOrder: MachineRule[]) => {
     setRules(newOrder);
 
     // DB 업데이트
     try {
       for (let i = 0; i < newOrder.length; i++) {
-        await fetch('/api/admin/reservation-rules', {
+        await fetch('/api/admin/machine-rules', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -249,10 +248,10 @@ export default function ReservationRulesPage() {
           >
             <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </Link>
-          <h1 className="text-2xl font-bold dark:text-white">대여 이용안내 관리</h1>
+          <h1 className="text-2xl font-bold dark:text-white">기기 현황 안내 관리</h1>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-          예약 시 사용자에게 보여줄 이용 안내사항을 관리합니다
+          기기 현황 페이지에 보여줄 안내사항을 관리합니다
         </p>
       </div>
 
@@ -279,7 +278,7 @@ export default function ReservationRulesPage() {
                       onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       rows={3}
-                      placeholder="확인사항 내용"
+                      placeholder="안내사항 내용"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       줄바꿈은 Enter 키를 사용하세요
@@ -386,7 +385,7 @@ export default function ReservationRulesPage() {
                 onChange={(e) => setNewRule({ ...newRule, content: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 rows={3}
-                placeholder="안내사항 (예: 예약한 시간에 맞춰 방문해주세요. 10분 이상 늦을 경우 예약이 자동 취소될 수 있습니다.)"
+                placeholder="안내사항 (예: 실시간 상태는 약 1분마다 업데이트됩니다)"
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 줄바꿈은 Enter 키를 사용하세요
@@ -422,12 +421,12 @@ export default function ReservationRulesPage() {
           <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
           <div>
             <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">
-              이용 안내 관리
+              기기 현황 안내 관리
             </h4>
             <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-              <li>• 활성화된 안내사항만 예약 페이지에 표시됩니다</li>
+              <li>• 활성화된 안내사항만 기기 현황 페이지에 표시됩니다</li>
               <li>• 드래그하여 표시 순서를 변경할 수 있습니다</li>
-              <li>• 사용자가 예약 시 이용 안내를 확인할 수 있습니다</li>
+              <li>• 사용자가 기기 현황을 확인할 때 하단에 표시됩니다</li>
             </ul>
           </div>
         </div>
