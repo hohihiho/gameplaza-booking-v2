@@ -631,12 +631,14 @@ export default function ReservationManagementPage() {
                   if (Math.abs(page - currentPage) <= 2) return true;
                   return false;
                 })
-                .map((page, index, array) => (
-                  <React.Fragment key={page}>
-                    {index > 0 && array[index - 1] < page - 1 && (
-                      <span className="px-2 py-1">...</span>
-                    )}
-                    <button
+                .map((page, index, array) => {
+                  const prevPage = array[index - 1];
+                  return (
+                    <React.Fragment key={page}>
+                      {index > 0 && prevPage !== undefined && prevPage < page - 1 && (
+                        <span className="px-2 py-1">...</span>
+                      )}
+                      <button
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 rounded-lg transition-colors ${
                         currentPage === page
@@ -646,8 +648,9 @@ export default function ReservationManagementPage() {
                     >
                       {page}
                     </button>
-                  </React.Fragment>
-                ))
+                    </React.Fragment>
+                  );
+                })
               }
             </div>
             
@@ -662,7 +665,7 @@ export default function ReservationManagementPage() {
         )}
 
         {/* 안내 메시지 */}
-        {tabCounts.pending > 0 && (
+        {(tabCounts.pending || 0) > 0 && (
         <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />

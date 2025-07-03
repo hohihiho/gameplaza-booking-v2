@@ -247,7 +247,7 @@ export default function ReservationsPage() {
           <div className="text-center py-20">
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button 
-              onClick={loadReservations}
+              onClick={loadAllReservations}
               className="mt-4 text-gray-900 dark:text-white hover:underline"
             >
               다시 시도
