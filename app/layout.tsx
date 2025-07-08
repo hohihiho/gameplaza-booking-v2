@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Orbitron } from 'next/font/google'
 import './globals.css'
 import Navigation from './components/Navigation'
+import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
 import { MapPin, MessageCircle, Clock } from 'lucide-react'
@@ -66,10 +67,9 @@ export default function RootLayout({
             
             <Navigation />
             
-            {/* 메인 콘텐츠 */}
-            <main className="min-h-screen">
+            <LayoutWrapper>
               {children}
-            </main>
+            </LayoutWrapper>
 
           </ThemeProvider>
         </Providers>

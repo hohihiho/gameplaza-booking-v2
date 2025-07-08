@@ -14,10 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Navigation() {
   const pathname = usePathname();
   
-  // 홈페이지에서는 네비게이션 숨기기 (모바일 앱 스타일)
-  if (pathname === '/') {
-    return null;
-  }
+  // 모든 페이지에서 네비게이션 숨기기 (사이드바와 하단 탭바 사용)
+  return null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);

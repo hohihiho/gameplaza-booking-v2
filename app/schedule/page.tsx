@@ -300,6 +300,20 @@ export default function SchedulePage() {
   const changeMonth = (increment: number) => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + increment, 1));
   };
+
+  // 모달이 열릴 때 body 스크롤 방지
+  useEffect(() => {
+    if (showEventModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // 컴포넌트 언마운트 시 스타일 제거
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showEventModal]);
   
   const eventTypeConfig = {
     special: {
@@ -390,100 +404,146 @@ export default function SchedulePage() {
   const selectedDateEvents = selectedDate ? getEventsForDate(formatDate(selectedDate)) : [];
   
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* 페이지 헤더 */}
-      <section className="bg-white dark:bg-gray-900 py-8 px-5 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold dark:text-white">운영 일정</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">오락실 영업시간과 특별 일정을 확인하세요</p>
-        </div>
-      </section>
+    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 lg:pl-64 pb-20 lg:pb-0">
       
-      <div className="max-w-5xl mx-auto px-5 py-8">
+      
+      {/* 페이지 헤더 */}
+      <motion.section 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden"
+      >
+        {/* 배경 그라데이션 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800">
+          <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
+        </div>
+        
+        {/* 콘텐츠 */}
+        <div className="relative z-10 px-6 py-12 md:px-8 md:py-16">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">운영 일정</h1>
+            <p className="text-indigo-100 text-lg">오락실 영업시간과 특별 일정을 확인하세요</p>
+          </div>
+        </div>
+      </motion.section>
+      
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* 기본 영업시간 */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 mb-8">
-          <h2 className="text-lg font-bold mb-4 dark:text-white flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8"
+        >
+          <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
             기본 영업시간
           </h2>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <div className="space-y-3">
-                <div className="py-2 border-b border-gray-100 dark:border-gray-800">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">일 ~ 목, 공휴일</span>
-                    <span className="font-medium dark:text-white">12:00 - 22:00</span>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    22시 이후 손님 없으면 마감
+              <div className="space-y-4">
+                <div className="group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-gray-900 dark:text-white font-medium">일 ~ 목, 공휴일</span>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        22시 이후 손님 없으면 조기 마감
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">12:00 - 22:00</span>
                   </div>
                 </div>
                 
-                <div className="py-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">금, 토, 공휴일 전날</span>
-                    <span className="font-medium dark:text-white">12:00 - 29:00</span>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    밤샘 영업 (익일 새벽 5시까지)
+                <div className="group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-gray-900 dark:text-white font-medium">금, 토, 공휴일 전날</span>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        밤샘 영업 (익일 새벽 5시까지)
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">12:00 - 29:00</span>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div>
-              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
-                  <Moon className="w-4 h-4" />
+            <div className="space-y-4">
+              <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+                <h3 className="text-base font-semibold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-amber-200 dark:bg-amber-800 rounded-lg flex items-center justify-center">
+                    <Moon className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+                  </div>
                   밤샘 영업 안내
                 </h3>
-                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
-                  <li>• 대여 없어도 밤샘 영업 진행</li>
-                  <li>• 22시 이후는 손님 상황에 따라 유동적</li>
+                <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                    <span>토,일 넘어가는 새벽은 대여 없어도 밤샘 영업 진행</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                    <span>22시 이후는 손님 상황에 따라 유동적</span>
+                  </li>
                 </ul>
               </div>
               
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-400 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  조기/밤샘 대여 오픈시 추가 영업시간 연장
+              <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50">
+                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-200 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-blue-700 dark:text-blue-300" />
+                  </div>
+                  <span className="pt-1">조기/밤샘 대여 오픈시 추가 영업시간 연장</span>
                 </p>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
         
         <div className="grid gap-6 lg:gap-8">
           {/* 달력과 범례 */}
           <div className="grid lg:grid-cols-4 gap-6">
             {/* 달력 */}
-            <div className="lg:col-span-3">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="lg:col-span-3"
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8">
               {/* 달력 헤더 */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold dark:text-white">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatMonth(currentMonth)}
                 </h2>
                 <div className="flex gap-2">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => changeMonth(-1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </button>
-                  <button
+                    <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setCurrentMonth(new Date())}
-                    className="px-3 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors dark:text-white"
+                    className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium rounded-xl transition-colors"
                   >
                     오늘
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => changeMonth(1)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </button>
+                    <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  </motion.button>
                 </div>
               </div>
               
@@ -499,7 +559,7 @@ export default function SchedulePage() {
               </div>
               
               {/* 날짜 그리드 */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-2">
                 {calendarDays.map((date, index) => {
                   const dateStr = formatDate(date);
                   const dayEvents = getEventsForDate(dateStr);
@@ -513,12 +573,12 @@ export default function SchedulePage() {
                       key={index}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.01 }}
-                      className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 border rounded-lg cursor-pointer transition-colors ${
+                      transition={{ delay: index * 0.005 }}
+                      className={`min-h-[90px] md:min-h-[110px] p-2 md:p-3 rounded-2xl cursor-pointer transition-all duration-200 ${
                         isCurrentMonth
-                          ? 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                          : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-600'
-                      } ${isToday ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                          ? 'bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 hover:shadow-md'
+                          : 'bg-gray-100/50 dark:bg-gray-950/50 text-gray-400 dark:text-gray-600'
+                      } ${isToday ? 'ring-2 ring-indigo-500 shadow-lg' : ''} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 shadow-md' : ''}`}
                       onClick={() => {
                         if (isCurrentMonth) {
                           setSelectedDate(date);
@@ -647,46 +707,55 @@ export default function SchedulePage() {
                 })}
               </div>
               </div>
-            </div>
+            </motion.div>
             
             {/* 범례 - 달력 옆에 배치 */}
-            <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-800 sticky top-6">
-                <h3 className="text-xs font-semibold mb-2 text-gray-500 dark:text-gray-400 uppercase">범례</h3>
-                <div className="space-y-1 text-xs">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="lg:col-span-1"
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-5 sticky top-6">
+                <h3 className="text-sm font-bold mb-4 text-gray-900 dark:text-white">범례</h3>
+                <div className="space-y-2 md:space-y-2 flex flex-row md:flex-col gap-2 md:gap-0 flex-wrap">
                   {Object.entries(eventTypeConfig).filter(([type]) => type !== 'reservation').map(([type, config]) => {
                     const Icon = config.icon;
                     return (
-                      <div key={type} className="flex items-center gap-1.5">
-                        <div className={`p-1 rounded ${config.color}`}>
-                          <Icon className="w-3 h-3" />
+                      <div key={type} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                        <div className={`p-2 rounded-lg ${config.color}`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-                        <span className="text-gray-600 dark:text-gray-400">{config.label}</span>
+                        <span className="hidden md:inline text-sm text-gray-700 dark:text-gray-300 font-medium">{config.label}</span>
                       </div>
                     );
                   })}
                 </div>
                 
                 {/* 예약 범례 */}
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-                  <h3 className="text-xs font-semibold mb-2 text-gray-500 dark:text-gray-400 uppercase">예약 현황</h3>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${reservationTypeColors.early}`}></div>
-                      <span className="text-gray-600 dark:text-gray-400">조기</span>
-                      <div className={`w-2 h-2 rounded-full ${reservationTypeColors.overnight}`}></div>
-                      <span className="text-gray-600 dark:text-gray-400">밤샘</span>
+                <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-bold mb-4 text-gray-900 dark:text-white">예약 현황</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${reservationTypeColors.early}`}></div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">조기</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${reservationTypeColors.overnight}`}></div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">밤샘</span>
+                      </div>
                     </div>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-500 mt-2">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
                       기종별 색상으로 예약 대수 표시
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
           </div>
         </div>
+      </div>
       
       {/* 이벤트 상세 모달 */}
       <AnimatePresence>
@@ -703,10 +772,10 @@ export default function SchedulePage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-2xl p-4 md:p-6 max-w-md w-full my-8 max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 max-w-lg w-full my-8 max-h-[90vh] overflow-y-auto touch-pan-y"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold dark:text-white">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   {selectedDate?.toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -714,17 +783,19 @@ export default function SchedulePage() {
                     weekday: 'short'
                   })}
                 </h3>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setShowEventModal(false)}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
                 >
-                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
+                  <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                </motion.button>
               </div>
               
               <div className="space-y-3 overflow-y-auto">
                 {selectedDateEvents.map(event => (
-                  <div key={event.id} className="p-3 md:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={event.id} className="p-4 md:p-5 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2 mb-2">
                       {(() => {
                         const config = eventTypeConfig[event.type];
@@ -805,7 +876,7 @@ export default function SchedulePage() {
                                     return orderA - orderB;
                                   })
                                   .map(([deviceType, reservations]) => (
-                                  <div key={deviceType} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                                  <div key={deviceType} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                                     <div className="flex items-center justify-between mb-1">
                                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${deviceColors[deviceType] || deviceTypeColors[deviceType] || 'bg-gray-200'}`}>
                                         {deviceType}
@@ -863,7 +934,7 @@ export default function SchedulePage() {
                                     return orderA - orderB;
                                   })
                                   .map(([deviceType, reservations]) => (
-                                  <div key={deviceType} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
+                                  <div key={deviceType} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                                     <div className="flex items-center justify-between mb-1">
                                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${deviceColors[deviceType] || deviceTypeColors[deviceType] || 'bg-gray-200'}`}>
                                         {deviceType}
