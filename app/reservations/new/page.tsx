@@ -17,6 +17,8 @@ type DeviceType = {
   name: string;
   category: string;
   description?: string;
+  model_name?: string;
+  version_name?: string;
   base_price: number;
   price_multiplier_2p: number;
   max_players: number;
@@ -170,6 +172,8 @@ export default function NewReservationPage() {
             name: type.name,
             category: type.device_categories?.name || 'Unknown',
             description: type.description || '',
+            model_name: type.model_name,
+            version_name: type.version_name,
             base_price: rentalSettings.base_price || 50000,
             price_multiplier_2p: rentalSettings.price_multiplier_2p || 1,
             max_players: rentalSettings.max_players || 1,
@@ -418,53 +422,85 @@ export default function NewReservationPage() {
       setIsSubmitting(true);
       setError(null);
       
-      // 임시 해결책: devices 테이블 직접 사용
-      // 선택한 기기 번호와 타입에 맞는 device 찾기
-      const { data: availableDevice } = await supabase
+      // 선택한 기기 번호와 타입 확인
+      const { data: availableDevice, error: deviceError } = await supabase
         .from('devices')
         .select('*')
         .eq('device_type_id', selectedDevice)
         .eq('device_number', selectedDeviceNumber)
-        .eq('status', 'available')
         .single();
 
-      if (!availableDevice) {
-        throw new Error('선택한 기기를 사용할 수 없습니다');
+      console.log('기기 확인:', { availableDevice, deviceError, selectedDevice, selectedDeviceNumber });
+
+      if (deviceError || !availableDevice) {
+        console.error('기기 조회 오류:', deviceError);
+        throw new Error('선택한 기기를 찾을 수 없습니다');
       }
 
-      // rental_machines가 비어있으므로 임시로 device ID를 사용
-      const deviceId = availableDevice.id;
+      // status 체크 - 'available' 또는 'in_use' 허용 (대여기는 예약 가능)
+      if (availableDevice.status !== 'available' && availableDevice.status !== 'in_use') {
+        console.error('기기 상태 문제:', availableDevice.status);
+        throw new Error(`선택한 기기를 사용할 수 없습니다 (상태: ${availableDevice.status})`);
+      }
 
-      const response = await createReservation({
-        date: selectedDate,
-        startTime: selectedTimeSlotInfo.start_time,
-        endTime: selectedTimeSlotInfo.end_time,
-        deviceTypeId: selectedDevice,
-        deviceId: deviceId,
-        playerCount,
-        hourlyRate: selectedDeviceInfo.base_price || 50000,
-        totalAmount: totalPrice,
-        userNotes: '',
-        creditType: creditOption
-      });
+      // 사용자 정보 가져오기 - NextAuth 세션 사용
+      if (!session?.user?.email) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      // users 테이블에서 사용자 ID 찾기
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', session.user.email)
+        .single();
+
+      console.log('사용자 확인:', { userData, userError, email: session.user.email });
+
+      if (userError || !userData) {
+        console.error('사용자 조회 오류:', userError);
+        throw new Error('사용자 정보를 찾을 수 없습니다. 회원가입을 완료해주세요.');
+      }
+
+      // 새로운 스키마에 맞게 예약 생성
+      const reservationData = {
+        user_id: userData.id,
+        rental_time_slot_id: selectedTimeSlot, // 선택한 시간대 슬롯 ID
+        device_type_id: selectedDevice,
+        device_number: selectedDeviceNumber,
+        player_count: playerCount,
+        credit_option: creditOption,
+        total_price: totalPrice,
+        status: 'pending',
+        notes: ''
+      };
       
-      console.log('예약 API 전체 응답:', response);
-      console.log('response.reservation:', response.reservation);
-      console.log('response.success:', response.success);
+      console.log('예약 생성 데이터:', reservationData);
       
-      const reservation = response.reservation;
-      console.log('예약 ID:', reservation?.id);
-      console.log('예약 전체 데이터:', reservation);
+      const { data: newReservation, error: reservationError } = await supabase
+        .from('reservations')
+        .insert(reservationData)
+        .select()
+        .single();
+
+      if (reservationError) {
+        console.error('예약 생성 오류:', reservationError);
+        throw new Error(reservationError.message || '예약 생성에 실패했습니다');
+      }
+      
+      console.log('예약 생성 성공:', newReservation);
+
+      console.log('예약 생성 성공:', newReservation);
       
       setIsSubmitting(false);
       
       // 예약 완료 페이지로 이동
-      if (reservation?.id) {
+      if (newReservation?.id) {
         console.log('예약 완료 페이지로 이동 - ID를 store에 저장');
-        setLastReservationId(reservation.id);
+        setLastReservationId(newReservation.id);
         router.push('/reservations/complete');
       } else {
-        console.error('예약 ID가 없습니다. response:', response);
+        console.error('예약 ID가 없습니다. reservation:', newReservation);
         router.push('/reservations');
       }
     } catch (error: any) {
@@ -772,10 +808,26 @@ export default function NewReservationPage() {
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium dark:text-white">{device.name}</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {device.description}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-medium dark:text-white">{device.name}</h3>
+                              {device.model_name && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                  {device.model_name}
+                                </span>
+                              )}
+                            </div>
+                            {device.version_name && (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                  버전: {device.version_name}
+                                </span>
+                              </div>
+                            )}
+                            {device.description && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                {device.description}
+                              </p>
+                            )}
                           </div>
                           <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
                             {device.category}
@@ -1211,6 +1263,18 @@ export default function NewReservationPage() {
                     <p className="font-medium dark:text-white">
                       {selectedDeviceInfo?.name} {selectedDeviceNumber}번기
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedDeviceInfo?.model_name && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                          모델: {selectedDeviceInfo.model_name}
+                        </span>
+                      )}
+                      {selectedDeviceInfo?.version_name && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                          버전: {selectedDeviceInfo.version_name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">

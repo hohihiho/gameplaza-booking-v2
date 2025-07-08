@@ -8,15 +8,21 @@ export async function PUT(
 ) {
   try {
     const { id: deviceTypeId } = await params
-    const { play_modes } = await request.json()
+    const body = await request.json()
+    console.log('[Play modes API] 받은 데이터:', body)
+    const { play_modes } = body
 
     // 기존 플레이 모드 삭제
+    console.log('[Play modes API] 기존 모드 삭제 - device_type_id:', deviceTypeId)
     const { error: deleteError } = await supabaseAdmin
       .from('play_modes')
       .delete()
       .eq('device_type_id', deviceTypeId)
 
-    if (deleteError) throw deleteError
+    if (deleteError) {
+      console.error('[Play modes API] 삭제 오류:', deleteError)
+      throw deleteError
+    }
 
     // 새 플레이 모드 추가
     if (play_modes && play_modes.length > 0) {
@@ -26,15 +32,25 @@ export async function PUT(
         price: mode.price,
         display_order: index + 1
       }))
+      
+      console.log('[Play modes API] 추가할 모드 데이터:', modesData)
 
-      const { error: insertError } = await supabaseAdmin
+      const { data: insertedData, error: insertError } = await supabaseAdmin
         .from('play_modes')
         .insert(modesData)
+        .select()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('[Play modes API] 추가 오류:', insertError)
+        throw insertError
+      }
+      
+      console.log('[Play modes API] 추가 성공:', insertedData)
+      return NextResponse.json({ success: true, data: insertedData })
     }
 
-    return NextResponse.json({ success: true })
+    console.log('[Play modes API] 모드가 없어 추가하지 않음')
+    return NextResponse.json({ success: true, data: [] })
   } catch (error) {
     console.error('Error updating play modes:', error)
     return NextResponse.json({ error: 'Failed to update play modes' }, { status: 500 })

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>광주 게임플라자 - 프로젝트 태스크 시각화</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #network {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .task-card {
+            transition: all 0.3s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎮 광주 게임플라자 예약 시스템</h1>
+            <p class="text-gray-600">프로젝트 태스크 계획 및 의존성 시각화</p>
+        </header>
+
+        <!-- 통계 요약 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">전체 태스크</h3>
+                <p class="text-2xl font-bold text-gray-900" id="totalTasks">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">독립 태스크</h3>
+                <p class="text-2xl font-bold text-green-600" id="independentTasks">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">의존성 있는 태스크</h3>
+                <p class="text-2xl font-bold text-blue-600" id="dependentTasks">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">예상 소요 시간</h3>
+                <p class="text-2xl font-bold text-purple-600" id="estimatedTime">0일</p>
+            </div>
+        </div>
+
+        <!-- 네트워크 그래프 -->
+        <div class="bg-white p-6 rounded-lg shadow mb-8">
+            <h2 class="text-xl font-semibold mb-4">태스크 의존성 그래프</h2>
+            <div id="network"></div>
+            <div class="mt-4 flex items-center gap-6 text-sm">
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                    <span>독립 태스크</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                    <span>의존성 있는 태스크</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-purple-500 rounded-full"></div>
+                    <span>크리티컬 패스</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 태스크 목록 -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">태스크 상세 목록</h2>
+            <div class="grid gap-4" id="taskList">
+                <!-- 태스크 카드가 여기에 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Shrimp Task Manager API 호출
+        async function fetchTasks() {
+            try {
+                // 실제로는 API를 호출해야 하지만, 여기서는 하드코딩된 데이터 사용
+                const tasks = [
+                    {
+                        id: "e25b783d-b954-42be-a64d-cf3c948b0061",
+                        name: "PWA 기본 설정 구현",
+                        description: "Progressive Web App 기능을 위한 manifest.json, 아이콘, service worker 구현",
+                        dependencies: [],
+                        estimatedDays: 2
+                    },
+                    {
+                        id: "c7b686c6-e075-4160-a4c8-be2a20fce065",
+                        name: "실시간 알림 시스템 구현",
+                        description: "Supabase Realtime과 Web Push API를 활용한 실시간 알림 시스템",
+                        dependencies: ["e25b783d-b954-42be-a64d-cf3c948b0061"],
+                        estimatedDays: 3
+                    },
+                    {
+                        id: "98393015-913f-4cde-900c-6a67304b4d7f",
+                        name: "모바일 UX 최적화",
+                        description: "99% 모바일 사용자를 위한 터치 제스처, 하단 네비게이션, 스켈레톤 로딩",
+                        dependencies: [],
+                        estimatedDays: 3
+                    },
+                    {
+                        id: "d40388e6-7fd3-4915-916e-b811b4e2666d",
+                        name: "이미지 및 성능 최적화",
+                        description: "WebP 포맷 변환, next/image 최적화, 컴포넌트 레벨 코드 분할",
+                        dependencies: [],
+                        estimatedDays: 2
+                    },
+                    {
+                        id: "5fa6aa13-1bb2-46dd-8555-b36276ada068",
+                        name: "테스트 인프라 구축",
+                        description: "Jest 단위 테스트, React Testing Library, Playwright E2E 테스트",
+                        dependencies: [],
+                        estimatedDays: 3
+                    },
+                    {
+                        id: "753e4409-7ce9-4e16-b6c4-855b338f32a8",
+                        name: "Supabase 클라이언트 통합",
+                        description: "분산된 Supabase 클라이언트 인스턴스 통합, 공통 에러 핸들링",
+                        dependencies: [],
+                        estimatedDays: 2
+                    },
+                    {
+                        id: "8aa4c1d2-44a8-41c6-a9b0-869b44492119",
+                        name: "관리자 UI 빌더 인터페이스",
+                        description: "드래그앤드롭 방식의 노코드 스타일 관리자 인터페이스",
+                        dependencies: ["98393015-913f-4cde-900c-6a67304b4d7f"],
+                        estimatedDays: 4
+                    },
+                    {
+                        id: "0f12e0a6-dbe7-4248-98c2-22964141eba1",
+                        name: "실시간 대시보드 모니터링",
+                        description: "관리자를 위한 실시간 통계 대시보드",
+                        dependencies: ["c7b686c6-e075-4160-a4c8-be2a20fce065"],
+                        estimatedDays: 3
+                    },
+                    {
+                        id: "4ae146bc-3405-4d49-8d7a-3545cbf77d81",
+                        name: "보안 강화 및 AI 필터링",
+                        description: "AI 기반 컨텍스트 분석, RLS 정책 검토, API 보안 강화",
+                        dependencies: [],
+                        estimatedDays: 3
+                    },
+                    {
+                        id: "cb37d926-b9a7-4485-9a68-3a028ae53042",
+                        name: "배포 파이프라인 및 모니터링",
+                        description: "Vercel 자동 배포, GitHub Actions 크론잡, 성능 모니터링",
+                        dependencies: ["5fa6aa13-1bb2-46dd-8555-b36276ada068"],
+                        estimatedDays: 2
+                    }
+                ];
+                return tasks;
+            } catch (error) {
+                console.error('태스크 로드 실패:', error);
+                return [];
+            }
+        }
+
+        // 크리티컬 패스 계산
+        function calculateCriticalPath(tasks) {
+            const taskMap = new Map(tasks.map(t => [t.id, t]));
+            const criticalPath = new Set();
+            
+            // 각 태스크의 최대 경로 길이 계산
+            const pathLengths = new Map();
+            
+            function getPathLength(taskId) {
+                if (pathLengths.has(taskId)) return pathLengths.get(taskId);
+                
+                const task = taskMap.get(taskId);
+                if (!task) return 0;
+                
+                let maxDepLength = 0;
+                for (const depId of task.dependencies) {
+                    maxDepLength = Math.max(maxDepLength, getPathLength(depId));
+                }
+                
+                const length = maxDepLength + task.estimatedDays;
+                pathLengths.set(taskId, length);
+                return length;
+            }
+            
+            // 모든 태스크의 경로 길이 계산
+            tasks.forEach(task => getPathLength(task.id));
+            
+            // 최대 경로 길이 찾기
+            const maxLength = Math.max(...pathLengths.values());
+            
+            // 크리티컬 패스 역추적
+            function traceCriticalPath(taskId, currentLength) {
+                if (currentLength === maxLength) {
+                    criticalPath.add(taskId);
+                }
+                
+                const task = taskMap.get(taskId);
+                if (!task) return;
+                
+                for (const depId of task.dependencies) {
+                    const depLength = pathLengths.get(depId);
+                    if (depLength + task.estimatedDays === currentLength) {
+                        criticalPath.add(depId);
+                        traceCriticalPath(depId, depLength);
+                    }
+                }
+            }
+            
+            // 최대 경로를 가진 태스크부터 역추적
+            pathLengths.forEach((length, taskId) => {
+                if (length === maxLength) {
+                    traceCriticalPath(taskId, length);
+                }
+            });
+            
+            return criticalPath;
+        }
+
+        // 네트워크 그래프 생성
+        function createNetworkGraph(tasks) {
+            const criticalPath = calculateCriticalPath(tasks);
+            
+            // 노드 생성
+            const nodes = tasks.map(task => ({
+                id: task.id,
+                label: task.name,
+                title: task.description,
+                color: {
+                    background: criticalPath.has(task.id) ? '#8b5cf6' : 
+                               (task.dependencies.length === 0 ? '#10b981' : '#3b82f6'),
+                    border: criticalPath.has(task.id) ? '#7c3aed' : 
+                           (task.dependencies.length === 0 ? '#059669' : '#2563eb')
+                },
+                font: { color: 'white' }
+            }));
+
+            // 엣지 생성
+            const edges = [];
+            tasks.forEach(task => {
+                task.dependencies.forEach(depId => {
+                    edges.push({
+                        from: depId,
+                        to: task.id,
+                        arrows: 'to',
+                        color: criticalPath.has(task.id) && criticalPath.has(depId) ? '#8b5cf6' : '#94a3b8'
+                    });
+                });
+            });
+
+            // 네트워크 생성
+            const container = document.getElementById('network');
+            const data = { nodes, edges };
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'LR',
+                        sortMethod: 'directed',
+                        levelSeparation: 200,
+                        nodeSpacing: 100
+                    }
+                },
+                physics: false,
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            
+            new vis.Network(container, data, options);
+        }
+
+        // 태스크 카드 생성
+        function createTaskCard(task, criticalPath) {
+            const isIndependent = task.dependencies.length === 0;
+            const isCritical = criticalPath.has(task.id);
+            
+            return `
+                <div class="task-card border rounded-lg p-4 ${isCritical ? 'border-purple-500 bg-purple-50' : isIndependent ? 'border-green-500 bg-green-50' : 'border-blue-500 bg-blue-50'}">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-lg">${task.name}</h3>
+                        <span class="text-sm px-2 py-1 rounded ${isCritical ? 'bg-purple-200 text-purple-800' : isIndependent ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'}">
+                            ${task.estimatedDays}일
+                        </span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-2">${task.description}</p>
+                    ${task.dependencies.length > 0 ? `
+                        <div class="text-sm text-gray-500">
+                            <span class="font-medium">의존성:</span> ${task.dependencies.length}개
+                        </div>
+                    ` : '<div class="text-sm text-green-600 font-medium">독립 실행 가능</div>'}
+                </div>
+            `;
+        }
+
+        // 통계 업데이트
+        function updateStats(tasks) {
+            const totalTasks = tasks.length;
+            const independentTasks = tasks.filter(t => t.dependencies.length === 0).length;
+            const dependentTasks = totalTasks - independentTasks;
+            const totalDays = Math.max(...tasks.map(t => t.estimatedDays));
+            
+            document.getElementById('totalTasks').textContent = totalTasks;
+            document.getElementById('independentTasks').textContent = independentTasks;
+            document.getElementById('dependentTasks').textContent = dependentTasks;
+            document.getElementById('estimatedTime').textContent = `${totalDays}일`;
+        }
+
+        // 초기화
+        async function init() {
+            const tasks = await fetchTasks();
+            const criticalPath = calculateCriticalPath(tasks);
+            
+            // 통계 업데이트
+            updateStats(tasks);
+            
+            // 네트워크 그래프 생성
+            createNetworkGraph(tasks);
+            
+            // 태스크 목록 생성
+            const taskListContainer = document.getElementById('taskList');
+            taskListContainer.innerHTML = tasks.map(task => createTaskCard(task, criticalPath)).join('');
+        }
+
+        // 페이지 로드 시 초기화
+        init();
+    </script>
+</body>
+</html>

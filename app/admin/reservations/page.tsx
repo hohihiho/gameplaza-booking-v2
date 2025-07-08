@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Calendar,
@@ -51,6 +51,8 @@ type Reservation = {
   device: {
     type_name: string;
     device_number: number;
+    model_name?: string;
+    version_name?: string;
   };
   date: string;
   time_slot: string;
@@ -119,7 +121,9 @@ export default function ReservationManagementPage() {
         },
         device: {
           type_name: res.devices?.device_types?.name || res.device_type_name || '알 수 없음',
-          device_number: res.devices?.device_number || res.device_number || 0
+          device_number: res.devices?.device_number || res.device_number || 0,
+          model_name: res.devices?.device_types?.model_name,
+          version_name: res.devices?.device_types?.version_name
         },
         date: res.date || '',
         time_slot: res.start_time && res.end_time ? 
@@ -395,9 +399,9 @@ export default function ReservationManagementPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <>
       {/* 상단 고정 헤더 */}
-      <div className="sticky top-16 z-30 bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+      <div className="sticky top-16 z-40 bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6">
           {/* 페이지 타이틀 */}
           <div className="pt-6 pb-4">
@@ -452,31 +456,61 @@ export default function ReservationManagementPage() {
               );
             })}
           </div>
+
+          {/* 검색 및 필터 */}
+          <div className="py-3 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="이름, 전화번호, 기기명으로 검색"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* 페이지네이션 (상단) */}
+          {reservations.length > itemsPerPage && (
+            <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+                
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                  {currentPage} / {Math.ceil(reservations.length / itemsPerPage)} 페이지
+                </span>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)))}
+                  disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
+                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 컨텐츠 영역 */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* 검색 및 필터 */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="이름, 전화번호, 기기명으로 검색"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+      <div className="max-w-7xl mx-auto px-6 py-6 min-h-screen bg-gray-50 dark:bg-gray-950">
 
         {/* 예약 목록 */}
         <div className="space-y-4">
@@ -511,7 +545,9 @@ export default function ReservationManagementPage() {
                   <div className="flex items-center gap-2">
                     <Gamepad2 className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {reservation.device.type_name} #{reservation.device.device_number}
+                      {reservation.device.type_name}
+                      {reservation.device.model_name && ` ${reservation.device.model_name}`}
+                      {reservation.device.device_number && ` #${reservation.device.device_number}`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -611,58 +647,6 @@ export default function ReservationManagementPage() {
           )}
         </div>
 
-        {/* 페이지네이션 */}
-        {reservations.length > itemsPerPage && (
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="flex gap-1">
-              {Array.from({ length: Math.ceil(reservations.length / itemsPerPage) }, (_, i) => i + 1)
-                .filter(page => {
-                  const totalPages = Math.ceil(reservations.length / itemsPerPage);
-                  if (totalPages <= 7) return true;
-                  if (page === 1 || page === totalPages) return true;
-                  if (Math.abs(page - currentPage) <= 2) return true;
-                  return false;
-                })
-                .map((page, index, array) => {
-                  const prevPage = array[index - 1];
-                  return (
-                    <React.Fragment key={page}>
-                      {index > 0 && prevPage !== undefined && prevPage < page - 1 && (
-                        <span className="px-2 py-1">...</span>
-                      )}
-                      <button
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-lg transition-colors ${
-                        currentPage === page
-                          ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                    </React.Fragment>
-                  );
-                })
-              }
-            </div>
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(reservations.length / itemsPerPage), prev + 1))}
-              disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        )}
 
         {/* 안내 메시지 */}
         {(tabCounts.pending || 0) > 0 && (
@@ -682,13 +666,30 @@ export default function ReservationManagementPage() {
         )}
 
       {/* 예약 상세 모달 */}
-      {selectedReservation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+      <AnimatePresence>
+        {selectedReservation && (
+          <motion.div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setSelectedReservation(null);
+              setShowTimeAdjustment(false);
+              setAdjustedStartTime('');
+              setAdjustedEndTime('');
+              setAdjustmentReason('');
+              setAdjustmentReasonType('');
+            }}
           >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold dark:text-white">예약 상세</h2>
@@ -999,17 +1000,32 @@ export default function ReservationManagementPage() {
               </div>
             </div>
           </motion.div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 취소 사유 입력 모달 */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl"
+      <AnimatePresence>
+        {showRejectModal && (
+          <motion.div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowRejectModal(false);
+              setRejectingReservationId(null);
+              setRejectReason('');
+            }}
           >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
                 <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -1102,10 +1118,11 @@ export default function ReservationManagementPage() {
                 {isLoading ? '처리 중...' : '예약 취소'}
               </button>
             </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
       </div>
-    </main>
+    </>
   );
 }

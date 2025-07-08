@@ -22,7 +22,9 @@ import {
   CheckSquare,
   BarChart3,
   Database,
-  Download
+  Download,
+  UserCog,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -46,17 +48,20 @@ export default function AdminLayout({
         return;
       }
 
-      // TODO: 실제 관리자 권한 확인
-      // 임시로 특정 이메일만 관리자로 설정
-      const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-      const isAdmin = adminEmails.includes(session.user.email || '');
-      
-      if (!isAdmin) {
+      try {
+        const response = await fetch('/api/admin/auth/check');
+        const data = await response.json();
+        
+        if (!response.ok || !data.isAdmin) {
+          router.push('/');
+          return;
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Admin check error:', error);
         router.push('/');
-        return;
       }
-
-      setIsLoading(false);
     };
 
     checkAdmin();
@@ -69,6 +74,8 @@ export default function AdminLayout({
     { href: '/admin/rental-devices', label: '대여기기관리', icon: Clock },
     { href: '/admin/reservations', label: '예약 관리', icon: Calendar },
     { href: '/admin/users', label: '회원 관리', icon: Users },
+    { href: '/admin/admins', label: '관리자 관리', icon: UserCog },
+    { href: '/admin/banned-words', label: '금지어 관리', icon: ShieldAlert },
     { href: '/admin/schedule', label: '운영 일정', icon: CalendarDays },
     { href: '/admin/analytics/reservations', label: '통계 분석', icon: BarChart3 },
     { href: '/admin/content', label: '콘텐츠 관리', icon: FileText },
@@ -201,7 +208,7 @@ export default function AdminLayout({
         )}
 
         {/* 메인 콘텐츠 */}
-        <main className="flex-1 min-h-screen lg:overflow-y-auto">
+        <main className="flex-1 min-h-screen">
           {children}
         </main>
       </div>

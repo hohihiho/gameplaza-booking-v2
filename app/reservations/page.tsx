@@ -138,7 +138,7 @@ export default function ReservationsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <>
       {/* 상단 고정 헤더 */}
       <div className="sticky top-16 z-30 bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto px-5">
@@ -180,62 +180,34 @@ export default function ReservationsPage() {
 
           {/* 페이지네이션 (상단) */}
           {reservations.length > itemsPerPage && (
-            <div className="py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2">
+            <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </button>
                 
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                   {currentPage} / {Math.ceil(reservations.length / itemsPerPage)} 페이지
                 </span>
                 
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)))}
                   disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
-                  className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </button>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.ceil(reservations.length / itemsPerPage) }, (_, i) => i + 1)
-                  .filter(page => {
-                    const totalPages = Math.ceil(reservations.length / itemsPerPage);
-                    if (totalPages <= 5) return true;
-                    if (page === 1 || page === totalPages) return true;
-                    if (Math.abs(page - currentPage) <= 1) return true;
-                    return false;
-                  })
-                  .map((page, index, array) => (
-                    <div key={page} className="flex items-center">
-                      {index > 0 && array[index - 1] !== page - 1 && (
-                        <span className="px-1 text-gray-400">...</span>
-                      )}
-                      <button
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    </div>
-                  ))}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-5 pb-6">
+      <div className="max-w-4xl mx-auto px-5 pb-6 min-h-screen bg-gray-50 dark:bg-gray-950">
 
         {/* 예약 목록 */}
         <div className="mt-6">
@@ -279,7 +251,9 @@ export default function ReservationsPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-semibold text-lg dark:text-white">
-                      {reservation.devices?.device_types?.name} {reservation.devices?.device_number}번기
+                      {reservation.devices?.device_types?.name}
+                      {reservation.devices?.device_types?.model_name && ` ${reservation.devices.device_types.model_name}`}
+                      {reservation.devices?.device_number && ` ${reservation.devices.device_number}번기`}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       {formatDate(reservation.date)} {formatTime(reservation.start_time, reservation.end_time)} ({calculateDuration(reservation.start_time, reservation.end_time)}시간)
@@ -353,6 +327,6 @@ export default function ReservationsPage() {
           )}
         </div>
       </div>
-    </main>
+    </>
   );
 }

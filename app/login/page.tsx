@@ -13,10 +13,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  // 이미 로그인한 사용자는 콜백 페이지로 리다이렉트하여 프로필 확인
+  // 이미 로그인한 사용자는 홈으로 리다이렉트 (auth-check가 프로필 확인)
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push('/auth/callback');
+      router.push('/');
     }
   }, [status, router]);
 

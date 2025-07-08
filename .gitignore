@@ -42,3 +42,6 @@ supabase-info.txt
 
 # MCP
 .claude/.env*.local
+
+# YoYo AI version control directory
+.yoyo/

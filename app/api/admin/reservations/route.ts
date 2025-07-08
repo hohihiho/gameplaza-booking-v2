@@ -18,6 +18,8 @@ export async function GET() {
           device_number,
           device_types (
             name,
+            model_name,
+            version_name,
             category_id,
             device_categories (
               name

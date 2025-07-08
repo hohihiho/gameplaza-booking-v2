@@ -1,18 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, Gamepad2, Info, MapPin, Phone, Clock, CalendarDays } from 'lucide-react';
+import { Calendar, FileText, Gamepad2, Info, MapPin, Clock, CalendarDays, Download, MessageCircle, Map } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
+import { NaverMapIcon, KakaoMapIcon, GoogleMapIcon } from '@/app/components/MapIcons';
+
+// 클라이언트 사이드에서만 로드
+const GoogleMap = dynamic(() => import('@/app/components/GoogleMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="text-center">
+        <Map className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500 dark:text-gray-400">지도를 불러오는 중...</p>
+      </div>
+    </div>
+  )
+});
 
 export default function Home() {
   const { data: session } = useSession();
   const [supabase] = useState(() => createClient());
   const [storeInfo, setStoreInfo] = useState({
-    phone: '062-123-4567',
-    address: '광주광역시 서구 게임로 123',
-    hours: '매일 10:00 - 22:00'
+    address: '광주광역시 동구 충장로안길 6',
+    hours: '주중 12:00 - 22:00 / 주말 11:00 - 22:00',
+    kakaoChat: 'https://open.kakao.com/o/sJPbo3Sb'
   });
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   // Supabase에서 영업 정보 가져오기
   useEffect(() => {
@@ -21,17 +38,17 @@ export default function Home() {
         const { data: settings } = await supabase
           .from('settings')
           .select('key, value')
-          .in('key', ['store_phone', 'store_address', 'store_hours']);
+          .in('key', ['store_address', 'store_hours', 'kakao_chat_link']);
         
         if (settings) {
           const info = { ...storeInfo };
           settings.forEach(setting => {
-            if (setting.key === 'store_phone' && setting.value) {
-              info.phone = setting.value;
-            } else if (setting.key === 'store_address' && setting.value) {
+            if (setting.key === 'store_address' && setting.value) {
               info.address = setting.value;
             } else if (setting.key === 'store_hours' && setting.value) {
               info.hours = setting.value;
+            } else if (setting.key === 'kakao_chat_link' && setting.value) {
+              info.kakaoChat = setting.value;
             }
           });
           setStoreInfo(info);
@@ -44,9 +61,72 @@ export default function Home() {
     fetchStoreInfo();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PWA 설치 프롬프트 처리
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // 이미 PWA로 실행 중인지 확인
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallPrompt(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      console.log('User accepted the PWA installation');
+    }
+
+    setDeferredPrompt(null);
+    setShowInstallPrompt(false);
+  };
   
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {/* PWA 설치 배너 */}
+      {showInstallPrompt && (
+        <div className="bg-blue-600 text-white p-4">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Download className="w-5 h-5" />
+              <div>
+                <p className="font-medium">앱으로 설치하기</p>
+                <p className="text-sm text-blue-100">홈 화면에 추가하여 더 빠르게 접속하세요</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+              >
+                설치
+              </button>
+              <button
+                onClick={() => setShowInstallPrompt(false)}
+                className="text-blue-100 hover:text-white px-3 py-2"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 히어로 섹션 */}
       <section className="bg-white dark:bg-gray-900 py-16 px-5">
         <div className="max-w-6xl mx-auto">
@@ -192,31 +272,99 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 연락처 섹션 */}
-      <section className="py-16 px-5">
-        <div className="max-w-4xl mx-auto">
+      {/* 오시는 길 섹션 */}
+      <section className="py-16 px-5 bg-white dark:bg-gray-900">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-12 dark:text-white">오시는 길</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          
+          {/* 지도 영역 */}
+          <div className="mb-12">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden h-96 relative">
+              {/* 임시로 지도 비활성화 - API 키 문제 해결 필요 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <Map className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">지도를 준비중입니다</p>
+                  <p className="text-sm text-gray-400">아래 지도 앱으로 위치를 확인해주세요</p>
+                </div>
               </div>
-              <h4 className="font-medium mb-2 dark:text-white">전화번호</h4>
-              <p className="text-gray-600 dark:text-gray-400">{storeInfo.phone}</p>
             </div>
+          </div>
+          
+          {/* 정보 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* 카카오톡 상담 */}
+            <div className="text-center">
+              <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <h4 className="font-medium mb-2 dark:text-white">카카오톡 문의</h4>
+              <a 
+                href={storeInfo.kakaoChat}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors"
+              >
+                1:1 채팅 상담
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+            
+            {/* 주소 */}
             <div className="text-center">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <MapPin className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
               <h4 className="font-medium mb-2 dark:text-white">주소</h4>
-              <p className="text-gray-600 dark:text-gray-400">{storeInfo.address}</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{storeInfo.address}</p>
+              
+              {/* 지도 앱 링크들 */}
+              <div className="flex justify-center gap-3">
+                <a
+                  href={`https://map.naver.com/v5/search/${encodeURIComponent('게임플라자 ' + storeInfo.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                  title="네이버 지도에서 보기"
+                >
+                  <NaverMapIcon />
+                </a>
+                <a
+                  href={`https://map.kakao.com/?q=${encodeURIComponent('게임플라자 ' + storeInfo.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                  title="카카오맵에서 보기"
+                >
+                  <KakaoMapIcon />
+                </a>
+                <a
+                  href={`https://www.google.com/maps/search/${encodeURIComponent('게임플라자 ' + storeInfo.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                  title="구글 지도에서 보기"
+                >
+                  <GoogleMapIcon />
+                </a>
+              </div>
             </div>
+            
+            {/* 영업시간 */}
             <div className="text-center">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-6 h-6 text-gray-700 dark:text-gray-300" />
               </div>
               <h4 className="font-medium mb-2 dark:text-white">영업시간</h4>
               <p className="text-gray-600 dark:text-gray-400">{storeInfo.hours}</p>
+              <a 
+                href="/schedule" 
+                className="inline-block mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                운영 일정 확인 →
+              </a>
             </div>
           </div>
         </div>

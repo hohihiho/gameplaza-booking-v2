@@ -2,12 +2,13 @@
 // 비전공자 설명: 처음 로그인한 사용자가 추가 정보를 입력하는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase/client';
 import { /* User, Phone, */ Loader2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { sendVerificationCode, verifyCode as firebaseVerifyCode, clearRecaptcha } from '@/lib/firebase/client';
 
 export default function SignupPage() {
   const [nickname, setNickname] = useState('');
@@ -17,10 +18,14 @@ export default function SignupPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
+  const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   
   const router = useRouter();
   const { data: session, status } = useSession();
   const supabase = createClient();
+  const nicknameTimerRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     // 세션 확인
@@ -33,19 +38,111 @@ export default function SignupPage() {
     
     // 이미 프로필이 있는지 확인
     const checkProfile = async () => {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', session.user.email!)
-        .single();
+      const response = await fetch('/api/auth/profile');
+      const data = await response.json();
       
-      if (profile) {
+      if (data.exists && !data.incomplete) {
         router.push('/');
       }
     };
     
     checkProfile();
   }, [session, status, router, supabase]);
+
+  // 컴포넌트 언마운트 시 reCAPTCHA 정리
+  useEffect(() => {
+    return () => {
+      clearRecaptcha();
+    };
+  }, []);
+
+
+  const sendVerification = async () => {
+    if (!phone || phone.length < 13) {
+      setError('올바른 전화번호를 입력해주세요');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 먼저 서버에서 SMS 발송 한도 체크
+      const limitResponse = await fetch('/api/auth/phone/send-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone }),
+      });
+
+      const limitData = await limitResponse.json();
+
+      if (!limitResponse.ok) {
+        throw new Error(limitData.error || 'SMS 발송 한도를 확인할 수 없습니다');
+      }
+
+      // Firebase로 SMS 발송
+      const result = await sendVerificationCode(phone, 'recaptcha-container');
+
+      if (!result.success) {
+        throw new Error(result.error || '인증번호 발송에 실패했습니다');
+      }
+
+      setIsVerificationSent(true);
+      setSuccess('인증번호가 발송되었습니다');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      setError(error.message || '인증번호 발송에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    if (!verificationCode || verificationCode.length < 6) {
+      setError('6자리 인증번호를 입력해주세요');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Firebase로 인증 코드 확인
+      const result = await firebaseVerifyCode(verificationCode);
+
+      if (!result.success) {
+        throw new Error(result.error || '인증에 실패했습니다');
+      }
+
+      // 서버에 인증 확인
+      const response = await fetch('/api/auth/phone/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          idToken: result.idToken,
+          phone 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '인증에 실패했습니다');
+      }
+
+      setIsVerified(true);
+      setSuccess('전화번호 인증이 완료되었습니다');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      setError(error.message || '인증번호가 일치하지 않습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatPhoneNumber = (value: string) => {
     // 숫자만 추출
@@ -66,36 +163,68 @@ export default function SignupPage() {
     setPhone(formatted);
   };
 
-  const sendVerification = async () => {
-    if (!phone || phone.length < 13) {
-      setError('올바른 전화번호를 입력해주세요');
+
+  // 닉네임 검증
+  const checkNickname = async (value: string) => {
+    if (!value || value.length < 2) {
+      setNicknameError('닉네임은 2자 이상이어야 합니다');
+      return;
+    }
+    
+    if (value.length > 8) {
+      setNicknameError('닉네임은 8자 이하여야 합니다');
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    setIsCheckingNickname(true);
+    setNicknameError(null);
 
     try {
-      // 실제로는 SMS API를 연동해야 합니다
-      // 지금은 테스트를 위해 고정된 코드 사용
-      console.log('인증번호 발송:', phone);
-      setIsVerificationSent(true);
-      setError('테스트: 인증번호는 "123456" 입니다');
+      const response = await fetch('/api/moderation/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: value,
+          context: 'nickname'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.valid) {
+        setNicknameError(data.reason || '사용할 수 없는 닉네임입니다');
+      } else if (data.warning) {
+        setNicknameError(data.warning);
+      } else {
+        setNicknameError(null);
+      }
     } catch (error) {
-      setError('인증번호 발송에 실패했습니다');
+      console.error('닉네임 검증 오류:', error);
     } finally {
-      setIsLoading(false);
+      setIsCheckingNickname(false);
     }
   };
 
-  const verifyCode = () => {
-    // 실제로는 서버에서 확인해야 합니다
-    if (verificationCode === '123456') {
-      setIsVerified(true);
-      setError(null);
-    } else {
-      setError('인증번호가 일치하지 않습니다');
+  // 닉네임 변경 핸들러
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNickname(value);
+    
+    // 기존 타이머 클리어
+    if (nicknameTimerRef.current) {
+      clearTimeout(nicknameTimerRef.current);
     }
+    
+    // 디바운스를 위한 타이머
+    nicknameTimerRef.current = setTimeout(() => {
+      if (value) {
+        checkNickname(value);
+      } else {
+        setNicknameError(null);
+      }
+    }, 500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,29 +235,38 @@ export default function SignupPage() {
       return;
     }
 
+    if (nicknameError) {
+      setError('유효한 닉네임을 입력해주세요');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // users 테이블에 프로필 생성
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: session!.user.id,
-          email: session!.user.email!,
+      // API를 통해 회원가입 처리
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           nickname,
-          phone: phone.replace(/-/g, ''), // 하이픈 제거하여 저장
-          is_admin: false,
-          is_active: true
-        });
+          phone
+        }),
+      });
 
-      if (profileError) throw profileError;
+      const data = await response.json();
 
-      // 성공하면 홈으로 이동
-      router.push('/');
+      if (!response.ok) {
+        throw new Error(data.error || '회원가입 실패');
+      }
+
+      // 성공하면 환영 페이지로 이동
+      router.push('/welcome');
     } catch (error: any) {
       console.error('Signup error:', error);
-      setError('회원가입 중 오류가 발생했습니다');
+      setError(error.message || '회원가입 중 오류가 발생했습니다');
     } finally {
       setIsLoading(false);
     }
@@ -171,15 +309,33 @@ export default function SignupPage() {
               <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 닉네임
               </label>
-              <input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                placeholder="게임에서 사용할 닉네임"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={handleNicknameChange}
+                  className={`w-full px-4 py-3 border ${
+                    nicknameError 
+                      ? 'border-red-500 dark:border-red-500' 
+                      : 'border-gray-200 dark:border-gray-700'
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white`}
+                  placeholder="게임에서 사용할 닉네임 (2-8자)"
+                  minLength={2}
+                  maxLength={8}
+                  required
+                />
+                {isCheckingNickname && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  </div>
+                )}
+              </div>
+              {nicknameError && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {nicknameError}
+                </p>
+              )}
             </div>
 
             {/* 전화번호 */}
@@ -249,17 +405,22 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* 에러 메시지 */}
+            {/* 에러 및 성공 메시지 */}
             {error && (
               <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="p-3 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                {success}
               </div>
             )}
 
             {/* 가입 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || !nickname || !isVerified}
+              disabled={isLoading || !nickname || !isVerified || !!nicknameError || isCheckingNickname}
               className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
@@ -272,6 +433,9 @@ export default function SignupPage() {
               )}
             </button>
           </form>
+
+          {/* Firebase reCAPTCHA 컨테이너 */}
+          <div id="recaptcha-container"></div>
         </motion.div>
       </div>
     </main>

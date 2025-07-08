@@ -2,8 +2,8 @@
 // 비전공자 설명: 관리자가 휴무일, 특별 운영 시간 등을 관리하는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar,
   // CalendarDays,
@@ -20,7 +20,8 @@ import {
   Sun,
   Moon,
   Coffee,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -40,14 +41,8 @@ type ScheduleEvent = {
 };
 
 const eventTypeConfig = {
-  special: {
-    label: '특별 운영',
-    icon: Clock,
-    color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
-    borderColor: 'border-blue-200 dark:border-blue-800'
-  },
   early_open: {
-    label: '조기 오픈',
+    label: '조기 영업',
     icon: Sun,
     color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
     borderColor: 'border-yellow-200 dark:border-yellow-800'
@@ -64,17 +59,23 @@ const eventTypeConfig = {
     color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/20',
     borderColor: 'border-orange-200 dark:border-orange-800'
   },
-  event: {
-    label: '이벤트',
-    icon: Calendar,
-    color: 'text-green-600 bg-green-100 dark:bg-green-900/20',
-    borderColor: 'border-green-200 dark:border-green-800'
-  },
   reservation_block: {
     label: '예약 제한',
     icon: XCircle,
     color: 'text-red-600 bg-red-100 dark:bg-red-900/20',
     borderColor: 'border-red-200 dark:border-red-800'
+  },
+  special: {
+    label: '특별 운영',
+    icon: Clock,
+    color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
+    borderColor: 'border-blue-200 dark:border-blue-800'
+  },
+  event: {
+    label: '이벤트',
+    icon: Calendar,
+    color: 'text-green-600 bg-green-100 dark:bg-green-900/20',
+    borderColor: 'border-green-200 dark:border-green-800'
   }
 };
 
@@ -84,72 +85,69 @@ export default function ScheduleManagementPage() {
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<ScheduleEvent | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Mock 데이터
-  useEffect(() => {
-    setEvents([
-      {
-        id: '1',
-        date: '2024-01-01',
-        title: '신정 특별 운영',
-        type: 'special',
-        description: '새해 첫날 특별 운영 시간',
-        startTime: '10:00',
-        endTime: '20:00',
-        affectsReservation: true
-      },
-      {
-        id: '2',
-        date: '2024-01-15',
-        title: '조기 마감',
-        type: 'early_close',
-        description: '기기 정비로 인한 조기 마감',
-        endTime: '18:00',
-        affectsReservation: true
-      },
-      {
-        id: '3',
-        date: '2024-01-20',
-        title: '주말 밤샘 영업',
-        type: 'overnight',
-        description: '주말 특별 밤샘 영업',
-        endTime: '05:00',
-        affectsReservation: false
-      },
-      {
-        id: '4',
-        date: '2024-01-25',
-        title: '신규 기기 오픈 이벤트',
-        type: 'event',
-        description: '신규 기기 체험 이벤트',
-        affectsReservation: false
-      },
-      {
-        id: '5',
-        date: '2024-01-28',
-        endDate: '2024-01-30',
-        title: '시스템 점검',
-        type: 'reservation_block',
-        description: '시스템 업그레이드로 인한 예약 제한',
-        blockType: 'all_day',
-        affectsReservation: true
+  // 일정 데이터 불러오기
+  const loadEvents = async () => {
+    try {
+      setIsLoading(true);
+      const year = selectedMonth.getFullYear();
+      const month = selectedMonth.getMonth() + 1;
+      
+      const response = await fetch(`/api/admin/schedule?year=${year}&month=${month}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '일정을 불러올 수 없습니다');
       }
-    ]);
-  }, []);
+      
+      const { events: data } = await response.json();
+      
+      // 데이터 형식 변환
+      const formattedEvents = data.map((event: any) => ({
+        id: event.id,
+        date: event.date,
+        endDate: event.end_date,
+        title: event.title || eventTypeConfig[event.type as keyof typeof eventTypeConfig]?.label || '',
+        type: event.type,
+        description: event.description,
+        startTime: event.start_time,
+        endTime: event.end_time,
+        isRecurring: event.is_recurring,
+        recurringType: event.recurring_type,
+        affectsReservation: event.affects_reservation,
+        blockType: event.block_type
+      }));
+      
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error('일정 로드 실패:', error);
+      // 에러 처리 (토스트 메시지 등)
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 선택된 월이 변경될 때마다 데이터 다시 로드
+  useEffect(() => {
+    loadEvents();
+  }, [selectedMonth]);
 
   // 캘린더 데이터 생성
   const generateCalendarDays = () => {
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    const startDate = new Date(year, month, 1 - firstDay.getDay());
     
     const days = [];
     const current = new Date(startDate);
     
-    while (current <= lastDay || current.getDay() !== 0) {
+    // 6주 표시 (42일)
+    for (let i = 0; i < 42; i++) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
@@ -158,38 +156,118 @@ export default function ScheduleManagementPage() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const getEventsForDate = (date: string) => {
-    return events.filter(event => event.date === date);
+    return events.filter(event => {
+      // 단일 날짜 이벤트
+      if (!event.endDate) {
+        return event.date === date;
+      }
+      
+      // 기간 설정된 이벤트 - UTC 파싱 방지를 위해 로컬 시간으로 처리
+      const eventStart = new Date(event.date + 'T00:00:00');
+      const eventEnd = new Date(event.endDate + 'T00:00:00');
+      const checkDate = new Date(date + 'T00:00:00');
+      
+      return checkDate >= eventStart && checkDate <= eventEnd;
+    });
   };
 
-  const handleSaveEvent = (eventData: Partial<ScheduleEvent>) => {
-    if (editingEvent) {
-      setEvents(events.map(e => 
-        e.id === editingEvent.id ? { ...e, ...eventData } as ScheduleEvent : e
-      ));
-    } else {
-      const newEvent: ScheduleEvent = {
-        id: Date.now().toString(),
-        date: selectedDate || formatDate(new Date()),
-        title: '',
-        type: 'holiday',
-        affectsReservation: true,
-        ...eventData
-      } as ScheduleEvent;
-      setEvents([...events, newEvent]);
+  const handleSaveEvent = async (eventData: Partial<ScheduleEvent>) => {
+    try {
+      setIsLoading(true);
+      
+      // title 설정
+      const finalData = {
+        ...eventData,
+        title: eventData.type === 'event' 
+          ? (eventData.title || eventTypeConfig.event.label)
+          : eventTypeConfig[eventData.type as keyof typeof eventTypeConfig]?.label || ''
+      };
+
+      if (editingEvent) {
+        // 수정
+        const response = await fetch('/api/admin/schedule', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            id: editingEvent.id,
+            ...finalData
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || '일정 수정에 실패했습니다');
+        }
+      } else {
+        // 생성
+        const postData = {
+          date: selectedDate || formatDate(new Date()),
+          ...finalData
+        };
+        
+        const response = await fetch('/api/admin/schedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(postData),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || '일정 생성에 실패했습니다');
+        }
+      }
+      
+      // 데이터 새로고침
+      await loadEvents();
+      
+      setIsAddingEvent(false);
+      setEditingEvent(null);
+      setSelectedDate(null);
+    } catch (error) {
+      console.error('일정 저장 실패:', error);
+      alert(error instanceof Error ? error.message : '일정 저장에 실패했습니다');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsAddingEvent(false);
-    setEditingEvent(null);
-    setSelectedDate(null);
   };
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     if (!confirm('이 일정을 삭제하시겠습니까?')) return;
-    setEvents(events.filter(e => e.id !== eventId));
+    
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`/api/admin/schedule?id=${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '일정 삭제에 실패했습니다');
+      }
+      
+      // 데이터 새로고침
+      await loadEvents();
+    } catch (error) {
+      console.error('일정 삭제 실패:', error);
+      alert(error instanceof Error ? error.message : '일정 삭제에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const calendarDays = generateCalendarDays();
@@ -255,6 +333,11 @@ export default function ScheduleManagementPage() {
             </div>
 
             {/* 날짜 그리드 */}
+            {isLoading ? (
+              <div className="flex justify-center items-center h-96">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : (
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((date, index) => {
                 const dateStr = formatDate(date);
@@ -288,10 +371,10 @@ export default function ScheduleManagementPage() {
                         return (
                           <div
                             key={event.id}
-                            className={`text-xs px-1 py-0.5 rounded flex items-center gap-1 ${config.color}`}
+                            className={`text-xs px-1 py-0.5 rounded flex items-center gap-1 ${config.color} cursor-pointer`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingEvent(event);
+                              setViewingEvent(event);
                             }}
                           >
                             <Icon className="w-3 h-3" />
@@ -309,6 +392,7 @@ export default function ScheduleManagementPage() {
                 );
               })}
             </div>
+            )}
           </div>
         </div>
 
@@ -359,7 +443,7 @@ export default function ScheduleManagementPage() {
                     <div
                       key={event.id}
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                      onClick={() => setEditingEvent(event)}
+                      onClick={() => setViewingEvent(event)}
                     >
                       <div className="flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${config.color.split(' ')[0]}`} />
@@ -401,12 +485,25 @@ export default function ScheduleManagementPage() {
       </div>
 
       {/* 일정 추가/수정 모달 */}
+      <AnimatePresence>
       {(isAddingEvent || editingEvent) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }} 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => {
+            setIsAddingEvent(false);
+            setEditingEvent(null);
+            setSelectedDate(null);
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
             className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-semibold dark:text-white mb-6">
               {editingEvent ? '일정 수정' : '새 일정 추가'}
@@ -422,8 +519,124 @@ export default function ScheduleManagementPage() {
               }}
             />
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* 일정 상세보기 모달 */}
+      <AnimatePresence>
+      {viewingEvent && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }} 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" 
+          onClick={() => setViewingEvent(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold dark:text-white">
+                  {viewingEvent.title || eventTypeConfig[viewingEvent.type]?.label || ''}
+                </h2>
+                <button
+                  onClick={() => setViewingEvent(null)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                </button>
+              </div>
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${eventTypeConfig[viewingEvent.type].color}`}>
+                {React.createElement(eventTypeConfig[viewingEvent.type].icon, { className: "w-4 h-4" })}
+                {eventTypeConfig[viewingEvent.type].label}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">날짜</p>
+                <p className="font-medium dark:text-white">
+                  {new Date(viewingEvent.date + 'T00:00:00').toLocaleDateString('ko-KR')}
+                  {viewingEvent.endDate && ` ~ ${new Date(viewingEvent.endDate + 'T00:00:00').toLocaleDateString('ko-KR')}`}
+                </p>
+              </div>
+
+              {viewingEvent.description && (
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">설명</p>
+                  <p className="dark:text-white">{viewingEvent.description}</p>
+                </div>
+              )}
+
+              {viewingEvent.startTime && (
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">운영 시간</p>
+                  <p className="font-medium dark:text-white">
+                    {viewingEvent.startTime} ~ {viewingEvent.endTime}
+                  </p>
+                </div>
+              )}
+
+              {viewingEvent.type === 'reservation_block' && viewingEvent.blockType && (
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">예약 제한 범위</p>
+                  <p className="font-medium dark:text-white">
+                    {viewingEvent.blockType === 'early' && '조기 대여 제한'}
+                    {viewingEvent.blockType === 'overnight' && '밤샘 대여 제한'}
+                    {viewingEvent.blockType === 'all_day' && '종일 예약 제한'}
+                  </p>
+                </div>
+              )}
+
+              {viewingEvent.type === 'reservation_block' && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    ⚠️ 이 일정은 예약에 영향을 줍니다
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 mt-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setViewingEvent(null);
+                    setEditingEvent(viewingEvent);
+                  }}
+                  className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                >
+                  수정
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('정말 이 일정을 삭제하시겠습니까?')) {
+                      handleDeleteEvent(viewingEvent.id);
+                      setViewingEvent(null);
+                    }
+                  }}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  삭제
+                </button>
+              </div>
+              <button
+                onClick={() => setViewingEvent(null)}
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium"
+              >
+                닫기
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
 
       {/* 안내 메시지 */}
       <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
@@ -456,18 +669,43 @@ function EventForm({
   onSave: (event: Partial<ScheduleEvent>) => void;
   onCancel: () => void;
 }) {
+  // 타입별로 시간을 초기화 (수정 시에도 유지)
+  const getInitialTimes = () => {
+    if (event.id) {
+      // 수정 모드일 때는 기존 값 유지
+      return {
+        startTime: event.startTime || '',
+        endTime: event.endTime || ''
+      };
+    }
+    // 새로 생성할 때만 초기화
+    switch (event.type) {
+      case 'early_open':
+        return { startTime: '', endTime: '' };
+      case 'early_close':
+        return { startTime: '', endTime: '' };
+      case 'overnight':
+        return { startTime: '', endTime: '' };
+      default:
+        return { startTime: '', endTime: '' };
+    }
+  };
+
+  const initialTimes = getInitialTimes();
+  
   const [formData, setFormData] = useState({
     date: event.date || '',
     endDate: event.endDate || '',
+    type: event.type || 'early_open',
     title: event.title || '',
-    type: event.type || 'special',
     description: event.description || '',
-    startTime: event.startTime || '',
-    endTime: event.endTime || '',
-    affectsReservation: event.affectsReservation ?? true,
+    startTime: initialTimes.startTime,
+    endTime: initialTimes.endTime,
+    affectsReservation: event.affectsReservation ?? (event.type === 'reservation_block'),
     blockType: event.blockType || 'all_day'
   });
   const [isPeriod, setIsPeriod] = useState(!!event.endDate);
+  const [isAllDay, setIsAllDay] = useState(!event.startTime && !event.endTime);
   const [blockOptions, setBlockOptions] = useState({
     early: event.blockType === 'early' || event.blockType === 'all_day',
     overnight: event.blockType === 'overnight' || event.blockType === 'all_day'
@@ -477,11 +715,11 @@ function EventForm({
   useEffect(() => {
     if (formData.type === 'reservation_block') {
       if (blockOptions.early && blockOptions.overnight) {
-        setFormData({ ...formData, blockType: 'all_day' });
+        setFormData({ ...formData, blockType: 'all_day', affectsReservation: true });
       } else if (blockOptions.early) {
-        setFormData({ ...formData, blockType: 'early' });
+        setFormData({ ...formData, blockType: 'early', affectsReservation: true });
       } else if (blockOptions.overnight) {
-        setFormData({ ...formData, blockType: 'overnight' });
+        setFormData({ ...formData, blockType: 'overnight', affectsReservation: true });
       }
     }
   }, [blockOptions, formData.type]);
@@ -491,6 +729,10 @@ function EventForm({
     const dataToSave: any = { ...formData };
     if (!isPeriod) {
       delete dataToSave.endDate;
+    }
+    // 예약 제한은 무조건 예약에 영향
+    if (dataToSave.type === 'reservation_block') {
+      dataToSave.affectsReservation = true;
     }
     onSave(dataToSave);
   };
@@ -543,27 +785,45 @@ function EventForm({
         </label>
         <select
           value={formData.type}
-          onChange={(e) => setFormData({ ...formData, type: e.target.value as ScheduleEvent['type'] })}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onChange={(e) => {
+            const newType = e.target.value as ScheduleEvent['type'];
+            setFormData({ 
+              ...formData, 
+              type: newType,
+              affectsReservation: newType === 'reservation_block'
+            });
+          }}
+          className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            event.id ? 'opacity-60 cursor-not-allowed' : ''
+          }`}
+          disabled={!!event.id}
         >
           {Object.entries(eventTypeConfig).map(([type, config]) => (
             <option key={type} value={type}>{config.label}</option>
           ))}
         </select>
+        {event.id && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            * 수정 시 일정 유형은 변경할 수 없습니다
+          </p>
+        )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          제목
-        </label>
-        <input
-          type="text"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-        />
-      </div>
+      {formData.type === 'event' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            이벤트 제목
+          </label>
+          <input
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="예: 신규 기기 오픈 이벤트"
+            required={formData.type === 'event'}
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -574,6 +834,7 @@ function EventForm({
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           rows={3}
+          placeholder="예: 기기 점검으로 인한 조기 마감"
         />
       </div>
 
@@ -612,49 +873,150 @@ function EventForm({
         </div>
       )}
 
-      {(formData.type === 'special' || formData.type === 'early_open' || formData.type === 'overnight' || formData.type === 'early_close') && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              시작 시간
-            </label>
+      {/* 특별 운영, 이벤트 - 종일 옵션과 시작/종료 시간 */}
+      {(formData.type === 'special' || formData.type === 'event') && (
+        <div>
+          <label className="flex items-center gap-2 mb-3">
             <input
-              type="time"
-              value={formData.startTime}
-              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              type="checkbox"
+              checked={isAllDay}
+              onChange={(e) => {
+                setIsAllDay(e.target.checked);
+                if (e.target.checked) {
+                  setFormData({ ...formData, startTime: '', endTime: '' });
+                }
+              }}
+              className="text-blue-600 rounded focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              종료 시간
-            </label>
-            <input
-              type="time"
-              value={formData.endTime}
-              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">종일</span>
+          </label>
+          {!isAllDay && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  시작 시간
+                </label>
+                <input
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  step="3600"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  종료 시간
+                </label>
+                <input
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  step="3600"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {formData.type === 'reservation_block' && (
-        <label className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.affectsReservation}
-            onChange={(e) => setFormData({ ...formData, affectsReservation: e.target.checked })}
-            className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500"
-          />
-          <div>
-            <span className="font-medium text-yellow-800 dark:text-yellow-200">예약에 영향</span>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              체크하면 이 날짜의 예약이 제한됩니다
-            </p>
+      {/* 조기 영업 - 시작 시간만 */}
+      {formData.type === 'early_open' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            오픈 시간
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[7, 8, 9, 10, 11, 12].map((hour) => (
+              <button
+                key={hour}
+                type="button"
+                onClick={() => setFormData({ ...formData, startTime: `${hour.toString().padStart(2, '0')}:00` })}
+                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+                  formData.startTime === `${hour.toString().padStart(2, '0')}:00` || 
+                  formData.startTime === `${hour.toString().padStart(2, '0')}:00:00`
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {hour}시
+              </button>
+            ))}
           </div>
-        </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            평소보다 일찍 영업을 시작하는 시간
+          </p>
+        </div>
       )}
+
+      {/* 조기 마감 - 종료 시간만 */}
+      {formData.type === 'early_close' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            마감 시간
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[21, 22, 23].map((hour) => (
+              <button
+                key={hour}
+                type="button"
+                onClick={() => setFormData({ ...formData, endTime: `${hour}:00` })}
+                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+                  formData.endTime === `${hour}:00` ||
+                  formData.endTime === `${hour}:00:00`
+                    ? 'bg-orange-600 text-white hover:bg-orange-700'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {hour}시
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            평소보다 일찍 영업을 종료하는 시간
+          </p>
+        </div>
+      )}
+
+      {/* 밤샘 영업 - 종료 시간만 */}
+      {formData.type === 'overnight' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            종료 시간 (다음날 새벽)
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, endTime: '04:00' })}
+              className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                formData.endTime === '04:00' || formData.endTime === '04:00:00'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              28시<br/>
+              <span className="text-xs opacity-75">(새벽 4시)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, endTime: '05:00' })}
+              className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                formData.endTime === '05:00' || formData.endTime === '05:00:00'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              29시<br/>
+              <span className="text-xs opacity-75">(새벽 5시)</span>
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            다음날 새벽까지 운영하는 종료 시간
+          </p>
+        </div>
+      )}
+
 
       <div className="flex gap-3">
         <button

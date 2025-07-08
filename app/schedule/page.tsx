@@ -37,9 +37,22 @@ type ReservationInfo = {
   id: string;
   deviceType: string;
   deviceNumber?: number;
+  modelName?: string;
+  versionName?: string;
   playerCount: number;
   time: string;
   slotType: 'early' | 'overnight' | 'regular';
+};
+
+// 24시간 이상 표시를 위한 포맷 함수
+const formatTime24Plus = (timeStr: string | null | undefined) => {
+  if (!timeStr) return '';
+  const [hour, minute] = timeStr.split(':');
+  const hourNum = parseInt(hour);
+  if (hourNum >= 0 && hourNum <= 5) {
+    return `${hourNum + 24}:${minute}`;
+  }
+  return `${hour}:${minute}`;
 };
 
 export default function SchedulePage() {
@@ -81,86 +94,91 @@ export default function SchedulePage() {
     loadDeviceColors();
   }, []);
   
-  // Supabase에서 운영 일정 및 예약 데이터 가져오기
+  // 운영 일정 및 예약 데이터 가져오기
   const fetchScheduleData = async () => {
     try {
       setIsLoading(true);
       
       // 현재 월의 시작일과 종료일 계산
-      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
       
-      // 1. 특별 운영 일정 가져오기
-      const { data: specialOps, error: specialOpsError } = await supabase
-        .from('special_operations')
-        .select('*')
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0]);
-
-      if (specialOpsError) {
-        // 테이블이 없는 경우는 무시
-        if (specialOpsError.message?.includes('does not exist')) {
-          console.log('special_operations 테이블이 없습니다. 건너뜁니다.');
-        } else {
-          throw specialOpsError;
-        }
+      // API를 통해 데이터 가져오기
+      const response = await fetch(`/api/public/schedule?year=${year}&month=${month}`);
+      if (!response.ok) {
+        throw new Error('데이터 조회에 실패했습니다');
       }
+      
+      const { scheduleEvents, reservations: reservationsData, devices } = await response.json();
+      
+      console.log('예약 데이터:', reservationsData);
+      console.log('기기 정보:', devices);
+      
+      // 기기 정보를 ID로 매핑
+      const devicesInfo: Record<string, any> = {};
+      devices.forEach((device: any) => {
+        devicesInfo[device.id] = device;
+      });
 
-      // 2. 예약 데이터 가져오기
-      const { data: reservationsData, error: reservationsError } = await supabase
-        .from('reservations')
-        .select(`
-          *,
-          rental_time_slots (
-            date,
-            start_time,
-            end_time,
-            slot_type
-          ),
-          device_types (
-            name
-          )
-        `)
-        .in('status', ['approved', 'checked_in'])
-        .gte('rental_time_slots.date', startDate.toISOString().split('T')[0])
-        .lte('rental_time_slots.date', endDate.toISOString().split('T')[0]);
-
-      if (reservationsError) throw reservationsError;
-
-      // 3. 특별 운영 일정 포맷팅
-      const formattedEvents: ScheduleEvent[] = (specialOps || []).map(op => ({
-        id: op.id,
-        date: op.date,
-        title: op.operation_type === 'early' ? '조기 오픈' : '밤샘 영업',
-        type: op.operation_type === 'early' ? 'early_open' : 'overnight',
-        description: op.notes || '',
-        startTime: op.operation_type === 'early' ? '07:00' : undefined,
-        endTime: op.operation_type === 'overnight' ? '05:00' : undefined,
-        affectsReservation: false
+      // 3. 운영 일정 포맷팅
+      const formattedEvents: ScheduleEvent[] = (scheduleEvents || []).map(event => ({
+        id: event.id,
+        date: event.date,
+        endDate: event.end_date,
+        title: event.title,
+        type: event.type,
+        description: event.description || '',
+        startTime: event.start_time,
+        endTime: event.end_time,
+        affectsReservation: event.affects_reservation,
+        blockType: event.block_type
       }));
 
       // 4. 예약 데이터를 날짜별로 그룹화
       const reservationsByDate = (reservationsData || []).reduce((acc: Record<string, any[]>, res) => {
-        const date = res.rental_time_slots?.date;
+        const date = res.date;
         if (!date) return acc;
         
         if (!acc[date]) {
           acc[date] = [];
         }
         
+        // 시간대 분석 (조기/밤샘/일반)
+        let slotType = 'regular';
+        if (res.start_time) {
+          const hour = parseInt(res.start_time.split(':')[0]);
+          if (hour >= 7 && hour < 12) {
+            slotType = 'early';
+          } else if (hour >= 0 && hour < 6) {
+            slotType = 'overnight';
+          }
+        }
+        
+        const device = devicesInfo[res.device_id];
+        const deviceName = device?.device_types?.name || '알 수 없음';
+        const machineNumber = device?.device_number || '';
+        const modelName = device?.device_types?.model_name || '';
+        const versionName = device?.device_types?.version_name || '';
+        const timeStr = res.start_time && res.end_time 
+          ? `${res.start_time.slice(0, 5)}-${res.end_time.slice(0, 5)}`
+          : '';
+        
         acc[date].push({
           id: res.id,
-          deviceType: res.device_types?.name || '알 수 없음',
-          deviceNumber: res.device_number,
+          deviceType: deviceName,
+          deviceNumber: machineNumber,
+          modelName: modelName,
+          versionName: versionName,
           playerCount: res.player_count || 1,
-          time: `${res.rental_time_slots.start_time.slice(0, 5)}-${res.rental_time_slots.end_time.slice(0, 5)}`,
-          slotType: res.rental_time_slots.slot_type || 'regular'
+          time: timeStr,
+          slotType
         });
         
         return acc;
       }, {});
 
       // 5. 예약 이벤트 생성
+      console.log('reservationsByDate:', reservationsByDate);
       const reservationEvents: ScheduleEvent[] = Object.entries(reservationsByDate).map(([date, reservations]) => {
         const earlyCount = reservations.filter(r => r.slotType === 'early').length;
         const overnightCount = reservations.filter(r => r.slotType === 'overnight').length;
@@ -185,19 +203,17 @@ export default function SchedulePage() {
         };
       });
 
-      // 6. 설정에서 추가 이벤트 가져오기 (예: 휴무일, 특별 이벤트 등)
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'special_events')
-        .single();
-
-      const additionalEvents: ScheduleEvent[] = settingsData?.value?.events || [];
+      // 추가 이벤트는 사용하지 않음
+      const additionalEvents: ScheduleEvent[] = [];
       
       // 모든 이벤트 합치기
+      console.log('formattedEvents:', formattedEvents);
+      console.log('reservationEvents:', reservationEvents);
       setEvents([...formattedEvents, ...reservationEvents, ...additionalEvents]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('운영 일정 불러오기 실패:', error);
+      console.error('에러 메시지:', error?.message);
+      console.error('에러 상세:', error?.details);
       setEvents([]);
     } finally {
       setIsLoading(false);
@@ -218,7 +234,7 @@ export default function SchedulePage() {
         {
           event: '*',
           schema: 'public',
-          table: 'special_operations'
+          table: 'schedule_events'
         },
         () => {
           fetchScheduleData();
@@ -266,7 +282,19 @@ export default function SchedulePage() {
   };
   
   const getEventsForDate = (date: string) => {
-    return events.filter(event => event.date === date);
+    return events.filter(event => {
+      // 단일 날짜 이벤트
+      if (!event.endDate) {
+        return event.date === date;
+      }
+      
+      // 기간 설정된 이벤트 - UTC 파싱 방지를 위해 로컬 시간으로 처리
+      const eventStart = new Date(event.date + 'T00:00:00');
+      const eventEnd = new Date(event.endDate + 'T00:00:00');
+      const checkDate = new Date(date + 'T00:00:00');
+      
+      return checkDate >= eventStart && checkDate <= eventEnd;
+    });
   };
   
   const changeMonth = (increment: number) => {
@@ -395,7 +423,7 @@ export default function SchedulePage() {
                 <div className="py-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">금, 토, 공휴일 전날</span>
-                    <span className="font-medium dark:text-white">11:00 - 05:00</span>
+                    <span className="font-medium dark:text-white">12:00 - 29:00</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                     밤샘 영업 (익일 새벽 5시까지)
@@ -511,17 +539,23 @@ export default function SchedulePage() {
                           
                           return (
                             <>
-                              {/* 일반 이벤트 표시 - 모바일에서는 아이콘만 */}
+                              {/* 일반 이벤트 표시 */}
                               {regularEvents.slice(0, 2).map(event => {
                                 const config = eventTypeConfig[event.type];
                                 const Icon = config?.icon || Calendar;
+                                const displayTitle = event.type === 'reservation_block' && event.blockType === 'early' ? '조기 제한' :
+                                                   event.type === 'reservation_block' && event.blockType === 'overnight' ? '밤샘 제한' :
+                                                   event.type === 'reservation_block' && event.blockType === 'all_day' ? '종일 제한' :
+                                                   event.title;
                                 return (
                                   <div
                                     key={event.id}
                                     className={`text-xs px-1 py-0.5 rounded flex items-center gap-1 ${config?.color || 'bg-gray-100'}`}
                                   >
                                     <Icon className="w-3 h-3" />
-                                    <span className="hidden md:inline truncate">{event.title}</span>
+                                    <span className="truncate text-[10px] md:text-xs">
+                                      {displayTitle}
+                                    </span>
                                   </div>
                                 );
                               })}
@@ -651,66 +685,6 @@ export default function SchedulePage() {
               </div>
             </div>
           </div>
-          
-          {/* 예정된 일정 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-bold mb-4 dark:text-white">이번 달 주요 일정</h2>
-              
-              {events.filter(event => event.date.startsWith(currentMonth.toISOString().slice(0, 7))).length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">이번 달에는 특별한 일정이 없습니다</p>
-              ) : (
-                <div className="space-y-3">
-              {events
-                .filter(event => event.date.startsWith(currentMonth.toISOString().slice(0, 7)))
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .map(event => (
-                  <div key={event.id} className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex-shrink-0">
-                      {(() => {
-                        const config = eventTypeConfig[event.type];
-                        const Icon = config?.icon || Calendar;
-                        return (
-                          <div className={`p-2 rounded ${config?.color || 'bg-gray-100'}`}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium dark:text-white">{event.title}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {new Date(event.date).toLocaleDateString('ko-KR', {
-                              month: 'long',
-                              day: 'numeric',
-                              weekday: 'short'
-                            })}
-                            {event.endDate && ` ~ ${new Date(event.endDate).getDate()}일`}
-                            {event.type === 'reservation_block' && event.blockType && (
-                              <span className="ml-2">
-                                {event.blockType === 'early' && '(조기 대여 제한)'}
-                                {event.blockType === 'overnight' && '(밤샘 대여 제한)'}
-                                {event.blockType === 'all_day' && '(종일 예약 제한)'}
-                              </span>
-                            )}
-                            {event.startTime && event.type !== 'reservation_block' && ` • ${event.startTime}`}
-                            {event.endTime && event.type !== 'reservation_block' && ` - ${event.endTime}`}
-                          </p>
-                          {event.description && (
-                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">{event.description}</p>
-                          )}
-                        </div>
-                        <span className="text-xs px-2 py-1 bg-white dark:bg-gray-900 rounded">
-                          {eventTypeConfig[event.type]?.label || ''}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       
@@ -767,11 +741,33 @@ export default function SchedulePage() {
                         );
                       })()}
                     </div>
-                    <h4 className="font-medium dark:text-white">{event.title}</h4>
-                    {(event.startTime || event.endTime) && (
+                    <h4 className="font-medium dark:text-white">
+                      {event.type === 'reservation_block' && event.blockType === 'early' ? '조기 제한' :
+                       event.type === 'reservation_block' && event.blockType === 'overnight' ? '밤샘 제한' :
+                       event.type === 'reservation_block' && event.blockType === 'all_day' ? '종일 제한' :
+                       event.title}
+                    </h4>
+                    {(event.startTime || event.endTime) && event.type !== 'overnight' && event.type !== 'early_close' && event.type !== 'reservation_block' && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         {event.startTime && `${event.startTime}`}
                         {event.endTime && ` - ${event.endTime}`}
+                      </p>
+                    )}
+                    {event.endTime && event.type === 'overnight' && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {formatTime24Plus(event.endTime).slice(0, 5)}
+                      </p>
+                    )}
+                    {event.endTime && event.type === 'early_close' && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {event.endTime}
+                      </p>
+                    )}
+                    {event.type === 'reservation_block' && event.blockType && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {event.blockType === 'early' && '조기 대여 제한'}
+                        {event.blockType === 'overnight' && '밤샘 대여 제한'}
+                        {event.blockType === 'all_day' && '종일 예약 제한'}
                       </p>
                     )}
                     {event.description && (
@@ -822,8 +818,9 @@ export default function SchedulePage() {
                                       {reservations.map((res) => (
                                         <div key={res.id} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                                           <span>
-                                            {res.deviceNumber && `${res.deviceNumber}번기 • `}
-                                            {res.playerCount}인 플레이
+                                            {res.modelName && `${res.modelName} : `}
+                                            {res.deviceNumber && `${res.deviceNumber}번기`}
+                                            {` • ${res.playerCount}인 플레이`}
                                           </span>
                                           <span className="font-mono">{res.time}</span>
                                         </div>
@@ -879,8 +876,9 @@ export default function SchedulePage() {
                                       {reservations.map((res) => (
                                         <div key={res.id} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                                           <span>
-                                            {res.deviceNumber && `${res.deviceNumber}번기 • `}
-                                            {res.playerCount}인 플레이
+                                            {res.modelName && `${res.modelName} : `}
+                                            {res.deviceNumber && `${res.deviceNumber}번기`}
+                                            {` • ${res.playerCount}인 플레이`}
                                           </span>
                                           <span className="font-mono">{res.time}</span>
                                         </div>

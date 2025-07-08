@@ -9,9 +9,9 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // 현재 사용자 확인 (NextAuth 사용)
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
@@ -48,20 +48,20 @@ export async function POST(request: Request) {
     let { data: userData } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('email', user.email)
+      .eq('email', session.user.email)
       .single()
 
     // 사용자가 없으면 생성 (Admin 권한으로)
     if (!userData) {
-      // UUID 생성
-      const userId = crypto.randomUUID()
+      // NextAuth ID 사용
+      const userId = session.user.id || crypto.randomUUID()
       
       const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
           id: userId,
-          email: user.email,
-          name: user.email?.split('@')[0] || 'User',
+          email: session.user.email,
+          name: session.user.name || session.user.email?.split('@')[0] || 'User',
           role: 'user',
           created_at: new Date().toISOString()
         })
@@ -234,15 +234,15 @@ export async function GET(request: Request) {
 
     // 사용자가 없으면 생성 (Admin 권한으로)
     if (!userData) {
-      // UUID 생성
-      const userId = crypto.randomUUID()
+      // NextAuth ID 사용
+      const userId = session.user.id || crypto.randomUUID()
       
       const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
           id: userId,
           email: session.user.email,
-          name: session.user.email?.split('@')[0] || 'User',
+          name: session.user.name || session.user.email?.split('@')[0] || 'User',
           role: 'user',
           created_at: new Date().toISOString()
         })
@@ -270,6 +270,8 @@ export async function GET(request: Request) {
           status,
           device_types(
             name,
+            model_name,
+            version_name,
             category_id,
             device_categories(
               name

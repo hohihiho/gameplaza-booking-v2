@@ -27,6 +27,8 @@ interface DeviceType {
   id: string;
   name: string;
   category_name: string;
+  model_name?: string;
+  version_name?: string;
   is_rentable: boolean;
   device_count: number; // 전체 보유 대수
   rental_settings?: {
@@ -395,7 +397,19 @@ export default function RentalDevicesPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold dark:text-white">{device.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{device.category_name}</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {device.model_name && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                        모델: {device.model_name}
+                      </span>
+                    )}
+                    {device.version_name && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                        버전: {device.version_name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{device.category_name}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* 모바일용 화살표 버튼 */}
@@ -594,9 +608,23 @@ export default function RentalDevicesPage() {
           </button>
           <h1 className="text-2xl font-bold dark:text-white">{selectedDevice.name} 시간대별 가격</h1>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-          시간대별로 다른 가격을 설정할 수 있습니다
-        </p>
+        <div className="ml-11">
+          <div className="flex flex-wrap gap-2">
+            {selectedDevice.model_name && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                모델: {selectedDevice.model_name}
+              </span>
+            )}
+            {selectedDevice.version_name && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                버전: {selectedDevice.version_name}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            시간대별로 다른 가격을 설정할 수 있습니다
+          </p>
+        </div>
       </div>
 
       {/* 대여 가능 대수 및 색상 설정 */}

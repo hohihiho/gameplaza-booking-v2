@@ -50,6 +50,12 @@ type CheckInReservation = {
       price: number;
     }[];
   };
+  device?: {
+    device_types?: {
+      model_name?: string;
+      version_name?: string;
+    };
+  };
   date: string;
   time_slot: string;
   player_count: number;
@@ -71,6 +77,10 @@ type AvailableDevice = {
   device_number: number;
   status: 'available' | 'rental' | 'maintenance';
   last_used?: string;
+  device_types?: {
+    model_name?: string;
+    version_name?: string;
+  };
 };
 
 export default function CheckInPage() {
@@ -130,11 +140,17 @@ export default function CheckInPage() {
             name,
             company,
             play_modes
+          ),
+          devices (
+            device_number,
+            device_types (
+              model_name,
+              version_name
+            )
           )
         `)
         .in('status', ['approved', 'checked_in', 'completed'])
-        .eq('rental_time_slots.date', today)
-        .order('rental_time_slots.start_time', { ascending: true });
+        .eq('rental_time_slots.date', today);
 
       if (error) throw error;
 
@@ -152,6 +168,12 @@ export default function CheckInPage() {
           name: res.device_types?.name || '알 수 없음',
           play_modes: res.device_types?.play_modes || []
         },
+        device: res.devices ? {
+          device_types: {
+            model_name: res.devices.device_types?.model_name,
+            version_name: res.devices.device_types?.version_name
+          }
+        } : undefined,
         date: res.rental_time_slots?.date || today,
         time_slot: res.rental_time_slots ? 
           `${res.rental_time_slots.start_time.slice(0, 5)}-${res.rental_time_slots.end_time.slice(0, 5)}` : '',
@@ -162,7 +184,7 @@ export default function CheckInPage() {
         status: res.status,
         payment_status: res.payment_confirmed_at ? 'confirmed' : 'pending',
         payment_method: res.payment_method,
-        assigned_device_number: res.device_number,
+        assigned_device_number: res.devices?.device_number || res.device_number,
         check_in_time: res.check_in_at,
         actual_start_time: res.actual_start_time,
         actual_end_time: res.actual_end_time,
@@ -171,7 +193,14 @@ export default function CheckInPage() {
         rental_time_slot_id: res.rental_time_slots?.id
       }));
 
-      setTodayReservations(formattedReservations);
+      // 클라이언트 사이드에서 시간순 정렬
+      const sortedReservations = formattedReservations.sort((a, b) => {
+        const timeA = a.time_slot.split('-')[0] || '';
+        const timeB = b.time_slot.split('-')[0] || '';
+        return timeA.localeCompare(timeB);
+      });
+
+      setTodayReservations(sortedReservations);
     } catch (error) {
       console.error('예약 데이터 불러오기 실패:', error);
       setTodayReservations([]);
@@ -214,9 +243,14 @@ export default function CheckInPage() {
       // Supabase에서 해당 기기 타입의 모든 기기 가져오기
       const { data: devicesData, error } = await supabase
         .from('devices')
-        .select('*')
+        .select(`
+          *,
+          device_types (
+            model_name,
+            version_name
+          )
+        `)
         .eq('device_type_id', deviceTypeId)
-        .eq('is_active', true)
         .order('device_number', { ascending: true });
 
       if (error) throw error;
@@ -240,7 +274,11 @@ export default function CheckInPage() {
         device_number: device.device_number,
         status: device.status === 'maintenance' ? 'maintenance' : 
                 inUseDevices.has(device.device_number) ? 'rental' : 'available',
-        last_used: device.updated_at
+        last_used: device.updated_at,
+        device_types: {
+          model_name: device.device_types?.model_name,
+          version_name: device.device_types?.version_name
+        }
       }));
 
       setAvailableDevices(formattedDevices);
@@ -587,7 +625,10 @@ export default function CheckInPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                           <Gamepad2 className="w-4 h-4" />
-                          <span>{reservation.device_type.name}</span>
+                          <span>
+                            {reservation.device_type.name}
+                            {reservation.device?.device_types?.model_name && ` ${reservation.device.device_types.model_name}`}
+                          </span>
                           {reservation.assigned_device_number && (
                             <span className="font-semibold text-blue-600 dark:text-blue-400">
                               #{reservation.assigned_device_number}
@@ -813,6 +854,11 @@ export default function CheckInPage() {
                     >
                       <Hash className="w-6 h-6 mx-auto mb-1 text-gray-600 dark:text-gray-400" />
                       <p className="font-semibold dark:text-white">{device.device_number}번기</p>
+                      {device.device_types?.model_name && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                          {device.device_types.model_name}
+                        </p>
+                      )}
                       <p className={`text-xs mt-1 ${
                         device.status === 'available' 
                           ? 'text-green-600 dark:text-green-400' 

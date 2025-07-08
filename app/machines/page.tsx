@@ -20,6 +20,8 @@ type DeviceType = {
   name: string;
   company: string; // 제조사
   description?: string;
+  model_name?: string;
+  version_name?: string;
   play_price: string; // 일반 플레이 요금
   is_rentable: boolean; // 대여 가능 여부
   total_count: number;
@@ -145,6 +147,8 @@ export default function MachinesPage() {
           name: type.name,
           company: type.device_categories?.name || 'Unknown',
           description: type.description || '',
+          model_name: type.model_name,
+          version_name: type.version_name,
           play_price: '현장 문의',
           is_rentable: type.is_rentable || false,
           total_count: type.devices?.length || 0,
@@ -400,9 +404,23 @@ export default function MachinesPage() {
                                 {deviceType.company}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {deviceType.description}
-                            </p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {deviceType.model_name && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                  모델: {deviceType.model_name}
+                                </span>
+                              )}
+                              {deviceType.version_name && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                  버전: {deviceType.version_name}
+                                </span>
+                              )}
+                              {!deviceType.model_name && !deviceType.version_name && deviceType.description && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {deviceType.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <span className="text-sm text-gray-500">
                             {deviceType.total_count}대 보유

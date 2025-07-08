@@ -19,9 +19,7 @@ export default function Navigation() {
   const { data: session, status } = useSession();
   
   const user = session?.user;
-  // 임시로 직접 이메일 체크
-  const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-  const isAdmin = session?.user?.isAdmin === true || (user?.email && adminEmails.includes(user.email));
+  const isAdmin = session?.user?.isAdmin === true;
   
 
   // 세션 변경 감지 및 강제 새로고침

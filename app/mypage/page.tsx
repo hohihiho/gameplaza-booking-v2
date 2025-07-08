@@ -2,17 +2,40 @@
 // 비전공자 설명: 사용자의 개인정보와 설정을 관리하는 페이지입니다
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { User, Bell, LogOut, UserX } from 'lucide-react';
+import { User, Bell, LogOut, UserX, ChevronRight, Edit2 } from 'lucide-react';
 
 export default function MyPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [notifications, setNotifications] = useState({
     reservation: true,
     event: true,
   });
+
+  useEffect(() => {
+    // 프로필 정보 불러오기
+    const loadProfile = async () => {
+      if (!session?.user?.email) return;
+      
+      try {
+        const response = await fetch('/api/auth/profile');
+        const data = await response.json();
+        
+        if (data.profile) {
+          setUserProfile(data.profile);
+        }
+      } catch (error) {
+        console.error('프로필 로드 오류:', error);
+      }
+    };
+
+    loadProfile();
+  }, [session]);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' });
@@ -43,43 +66,45 @@ export default function MyPage() {
                 <User className="w-8 h-8 text-gray-400" />
               )}
             </div>
-            <div>
-              <h3 className="font-medium text-lg dark:text-white">{session?.user?.name || '사용자'}</h3>
+            <div className="flex-1">
+              <h3 className="font-medium text-lg dark:text-white">
+                {userProfile?.nickname || session?.user?.name || '사용자'}
+              </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{session?.user?.email || ''}</p>
             </div>
+            <button
+              onClick={() => router.push('/mypage/profile')}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <Edit2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
           
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                닉네임
-              </label>
-              <input 
-                type="text" 
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                placeholder="게임왕"
-              />
+          {/* 프로필 정보 표시 */}
+          <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">닉네임</span>
+              <span className="text-sm font-medium dark:text-white">
+                {userProfile?.nickname || '-'}
+              </span>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                전화번호
-              </label>
-              <div className="flex gap-2">
-                <input 
-                  type="tel" 
-                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                  placeholder="010-1234-5678"
-                />
-                <button className="px-4 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  인증하기
-                </button>
-              </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">전화번호</span>
+              <span className="text-sm font-medium dark:text-white">
+                {userProfile?.phone ? 
+                  `${userProfile.phone.slice(0, 3)}-${userProfile.phone.slice(3, 7)}-${userProfile.phone.slice(7)}` 
+                  : '-'
+                }
+              </span>
             </div>
           </div>
           
-          <button className="w-full mt-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-            정보 수정
+          <button 
+            onClick={() => router.push('/mypage/profile')}
+            className="w-full mt-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            프로필 수정
           </button>
         </section>
 

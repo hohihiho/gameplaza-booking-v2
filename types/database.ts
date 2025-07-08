@@ -57,6 +57,8 @@ export interface Database {
           company: string
           display_order: number
           rental_settings: Json
+          model_name: string | null
+          version_name: string | null
           created_at: string
           updated_at: string
         }
@@ -66,6 +68,8 @@ export interface Database {
           company: string
           display_order?: number
           rental_settings?: Json
+          model_name?: string | null
+          version_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -75,6 +79,8 @@ export interface Database {
           company?: string
           display_order?: number
           rental_settings?: Json
+          model_name?: string | null
+          version_name?: string | null
           created_at?: string
           updated_at?: string
         }
