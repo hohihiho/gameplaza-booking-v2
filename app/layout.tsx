@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Orbitron } from 'next/font/google'
+import { Orbitron } from 'next/font/google'
 import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
@@ -8,7 +8,6 @@ import { MapPin, MessageCircle, Clock } from 'lucide-react'
 import { StagewiseToolbar } from '@stagewise/toolbar-next'
 import { ReactPlugin } from '@stagewise-plugins/react'
 
-const inter = Inter({ subsets: ['latin'] })
 const orbitron = Orbitron({ 
   subsets: ['latin'],
   display: 'swap',
@@ -54,7 +53,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className={`${inter.className} ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
+      <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
         <Providers>
           <ThemeProvider>
             {/* Stagewise 툴바 - 개발 모드에서만 활성화 */}

@@ -11,6 +11,7 @@ module.exports = {
     extend: {
       // 커스텀 폰트
       fontFamily: {
+        sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
         orbitron: ['var(--font-orbitron)', 'sans-serif'],
       },
       // 커스텀 색상 팔레트 정의

@@ -4,11 +4,23 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { createClient } from '@/lib/supabase/client';
-import { /* User, Phone, */ Loader2, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { sendVerificationCode, verifyCode as firebaseVerifyCode, clearRecaptcha } from '@/lib/firebase/client';
+import { useSession, signOut } from 'next-auth/react';
+import { createClient } from '@/lib/supabase';
+import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+// Firebase imports with error handling
+let sendVerificationCode: any;
+let firebaseVerifyCode: any; 
+let clearRecaptcha: any;
+
+try {
+  const firebaseModule = require('@/lib/firebase/client');
+  sendVerificationCode = firebaseModule.sendVerificationCode;
+  firebaseVerifyCode = firebaseModule.verifyCode;
+  clearRecaptcha = firebaseModule.clearRecaptcha;
+} catch (error) {
+  console.warn('Firebase module not available');
+}
 
 export default function SignupPage() {
   const [nickname, setNickname] = useState('');
@@ -21,6 +33,21 @@ export default function SignupPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
+  
+  // 약관 동의 상태
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeAge, setAgreeAge] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [agreeAll, setAgreeAll] = useState(false);
+  
+  // 모달 상태
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  
+  // 약관 내용
+  const [termsContent, setTermsContent] = useState('');
+  const [privacyContent, setPrivacyContent] = useState('');
   
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -49,15 +76,79 @@ export default function SignupPage() {
     checkProfile();
   }, [session, status, router, supabase]);
 
-  // 컴포넌트 언마운트 시 reCAPTCHA 정리
+  // 약관 내용 불러오기
   useEffect(() => {
-    return () => {
-      clearRecaptcha();
-    };
+    const STORAGE_KEY = 'gameplaza_terms';
+    const savedTerms = localStorage.getItem(STORAGE_KEY);
+    
+    if (savedTerms) {
+      const terms = JSON.parse(savedTerms);
+      
+      // 활성화된 서비스 이용약관 찾기
+      const activeTerms = terms.find((t: any) => 
+        t.type === 'terms_of_service' && t.is_active
+      );
+      if (activeTerms) {
+        setTermsContent(activeTerms.content);
+      }
+      
+      // 활성화된 개인정보 처리방침 찾기
+      const activePrivacy = terms.find((t: any) => 
+        t.type === 'privacy_policy' && t.is_active
+      );
+      if (activePrivacy) {
+        setPrivacyContent(activePrivacy.content);
+      }
+    }
   }, []);
+
+  // 컴포넌트 언마운트 시 reCAPTCHA 정리 및 페이지 이탈 감지
+  useEffect(() => {
+    // 페이지 이탈 감지를 위한 이벤트 핸들러
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 회원가입이 완료되지 않은 상태에서 페이지를 떠나려고 할 때
+      if (session?.user && (!nickname || !isVerified)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    // 라우트 변경 감지
+    const handleRouteChange = () => {
+      // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
+      if (session?.user && (!nickname || !isVerified)) {
+        signOut({ redirect: false }).then(() => {
+          router.push('/login');
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Next.js 라우터 이벤트 리스너 추가
+    const originalPush = router.push;
+    router.push = (...args: Parameters<typeof router.push>) => {
+      handleRouteChange();
+      return originalPush.apply(router, args);
+    };
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      router.push = originalPush;
+      
+      if (clearRecaptcha) {
+        clearRecaptcha();
+      }
+    };
+  }, [session, nickname, isVerified, router]);
 
 
   const sendVerification = async () => {
+    if (!sendVerificationCode) {
+      setError('전화번호 인증 기능을 사용할 수 없습니다');
+      return;
+    }
+
     if (!phone || phone.length < 13) {
       setError('올바른 전화번호를 입력해주세요');
       return;
@@ -100,6 +191,11 @@ export default function SignupPage() {
   };
 
   const verifyCode = async () => {
+    if (!firebaseVerifyCode) {
+      setError('전화번호 인증 기능을 사용할 수 없습니다');
+      return;
+    }
+
     if (!verificationCode || verificationCode.length < 6) {
       setError('6자리 인증번호를 입력해주세요');
       return;
@@ -227,6 +323,21 @@ export default function SignupPage() {
     }, 500);
   };
 
+  // 전체 동의 처리
+  const handleAgreeAll = (checked: boolean) => {
+    setAgreeAll(checked);
+    setAgreeTerms(checked);
+    setAgreePrivacy(checked);
+    setAgreeAge(checked);
+    setAgreeMarketing(checked);
+  };
+
+  // 개별 동의 변경 시 전체 동의 상태 업데이트
+  useEffect(() => {
+    const allRequired = agreeTerms && agreePrivacy && agreeAge;
+    setAgreeAll(allRequired && agreeMarketing);
+  }, [agreeTerms, agreePrivacy, agreeAge, agreeMarketing]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -237,6 +348,12 @@ export default function SignupPage() {
 
     if (nicknameError) {
       setError('유효한 닉네임을 입력해주세요');
+      return;
+    }
+
+    // 필수 약관 동의 확인
+    if (!agreeTerms || !agreePrivacy || !agreeAge) {
+      setError('필수 약관에 모두 동의해주세요');
       return;
     }
 
@@ -252,7 +369,8 @@ export default function SignupPage() {
         },
         body: JSON.stringify({
           nickname,
-          phone
+          phone,
+          agreeMarketing
         }),
       });
 
@@ -281,13 +399,26 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-5">
-      <div className="max-w-md mx-auto">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-5 py-12">
+      <div className="w-full max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800"
+          className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800 shadow-xl"
         >
+          {/* 뒤로가기 버튼 */}
+          <button
+            onClick={() => {
+              if (confirm('회원가입을 취소하시겠습니까? 입력한 정보는 저장되지 않습니다.')) {
+                signOut({ callbackUrl: '/login' });
+              }
+            }}
+            className="mb-6 inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">회원가입 취소</span>
+          </button>
+          
           <h1 className="text-2xl font-bold mb-2 dark:text-white">회원가입</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
             게임플라자 이용을 위한 정보를 입력해주세요
@@ -405,6 +536,92 @@ export default function SignupPage() {
               </motion.div>
             )}
 
+            {/* 약관 동의 */}
+            <div className="space-y-4 border-t pt-6">
+              <div className="space-y-3">
+                {/* 전체 동의 */}
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreeAll}
+                    onChange={(e) => handleAgreeAll(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-gray-900 dark:text-white border-gray-300 rounded focus:ring-gray-900 dark:focus:ring-white"
+                  />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    전체 약관에 동의합니다
+                  </span>
+                </label>
+
+                <div className="ml-7 space-y-3">
+                  {/* 이용약관 */}
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-gray-900 dark:text-white border-gray-300 rounded focus:ring-gray-900 dark:focus:ring-white"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-red-500">*</span> 서비스 이용약관 동의
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsModal(true)}
+                        className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
+                      >
+                        보기
+                      </button>
+                    </span>
+                  </label>
+
+                  {/* 개인정보 처리방침 */}
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreePrivacy}
+                      onChange={(e) => setAgreePrivacy(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-gray-900 dark:text-white border-gray-300 rounded focus:ring-gray-900 dark:focus:ring-white"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-red-500">*</span> 개인정보 수집 및 이용 동의
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyModal(true)}
+                        className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
+                      >
+                        보기
+                      </button>
+                    </span>
+                  </label>
+
+                  {/* 만 14세 이상 */}
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreeAge}
+                      onChange={(e) => setAgreeAge(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-gray-900 dark:text-white border-gray-300 rounded focus:ring-gray-900 dark:focus:ring-white"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-red-500">*</span> 만 14세 이상입니다
+                    </span>
+                  </label>
+
+                  {/* 마케팅 수신 동의 */}
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreeMarketing}
+                      onChange={(e) => setAgreeMarketing(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-gray-900 dark:text-white border-gray-300 rounded focus:ring-gray-900 dark:focus:ring-white"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-400">(선택)</span> 이벤트 및 혜택 정보 수신 동의
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
             {/* 에러 및 성공 메시지 */}
             {error && (
               <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
@@ -420,7 +637,7 @@ export default function SignupPage() {
             {/* 가입 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || !nickname || !isVerified || !!nicknameError || isCheckingNickname}
+              disabled={isLoading || !nickname || !isVerified || !!nicknameError || isCheckingNickname || !agreeTerms || !agreePrivacy || !agreeAge}
               className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
@@ -438,6 +655,106 @@ export default function SignupPage() {
           <div id="recaptcha-container"></div>
         </motion.div>
       </div>
+      
+      {/* 이용약관 모달 */}
+      <AnimatePresence>
+        {showTermsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+          >
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowTermsModal(false)} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-2xl max-h-[80vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden flex flex-col"
+            >
+              <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">서비스 이용약관</h2>
+                  <button
+                    onClick={() => setShowTermsModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 font-sans">
+                  {termsContent || '약관 내용을 불러오는 중...'}
+                </pre>
+              </div>
+              
+              <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">
+                <button
+                  onClick={() => {
+                    setAgreeTerms(true);
+                    setShowTermsModal(false);
+                  }}
+                  className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                >
+                  동의하고 닫기
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 개인정보 처리방침 모달 */}
+      <AnimatePresence>
+        {showPrivacyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+          >
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPrivacyModal(false)} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-2xl max-h-[80vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden flex flex-col"
+            >
+              <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">개인정보 처리방침</h2>
+                  <button
+                    onClick={() => setShowPrivacyModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 font-sans">
+                  {privacyContent || '개인정보 처리방침을 불러오는 중...'}
+                </pre>
+              </div>
+              
+              <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">
+                <button
+                  onClick={() => {
+                    setAgreePrivacy(true);
+                    setShowPrivacyModal(false);
+                  }}
+                  className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                >
+                  동의하고 닫기
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
