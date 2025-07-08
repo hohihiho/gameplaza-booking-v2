@@ -19,17 +19,28 @@ export async function GET(request: Request) {
     const startStr = `${year}-${month.padStart(2, '0')}-01`;
     const endStr = `${year}-${month.padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
     
-    // 1. 운영 일정 가져오기
-    const { data: scheduleEvents, error: scheduleError } = await supabase
-      .from('schedule_events')
-      .select('*')
-      .gte('date', startStr)
-      .lte('date', endStr)
-      .order('date');
-    
-    if (scheduleError) {
-      console.error('일정 조회 오류:', scheduleError);
-      return NextResponse.json({ error: '일정 조회에 실패했습니다' }, { status: 500 });
+    // 1. 운영 일정 가져오기 (테이블이 없을 수 있으므로 에러 처리)
+    let scheduleEvents: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('schedule_events')
+        .select('*')
+        .gte('date', startStr)
+        .lte('date', endStr)
+        .order('date');
+      
+      if (error && error.code !== '42P01') { // 42P01: table does not exist
+        console.error('일정 조회 오류:', error);
+        throw error;
+      }
+      
+      scheduleEvents = data || [];
+    } catch (error: any) {
+      // 테이블이 없는 경우는 무시하고 빈 배열 반환
+      if (error?.code !== '42P01') {
+        console.error('일정 조회 오류:', error);
+        return NextResponse.json({ error: '일정 조회에 실패했습니다' }, { status: 500 });
+      }
     }
     
     // 2. 예약 데이터 가져오기 (대기, 취소 제외)

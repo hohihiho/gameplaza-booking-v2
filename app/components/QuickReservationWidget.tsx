@@ -30,7 +30,9 @@ export default function QuickReservationWidget() {
         const today = new Date();
         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
-        // 2층 특별 영업시간 조회
+        // 2층 특별 영업시간 조회 (테이블이 없을 수 있으므로 무시)
+        // TODO: schedule_events 테이블 생성 후 주석 해제
+        /*
         try {
           const { data: scheduleEvent } = await supabase
             .from('schedule_events')
@@ -53,6 +55,7 @@ export default function QuickReservationWidget() {
         } catch (err) {
           // 특별 영업시간이 없어도 괜찮음
         }
+        */
 
         // 전체 기기 수 조회
         const { data: devices, error: devicesError } = await supabase

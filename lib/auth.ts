@@ -1,6 +1,7 @@
 import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { supabaseAdmin } from '@/app/lib/supabase'
+import { v4 as uuidv4 } from 'uuid'
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -31,10 +32,11 @@ export const authOptions: AuthOptions = {
 
           if (!existingUser) {
             // 새 사용자 생성 (기본 정보만)
+            const newUserId = uuidv4(); // UUID 생성
             const { error } = await supabaseAdmin
               .from('users')
               .insert({
-                id: user.id, // Google OAuth ID 사용
+                id: newUserId,
                 email: user.email,
                 name: user.name || '',
                 nickname: '', // 나중에 입력받음
@@ -64,55 +66,70 @@ export const authOptions: AuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       // 로그인 후 리다이렉트 처리
-      if (url.startsWith('/')) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      try {
+        // Google 로그인 콜백인 경우
+        if (url.includes('/api/auth/callback/google')) {
+          return `${baseUrl}/signup`;
+        }
+        
+        // 상대 경로인 경우
+        if (url.startsWith('/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // 같은 origin인 경우
+        const urlObj = new URL(url, baseUrl);
+        if (urlObj.origin === baseUrl) {
+          return url;
+        }
+        
+        return baseUrl;
+      } catch (error) {
+        console.error('Redirect error:', error);
+        return baseUrl;
+      }
     },
     async session({ session, token }) {
       try {
-        // 세션이 없으면 빈 세션 생성
-        if (!session) {
-          console.log('Session is null, creating empty session');
-          return {
-            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            user: undefined
-          };
+        // 토큰이 없으면 null 세션 반환
+        if (!token || !token.email) {
+          console.log('No valid token, returning null session');
+          return null;
         }
 
-        if (session.user && token?.sub) {
-          session.user.id = token.sub;
-          
-          // 관리자 권한은 데이터베이스에서 확인 (보안 강화)
-          // 하드코딩 제거
-          session.user.isAdmin = false; // 기본값, API에서 확인
-        }
-        
-        return session;
+        // 세션 구조 생성
+        const newSession = {
+          expires: session?.expires || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          user: {
+            id: token.sub || '',
+            email: token.email || '',
+            name: token.name as string || '',
+            image: token.picture as string || null,
+            isAdmin: false
+          }
+        };
+
+        return newSession;
       } catch (error) {
         console.error('Session callback error:', error);
-        return {
-          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          user: undefined
-        };
+        return null;
       }
     },
     async jwt({ token, user, account }) {
       try {
-        // 토큰이 없으면 새로 생성
-        if (!token) {
-          console.log('Token is null, creating new token');
-          token = {};
-        }
-
+        // 초기 로그인 시 사용자 정보를 토큰에 저장
         if (account && user) {
+          console.log('Initial sign in, saving user info to token');
           token.id = user.id;
           token.email = user.email;
+          token.name = user.name;
+          token.picture = user.image;
         }
         
         return token;
       } catch (error) {
         console.error('JWT callback error:', error);
-        return {};
+        return token || {};
       }
     }
   },

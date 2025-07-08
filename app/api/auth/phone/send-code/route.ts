@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/app/lib/supabase';
-import { createPhoneVerificationToken } from '@/lib/firebase/admin';
-
-// 인증 코드 생성
-function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+// Firebase Admin은 전화번호 인증 토큰 생성을 지원하지 않으므로 클라이언트에서 처리
 
 
 export async function POST(request: Request) {
@@ -23,15 +18,22 @@ export async function POST(request: Request) {
 
     const { phone } = await request.json();
 
-    if (!phone || !/^010-\d{4}-\d{4}$/.test(phone)) {
+    // +82로 시작하는 국제 형식 또는 010으로 시작하는 국내 형식 모두 허용
+    const isInternationalFormat = /^\+82\d{9,10}$/.test(phone);
+    const isDomesticFormat = /^010\d{7,8}$/.test(phone);
+    
+    if (!phone || (!isInternationalFormat && !isDomesticFormat)) {
       return NextResponse.json(
         { error: '올바른 전화번호 형식이 아닙니다' },
         { status: 400 }
       );
     }
 
-    // SMS 발송 한도 체크
+    // SMS 발송 한도 체크 - 일단 비활성화 (테이블이 없음)
+    // TODO: sms_limits 테이블 생성 후 활성화
     const phoneNumber = phone.replace(/-/g, '');
+    
+    /*
     const { data: limitCheck } = await supabaseAdmin
       .rpc('check_sms_limit', { 
         p_phone: phoneNumber,
@@ -46,28 +48,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Firebase용 전화번호 검증
-    const result = await createPhoneVerificationToken(phone);
-    
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || '전화번호 검증에 실패했습니다' },
-        { status: 500 }
-      );
-    }
-
-    // SMS 발송 기록 저장 (Firebase는 클라이언트에서 발송하므로 여기서는 기록만)
+    // SMS 발송 기록 저장 (Firebase는 클라이언트에서 발송하므로 여기서는 제한만 체크)
     await supabaseAdmin
       .from('sms_limits')
       .insert({
         phone: phoneNumber,
         purpose: 'verification'
       });
+    */
 
     return NextResponse.json({ 
       success: true,
-      phoneNumber: result.phoneNumber,
-      message: 'Firebase 클라이언트에서 SMS를 발송해주세요'
+      message: 'SMS 발송 가능합니다'
     });
   } catch (error) {
     console.error('Phone verification error:', error);

@@ -3,8 +3,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Loader2, Check, AlertCircle, Phone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+// Firebase imports with error handling
+let sendVerificationCode: any;
+let firebaseVerifyCode: any; 
+let clearRecaptcha: any;
+
+try {
+  const firebaseModule = require('@/lib/firebase/client');
+  sendVerificationCode = firebaseModule.sendVerificationCode;
+  firebaseVerifyCode = firebaseModule.verifyCode;
+  clearRecaptcha = firebaseModule.clearRecaptcha;
+} catch (error) {
+  console.warn('Firebase module not available');
+}
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -20,6 +33,19 @@ export default function ProfileEditPage() {
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const nicknameTimerRef = useRef<NodeJS.Timeout>();
+  const [canChangePhone, setCanChangePhone] = useState(true);
+  const [nextPhoneChangeDate, setNextPhoneChangeDate] = useState<string | null>(null);
+  const [showPhoneWarning, setShowPhoneWarning] = useState(false);
+  
+  // 전화번호 재인증 관련 state
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<NodeJS.Timeout>();
 
   // 프로필 정보 불러오기
   useEffect(() => {
@@ -36,6 +62,18 @@ export default function ProfileEditPage() {
           setOriginalNickname(data.profile.nickname || '');
           setPhone(formatPhoneNumber(data.profile.phone || ''));
           setOriginalPhone(formatPhoneNumber(data.profile.phone || ''));
+          
+          // 전화번호 변경 가능 여부 확인
+          if (data.profile.phone_changed_at) {
+            const lastChanged = new Date(data.profile.phone_changed_at);
+            const nextChangeDate = new Date(lastChanged);
+            nextChangeDate.setMonth(nextChangeDate.getMonth() + 1);
+            
+            if (nextChangeDate > new Date()) {
+              setCanChangePhone(false);
+              setNextPhoneChangeDate(nextChangeDate.toLocaleDateString('ko-KR'));
+            }
+          }
         }
       } catch (error) {
         console.error('프로필 로드 오류:', error);
@@ -47,6 +85,18 @@ export default function ProfileEditPage() {
 
     loadProfile();
   }, [session]);
+  
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (clearRecaptcha) {
+        clearRecaptcha();
+      }
+      if (countdownRef.current) {
+        clearTimeout(countdownRef.current);
+      }
+    };
+  }, []);
 
   const formatPhoneNumber = (value: string) => {
     const numbers = value.replace(/[^\d]/g, '');
@@ -63,6 +113,13 @@ export default function ProfileEditPage() {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhone(formatted);
+    
+    // 전화번호가 변경되었고, 변경이 불가능한 경우 경고 표시
+    if (formatted !== originalPhone && !canChangePhone) {
+      setShowPhoneWarning(true);
+    } else {
+      setShowPhoneWarning(false);
+    }
   };
 
   // 닉네임 검증
@@ -115,6 +172,102 @@ export default function ProfileEditPage() {
   };
 
   // 닉네임 변경 핸들러
+  // 전화번호 인증 코드 발송
+  const sendPhoneVerificationCode = async () => {
+    if (!sendVerificationCode || !phone) return;
+    
+    setIsSendingCode(true);
+    setVerificationError(null);
+    
+    try {
+      const phoneWithoutHyphen = phone.replace(/-/g, '');
+      // 한국 전화번호를 국제 형식으로 변환
+      const formattedPhone = phoneWithoutHyphen.startsWith('010') 
+        ? `+82${phoneWithoutHyphen.substring(1)}` 
+        : phoneWithoutHyphen;
+      
+      // Firebase로 인증 코드 발송
+      const response = await fetch('/api/auth/phone/send-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone: formattedPhone }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setIsCodeSent(true);
+        setCountdown(180); // 3분
+        
+        // 카운트다운 시작
+        countdownRef.current = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownRef.current);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setVerificationError(data.error || '인증 코드 발송에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('인증 코드 발송 오류:', error);
+      setVerificationError('인증 코드 발송 중 오류가 발생했습니다');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+  
+  // 전화번호 인증 코드 확인
+  const verifyPhoneCode = async () => {
+    if (!firebaseVerifyCode || !verificationCode) return;
+    
+    setIsVerifying(true);
+    setVerificationError(null);
+    
+    try {
+      const phoneWithoutHyphen = phone.replace(/-/g, '');
+      // 한국 전화번호를 국제 형식으로 변환
+      const formattedPhone = phoneWithoutHyphen.startsWith('010') 
+        ? `+82${phoneWithoutHyphen.substring(1)}` 
+        : phoneWithoutHyphen;
+      
+      const response = await fetch('/api/auth/phone/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          phone: formattedPhone,
+          code: verificationCode 
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // 인증 성공 - 프로필 업데이트 진행
+        setShowPhoneVerification(false);
+        setIsCodeSent(false);
+        setVerificationCode('');
+        
+        // 프로필 업데이트 진행
+        await updateProfile();
+      } else {
+        setVerificationError(data.error || '인증에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('인증 코드 확인 오류:', error);
+      setVerificationError('인증 확인 중 오류가 발생했습니다');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setNickname(value);
@@ -152,7 +305,25 @@ export default function ProfileEditPage() {
       setError('유효한 닉네임을 입력해주세요');
       return;
     }
-
+    
+    // 전화번호 변경 제한 확인
+    if (phone !== originalPhone && !canChangePhone) {
+      setError(`전화번호는 한 달에 한 번만 변경할 수 있습니다. 다음 변경 가능일: ${nextPhoneChangeDate}`);
+      return;
+    }
+    
+    // 전화번호가 변경된 경우 재인증 요구
+    if (phone !== originalPhone) {
+      setShowPhoneVerification(true);
+      return;
+    }
+    
+    // 닉네임만 변경된 경우 바로 업데이트
+    await updateProfile();
+  };
+  
+  // 프로필 업데이트 함수
+  const updateProfile = async () => {
     setIsSaving(true);
     setError(null);
 
@@ -271,20 +442,47 @@ export default function ProfileEditPage() {
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 전화번호
+                {!canChangePhone && (
+                  <span className="ml-2 text-xs text-red-500">
+                    (변경 불가 - {nextPhoneChangeDate}부터 가능)
+                  </span>
+                )}
               </label>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={handlePhoneChange}
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                placeholder="010-1234-5678"
-                maxLength={13}
-                required
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                전화번호 변경 시 재인증이 필요할 수 있습니다
-              </p>
+              <div className="relative">
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  className={`w-full px-4 py-3 border ${
+                    showPhoneWarning
+                      ? 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-200 dark:border-gray-700'
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white`}
+                  placeholder="010-1234-5678"
+                  maxLength={13}
+                  required
+                  disabled={phone !== originalPhone && !canChangePhone}
+                />
+                {!canChangePhone && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                  </div>
+                )}
+              </div>
+              <div className="mt-1 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  • 전화번호는 한 달에 한 번만 변경 가능합니다
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  • 변경 시 재인증이 필요합니다
+                </p>
+                {showPhoneWarning && (
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                    ⚠️ 전화번호를 변경할 수 없습니다. {nextPhoneChangeDate}부터 변경 가능합니다.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 에러 및 성공 메시지 */}
@@ -328,6 +526,144 @@ export default function ProfileEditPage() {
           </form>
         </motion.div>
       </div>
+      
+      {/* 전화번호 인증 모달 */}
+      <AnimatePresence>
+        {showPhoneVerification && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          >
+            <div 
+              className="absolute inset-0 bg-black/50"
+              onClick={() => {
+                setShowPhoneVerification(false);
+                setIsCodeSent(false);
+                setVerificationCode('');
+                setVerificationError(null);
+              }}
+            />
+            
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6"
+            >
+              <h3 className="text-xl font-bold mb-4 dark:text-white">
+                전화번호 재인증
+              </h3>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                전화번호 변경을 위해 새 번호로 인증이 필요합니다.
+              </p>
+              
+              <div className="space-y-4">
+                {/* 전화번호 표시 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    새 전화번호
+                  </label>
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium">
+                    {phone}
+                  </div>
+                </div>
+                
+                {/* 인증 코드 입력 */}
+                {isCodeSent && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      인증 코드
+                    </label>
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
+                      placeholder="6자리 숫자 입력"
+                      maxLength={6}
+                    />
+                    {countdown > 0 && (
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        남은 시간: {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* 에러 메시지 */}
+                {verificationError && (
+                  <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {verificationError}
+                  </div>
+                )}
+                
+                {/* 버튼들 */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPhoneVerification(false);
+                      setIsCodeSent(false);
+                      setVerificationCode('');
+                      setVerificationError(null);
+                    }}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-700 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    취소
+                  </button>
+                  
+                  {!isCodeSent ? (
+                    <button
+                      type="button"
+                      onClick={sendPhoneVerificationCode}
+                      disabled={isSendingCode}
+                      className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSendingCode ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          발송 중...
+                        </>
+                      ) : (
+                        <>
+                          <Phone className="w-5 h-5" />
+                          인증 코드 발송
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={verifyPhoneCode}
+                      disabled={isVerifying || verificationCode.length !== 6}
+                      className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isVerifying ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          확인 중...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-5 h-5" />
+                          인증 확인
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* reCAPTCHA 컨테이너 */}
+              <div id="recaptcha-container"></div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -207,13 +207,13 @@ export async function POST(request: Request) {
       if (severity >= 3) {
         return NextResponse.json({
           valid: false,
-          reason: '사용할 수 없는 표현이 포함되어 있습니다 (Inappropriate content detected)',
+          reason: '사용할 수 없는 표현이 포함되어 있습니다',
           severity: 'block'
         });
       } else if (severity >= 2) {
         return NextResponse.json({
           valid: false,
-          reason: '부적절한 표현이 포함되어 있습니다 (Inappropriate language)',
+          reason: '부적절한 표현이 포함되어 있습니다',
           severity: 'warn'
         });
       }
@@ -257,14 +257,29 @@ export async function POST(request: Request) {
     }
 
 
-    // 4. 특수 문자 및 형식 체크
+    // 6. 특수 문자 및 형식 체크
     if (context === 'nickname') {
-      // 닉네임에 허용된 문자만 체크 (한글, 영문, 숫자, 일부 특수문자)
-      const validPattern = /^[가-힣a-zA-Z0-9_\-\s]+$/;
+      // 닉네임에 허용된 문자만 체크 (한글, 영문, 숫자, 일부 특수문자) - 공백 제외
+      const validPattern = /^[가-힣a-zA-Z0-9_\-]+$/;
       if (!validPattern.test(text)) {
         return NextResponse.json({
           valid: false,
-          reason: '닉네임은 한글, 영문, 숫자, 공백, _, - 만 사용 가능합니다'
+          reason: '닉네임은 한글, 영문, 숫자, _, - 만 사용 가능합니다 (공백 사용 불가)'
+        });
+      }
+      
+      // 7. 닉네임 중복 체크
+      const { data: existingUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('nickname', text)
+        .neq('email', session.user.email) // 자기 자신은 제외
+        .single();
+      
+      if (existingUser) {
+        return NextResponse.json({
+          valid: false,
+          reason: '이미 사용 중인 닉네임입니다'
         });
       }
     }

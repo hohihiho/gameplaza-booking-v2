@@ -121,9 +121,17 @@ export default function DesktopSidebar() {
               {/* 유저 정보 */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {session.user?.name?.[0] || 'U'}
-                  </div>
+                  {session.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || '프로필'}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+                      {session.user?.name?.[0] || 'U'}
+                    </div>
+                  )}
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 dark:text-white text-sm">
                       {session.user?.name || '사용자'}

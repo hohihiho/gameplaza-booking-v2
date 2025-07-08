@@ -21,7 +21,8 @@ import {
   UserCheck,
   ArrowUp,
   ArrowDown,
-  BarChart3
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -464,6 +465,16 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <CheckSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-sm font-medium dark:text-white">콘텐츠 관리</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/admin/terms"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium dark:text-white">약관 관리</span>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
             </Link>

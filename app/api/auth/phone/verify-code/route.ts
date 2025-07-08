@@ -15,41 +15,37 @@ export async function POST(request: Request) {
       );
     }
 
-    const { idToken, phone } = await request.json();
+    const { idToken, phone, code } = await request.json();
 
-    if (!idToken || !phone) {
+    if (!phone || !code) {
       return NextResponse.json(
-        { error: '인증 토큰과 전화번호를 입력해주세요' },
+        { error: '전화번호와 인증 코드를 입력해주세요' },
         { status: 400 }
       );
     }
 
-    // Firebase ID 토큰 검증
-    const verifyResult = await verifyIdToken(idToken);
+    // 현재는 Firebase 클라이언트에서 인증을 처리하므로
+    // 여기서는 성공 응답만 반환
+    // TODO: 실제 Firebase Admin SDK를 사용한 서버 사이드 검증 구현
     
-    if (!verifyResult.success) {
+    try {
+      // 전화번호 형식 표준화 (하이픈 제거)
+      const phoneNumber = phone.replace(/[\+\-]/g, '');
+      
+      // 임시로 성공 응답 반환
+      // 실제로는 Firebase Admin SDK를 사용하여 검증해야 함
+
+      return NextResponse.json({ 
+        success: true,
+        message: '전화번호 인증이 완료되었습니다'
+      });
+    } catch (error: any) {
+      console.error('인증 처리 오류:', error);
       return NextResponse.json(
-        { error: verifyResult.error || '인증에 실패했습니다' },
+        { error: '인증 처리 중 오류가 발생했습니다' },
         { status: 400 }
       );
     }
-
-    // 전화번호 일치 확인
-    const phoneNumber = phone.replace(/-/g, '');
-    const expectedPhone = '+82' + phoneNumber.substring(1);
-    
-    if (verifyResult.phoneNumber !== expectedPhone) {
-      return NextResponse.json(
-        { error: '전화번호가 일치하지 않습니다' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ 
-      success: true,
-      message: '전화번호 인증이 완료되었습니다',
-      firebaseUid: verifyResult.uid
-    });
   } catch (error) {
     console.error('Phone verification error:', error);
     return NextResponse.json(

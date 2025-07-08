@@ -45,3 +45,4 @@ supabase-info.txt
 
 # YoYo AI version control directory
 .yoyo/
+worktrees/

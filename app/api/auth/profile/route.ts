@@ -17,7 +17,7 @@ export async function GET() {
     // 사용자 프로필 조회
     const { data: profile, error } = await supabaseAdmin
       .from('users')
-      .select('id, email, nickname, phone, phone_verified, role')
+      .select('*')
       .eq('email', session.user.email)
       .single();
 
