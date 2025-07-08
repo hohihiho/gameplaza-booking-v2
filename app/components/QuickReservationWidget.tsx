@@ -54,7 +54,7 @@ export default function QuickReservationWidget() {
           // 특별 영업시간이 없어도 괜찮음
         }
 
-        // 전체 기기 수 조회 (관리자가 설정한 활성 기기)
+        // 전체 기기 수 조회
         const { data: devices, error: devicesError } = await supabase
           .from('devices')
           .select('id, status');
@@ -64,33 +64,13 @@ export default function QuickReservationWidget() {
           // 에러가 발생해도 계속 진행
         }
 
-        // available 또는 in_use 상태인 기기만 카운트
-        const activeDevices = devices?.filter(d => d.status === 'available' || d.status === 'in_use') || [];
-        const total = activeDevices.length;
+        // 전체 기기 수 (모든 상태 포함)
+        const total = devices?.length || 0;
         setTotalCount(total);
 
-        // 현재 시간대의 예약 조회
-        const { data: reservations, error: reservationsError } = await supabase
-          .from('reservations')
-          .select('id, device_id, start_time, end_time, status');
-
-        if (reservationsError) {
-          console.error('Reservations query error:', reservationsError);
-          // 에러가 발생해도 계속 진행
-        }
-
-        // 현재 시간에 활성화된 예약만 필터링
-        const activeReservations = reservations?.filter(r => {
-          if (r.status !== 'approved' && r.status !== 'checked_in') return false;
-          const startTime = new Date(r.start_time);
-          const endTime = new Date(r.end_time);
-          return startTime <= now && endTime >= now;
-        }) || [];
-
-        // 현재 사용 중인 기기 수
-        const inUseDevices = new Set(activeReservations.map(r => r.device_id));
-        const available = total - inUseDevices.size;
-        setAvailableCount(Math.max(0, available));
+        // 현재 이용 가능한 기기 수 (available 상태인 기기만)
+        const availableDevices = devices?.filter(d => d.status === 'available') || [];
+        setAvailableCount(availableDevices.length);
 
       } catch (error) {
         console.error('Failed to fetch reservation status:', error);

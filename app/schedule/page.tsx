@@ -404,36 +404,35 @@ export default function SchedulePage() {
   const selectedDateEvents = selectedDate ? getEventsForDate(formatDate(selectedDate)) : [];
   
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 lg:pl-64 pb-20 lg:pb-0">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
       
       
       {/* 페이지 헤더 */}
-      <motion.section 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden"
-      >
-        {/* 배경 그라데이션 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800">
-          <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
+      <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 py-16 px-5 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent" />
+        <div className="relative max-w-6xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full mb-4">
+              <Calendar className="w-4 h-4 text-white" />
+              <span className="text-sm text-white font-medium">운영 일정</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">운영 일정</h1>
+            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">오락실 영업시간과 특별 일정을 확인하세요</p>
+          </motion.div>
         </div>
-        
-        {/* 콘텐츠 */}
-        <div className="relative z-10 px-6 py-12 md:px-8 md:py-16">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">운영 일정</h1>
-            <p className="text-indigo-100 text-lg">오락실 영업시간과 특별 일정을 확인하세요</p>
-          </div>
-        </div>
-      </motion.section>
+      </section>
       
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-5 py-8">
         {/* 기본 영업시간 */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8"
+          className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8 mt-8 relative z-10"
         >
           <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">

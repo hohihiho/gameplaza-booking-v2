@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Orbitron } from 'next/font/google'
 import './globals.css'
-import Navigation from './components/Navigation'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
@@ -64,8 +63,6 @@ export default function RootLayout({
                 plugins: [ReactPlugin]
               }}
             />
-            
-            <Navigation />
             
             <LayoutWrapper>
               {children}

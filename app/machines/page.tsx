@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar } from 'lucide-react';
+import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar, Activity, Wrench, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -11,7 +11,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 type Device = {
   id: string;
   device_number: number;
-  status: 'available' | 'in_use' | 'maintenance' | 'reserved';
+  status: 'available' | 'in_use' | 'maintenance' | 'reserved' | 'broken';
   current_user?: string;
 };
 
@@ -234,18 +234,22 @@ export default function MachinesPage() {
       sum + type.devices.filter(d => d.status === 'in_use').length, 0),
     maintenance: allDeviceTypes.reduce((sum, type) => 
       sum + type.devices.filter(d => d.status === 'maintenance').length, 0),
+    broken: allDeviceTypes.reduce((sum, type) => 
+      sum + type.devices.filter(d => d.status === 'broken').length, 0),
   };
 
   const getStatusColor = (status: Device['status']) => {
     switch (status) {
       case 'available':
-        return 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400';
+        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
       case 'in_use':
-        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400';
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
       case 'maintenance':
-        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400';
+        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300';
       case 'reserved':
-        return 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400';
+        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+      case 'broken':
+        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
       default:
         return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400';
     }
@@ -261,6 +265,8 @@ export default function MachinesPage() {
         return '점검 중';
       case 'reserved':
         return '예약됨';
+      case 'broken':
+        return '사용불가';
       default:
         return status;
     }
@@ -273,106 +279,195 @@ export default function MachinesPage() {
       case 'in_use':
         return <Users className="w-3 h-3" />;
       case 'maintenance':
-        return <AlertCircle className="w-3 h-3" />;
+        return <Wrench className="w-3 h-3" />;
       case 'reserved':
         return <Clock className="w-3 h-3" />;
+      case 'broken':
+        return <AlertCircle className="w-3 h-3" />;
       default:
         return null;
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
       {/* 페이지 헤더 */}
-      <section className="bg-white dark:bg-gray-900 py-8 px-5 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold dark:text-white">기기 현황</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">실시간 게임기 이용 현황을 확인하세요</p>
+      <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 py-16 px-5 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent" />
+        <div className="relative max-w-6xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full mb-4">
+              <Activity className="w-4 h-4 text-white" />
+              <span className="text-sm text-white font-medium">실시간 업데이트</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">기기 현황</h1>
+            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">광주 게임플라자의 모든 게임기 상태를 실시간으로 확인하세요</p>
+          </motion.div>
         </div>
       </section>
 
       <div className="max-w-6xl mx-auto px-5 py-8">
         {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">전체</p>
-            <p className="text-2xl font-bold dark:text-white">{stats.total}</p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8 mt-8 relative z-10"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">전체 기기</p>
+              <Gamepad2 className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-            <p className="text-sm text-green-600 dark:text-green-400">이용 가능</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-400">{stats.available}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-green-600 dark:text-green-400">이용 가능</p>
+              <Circle className="w-5 h-5 text-green-500 fill-current" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.available}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-            <p className="text-sm text-blue-600 dark:text-blue-400">대여 중</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{stats.inUse}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-blue-600 dark:text-blue-400">대여 중</p>
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.inUse}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">점검 중</p>
-            <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{stats.maintenance}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-amber-600 dark:text-amber-400">점검 중</p>
+              <Wrench className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.maintenance}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            </div>
           </div>
-        </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-red-600 dark:text-red-400">사용불가</p>
+              <AlertCircle className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.broken}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* 카테고리 필터 */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">카테고리 선택</h3>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 rounded-3xl p-6 mb-6 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
+        >
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">카테고리</h3>
           <div className="flex flex-wrap gap-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedCategoryId('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative overflow-hidden ${
                 selectedCategoryId === 'all'
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  ? 'text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
+              style={selectedCategoryId === 'all' ? { 
+                background: 'linear-gradient(to bottom right, #4c1d95, #4338ca, #312e81)' 
+              } : {}}
             >
+              <Sparkles className={`inline w-4 h-4 mr-1 ${selectedCategoryId === 'all' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
               전체
-            </button>
+            </motion.button>
             {categories.map(category => (
-              <button
+              <motion.button
                 key={category.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedCategoryId(category.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative overflow-hidden ${
                   selectedCategoryId === category.id
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
+                style={selectedCategoryId === category.id ? { 
+                  background: 'linear-gradient(to bottom right, #4c1d95, #4338ca, #312e81)' 
+                } : {}}
               >
                 {category.name}
-              </button>
+              </motion.button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* 검색 */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-800">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white dark:bg-gray-800 rounded-3xl p-6 mb-8 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
+        >
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="기기명 또는 회사명으로 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:text-white"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-cyan-500 dark:text-white transition-all"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* 기기 타입 목록 */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-            <p className="text-gray-600 dark:text-gray-400 mt-4">기기 정보를 불러오는 중...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 rounded-full animate-pulse"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mt-6 font-medium">기기 정보를 불러오는 중...</p>
           </div>
         ) : filteredCategories.length === 0 ? (
-          <div className="text-center py-12">
-            <Gamepad2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">검색 결과가 없습니다</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50"
+          >
+            <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl mb-4">
+              <Gamepad2 className="w-12 h-12 text-gray-400" />
+            </div>
+            <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">검색 결과가 없습니다</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">다른 검색어를 시도해보세요</p>
+          </motion.div>
         ) : (
           <div className="space-y-8">
-            {filteredCategories.map((category) => (
-              <div key={category.id}>
+            {filteredCategories.map((category, categoryIndex) => (
+              <motion.div 
+                key={category.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: categoryIndex * 0.1 }}
+              >
                 {selectedCategoryId === 'all' && (
-                  <h2 className="text-xl font-bold dark:text-white mb-4 px-2">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                    <div className="w-1 h-8 bg-gradient-to-b from-indigo-500 to-cyan-500 rounded-full" />
                     {category.name}
                   </h2>
                 )}
@@ -385,33 +480,37 @@ export default function MachinesPage() {
                 <motion.div
                   key={deviceType.id}
                   layout
-                  className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-xl transition-all"
                 >
                   {/* 기기 타입 헤더 */}
                   <button
                     onClick={() => setExpandedType(isExpanded ? null : deviceType.id)}
-                    className="w-full p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="w-full p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold dark:text-white">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                                 {deviceType.name}
                               </h3>
-                              <span className="text-sm px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
+                              <span className="text-sm px-3 py-1 bg-gradient-to-r from-indigo-100 to-cyan-100 dark:from-indigo-900/30 dark:to-cyan-900/30 text-indigo-700 dark:text-indigo-300 rounded-full font-medium">
                                 {deviceType.company}
                               </span>
                             </div>
-                            <div className="flex flex-wrap gap-2 mt-1">
+                            <div className="flex flex-wrap gap-2 mt-2">
                               {deviceType.model_name && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                   모델: {deviceType.model_name}
                                 </span>
                               )}
                               {deviceType.version_name && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                                   버전: {deviceType.version_name}
                                 </span>
                               )}
@@ -422,22 +521,23 @@ export default function MachinesPage() {
                               )}
                             </div>
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {deviceType.total_count}대 보유
-                          </span>
+                          <div className="flex items-center gap-1 ml-4 flex-shrink-0">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">{deviceType.total_count}</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">대</span>
+                          </div>
                         </div>
                         <div className="space-y-2 mt-3">
                           {/* 플레이 모드별 가격 표시 */}
                           <div>
                             {deviceType.play_modes && deviceType.play_modes.length > 0 ? (
                               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Coins className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                                <Coins className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                                 <span className="flex flex-wrap gap-1">
                                   {deviceType.play_modes.map((mode, index) => (
                                     <span key={mode.name}>
-                                      <span className="font-medium">{mode.name}:</span>
-                                      <span className="ml-1">{mode.price.toLocaleString()}원</span>
-                                      {index < deviceType.play_modes!.length - 1 && <span className="mx-1">,</span>}
+                                      <span className="font-semibold text-gray-900 dark:text-white">{mode.name}:</span>
+                                      <span className="ml-1 text-indigo-600 dark:text-indigo-400 font-bold">{mode.price.toLocaleString()}원</span>
+                                      {index < deviceType.play_modes!.length - 1 && <span className="mx-1 text-gray-400">/</span>}
                                     </span>
                                   ))}
                                 </span>
@@ -445,8 +545,8 @@ export default function MachinesPage() {
                             ) : (
                               // play_modes가 없는 경우 기본 가격 표시
                               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Coins className="w-4 h-4 text-gray-500" />
-                                <span>현장 문의</span>
+                                <Coins className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium">현장 문의</span>
                               </div>
                             )}
                           </div>
@@ -454,15 +554,19 @@ export default function MachinesPage() {
                           {/* 이용 가능 및 대여 가능 정보 */}
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                              <Circle className={`w-3 h-3 ${availableCount > 0 ? 'text-green-500 fill-current' : 'text-gray-400'}`} />
-                              <span className={`text-sm font-medium ${availableCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                              <div className={`p-1.5 rounded-lg ${availableCount > 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                                <Circle className={`w-4 h-4 ${availableCount > 0 ? 'text-green-600 dark:text-green-400 fill-current' : 'text-gray-400'}`} />
+                              </div>
+                              <span className={`text-sm font-semibold ${availableCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                                 {availableCount}대 이용 가능
                               </span>
                             </div>
                             {deviceType.is_rentable && (
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-blue-500" />
-                                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                                   대여 가능
                                 </span>
                               </div>
@@ -470,7 +574,13 @@ export default function MachinesPage() {
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="p-2 bg-gray-100 dark:bg-gray-700 rounded-xl"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                      </motion.div>
                     </div>
                   </button>
                   
@@ -484,30 +594,34 @@ export default function MachinesPage() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden border-t border-gray-200 dark:border-gray-800"
                       >
-                        <div className="p-6 pt-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="p-6 pt-4 bg-gray-50 dark:bg-gray-900/50">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                             {deviceType.devices
                               .sort((a, b) => a.device_number - b.device_number)
                               .map((device) => (
-                              <div
+                              <motion.div
                                 key={device.id}
-                                className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
                               >
                                 <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium dark:text-white">
-                                    {device.device_number}번기
+                                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                    {device.device_number}번
                                   </span>
-                                  <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(device.status)}`}>
+                                  <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(device.status)}`}>
                                     {getStatusIcon(device.status)}
                                     {getStatusLabel(device.status)}
                                   </span>
                                 </div>
                                 {device.current_user && (
-                                  <p className="text-sm text-gray-500 mt-1">
-                                    이용자: {device.current_user}
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    <Users className="inline w-3 h-3 mr-1" />
+                                    {device.current_user}
                                   </p>
                                 )}
-                              </div>
+                              </motion.div>
                             ))}
                           </div>
                         </div>
@@ -518,41 +632,58 @@ export default function MachinesPage() {
                   );
                   })}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
 
         {/* 안내 메시지 */}
         {machineRules.length > 0 && (
-          <div className="mt-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-12 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-3xl p-6 border border-blue-200/50 dark:border-blue-700/50 shadow-lg"
+          >
+            <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2">
+              <div className="p-2 bg-blue-100 dark:bg-blue-800/30 rounded-xl">
+                <Info className="w-5 h-5" />
+              </div>
               안내사항
             </h3>
-            <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
               {machineRules.map((rule) => (
-                <li key={rule.id} className="flex items-start gap-2">
-                  <span className="flex-shrink-0">•</span>
-                  <span className="whitespace-pre-wrap">{rule.content}</span>
+                <li key={rule.id} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></span>
+                  <span className="whitespace-pre-wrap leading-relaxed">{rule.content}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
         )}
 
         {/* 예약하기 CTA */}
-        <div className="mt-12 text-center py-8">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">특정 기기를 시간 단위로 대여하고 싶으신가요?</p>
-          <a 
-            href="/reservations/new" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            <Calendar className="w-5 h-5" />
-            대여 예약하기
-          </a>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12 text-center"
+        >
+          <div className="bg-indigo-100 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-3xl p-8 shadow-xl">
+            <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mb-2">기기를 예약하고 싶으신가요?</h3>
+            <p className="text-indigo-700 dark:text-indigo-300 mb-6">특정 기기를 시간 단위로 대여할 수 있습니다</p>
+            <motion.a 
+              href="/reservations/new" 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Calendar className="w-5 h-5" />
+              대여 예약하기
+            </motion.a>
+          </div>
+        </motion.div>
       </div>
-    </main>
+    </div>
   );
 }
