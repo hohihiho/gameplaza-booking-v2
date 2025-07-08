@@ -12,6 +12,12 @@
   /* 기본 텍스트 색상 - 다크모드 지원 */
   body {
     @apply text-gray-900 dark:text-gray-100;
+    background: #f8fafc;
+  }
+  
+  /* 다크모드 배경 */
+  body.dark {
+    background: #0f172a;
   }
 
   /* 헤딩 스타일 */
@@ -19,50 +25,83 @@
     @apply font-bold;
   }
   
-  /* 기본 포커스 스타일 - 토스 스타일 */
+  /* 기본 포커스 스타일 */
   *:focus {
     @apply outline-none;
   }
   
   /* 포커스 비지블 스타일 */
   *:focus-visible {
-    @apply outline-none ring-2 ring-gray-900 dark:ring-white ring-offset-2;
+    @apply outline-none ring-2 ring-primary-500 dark:ring-primary-400 ring-offset-2;
+  }
+  
+  /* 선택 영역 색상 */
+  ::selection {
+    @apply bg-primary-500/20 text-primary-900 dark:bg-primary-400/20 dark:text-primary-100;
   }
 }
 
 /* 컴포넌트 스타일 */
 @layer components {
-  /* 토스 스타일 버튼 */
+  /* 모던 버튼 스타일 */
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200 
            focus:outline-none focus:ring-2 focus:ring-offset-2 
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transform active:scale-95;
   }
 
   /* 버튼 변형 */
   .btn-primary {
-    @apply bg-gray-900 dark:bg-white text-white dark:text-gray-900 
-           hover:bg-gray-800 dark:hover:bg-gray-100 
-           focus:ring-gray-900 dark:focus:ring-white;
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white
+           hover:from-primary-600 hover:to-primary-700 
+           shadow-lg hover:shadow-xl hover:shadow-primary-500/25
+           focus:ring-primary-500;
   }
 
   .btn-secondary {
-    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-           border border-gray-300 dark:border-gray-700
-           hover:bg-gray-50 dark:hover:bg-gray-800 
-           focus:ring-gray-900 dark:focus:ring-white;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+           border border-gray-200 dark:border-gray-700
+           hover:bg-gray-50 dark:hover:bg-gray-700 
+           hover:border-gray-300 dark:hover:border-gray-600
+           shadow-sm hover:shadow-md
+           focus:ring-gray-500;
+  }
+  
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent-500 to-accent-600 text-white
+           hover:from-accent-600 hover:to-accent-700
+           shadow-lg hover:shadow-xl hover:shadow-accent-500/25
+           focus:ring-accent-500;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 
-           focus:ring-red-600 active:bg-red-800;
+    @apply bg-gradient-to-r from-red-500 to-red-600 text-white
+           hover:from-red-600 hover:to-red-700 
+           shadow-lg hover:shadow-xl hover:shadow-red-500/25
+           focus:ring-red-500;
   }
 
-  /* 카드 컴포넌트 - 토스 스타일 */
+  /* 모던 카드 컴포넌트 */
   .card {
-    @apply bg-white rounded-2xl border border-gray-200 p-6 
-           dark:bg-gray-900 dark:border-gray-800 
-           transition-shadow hover:shadow-sm;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 
+           dark:bg-gray-900/80 dark:border-gray-800/50 
+           shadow-sm hover:shadow-lg transition-all duration-300
+           hover:border-gray-300/50 dark:hover:border-gray-700/50;
+  }
+  
+  .card-floating {
+    @apply bg-white rounded-3xl p-8 
+           dark:bg-gray-900/90 dark:backdrop-blur-md
+           shadow-xl hover:shadow-2xl transition-all duration-300
+           hover:-translate-y-1;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-md
+           dark:from-gray-900/90 dark:to-gray-800/70
+           rounded-3xl p-8 border border-white/20 dark:border-gray-700/20
+           shadow-xl hover:shadow-2xl transition-all duration-300;
   }
 
   /* 입력 필드 - 토스 스타일 */
@@ -153,5 +192,47 @@
   .animate-fade-in {
     animation: fade-in 0.5s ease-out forwards;
     opacity: 0;
+  }
+  
+  /* 그라데이션 배경 */
+  .bg-gradient-mesh {
+    background-image: 
+      radial-gradient(at 20% 80%, rgb(132, 61, 255) 0, transparent 50%),
+      radial-gradient(at 80% 20%, rgb(6, 182, 212) 0, transparent 50%),
+      radial-gradient(at 40% 40%, rgb(244, 63, 94) 0, transparent 50%);
+  }
+  
+  .bg-gradient-mesh-light {
+    background-image: 
+      radial-gradient(at 20% 80%, rgba(132, 61, 255, 0.1) 0, transparent 50%),
+      radial-gradient(at 80% 20%, rgba(6, 182, 212, 0.1) 0, transparent 50%),
+      radial-gradient(at 40% 40%, rgba(244, 63, 94, 0.1) 0, transparent 50%);
+  }
+  
+  /* 글로우 효과 */
+  .text-glow {
+    text-shadow: 0 0 20px rgba(132, 61, 255, 0.5);
+  }
+  
+  .text-glow-accent {
+    text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+  }
+  
+  /* 그라데이션 텍스트 */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-reverse {
+    @apply bg-gradient-to-r from-accent-500 to-coral-500 bg-clip-text text-transparent;
+  }
+  
+  /* 유리 효과 */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-gray-900/10 backdrop-blur-md border border-gray-700/20;
   }
 }

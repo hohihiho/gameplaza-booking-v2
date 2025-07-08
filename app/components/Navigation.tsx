@@ -13,6 +13,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navigation() {
   const pathname = usePathname();
+  
+  // 홈페이지에서는 네비게이션 숨기기 (모바일 앱 스타일)
+  if (pathname === '/') {
+    return null;
+  }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
