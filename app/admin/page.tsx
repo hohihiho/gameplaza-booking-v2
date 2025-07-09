@@ -8,7 +8,6 @@ import {
   Calendar, 
   Gamepad2, 
   Clock,
-  AlertCircle,
   ChevronRight,
   RefreshCw,
   CheckCircle,
@@ -19,16 +18,13 @@ import {
   CheckSquare,
   Zap,
   UserCheck,
-  ArrowUp,
   ArrowDown,
   BarChart3,
   FileText,
   TrendingUp,
-  Users,
   Shield,
   Bell,
-  Settings,
-  Home
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -55,18 +51,9 @@ type RecentReservation = {
   created_at: string;
 };
 
-type DeviceStatus = {
-  id: string;
-  name: string;
-  status: 'available' | 'in_use' | 'maintenance';
-  current_user?: string;
-  end_time?: string;
-};
-
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
   const [_lastUpdated, setLastUpdated] = useState(new Date());
   
   // 1초마다 현재 시간 업데이트
@@ -80,6 +67,15 @@ export default function AdminDashboard() {
 
   // 통계 데이터 (실제로는 API에서 가져옴)
   const stats: StatCard[] = [
+    {
+      title: '오늘 대여 매출',
+      value: '₩485,000',
+      subtext: '실제 이용시간 기준',
+      icon: DollarSign,
+      trend: { value: 15, isUp: true },
+      color: 'bg-emerald-500',
+      link: '/admin/analytics/revenue'
+    },
     {
       title: '오늘 예약',
       value: 18,
@@ -96,15 +92,6 @@ export default function AdminDashboard() {
       icon: UserCheck,
       color: 'bg-green-500',
       link: '/admin/checkin'
-    },
-    {
-      title: '오늘 매출',
-      value: '₩485,000',
-      subtext: '실제 이용시간 기준',
-      icon: DollarSign,
-      trend: { value: 15, isUp: true },
-      color: 'bg-emerald-500',
-      link: '/admin/sales'
     },
     {
       title: '대여 가능',
@@ -156,16 +143,6 @@ export default function AdminDashboard() {
     }
   ];
 
-  // 기기 상태 (실제로는 API에서 가져옴)
-  useEffect(() => {
-    setDeviceStatuses([
-      { id: '1', name: '마이마이 DX #1', status: 'in_use', current_user: '김철수', end_time: '16:00' },
-      { id: '3', name: '사운드 볼텍스 #1', status: 'maintenance' },
-      { id: '4', name: '사운드 볼텍스 #2', status: 'in_use', current_user: '이영희', end_time: '18:00' },
-      { id: '6', name: '태고의달인 #2', status: 'maintenance' },
-      { id: '7', name: '춘리즘 #2', status: 'in_use', current_user: '박민수', end_time: '17:00' },
-    ]);
-  }, []);
 
   const handleRefresh = () => {
     setIsLoading(true);
@@ -215,17 +192,6 @@ export default function AdminDashboard() {
     }
   };
 
-
-  // 시간대별 예약 현황 (실제로는 API에서 가져옴)
-  const timeSlotData = [
-    { time: '10:00', count: 2, max: 8 },
-    { time: '12:00', count: 5, max: 8 },
-    { time: '14:00', count: 8, max: 8 },
-    { time: '16:00', count: 6, max: 8 },
-    { time: '18:00', count: 4, max: 8 },
-    { time: '20:00', count: 3, max: 8 },
-    { time: '22:00', count: 1, max: 8 },
-  ];
 
   // 결제 대기 현황
   const pendingPayments = 3;
@@ -277,12 +243,140 @@ export default function AdminDashboard() {
                 disabled={isLoading}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="flex items-center justify-center p-2.5 text-white bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                title="새로고침"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                새로고침
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
+          </div>
+        </motion.div>
+
+        {/* 처리 대기중인 항목 - 모든 화면에서 최상단에 표시 */}
+        <AnimatePresence>
+          {(pendingPayments > 0 || recentReservations.filter(r => r.status === 'pending').length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+              className="relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6 mb-8"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-orange-400/5 animate-pulse" />
+              
+              <div className="relative flex items-start gap-4">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-lg">
+                  <Bell className="w-6 h-6 text-white" />
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
+                    처리 대기중인 항목
+                  </h3>
+                  <div className="space-y-2 mb-4">
+                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                        <span className="font-medium">{recentReservations.filter(r => r.status === 'pending').length}건</span>의 예약이 승인 대기중
+                      </div>
+                    )}
+                    {pendingPayments > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                        <span className="font-medium">{pendingPayments}건</span>의 계좌이체 확인 필요
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
+                      <Link
+                        href="/admin/reservations?status=pending"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-2xl hover:from-yellow-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <CheckSquare className="w-4 h-4" />
+                        예약 확인
+                      </Link>
+                    )}
+                    {pendingPayments > 0 && (
+                      <Link
+                        href="/admin/checkin"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        체크인 확인
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 빠른 작업 - 모바일에서만 표시 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="lg:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            빠른 작업
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/admin/checkin"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/30 dark:hover:to-orange-700/30 transition-all group"
+            >
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                  <UserCheck className="w-6 h-6 text-white" />
+                </div>
+                {pendingPayments > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                    {pendingPayments}
+                  </span>
+                )}
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">체크인</span>
+            </Link>
+            
+            <Link
+              href="/admin/reservations?status=pending"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 hover:from-yellow-100 hover:to-yellow-200 dark:hover:from-yellow-800/30 dark:hover:to-yellow-700/30 transition-all group"
+            >
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg">
+                  <Timer className="w-6 h-6 text-white" />
+                </div>
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                  3
+                </span>
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">예약승인</span>
+            </Link>
+            
+            <Link
+              href="/admin/devices"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                <Gamepad2 className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">기기관리</span>
+            </Link>
+            
+            <Link
+              href="/admin/analytics/reservations"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">통계분석</span>
+            </Link>
           </div>
         </motion.div>
 
@@ -359,83 +453,21 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* 알림 - 모바일에서는 상단에 표시 */}
-        <AnimatePresence>
-          {(pendingPayments > 0 || recentReservations.filter(r => r.status === 'pending').length > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
-              className="lg:hidden relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6 mb-8"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-orange-400/5 animate-pulse" />
-              
-              <div className="relative flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-lg">
-                  <Bell className="w-6 h-6 text-white" />
-                </div>
-                
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    처리 대기중인 항목
-                  </h3>
-                  <div className="space-y-2 mb-4">
-                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
-                        <span className="font-medium">{recentReservations.filter(r => r.status === 'pending').length}건</span>의 예약이 승인 대기중
-                      </div>
-                    )}
-                    {pendingPayments > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                        <span className="font-medium">{pendingPayments}건</span>의 계좌이체 확인 필요
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3">
-                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
-                      <Link
-                        href="/admin/reservations?status=pending"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-2xl hover:from-yellow-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        <CheckSquare className="w-4 h-4" />
-                        예약 확인
-                      </Link>
-                    )}
-                    {pendingPayments > 0 && (
-                      <Link
-                        href="/admin/checkin"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        체크인 확인
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 빠른 작업 - 모바일에서는 상단에 표시 */}
+        {/* 빠른 작업 - 데스크톱에서만 표시 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="lg:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 mb-8"
+          transition={{ delay: 0.5 }}
+          className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-500" />
             빠른 작업
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             <Link
               href="/admin/checkin"
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/30 dark:hover:to-orange-700/30 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/30 dark:hover:to-orange-700/30 transition-all group"
             >
               <div className="relative">
                 <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
@@ -447,12 +479,12 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">체크인</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">체크인 관리</span>
             </Link>
             
             <Link
               href="/admin/reservations?status=pending"
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 hover:from-yellow-100 hover:to-yellow-200 dark:hover:from-yellow-800/30 dark:hover:to-yellow-700/30 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 hover:from-yellow-100 hover:to-yellow-200 dark:hover:from-yellow-800/30 dark:hover:to-yellow-700/30 transition-all group"
             >
               <div className="relative">
                 <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg">
@@ -462,390 +494,70 @@ export default function AdminDashboard() {
                   3
                 </span>
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">예약승인</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">예약 승인</span>
             </Link>
             
             <Link
               href="/admin/devices"
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 transition-all group"
             >
               <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
                 <Gamepad2 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">기기관리</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">기기 관리</span>
             </Link>
             
             <Link
               href="/admin/analytics/reservations"
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 transition-all group"
             >
               <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">통계분석</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">통계 분석</span>
             </Link>
-          </div>
-        </motion.div>
-
-        {/* 실시간 현황 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
-          {/* 시간대별 예약 현황 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 order-2 lg:order-1"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-500" />
-                오늘의 시간대별 예약 현황
-              </h2>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                실시간 업데이트
-              </span>
-            </div>
-          <div className="space-y-3">
-            {timeSlotData.map((slot, index) => {
-              const percentage = (slot.count / slot.max) * 100;
-              const isFull = slot.count === slot.max;
-              
-              return (
-                <div key={slot.time} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{slot.time}</span>
-                    <span className={`font-medium ${
-                      isFull 
-                        ? 'text-red-600 dark:text-red-400' 
-                        : percentage > 75 
-                        ? 'text-yellow-600 dark:text-yellow-400'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {slot.count}/{slot.max} {isFull && '(만석)'}
-                    </span>
-                  </div>
-                  <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${percentage}%` }}
-                      transition={{ duration: 1, delay: index * 0.1 }}
-                      className={`h-2.5 rounded-full transition-colors ${
-                        isFull 
-                          ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                          : percentage > 75 
-                          ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
-                          : 'bg-gradient-to-r from-green-500 to-green-600'
-                      }`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-
-          {/* 기기 상태 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 order-1 lg:order-2"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
-                <Gamepad2 className="w-5 h-5 text-purple-500" />
-                기기 상태
-              </h2>
-              <Link
-                href="/admin/devices"
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-medium"
-              >
-                전체보기
-              </Link>
-            </div>
-          <div className="space-y-2">
-            {deviceStatuses.map((device, index) => (
-              <motion.div
-                key={device.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                className={`relative overflow-hidden p-4 rounded-2xl border transition-all ${
-                  device.status === 'available'
-                    ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'
-                    : device.status === 'in_use'
-                    ? 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800'
-                    : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800'
-                }`}
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm text-gray-900 dark:text-white">{device.name}</span>
-                    {device.status === 'in_use' && device.end_time && (
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">~{device.end_time}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${
-                      device.status === 'available' ? 'bg-green-500' : 
-                      device.status === 'in_use' ? 'bg-blue-500' : 'bg-orange-500'
-                    }`} />
-                    <span className="text-xs font-medium ${
-                      device.status === 'available' ? 'text-green-700 dark:text-green-300' : 
-                      device.status === 'in_use' ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'
-                    }">
-                      {device.status === 'available' ? '대기중' : 
-                       device.status === 'in_use' ? '사용중' : '점검중'}
-                    </span>
-                  </div>
-                  {device.current_user && (
-                    <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">
-                      <Users className="w-3 h-3 inline mr-1" />
-                      {device.current_user}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-        {/* 빠른 작업 & 최근 예약 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
-          {/* 빠른 작업 - 데스크톱에서만 표시 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
-          >
-            <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-500" />
-              빠른 작업
-            </h2>
-          <div className="space-y-3">
-            <Link
-              href="/admin/checkin"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-xl">
-                  <UserCheck className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">체크인 관리</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {pendingPayments > 0 && (
-                  <span className="px-2.5 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-medium rounded-full shadow-sm">
-                    {pendingPayments}
-                  </span>
-                )}
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-            <Link
-              href="/admin/reservations?status=pending"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-xl">
-                  <Timer className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">예약 승인</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-xs font-medium rounded-full shadow-sm">
-                  3
-                </span>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-            <Link
-              href="/admin/devices"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-xl">
-                  <Gamepad2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">기기 관리</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            
             <Link
               href="/admin/rental-devices"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-800/30 dark:hover:to-indigo-700/30 transition-all group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 rounded-xl">
-                  <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">대여기기관리</span>
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">대여기기관리</span>
             </Link>
-            <Link
-              href="/admin/analytics/reservations"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl">
-                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">통계 분석</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            
             <Link
               href="/admin/content"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/30 dark:hover:to-green-700/30 transition-all group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl">
-                  <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">콘텐츠 관리</span>
+              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+                <CheckSquare className="w-6 h-6 text-white" />
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">콘텐츠 관리</span>
             </Link>
+            
             <Link
               href="/admin/terms"
-              className="flex items-center justify-between p-4 rounded-2xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800/50 dark:hover:to-gray-700/50 transition-all group"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/20 dark:to-gray-600/20 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-600/30 dark:hover:to-gray-500/30 transition-all group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700/30 dark:to-gray-600/30 rounded-xl">
-                  <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">약관 관리</span>
+              <div className="p-3 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl shadow-lg">
+                <FileText className="w-6 h-6 text-white" />
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">약관 관리</span>
+            </Link>
+            
+            <Link
+              href="/admin/settings"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/20 dark:to-slate-600/20 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600/30 dark:hover:to-slate-500/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl shadow-lg">
+                <Settings className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">환경설정</span>
             </Link>
           </div>
         </motion.div>
-
-          {/* 최근 예약 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
-                <Activity className="w-5 h-5 text-green-500" />
-                최근 활동
-              </h2>
-              <Link
-                href="/admin/reservations"
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-medium"
-              >
-                전체보기
-              </Link>
-            </div>
-          <div className="space-y-3">
-            {recentReservations.map((reservation) => (
-              <motion.div
-                key={reservation.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ x: 5 }}
-                className="relative overflow-hidden flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/30 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/30 transition-all group"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-medium dark:text-white">{reservation.user_name}</span>
-                    {getStatusBadge(reservation.status)}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {reservation.device_name} • {reservation.date} {reservation.time}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {reservation.created_at}
-                  </div>
-                </div>
-                {reservation.status === 'pending' && (
-                  <motion.div 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Link
-                      href={`/admin/reservations?id=${reservation.id}`}
-                      className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  </motion.div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-        {/* 알림 - 데스크톱에서만 표시 */}
-        <AnimatePresence>
-          {(pendingPayments > 0 || recentReservations.filter(r => r.status === 'pending').length > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ delay: 0.8, type: "spring", stiffness: 300 }}
-              className="hidden lg:block relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-orange-400/5 animate-pulse" />
-              
-              <div className="relative flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-lg">
-                  <Bell className="w-6 h-6 text-white" />
-                </div>
-                
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    처리 대기중인 항목
-                  </h3>
-                  <div className="space-y-2 mb-4">
-                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
-                        <span className="font-medium">{recentReservations.filter(r => r.status === 'pending').length}건</span>의 예약이 승인 대기중
-                      </div>
-                    )}
-                    {pendingPayments > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                        <span className="font-medium">{pendingPayments}건</span>의 계좌이체 확인 필요
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3">
-                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
-                      <Link
-                        href="/admin/reservations?status=pending"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-2xl hover:from-yellow-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        <CheckSquare className="w-4 h-4" />
-                        예약 확인
-                      </Link>
-                    )}
-                    {pendingPayments > 0 && (
-                      <Link
-                        href="/admin/checkin"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        체크인 확인
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
