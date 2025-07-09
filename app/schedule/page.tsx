@@ -491,12 +491,12 @@ export default function SchedulePage() {
               </div>
               
               <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50">
-                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-3">
+                <div className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-200 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-blue-700 dark:text-blue-300" />
                   </div>
                   <span className="pt-1">조기/밤샘 대여 오픈시 추가 영업시간 연장</span>
-                </p>
+                </div>
               </div>
             </div>
           </div>

@@ -29,13 +29,26 @@ export async function GET() {
       );
     }
 
+    // 관리자 권한 확인
+    let isAdmin = false;
+    if (profile?.id) {
+      const { data: adminData } = await supabaseAdmin
+        .from('admins')
+        .select('is_super_admin')
+        .eq('user_id', profile.id)
+        .single();
+      
+      isAdmin = !!adminData?.is_super_admin;
+    }
+
     // 프로필이 없거나 불완전한 경우
     if (!profile || !profile.nickname || !profile.phone) {
       return NextResponse.json(
         { 
           exists: false,
           incomplete: true,
-          profile: profile || null 
+          profile: profile || null,
+          isAdmin
         },
         { status: 200 }
       );
@@ -44,7 +57,8 @@ export async function GET() {
     return NextResponse.json({ 
       exists: true,
       incomplete: false,
-      profile 
+      profile,
+      isAdmin
     });
   } catch (error) {
     console.error('Profile API error:', error);

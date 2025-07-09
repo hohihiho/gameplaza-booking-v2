@@ -170,14 +170,28 @@ export default function MainActionButtons() {
                     {action.description}
                   </p>
                   
-                  {/* Featured 뱃지 */}
+                  {/* Featured 표시 - 카드 전체 강조 */}
                   {action.featured && (
-                    <div className="absolute top-4 right-4">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-xs font-bold rounded-full">
-                        <Sparkles className="w-3 h-3" />
-                        추천
-                      </span>
-                    </div>
+                    <>
+                      {/* 반짝이는 별 아이콘 */}
+                      <div className="absolute top-4 right-4">
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 10, -10, 0],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            repeatType: "loop",
+                          }}
+                        >
+                          <Sparkles className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
+                        </motion.div>
+                      </div>
+                      {/* 카드 상단에 그라데이션 하이라이트 */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-t-3xl" />
+                    </>
                   )}
                   
                   {/* 호버 시 화살표 */}
@@ -264,7 +278,8 @@ export default function MainActionButtons() {
               className="flex items-center justify-center gap-2 bg-[#03C75A] hover:bg-[#02a74b] text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               <span className="text-xl font-black">N</span>
-              네이버지도
+              <span className="md:hidden">네이버</span>
+              <span className="hidden md:inline">네이버지도</span>
             </a>
             <a
               href="https://map.kakao.com/?q=게임플라자 광주광역시 동구 충장로안길 6"
@@ -275,7 +290,8 @@ export default function MainActionButtons() {
               <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 3c5.514 0 10 3.476 10 7.747 0 4.272-4.48 7.748-10 7.748-.899 0-1.767-.091-2.59-.259l-3.863 2.516a.5.5 0 01-.814-.41l.137-3.57C2.456 14.893 2 12.366 2 10.747 2 6.476 6.486 3 12 3z"/>
               </svg>
-              카카오맵
+              <span className="md:hidden">카카오</span>
+              <span className="hidden md:inline">카카오맵</span>
             </a>
             <a
               href="https://www.google.com/maps/search/게임플라자 광주광역시 동구 충장로안길 6"

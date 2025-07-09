@@ -6,12 +6,14 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { User, Bell, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle, XCircle, Sparkles, Loader2 } from 'lucide-react';
+import { User, Bell, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle, XCircle, Sparkles, Loader2, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsAdmin } from '@/app/hooks/useIsAdmin';
 
 export default function MyPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [notifications, setNotifications] = useState({
     reservation: true,
@@ -160,7 +162,7 @@ export default function MyPage() {
         </motion.div>
 
         {/* 프로필 섹션 */}
-        {isLoading ? (
+        {(isLoading || adminLoading) ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -437,6 +439,28 @@ export default function MyPage() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-4"
         >
+          {/* 관리자 버튼 - 관리자일 경우에만 표시 */}
+          {isAdmin && (
+            <>
+              <motion.button 
+                onClick={() => router.push('/admin')}
+                whileHover={{ x: 5 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all group mb-2"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">관리자 페이지</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+              
+              <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
+            </>
+          )}
+          
           <motion.button 
             onClick={handleLogout}
             whileHover={{ x: 5 }}

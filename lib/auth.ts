@@ -91,31 +91,57 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       try {
-        // 토큰이 없으면 null 세션 반환
+        // 토큰이 없으면 기본 세션 반환
         if (!token || !token.email) {
-          console.log('No valid token, returning null session');
-          return null;
+          console.log('No valid token, returning default session');
+          return session;
         }
 
-        // 세션 구조 생성
-        const newSession = {
+        // 토큰에서 isAdmin 값 사용 (JWT 콜백에서 이미 확인됨)
+        const isAdmin = token.isAdmin || false;
+        
+        console.log('Session callback - email:', token.email, 'isAdmin:', isAdmin);
+
+        // 세션이 없으면 새로 생성
+        if (!session) {
+          return {
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            user: {
+              id: token.sub || '',
+              email: token.email || '',
+              name: token.name as string || '',
+              image: token.picture as string || null,
+              isAdmin: isAdmin
+            }
+          };
+        }
+
+        // 기존 세션에 isAdmin 추가 - 전체 user 객체를 재구성
+        const finalSession = {
           expires: session?.expires || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           user: {
+            // 기본 필드
+            name: (token.name as string) || session?.user?.name || null,
+            email: token.email || session?.user?.email || null,
+            image: (token.picture as string) || session?.user?.image || null,
+            // 커스텀 필드
             id: token.sub || '',
-            email: token.email || '',
-            name: token.name as string || '',
-            image: token.picture as string || null,
-            isAdmin: false
+            isAdmin: isAdmin
           }
         };
-
-        return newSession;
+        
+        console.log('Session callback returning:', JSON.stringify(finalSession, null, 2));
+        return finalSession;
       } catch (error) {
         console.error('Session callback error:', error);
-        return null;
+        // 에러 시에도 기본 세션 반환
+        return session || {
+          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          user: {}
+        };
       }
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       try {
         // 초기 로그인 시 사용자 정보를 토큰에 저장
         if (account && user) {
@@ -124,6 +150,30 @@ export const authOptions: AuthOptions = {
           token.email = user.email;
           token.name = user.name;
           token.picture = user.image;
+        }
+        
+        // 항상 관리자 권한 확인 (매 요청마다)
+        if (token.email) {
+          console.log('Checking admin status in JWT callback for:', token.email);
+          
+          const { data: userData } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('email', token.email as string)
+            .single();
+          
+          if (userData?.id) {
+            const { data: adminData } = await supabaseAdmin
+              .from('admins')
+              .select('is_super_admin')
+              .eq('user_id', userData.id)
+              .single();
+            
+            token.isAdmin = !!adminData?.is_super_admin;
+            console.log('JWT admin check result:', token.isAdmin);
+          } else {
+            token.isAdmin = false;
+          }
         }
         
         return token;

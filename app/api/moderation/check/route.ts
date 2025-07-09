@@ -181,41 +181,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // 1. 한국어 특화 비속어 체크
+    console.log('Moderation check for:', text);
+    
+    // 1. 한국어 특화 비속어 체크 - 임시로 severity 기준 상향
     const koreanCheck = checkKoreanProfanity(text);
+    console.log('Korean check result:', koreanCheck);
     if (koreanCheck.found) {
       const severity = koreanCheck.severity;
-      if (severity >= 3) {
+      // severity 4 이상만 차단 (기존 3)
+      if (severity >= 4) {
         return NextResponse.json({
           valid: false,
           reason: '사용할 수 없는 표현이 포함되어 있습니다',
           severity: 'block'
         });
-      } else if (severity >= 2) {
-        return NextResponse.json({
-          valid: false,
-          reason: '부적절한 표현이 포함되어 있습니다',
-          severity: 'warn'
-        });
+      } else if (severity >= 3) {
+        // 경고만 표시하고 통과 (기존 2)
+        console.log('Warning only for severity 3:', text);
       }
     }
 
-    // 2. 영어 특화 비속어 체크
+    // 2. 영어 특화 비속어 체크 - 임시로 severity 기준 상향
     const englishCheck = checkEnglishProfanity(text);
+    console.log('English check result:', englishCheck);
     if (englishCheck.found) {
       const severity = englishCheck.severity;
-      if (severity >= 3) {
+      // severity 4 이상만 차단 (기존 3)
+      if (severity >= 4) {
         return NextResponse.json({
           valid: false,
           reason: '사용할 수 없는 표현이 포함되어 있습니다',
           severity: 'block'
         });
-      } else if (severity >= 2) {
-        return NextResponse.json({
-          valid: false,
-          reason: '부적절한 표현이 포함되어 있습니다',
-          severity: 'warn'
-        });
+      } else if (severity >= 3) {
+        // 경고만 표시하고 통과 (기존 2)
+        console.log('Warning only for severity 3:', text);
       }
     }
 
@@ -230,6 +230,7 @@ export async function POST(request: Request) {
 
     // 4. 패턴 기반 비속어 체크 (백업)
     const patternCheck = await checkWithPatterns(text);
+    console.log('Pattern check result:', patternCheck);
     if (patternCheck.flagged) {
       return NextResponse.json({
         valid: false,
@@ -238,21 +239,39 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. 커스텀 금지어 체크
-    const customCheck = await checkCustomBannedWords(text);
-    if (customCheck.flagged) {
-      if (customCheck.severity === 2) {
-        return NextResponse.json({
-          valid: false,
-          reason: '사용할 수 없는 단어가 포함되어 있습니다',
-          severity: 'block'
-        });
-      } else {
-        return NextResponse.json({
-          valid: true,
-          warning: '일부 단어가 부적절할 수 있습니다',
-          severity: 'warn'
-        });
+    // 5. 커스텀 금지어 체크 - 닉네임에서는 비속어 카테고리만 체크
+    if (context === 'nickname') {
+      // 닉네임에서는 비속어만 체크
+      const { data: profanityWords } = await supabaseAdmin
+        .from('banned_words')
+        .select('word, severity')
+        .eq('is_active', true)
+        .in('category', ['profanity', 'offensive', 'sexual']);
+      
+      if (profanityWords && profanityWords.length > 0) {
+        const lowerText = text.toLowerCase();
+        for (const { word, severity } of profanityWords) {
+          if (lowerText.includes(word.toLowerCase())) {
+            console.log('Banned word found:', word, 'in text:', text);
+            return NextResponse.json({
+              valid: false,
+              reason: '사용할 수 없는 단어가 포함되어 있습니다',
+              severity: 'block'
+            });
+          }
+        }
+      }
+    } else {
+      // 다른 컨텍스트에서는 모든 금지어 체크
+      const customCheck = await checkCustomBannedWords(text);
+      if (customCheck.flagged) {
+        if (customCheck.severity === 2) {
+          return NextResponse.json({
+            valid: false,
+            reason: '사용할 수 없는 단어가 포함되어 있습니다',
+            severity: 'block'
+          });
+        }
       }
     }
 

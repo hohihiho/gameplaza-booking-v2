@@ -57,13 +57,19 @@ export default function ReservationsPage() {
 
   // 만료된 예약 상태 자동 업데이트
   const updateExpiredReservations = async (reservations: any[]) => {
-    const today = new Date();
+    // KST 기준 오늘 날짜
+    const now = new Date();
+    const kstOffset = 9 * 60; // KST는 UTC+9
+    const kstNow = new Date(now.getTime() + (now.getTimezoneOffset() + kstOffset) * 60 * 1000);
+    const today = new Date(kstNow);
     today.setHours(0, 0, 0, 0);
     
     const updatedReservations = [];
     
     for (const reservation of reservations) {
-      const reservationDate = new Date(reservation.date);
+      // 예약 날짜를 KST 기준으로 파싱
+      const [year, month, day] = reservation.date.split('-').map(Number);
+      const reservationDate = new Date(year, month - 1, day);
       reservationDate.setHours(0, 0, 0, 0);
       
       // 대여일이 하루 이상 지난 경우
@@ -473,9 +479,12 @@ export default function ReservationsPage() {
                           <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
                             {reservation.devices?.device_types?.name}
                             {reservation.devices?.device_types?.model_name && (
-                              <span className="font-medium text-gray-600 dark:text-gray-400 ml-1">
-                                {reservation.devices.device_types.model_name}
-                              </span>
+                              <>
+                                <br className="md:hidden" />
+                                <span className="font-medium text-gray-600 dark:text-gray-400 md:ml-1">
+                                  {reservation.devices.device_types.model_name}
+                                </span>
+                              </>
                             )}
                           </h3>
                           {reservation.devices?.device_number && (
