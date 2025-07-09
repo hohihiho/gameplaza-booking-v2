@@ -5,8 +5,10 @@ import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
 import { MapPin, MessageCircle, Clock } from 'lucide-react'
-import { StagewiseToolbar } from '@stagewise/toolbar-next'
-import { ReactPlugin } from '@stagewise-plugins/react'
+// Stagewise 툴바 임시 비활성화
+// import { StagewiseToolbar } from '@stagewise/toolbar-next'
+// import { ReactPlugin } from '@stagewise-plugins/react'
+// ToastContainer는 LayoutWrapper 내부로 이동
 
 const orbitron = Orbitron({ 
   subsets: ['latin'],
@@ -56,12 +58,12 @@ export default function RootLayout({
       <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
         <Providers>
           <ThemeProvider>
-            {/* Stagewise 툴바 - 개발 모드에서만 활성화 */}
-            <StagewiseToolbar 
+            {/* Stagewise 툴바 - 임시 비활성화 */}
+            {/* <StagewiseToolbar 
               config={{
                 plugins: [ReactPlugin]
               }}
-            />
+            /> */}
             
             <LayoutWrapper>
               {children}

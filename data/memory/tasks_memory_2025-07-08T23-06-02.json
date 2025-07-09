@@ -1,0 +1,294 @@
+{
+  "tasks": [
+    {
+      "id": "35c41ac9-2386-455e-bb4a-002b5bacc331",
+      "name": "Google OAuth 인증 시스템 구현",
+      "description": "Google OAuth를 통한 사용자 인증 시스템을 구현했습니다. NextAuth v5를 사용하여 안전한 인증 플로우를 제공합니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T14:57:54.587Z",
+      "relatedFiles": [
+        {
+          "path": "/lib/auth.ts",
+          "type": "REFERENCE",
+          "description": "NextAuth 설정"
+        },
+        {
+          "path": "/app/api/auth/[...nextauth]/route.ts",
+          "type": "REFERENCE",
+          "description": "Auth API 라우트"
+        },
+        {
+          "path": "/app/signup/page.tsx",
+          "type": "REFERENCE",
+          "description": "회원가입 페이지"
+        }
+      ],
+      "implementationGuide": "완료됨 - NextAuth v5 설정, Google OAuth 연동, 세션 관리, 권한 시스템 구현",
+      "verificationCriteria": "구현 완료 - Google 로그인 정상 작동, 세션 유지, 권한별 접근 제어",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "Google OAuth 인증 시스템이 완벽하게 구현됨. NextAuth v5를 사용하여 안전한 인증 플로우, 세션 관리, 권한 시스템이 모두 정상 작동 중",
+      "completedAt": "2025-07-08T14:57:54.586Z"
+    },
+    {
+      "id": "54a30615-e6d4-44e2-b7a2-f3167fd71250",
+      "name": "기본 예약 시스템 구현",
+      "description": "날짜/시간/기기 선택을 통한 예약 신청 시스템을 구현했습니다. 24시간 룰, 실시간 가용성 확인, 예약 번호 발급 등이 포함됩니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:00:45.937Z",
+      "relatedFiles": [
+        {
+          "path": "/app/reservations/new/page.tsx",
+          "type": "REFERENCE",
+          "description": "예약 신청 페이지"
+        },
+        {
+          "path": "/app/api/reservations/route.ts",
+          "type": "REFERENCE",
+          "description": "예약 API"
+        },
+        {
+          "path": "/app/reservations/page.tsx",
+          "type": "REFERENCE",
+          "description": "예약 목록 페이지"
+        }
+      ],
+      "implementationGuide": "완료됨 - 예약 폼, 24시간 룰 엔진, 실시간 가용성 체크, 예약 번호 생성 로직",
+      "verificationCriteria": "구현 완료 - 예약 신청/조회/취소 정상 작동, 24시간 룰 적용",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "기본 예약 시스템 완벽 구현. 날짜/시간/기기 선택, 24시간 룰 적용, 실시간 가용성 체크, 예약 번호 자동 발급(YYMMDD-NNN 형식) 모두 정상 작동",
+      "completedAt": "2025-07-08T15:00:45.936Z"
+    },
+    {
+      "id": "86e0cb34-2c43-4047-9e4c-fe037eeea442",
+      "name": "관리자 예약 관리 시스템",
+      "description": "관리자가 예약을 승인/거절하고 관리할 수 있는 시스템을 구현했습니다. 페이지네이션, 필터링, 실시간 상태 관리가 포함됩니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:01:10.757Z",
+      "relatedFiles": [
+        {
+          "path": "/app/admin/reservations/page.tsx",
+          "type": "REFERENCE",
+          "description": "관리자 예약 관리"
+        },
+        {
+          "path": "/app/api/admin/reservations/route.ts",
+          "type": "REFERENCE",
+          "description": "관리자 예약 API"
+        }
+      ],
+      "implementationGuide": "완료됨 - 예약 목록 관리, 승인/거절 기능, 취소 사유 선택, 페이지네이션",
+      "verificationCriteria": "구현 완료 - 예약 승인/거절, 필터링, 페이지네이션 정상 작동",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "관리자 예약 관리 시스템 완벽 구현. 예약 승인/거절, 취소 사유 선택, 페이지네이션, 실시간 필터링 모두 정상 작동. 상태별 탭 구분으로 효율적 관리 가능",
+      "completedAt": "2025-07-08T15:01:10.756Z"
+    },
+    {
+      "id": "c5e38ec9-099b-48f0-81bb-b02ca8b65921",
+      "name": "기기 관리 시스템 구현",
+      "description": "기종별 기기 관리, 플레이 모드별 가격 설정, 드래그앤드롭 순서 변경 등을 구현했습니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:01:35.585Z",
+      "relatedFiles": [
+        {
+          "path": "/app/admin/devices/page.tsx",
+          "type": "REFERENCE",
+          "description": "기기 관리 페이지"
+        },
+        {
+          "path": "/app/api/admin/device-types/route.ts",
+          "type": "REFERENCE",
+          "description": "기종 관리 API"
+        }
+      ],
+      "implementationGuide": "완료됨 - CRUD 기능, 드래그앤드롭, 실시간 상태 반영, 모델명/버전명 관리",
+      "verificationCriteria": "구현 완료 - 기기 CRUD, 가격 설정, 순서 변경 정상 작동",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "기기 관리 시스템 완벽 구현. 기종별 CRUD, 플레이 모드별 가격 설정, 드래그앤드롭 순서 변경, 모델명/버전명 관리 모두 정상 작동. 실시간 상태 반영으로 효율적 관리 가능",
+      "completedAt": "2025-07-08T15:01:35.583Z"
+    },
+    {
+      "id": "97f1c5a2-807c-46a9-8c9b-5325620095a2",
+      "name": "전화번호 인증 시스템",
+      "description": "Firebase를 사용한 SMS 전화번호 인증 시스템을 구현했습니다. 6자리 코드 발송 및 검증이 가능합니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:02:01.465Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/auth/phone/send/route.ts",
+          "type": "REFERENCE",
+          "description": "SMS 발송 API"
+        },
+        {
+          "path": "/app/api/auth/phone/verify/route.ts",
+          "type": "REFERENCE",
+          "description": "SMS 검증 API"
+        },
+        {
+          "path": "/lib/firebase/index.ts",
+          "type": "REFERENCE",
+          "description": "Firebase 설정"
+        }
+      ],
+      "implementationGuide": "완료됨 - Firebase SMS 인증, 6자리 코드 생성, 5분 만료, 개발 환경 테스트 모드",
+      "verificationCriteria": "구현 완료 - SMS 발송 및 인증 코드 검증 정상 작동",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "전화번호 인증 시스템 완벽 구현. Firebase SMS 인증으로 6자리 코드 발송/검증, 5분 만료 시간 적용. 개발 환경에서는 콘솔 출력으로 테스트 가능",
+      "completedAt": "2025-07-08T15:02:01.464Z"
+    },
+    {
+      "id": "efef6397-b80f-4ff5-abe2-9bede433f26c",
+      "name": "AI 기반 비속어 필터링",
+      "description": "한국어와 영어에 특화된 AI 기반 비속어 필터링 시스템을 구현했습니다. 자음/모음 분해, 유사음 감지 등이 포함됩니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:02:28.288Z",
+      "relatedFiles": [
+        {
+          "path": "/lib/utils/korean-filter.ts",
+          "type": "REFERENCE",
+          "description": "한국어 필터"
+        },
+        {
+          "path": "/lib/utils/english-filter.ts",
+          "type": "REFERENCE",
+          "description": "영어 필터"
+        },
+        {
+          "path": "/app/api/moderation/check/route.ts",
+          "type": "REFERENCE",
+          "description": "필터링 API"
+        }
+      ],
+      "implementationGuide": "완료됨 - 한국어/영어 필터, 스팸/광고 패턴 차단, 실시간 필터링",
+      "verificationCriteria": "구현 완료 - 비속어 감지 및 차단, 변형된 텍스트도 감지",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "AI 기반 비속어 필터링 시스템 완벽 구현. 한국어 자음/모음 분해 및 유사음 감지, 영어 Leetspeak 변형 감지, 스팸/광고 패턴 차단 모두 정상 작동",
+      "completedAt": "2025-07-08T15:02:28.287Z"
+    },
+    {
+      "id": "b89860f0-5c61-4be4-bb23-2c9675dfba6a",
+      "name": "관리자용 금지어 관리 시스템",
+      "description": "관리자가 금지어를 직접 관리할 수 있는 시스템을 구현했습니다. 카테고리별, 언어별 분류와 심각도 관리가 가능합니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:02:58.661Z",
+      "relatedFiles": [
+        {
+          "path": "/app/admin/banned-words/page.tsx",
+          "type": "REFERENCE",
+          "description": "금지어 관리 페이지"
+        },
+        {
+          "path": "/app/api/admin/banned-words/route.ts",
+          "type": "REFERENCE",
+          "description": "금지어 API"
+        }
+      ],
+      "implementationGuide": "완료됨 - CRUD 기능, 카테고리/언어별 분류, 심각도 레벨, 실시간 동기화",
+      "verificationCriteria": "구현 완료 - 금지어 추가/수정/삭제, 실시간 적용",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "관리자용 금지어 관리 시스템 완벽 구현. CRUD 기능, 카테고리/언어별 분류, 심각도 레벨 관리, 실시간 동기화로 즉시 필터링 적용. 검색 및 필터링 기능으로 효율적 관리",
+      "completedAt": "2025-07-08T15:02:58.659Z"
+    },
+    {
+      "id": "4311650f-3fce-48e8-b784-a07649d9733b",
+      "name": "운영 일정 관리 시스템",
+      "description": "관리자가 조기 영업, 마감, 임시 휴무 등의 운영 일정을 관리할 수 있는 시스템을 구현했습니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:03:25.909Z",
+      "relatedFiles": [
+        {
+          "path": "/app/admin/schedule/page.tsx",
+          "type": "REFERENCE",
+          "description": "운영 일정 관리"
+        },
+        {
+          "path": "/app/api/admin/schedule/route.ts",
+          "type": "REFERENCE",
+          "description": "일정 API"
+        }
+      ],
+      "implementationGuide": "완료됨 - 일정 CRUD, 30분 단위 시간 선택, 캘린더 뷰",
+      "verificationCriteria": "구현 완료 - 일정 추가/수정/삭제, 캘린더 표시",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "운영 일정 관리 시스템 완벽 구현. 조기 영업, 임시 휴무, 특별 운영 등 유연한 일정 관리. 30분 단위 시간 선택, 캘린더 뷰로 직관적 일정 확인 가능",
+      "completedAt": "2025-07-08T15:03:25.908Z"
+    },
+    {
+      "id": "043e55c4-209a-4e8e-9627-4d64d1175dc6",
+      "name": "마이페이지 및 프로필 관리",
+      "description": "사용자가 자신의 정보를 조회하고 수정할 수 있는 마이페이지를 구현했습니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:03:51.165Z",
+      "relatedFiles": [
+        {
+          "path": "/app/mypage/page.tsx",
+          "type": "REFERENCE",
+          "description": "마이페이지"
+        },
+        {
+          "path": "/app/mypage/profile/page.tsx",
+          "type": "REFERENCE",
+          "description": "프로필 수정"
+        }
+      ],
+      "implementationGuide": "완료됨 - 프로필 조회/수정, 예약 내역 조회, 비속어 필터링 적용",
+      "verificationCriteria": "구현 완료 - 프로필 조회/수정, 예약 내역 확인",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "마이페이지 및 프로필 관리 완벽 구현. 프로필 조회/수정, 예약 내역 확인, 닉네임 변경 시 비속어 필터링 적용. 직관적인 UI로 사용자 정보 관리 편리",
+      "completedAt": "2025-07-08T15:03:51.164Z"
+    },
+    {
+      "id": "37975f63-c645-4dce-850c-93a4ab0b3499",
+      "name": "관리자 권한 시스템",
+      "description": "슈퍼관리자와 일반 관리자를 구분하여 권한을 관리하는 시스템을 구현했습니다.",
+      "notes": "이미 구현 완료됨",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-08T14:57:21.677Z",
+      "updatedAt": "2025-07-08T15:04:15.445Z",
+      "relatedFiles": [
+        {
+          "path": "/app/admin/admins/page.tsx",
+          "type": "REFERENCE",
+          "description": "관리자 관리"
+        },
+        {
+          "path": "/supabase/migrations/20250704_admin_auth_rls.sql",
+          "type": "REFERENCE",
+          "description": "관리자 RLS"
+        }
+      ],
+      "implementationGuide": "완료됨 - 역할 기반 접근 제어, 관리자 추가/삭제, RLS 정책",
+      "verificationCriteria": "구현 완료 - 관리자 추가/삭제, 권한별 접근 제어",
+      "analysisResult": "광주 게임플라자 예약 시스템 - 완료된 기능들을 추가합니다. 이미 구현되어 있는 기능들의 상태를 기록하여 전체 프로젝트 진행 상황을 추적합니다.",
+      "summary": "관리자 권한 시스템 완벽 구현. 슈퍼관리자/일반 관리자 역할 구분, 관리자 추가/삭제 기능, RLS 정책으로 데이터베이스 레벨 보안. 슈퍼관리자만 관리자 관리 가능",
+      "completedAt": "2025-07-08T15:04:15.444Z"
+    }
+  ]
+}

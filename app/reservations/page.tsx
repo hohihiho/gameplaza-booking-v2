@@ -3,12 +3,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, CreditCard, ChevronRight, ChevronLeft, Loader2, Gamepad2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Calendar, CreditCard, ChevronRight, Loader2, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
+import { Pagination } from '@/app/components/mobile';
+import { useRealtimeReservations } from '@/hooks/useOptimizedRealtime';
+import RealtimeIndicator from '@/app/components/mobile/RealtimeIndicator';
 
 export default function ReservationsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [activeTab, setActiveTab] = useState('all');
   const [reservations, setReservations] = useState<any[]>([]);
   const [allReservations, setAllReservations] = useState<any[]>([]); // 전체 예약 목록 저장
@@ -18,7 +25,13 @@ export default function ReservationsPage() {
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // 한 페이지에 10개씩 표시
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // 실시간 업데이트 훅
+  const realtimeState = useRealtimeReservations(() => {
+    // 실시간 업데이트가 있을 때 데이터 새로고침
+    loadAllReservations();
+  });
 
   const tabs = [
     { id: 'all', label: '전체' },
@@ -28,6 +41,17 @@ export default function ReservationsPage() {
     { id: 'cancelled', label: '취소' },
   ];
 
+  // URL 파라미터에서 페이지 정보 복원
+  useEffect(() => {
+    const page = searchParams.get('page');
+    const perPage = searchParams.get('perPage');
+    const tab = searchParams.get('tab');
+    
+    if (page) setCurrentPage(parseInt(page));
+    if (perPage) setItemsPerPage(parseInt(perPage));
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+  
   // 초기 로드 시 전체 예약 목록 가져오기
   useEffect(() => {
     loadAllReservations();
@@ -71,6 +95,29 @@ export default function ReservationsPage() {
       setReservations(allReservations.filter(r => r.status === activeTab));
     }
     setCurrentPage(1); // 필터 변경 시 첫 페이지로
+  };
+  
+  // 페이지 변경 시 URL 업데이트 및 스크롤
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    params.set('tab', activeTab);
+    params.set('perPage', itemsPerPage.toString());
+    router.push(`/reservations?${params.toString()}`);
+    
+    // 페이지 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handleItemsPerPageChange = (perPage: number) => {
+    setItemsPerPage(perPage);
+    setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', '1');
+    params.set('tab', activeTab);
+    params.set('perPage', perPage.toString());
+    router.push(`/reservations?${params.toString()}`);
   };
 
   const handleCancel = async (reservationId: string) => {
@@ -145,7 +192,7 @@ export default function ReservationsPage() {
           {/* 페이지 타이틀 */}
           <div className="pt-6 pb-4">
             <h1 className="text-2xl font-bold dark:text-white">내 예약</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">예약 현황을 확인하고 관리하세요</p>
+            <p className="text-gray-700 dark:text-gray-300 mt-1">예약 현황을 확인하고 관리하세요</p>
           </div>
 
           {/* 예약 상태 탭 */}
@@ -156,11 +203,16 @@ export default function ReservationsPage() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   setCurrentPage(1);
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set('page', '1');
+                  params.set('tab', tab.id);
+                  params.set('perPage', itemsPerPage.toString());
+                  router.push(`/reservations?${params.toString()}`);
                 }}
                 className={`px-4 py-3 text-sm font-medium whitespace-nowrap relative transition-all ${
                   activeTab === tab.id
                     ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -178,30 +230,10 @@ export default function ReservationsPage() {
             ))}
           </div>
 
-          {/* 페이지네이션 (상단) */}
-          {reservations.length > itemsPerPage && (
-            <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                
-                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  {currentPage} / {Math.ceil(reservations.length / itemsPerPage)} 페이지
-                </span>
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)))}
-                  disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
+          {/* 현재 페이지 정보 (간단히 표시) */}
+          {reservations.length > 0 && (
+            <div className="py-3 text-center text-sm text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700">
+              전체 {reservations.length}개 • {Math.ceil(reservations.length / itemsPerPage)}페이지 중 {currentPage}페이지
             </div>
           )}
         </div>
@@ -228,7 +260,7 @@ export default function ReservationsPage() {
         ) : reservations.length === 0 ? (
           <div className="text-center py-20">
             <Gamepad2 className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 mb-4">예약 내역이 없습니다</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">예약 내역이 없습니다</p>
             <a 
               href="/reservations/new" 
               className="inline-flex items-center gap-1 text-gray-900 dark:text-white font-medium hover:underline"
@@ -255,11 +287,11 @@ export default function ReservationsPage() {
                       {reservation.devices?.device_types?.model_name && ` ${reservation.devices.device_types.model_name}`}
                       {reservation.devices?.device_number && ` ${reservation.devices.device_number}번기`}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">
                       {formatDate(reservation.date)} {formatTime(reservation.start_time, reservation.end_time)} ({calculateDuration(reservation.start_time, reservation.end_time)}시간)
                     </p>
                     {reservation.reservation_number && (
-                      <p className="text-gray-500 dark:text-gray-500 text-xs mt-0.5">
+                      <p className="text-gray-600 dark:text-gray-400 text-xs mt-0.5">
                         예약번호: {reservation.reservation_number}
                       </p>
                     )}
@@ -269,7 +301,7 @@ export default function ReservationsPage() {
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
                   <span className="flex items-center gap-1.5">
                     <CreditCard className="w-4 h-4" />
                     {reservation.total_amount?.toLocaleString()}원
@@ -300,7 +332,7 @@ export default function ReservationsPage() {
                 {/* 추가 정보가 있을 때만 표시 */}
                 {(reservation.user_notes || reservation.admin_notes || reservation.rejection_reason) && (
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
                       {reservation.user_notes && <p>💬 {reservation.user_notes}</p>}
                       {reservation.admin_notes && <p className="mt-1">📝 관리자: {reservation.admin_notes}</p>}
                       {reservation.rejection_reason && (
@@ -325,8 +357,34 @@ export default function ReservationsPage() {
             ))}
           </div>
           )}
+          
+          {/* 페이지네이션 (하단) */}
+          {reservations.length > itemsPerPage && (
+            <div className="mt-8 pb-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(reservations.length / itemsPerPage)}
+                totalItems={reservations.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                showItemsPerPage={true}
+              />
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* 실시간 연결 상태 인디케이터 */}
+      <RealtimeIndicator
+        isConnected={realtimeState.isConnected}
+        isReconnecting={realtimeState.isReconnecting}
+        lastUpdate={realtimeState.lastUpdate}
+        updateCount={realtimeState.updateCount}
+        onReconnect={realtimeState.reconnect}
+        position="bottom-right"
+        showDetails={false}
+      />
     </>
   );
 }

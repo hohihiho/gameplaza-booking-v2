@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import DesktopSidebar from './DesktopSidebar';
 import BottomTabBar from './BottomTabBar';
+import { ToastContainer } from './mobile';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -30,6 +31,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       
       {/* 모바일 하단 탭바 */}
       <BottomTabBar />
+      
+      {/* Toast 메시지 컨테이너 */}
+      <ToastContainer />
     </>
   );
 }

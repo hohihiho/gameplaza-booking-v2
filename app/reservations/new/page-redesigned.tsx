@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
-import { BottomSheet, TouchRipple, SkeletonCard, LoadingButton, AnimatedCard } from '@/app/components/mobile';
+import { BottomSheet, TouchRipple, SkeletonCard } from '@/app/components/mobile';
 
 type DeviceType = {
   id: string;
@@ -635,15 +635,14 @@ export default function NewReservationPageRedesigned() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-8"
               >
-                <LoadingButton
-                  onClick={() => setCurrentStep(3)}
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  haptic="medium"
-                >
-                  다음 단계
-                </LoadingButton>
+                <TouchRipple>
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    className="w-full py-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+                  >
+                    다음 단계
+                  </button>
+                </TouchRipple>
               </motion.div>
             )}
           </motion.div>
@@ -668,27 +667,27 @@ export default function NewReservationPageRedesigned() {
             
             {/* 선택 내용 요약 */}
             <div className="space-y-3 mb-6">
-              <AnimatedCard className="p-4" variant="fade" delay={0}>
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">날짜</p>
                 <p className="font-medium dark:text-white">{formatKoreanDate(parseKSTDate(reservationData.date))}</p>
-              </AnimatedCard>
+              </div>
               
-              <AnimatedCard className="p-4" variant="fade" delay={0.1}>
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">기기</p>
                 <p className="font-medium dark:text-white">
                   {selectedDeviceInfo?.name}
                   {reservationData.deviceNumber > 0 && ` ${reservationData.deviceNumber}번기`}
                 </p>
-              </AnimatedCard>
+              </div>
               
-              <AnimatedCard className="p-4" variant="fade" delay={0.2}>
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">시간</p>
                 <p className="font-medium dark:text-white">
                   {selectedTimeSlotInfo && (
                     `${formatTime(selectedTimeSlotInfo.start_time)} - ${formatTime(selectedTimeSlotInfo.end_time)}`
                   )}
                 </p>
-              </AnimatedCard>
+              </div>
             </div>
             
             {/* 추가 옵션 선택 */}
@@ -723,18 +722,22 @@ export default function NewReservationPageRedesigned() {
             
             {/* 예약하기 버튼 */}
             {reservationData.deviceNumber > 0 && reservationData.creditOption && (
-              <LoadingButton
-                onClick={handleSubmit}
-                isLoading={isSubmitting}
-                variant="primary"
-                size="lg"
-                fullWidth
-                haptic="heavy"
-                loadingText="예약 중..."
-                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-              >
-                예약하기
-              </LoadingButton>
+              <TouchRipple>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium disabled:opacity-50 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      예약 중...
+                    </>
+                  ) : (
+                    '예약하기'
+                  )}
+                </button>
+              </TouchRipple>
             )}
           </motion.div>
         )}

@@ -4,6 +4,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS 변수 - 색상 시스템 */
+:root {
+  /* 라이트 모드 색상 */
+  --color-text-primary: #111827; /* gray-900 */
+  --color-text-secondary: #374151; /* gray-700 */
+  --color-text-tertiary: #6b7280; /* gray-500 */
+  --color-text-disabled: #9ca3af; /* gray-400 */
+  
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb; /* gray-50 */
+  --color-bg-tertiary: #f3f4f6; /* gray-100 */
+  
+  --color-border-primary: #e5e7eb; /* gray-200 */
+  --color-border-secondary: #d1d5db; /* gray-300 */
+  
+  /* 포커스 색상 */
+  --color-focus-ring: #6366f1; /* indigo-500 */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
+
+/* 다크 모드 색상 */
+.dark {
+  --color-text-primary: #f9fafb; /* gray-50 */
+  --color-text-secondary: #e5e7eb; /* gray-200 */
+  --color-text-tertiary: #d1d5db; /* gray-300 */
+  --color-text-disabled: #6b7280; /* gray-500 */
+  
+  --color-bg-primary: #030712; /* gray-950 */
+  --color-bg-secondary: #111827; /* gray-900 */
+  --color-bg-tertiary: #1f2937; /* gray-800 */
+  
+  --color-border-primary: #374151; /* gray-700 */
+  --color-border-secondary: #4b5563; /* gray-600 */
+  
+  /* 다크모드에서 더 밝은 포커스 링 */
+  --color-focus-ring: #818cf8; /* indigo-400 */
+}
+
 /* 기본 스타일 설정 */
 @layer base {
   /* 부드러운 스크롤 */
@@ -32,9 +71,17 @@
     @apply outline-none;
   }
   
-  /* 포커스 비지블 스타일 */
+  /* 포커스 비지블 스타일 - 강화된 접근성 */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary-500 dark:ring-primary-400 ring-offset-2;
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+    @apply rounded-md;
+  }
+  
+  /* 버튼 포커스 특별 처리 */
+  button:focus-visible,
+  a:focus-visible {
+    @apply ring-4 ring-indigo-500/30 dark:ring-indigo-400/30;
   }
   
   /* 선택 영역 색상 */
@@ -48,9 +95,27 @@
   /* 모던 버튼 스타일 */
   .btn {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-200 
-           focus:outline-none focus:ring-2 focus:ring-offset-2 
-           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-4 focus:ring-offset-2 
+           disabled:opacity-60 disabled:cursor-not-allowed
            transform active:scale-95;
+  }
+  
+  /* 접근성 햬퍼 클래스 */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  /* 키보드 전용 스타일 */
+  .keyboard-only:not(:focus-visible) {
+    @apply sr-only;
   }
 
   /* 버튼 변형 */
@@ -236,5 +301,192 @@
   
   .glass-dark {
     @apply bg-gray-900/10 backdrop-blur-md border border-gray-700/20;
+  }
+  
+  /* 모바일 최적화 */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* 터치 타겟 최소 크기 보장 */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* 스크롤 성능 최적화 */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* 모멘텀 스크롤 비활성화 (바텀시트 등) */
+  .no-bounce {
+    overscroll-behavior: none;
+  }
+  
+  /* 터치 선택 방지 */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* 햅틱 피드백 트리거 */
+  @media (hover: none) and (pointer: coarse) {
+    .haptic-light:active {
+      transform: scale(0.98);
+    }
+    
+    .haptic-medium:active {
+      transform: scale(0.95);
+    }
+    
+    .haptic-heavy:active {
+      transform: scale(0.92);
+    }
+  }
+  
+  /* 스태거 애니메이션 */
+  .stagger-item {
+    opacity: 0;
+    animation: staggerFadeIn 0.5s ease-out forwards;
+  }
+  
+  @keyframes staggerFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* 스태거 지연 */
+  .stagger-item:nth-child(1) { animation-delay: 0ms; }
+  .stagger-item:nth-child(2) { animation-delay: 50ms; }
+  .stagger-item:nth-child(3) { animation-delay: 100ms; }
+  .stagger-item:nth-child(4) { animation-delay: 150ms; }
+  .stagger-item:nth-child(5) { animation-delay: 200ms; }
+  .stagger-item:nth-child(6) { animation-delay: 250ms; }
+  .stagger-item:nth-child(7) { animation-delay: 300ms; }
+  .stagger-item:nth-child(8) { animation-delay: 350ms; }
+  .stagger-item:nth-child(9) { animation-delay: 400ms; }
+  .stagger-item:nth-child(10) { animation-delay: 450ms; }
+  
+  /* 흔들림 애니메이션 */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  /* 펄스 애니메이션 */
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+    }
+    
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    }
+    
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    }
+  }
+  
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+  
+  /* 바운스 애니메이션 */
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out;
+  }
+  
+  /* 스와이프 힌트 애니메이션 */
+  @keyframes swipe-hint {
+    0%, 100% {
+      transform: translateX(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateX(10px);
+      opacity: 1;
+    }
+  }
+  
+  .animate-swipe-hint {
+    animation: swipe-hint 2s ease-in-out infinite;
+  }
+  
+  /* 고대비 텍스트 */
+  .text-high-contrast {
+    @apply text-gray-900 dark:text-white;
+  }
+  
+  .text-medium-contrast {
+    @apply text-gray-700 dark:text-gray-200;
+  }
+  
+  .text-low-contrast {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  
+  /* 고대비 배경 */
+  .bg-high-contrast {
+    @apply bg-white dark:bg-gray-950;
+  }
+  
+  .bg-medium-contrast {
+    @apply bg-gray-50 dark:bg-gray-900;
+  }
+  
+  .bg-low-contrast {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+  
+  /* 고대비 테두리 */
+  .border-high-contrast {
+    @apply border-gray-300 dark:border-gray-600;
+  }
+  
+  .border-medium-contrast {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+  
+  .border-low-contrast {
+    @apply border-gray-100 dark:border-gray-800;
   }
 }

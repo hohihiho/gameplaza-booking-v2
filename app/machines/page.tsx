@@ -684,6 +684,17 @@ export default function MachinesPage() {
           </div>
         </motion.div>
       </div>
+      
+      {/* 실시간 연결 상태 인디케이터 */}
+      <RealtimeIndicator
+        isConnected={realtimeState.isConnected}
+        isReconnecting={realtimeState.isReconnecting}
+        lastUpdate={realtimeState.lastUpdate}
+        updateCount={realtimeState.updateCount}
+        onReconnect={realtimeState.reconnect}
+        position="bottom-left"
+        showDetails={true}
+      />
     </div>
   );
 }
