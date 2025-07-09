@@ -119,7 +119,7 @@ export default function AdminLayout({
       <div className="flex">
         {/* 사이드바 */}
         <aside className={`
-          fixed lg:sticky lg:top-0 inset-y-0 lg:h-screen left-0 z-40 lg:z-30 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
+          fixed lg:sticky lg:top-0 inset-y-0 lg:h-screen left-0 z-50 lg:z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
           transform transition-transform duration-200 ease-in-out lg:transform-none
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>

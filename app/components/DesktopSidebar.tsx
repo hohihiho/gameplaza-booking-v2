@@ -30,7 +30,7 @@ export default function DesktopSidebar() {
   ];
 
   return (
-    <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-800/50 z-40">
+    <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-800/50 z-50">
       <div className="flex flex-col h-full">
         {/* 로고 영역 */}
         <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50">
