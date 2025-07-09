@@ -5,17 +5,20 @@ import { usePathname } from 'next/navigation';
 import { Home, Calendar, Gamepad2, Clock, User, FileText, LogIn, CalendarPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
+import ReservationBottomSheet from './ReservationBottomSheet';
 
 export default function BottomTabBar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
+  const [isReservationSheetOpen, setIsReservationSheetOpen] = useState(false);
 
-  // 로그인 상태에 따라 다른 탭 구성 (예약하기는 FAB로 이동)
+  // 로그인 상태에 따라 다른 탭 구성 - 예약 탭을 중앙에 배치
   const tabs = isLoggedIn ? [
     { href: '/', icon: Home, label: '홈' },
-    { href: '/reservations', icon: FileText, label: '내예약' },
     { href: '/machines', icon: Gamepad2, label: '기기' },
+    { id: 'reservation', icon: Calendar, label: '예약', isSpecial: true },
     { href: '/schedule', icon: Clock, label: '일정' },
     { href: '/mypage', icon: User, label: 'MY' },
   ] : [
@@ -27,42 +30,6 @@ export default function BottomTabBar() {
 
   return (
     <>
-      {/* 플로팅 액션 버튼 - 로그인한 사용자에게만 표시 */}
-      {isLoggedIn && (
-        <Link
-          href="/reservations/new"
-          className="fixed bottom-20 right-4 z-50 md:hidden"
-        >
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 260,
-              damping: 20 
-            }}
-            className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center"
-          >
-            <CalendarPlus className="w-6 h-6 text-white" />
-          </motion.div>
-          {/* 반짝이는 효과 */}
-          <motion.div
-            className="absolute inset-0 w-14 h-14 bg-white rounded-full"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ 
-              scale: [0.8, 1.2, 1.2],
-              opacity: [0, 0.3, 0] 
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              repeatDelay: 1
-            }}
-          />
-        </Link>
-      )}
       
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       {/* 배경 블러 효과 */}
@@ -75,18 +42,41 @@ export default function BottomTabBar() {
           let isActive = false;
           if (tab.href === '/') {
             isActive = pathname === '/';
-          } else if (tab.href === '/reservations') {
-            // 내 예약 탭은 /reservations 페이지에서만 활성화
-            isActive = pathname === '/reservations';
           } else if (tab.href === '/mypage') {
             // 마이페이지는 /mypage로 시작하는 모든 경로에서 활성화
             isActive = pathname.startsWith('/mypage');
-          } else {
+          } else if (tab.href) {
             // 나머지는 정확히 일치하거나 하위 경로일 때 활성화
             isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
           }
           
           const Icon = tab.icon;
+          
+          // 특별한 예약 탭 처리
+          if (tab.isSpecial) {
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setIsReservationSheetOpen(true)}
+                className="relative flex flex-col items-center justify-center py-2"
+                id="reservation-tab-button"
+              >
+                {/* 특별한 예약 버튼 디자인 - 크기 축소 */}
+                <motion.div
+                  whileTap={{ scale: 0.9 }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="relative">
+                    {/* 배경 그라데이션 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full blur-sm opacity-50" />
+                    <div className="relative w-10 h-10 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                </motion.div>
+              </button>
+            );
+          }
           
           return (
             <Link
@@ -131,6 +121,12 @@ export default function BottomTabBar() {
         })}
       </div>
     </div>
+    
+    {/* 예약 Bottom Sheet */}
+    <ReservationBottomSheet 
+      isOpen={isReservationSheetOpen}
+      onClose={() => setIsReservationSheetOpen(false)}
+    />
     </>
   );
 }
