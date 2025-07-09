@@ -249,9 +249,15 @@ export default function MyPage() {
                     <User className="w-10 h-10 text-white" />
                   )}
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
-                  <CheckCircle className="w-5 h-5 text-white" />
-                </div>
+                {isAdmin ? (
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900 shadow-lg">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                ) : (
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-xl dark:text-white mb-1">
@@ -259,10 +265,23 @@ export default function MyPage() {
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{session?.user?.email || ''}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
-                    <Trophy className="w-3 h-3 mr-1" />
-                    광주겜플 멤버
-                  </span>
+                  {isAdmin ? (
+                    <>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm">
+                        <Shield className="w-3 h-3 mr-1" />
+                        관리자
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                        <Trophy className="w-3 h-3 mr-1" />
+                        광주겜플 멤버
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                      <Trophy className="w-3 h-3 mr-1" />
+                      광주겜플 멤버
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

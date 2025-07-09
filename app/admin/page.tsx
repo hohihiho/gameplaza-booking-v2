@@ -359,6 +359,134 @@ export default function AdminDashboard() {
           })}
         </div>
 
+        {/* 알림 - 모바일에서는 상단에 표시 */}
+        <AnimatePresence>
+          {(pendingPayments > 0 || recentReservations.filter(r => r.status === 'pending').length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+              className="lg:hidden relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6 mb-8"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-orange-400/5 animate-pulse" />
+              
+              <div className="relative flex items-start gap-4">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-lg">
+                  <Bell className="w-6 h-6 text-white" />
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
+                    처리 대기중인 항목
+                  </h3>
+                  <div className="space-y-2 mb-4">
+                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                        <span className="font-medium">{recentReservations.filter(r => r.status === 'pending').length}건</span>의 예약이 승인 대기중
+                      </div>
+                    )}
+                    {pendingPayments > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                        <span className="font-medium">{pendingPayments}건</span>의 계좌이체 확인 필요
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    {recentReservations.filter(r => r.status === 'pending').length > 0 && (
+                      <Link
+                        href="/admin/reservations?status=pending"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-2xl hover:from-yellow-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <CheckSquare className="w-4 h-4" />
+                        예약 확인
+                      </Link>
+                    )}
+                    {pendingPayments > 0 && (
+                      <Link
+                        href="/admin/checkin"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        체크인 확인
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 빠른 작업 - 모바일에서는 상단에 표시 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="lg:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            빠른 작업
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/admin/checkin"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/30 dark:hover:to-orange-700/30 transition-all group"
+            >
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                  <UserCheck className="w-6 h-6 text-white" />
+                </div>
+                {pendingPayments > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                    {pendingPayments}
+                  </span>
+                )}
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">체크인</span>
+            </Link>
+            
+            <Link
+              href="/admin/reservations?status=pending"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 hover:from-yellow-100 hover:to-yellow-200 dark:hover:from-yellow-800/30 dark:hover:to-yellow-700/30 transition-all group"
+            >
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg">
+                  <Timer className="w-6 h-6 text-white" />
+                </div>
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                  3
+                </span>
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">예약승인</span>
+            </Link>
+            
+            <Link
+              href="/admin/devices"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                <Gamepad2 className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">기기관리</span>
+            </Link>
+            
+            <Link
+              href="/admin/analytics/reservations"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">통계분석</span>
+            </Link>
+          </div>
+        </motion.div>
+
         {/* 실시간 현황 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
           {/* 시간대별 예약 현황 */}
@@ -366,7 +494,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
+            className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 order-2 lg:order-1"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
@@ -421,7 +549,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
+            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 order-1 lg:order-2"
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
@@ -486,12 +614,12 @@ export default function AdminDashboard() {
 
         {/* 빠른 작업 & 최근 예약 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
-          {/* 빠른 작업 */}
+          {/* 빠른 작업 - 데스크톱에서만 표시 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
+            className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
           >
             <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />
@@ -657,7 +785,7 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
 
-        {/* 알림 */}
+        {/* 알림 - 데스크톱에서만 표시 */}
         <AnimatePresence>
           {(pendingPayments > 0 || recentReservations.filter(r => r.status === 'pending').length > 0) && (
             <motion.div
@@ -665,7 +793,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ delay: 0.8, type: "spring", stiffness: 300 }}
-              className="relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6"
+              className="hidden lg:block relative overflow-hidden bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 backdrop-blur-xl border border-yellow-500/20 dark:border-yellow-500/30 rounded-3xl p-6"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-orange-400/5 animate-pulse" />
               
