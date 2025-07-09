@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar, Activity, Wrench, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Device = {
   id: string;
@@ -54,7 +53,6 @@ export default function MachinesPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [expandedType, setExpandedType] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
-  const [, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
   const [machineRules, setMachineRules] = useState<any[]>([]);
 
   // Supabase에서 기기 정보 가져오기
@@ -62,36 +60,112 @@ export default function MachinesPage() {
     fetchDeviceTypes();
     loadMachineRules();
     
-    // 실시간 업데이트 구독
-    const channel = supabase
-      .channel('device-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'devices'
-        },
-        () => {
-          // 기기 상태가 변경되면 다시 불러오기
-          fetchDeviceTypes();
-        }
-      )
-      .subscribe();
+    // 10분마다 자동 새로고침
+    const intervalId = setInterval(() => {
+      fetchDeviceTypes();
+    }, 10 * 60 * 1000); // 10분
 
-    setRealtimeChannel(channel);
-
-    // 컴포넌트 언마운트 시 구독 해제
+    // 컴포넌트 언마운트 시 인터벌 정리
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      clearInterval(intervalId);
     };
-  }, [supabase]);
+  }, []);
+
+  // 대여 시간이 종료된 기기의 상태를 업데이트하는 함수
+  const updateExpiredRentals = async () => {
+    try {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // 현재 시간을 분 단위로 변환 (0-5시는 24-29시로 처리)
+      let currentTimeInMinutes = currentHour * 60 + currentMinute;
+      if (currentHour >= 0 && currentHour <= 5) {
+        currentTimeInMinutes += 24 * 60; // 익일 새벽 시간대 처리
+      }
+
+      // 오늘과 어제 날짜 구하기 (새벽 시간대는 어제 날짜의 예약일 수 있음)
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      // 종료된 예약 찾기 (오늘 + 어제 새벽 예약 포함)
+      const { data: reservations, error: fetchError } = await supabase
+        .from('reservations')
+        .select('device_id, date, end_time')
+        .in('date', [todayStr, yesterdayStr])
+        .eq('status', 'approved')
+        .not('device_id', 'is', null);
+
+      if (fetchError) {
+        console.error('Error fetching reservations:', fetchError);
+        return;
+      }
+
+      const expiredDeviceIds: string[] = [];
+
+      if (reservations && reservations.length > 0) {
+        reservations.forEach(reservation => {
+          const [endHour, endMinute] = reservation.end_time.split(':').map(Number);
+          let endTimeInMinutes = endHour * 60 + endMinute;
+          
+          // 예약이 어제 날짜이고 종료 시간이 0-5시인 경우
+          if (reservation.date === yesterdayStr && endHour >= 0 && endHour <= 5) {
+            endTimeInMinutes += 24 * 60;
+          }
+          
+          // 예약이 오늘 날짜이고 종료 시간이 0-5시인 경우
+          if (reservation.date === todayStr && endHour >= 0 && endHour <= 5 && currentHour >= 6) {
+            // 이미 다음날이 되었으므로 종료된 것으로 처리
+            expiredDeviceIds.push(reservation.device_id);
+          } else if (currentTimeInMinutes >= endTimeInMinutes) {
+            // 일반적인 경우: 현재 시간이 종료 시간을 지났으면
+            expiredDeviceIds.push(reservation.device_id);
+          }
+        });
+      }
+
+      if (expiredDeviceIds.length > 0) {
+        // 해당 기기들의 현재 상태 확인
+        const { data: devices, error: devicesError } = await supabase
+          .from('devices')
+          .select('id, status')
+          .in('id', expiredDeviceIds)
+          .in('status', ['in_use', 'reserved']); // 사용불가나 점검중은 제외
+
+        if (devicesError) {
+          console.error('Error fetching devices:', devicesError);
+          return;
+        }
+
+        if (devices && devices.length > 0) {
+          // 상태를 available로 업데이트
+          const { error: updateError } = await supabase
+            .from('devices')
+            .update({ status: 'available' })
+            .in('id', devices.map(d => d.id));
+
+          if (updateError) {
+            console.error('Error updating device status:', updateError);
+          } else {
+            console.log(`Updated ${devices.length} devices to available status`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in updateExpiredRentals:', error);
+    }
+  };
 
   const fetchDeviceTypes = async () => {
     try {
       setLoading(true);
+
+      // 먼저 만료된 대여 상태 업데이트
+      await updateExpiredRentals();
 
       // 카테고리 정보 가져오기
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -685,16 +759,6 @@ export default function MachinesPage() {
         </motion.div>
       </div>
       
-      {/* 실시간 연결 상태 인디케이터 */}
-      <RealtimeIndicator
-        isConnected={realtimeState.isConnected}
-        isReconnecting={realtimeState.isReconnecting}
-        lastUpdate={realtimeState.lastUpdate}
-        updateCount={realtimeState.updateCount}
-        onReconnect={realtimeState.reconnect}
-        position="bottom-left"
-        showDetails={true}
-      />
     </div>
   );
 }

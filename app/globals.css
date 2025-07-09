@@ -88,6 +88,15 @@
   ::selection {
     @apply bg-primary-500/20 text-primary-900 dark:bg-primary-400/20 dark:text-primary-100;
   }
+  
+  /* 스크롤바 숨기기 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
 
 /* 컴포넌트 스타일 */

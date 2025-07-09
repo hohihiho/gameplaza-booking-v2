@@ -53,6 +53,66 @@ export async function GET(
   }
 }
 
+// 예약 상태 업데이트
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const supabase = await createClient()
+    
+    // 현재 사용자 확인
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
+    }
+
+    // 예약 정보 확인
+    const { data: reservation, error: fetchError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !reservation) {
+      return NextResponse.json({ error: '예약을 찾을 수 없습니다' }, { status: 404 })
+    }
+
+    // 상태 업데이트
+    const updateData: any = {
+      status: body.status,
+      updated_at: new Date().toISOString()
+    }
+
+    if (body.rejection_reason) {
+      updateData.rejection_reason = body.rejection_reason
+    }
+
+    const { error: updateError } = await supabase
+      .from('reservations')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('Update reservation error:', updateError)
+      return NextResponse.json({ error: '예약 상태 업데이트에 실패했습니다' }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: '예약 상태가 업데이트되었습니다'
+    })
+
+  } catch (error) {
+    console.error('Update reservation error:', error)
+    return NextResponse.json({ error: '서버 오류가 발생했습니다' }, { status: 500 })
+  }
+}
+
 // 예약 취소
 export async function DELETE(
   _request: Request,
