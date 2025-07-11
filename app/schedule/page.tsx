@@ -48,7 +48,7 @@ type ReservationInfo = {
 const formatTime24Plus = (timeStr: string | null | undefined) => {
   if (!timeStr) return '';
   const [hour, minute] = timeStr.split(':');
-  const hourNum = parseInt(hour);
+  const hourNum = parseInt(hour || '0');
   if (hourNum >= 0 && hourNum <= 5) {
     return `${hourNum + 24}:${minute}`;
   }
@@ -121,7 +121,7 @@ export default function SchedulePage() {
       });
 
       // 3. 운영 일정 포맷팅
-      const formattedEvents: ScheduleEvent[] = (scheduleEvents || []).map(event => ({
+      const formattedEvents: ScheduleEvent[] = (scheduleEvents || []).map((event: any) => ({
         id: event.id,
         date: event.date,
         endDate: event.end_date,
@@ -135,7 +135,7 @@ export default function SchedulePage() {
       }));
 
       // 4. 예약 데이터를 날짜별로 그룹화
-      const reservationsByDate = (reservationsData || []).reduce((acc: Record<string, any[]>, res) => {
+      const reservationsByDate = (reservationsData || []).reduce((acc: Record<string, any[]>, res: any) => {
         const date = res.date;
         if (!date) return acc;
         
@@ -180,8 +180,9 @@ export default function SchedulePage() {
       // 5. 예약 이벤트 생성
       console.log('reservationsByDate:', reservationsByDate);
       const reservationEvents: ScheduleEvent[] = Object.entries(reservationsByDate).map(([date, reservations]) => {
-        const earlyCount = reservations.filter(r => r.slotType === 'early').length;
-        const overnightCount = reservations.filter(r => r.slotType === 'overnight').length;
+        const reservationList = reservations as any[];
+        const earlyCount = reservationList.filter(r => r.slotType === 'early').length;
+        const overnightCount = reservationList.filter(r => r.slotType === 'overnight').length;
         
         let title = '';
         if (earlyCount > 0 && overnightCount > 0) {
@@ -191,7 +192,7 @@ export default function SchedulePage() {
         } else if (overnightCount > 0) {
           title = `밤샘 대여 ${overnightCount}건`;
         } else {
-          title = `예약 ${reservations.length}건`;
+          title = `예약 ${reservationList.length}건`;
         }
         
         return {
@@ -199,7 +200,7 @@ export default function SchedulePage() {
           date,
           title,
           type: 'reservation',
-          reservations: reservations as ReservationInfo[]
+          reservations: reservationList as ReservationInfo[]
         };
       });
 
@@ -408,20 +409,48 @@ export default function SchedulePage() {
       
       
       {/* 페이지 헤더 */}
-      <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 py-16 px-5 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent" />
-        <div className="relative max-w-6xl mx-auto text-center">
+      <section className="relative bg-gradient-to-r from-indigo-700 to-purple-800 py-12 px-5 overflow-hidden">
+        {/* 애니메이션 배경 요소 */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="relative max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="flex flex-col md:flex-row items-center justify-between gap-6"
           >
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full mb-4">
-              <Calendar className="w-4 h-4 text-white" />
-              <span className="text-sm text-white font-medium">운영 일정</span>
+            {/* 왼쪽: 타이틀 */}
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full mb-3">
+                <Clock className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-medium">오늘의 영업시간</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-white mb-2">운영 일정</h1>
+              <p className="text-sm md:text-base text-white/90 max-w-md">영업시간과 특별 일정을 확인하세요</p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">운영 일정</h1>
-            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">오락실 영업시간과 특별 일정을 확인하세요</p>
+            
+            {/* 오른쪽: 오늘 영업시간 */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4">
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-xs text-white/80 mb-1">1층</div>
+                  <div className="text-lg md:text-xl font-bold text-white">
+                    {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                  </div>
+                </div>
+                <div className="w-px h-10 bg-white/30" />
+                <div className="text-center">
+                  <div className="text-xs text-white/80 mb-1">2층</div>
+                  <div className="text-lg md:text-xl font-bold text-white">
+                    {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

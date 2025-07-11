@@ -125,25 +125,10 @@ export default function ReservationAnalyticsPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* 헤더 */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </Link>
-          <h1 className="text-2xl font-bold dark:text-white">예약 통계</h1>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-          예약 데이터를 분석하여 비즈니스 인사이트를 제공합니다
-        </p>
-      </div>
+    <div>
 
       {/* 필터 및 액션 */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6">
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           {/* 기간 선택 */}
           <div className="flex-1 flex flex-wrap gap-2">
@@ -228,7 +213,7 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -247,7 +232,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -266,7 +251,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-2">
             <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -285,7 +270,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -308,7 +293,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold dark:text-white">일별 예약 추이</h2>
@@ -356,7 +341,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold dark:text-white">시간대별 예약 분포</h2>
@@ -393,7 +378,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold dark:text-white">기기별 예약</h2>
@@ -428,7 +413,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold dark:text-white">요일별 패턴</h2>
@@ -469,7 +454,7 @@ export default function ReservationAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold dark:text-white">상태별 분석</h2>

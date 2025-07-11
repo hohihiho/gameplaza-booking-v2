@@ -12,7 +12,8 @@ export async function GET() {
           id,
           name,
           phone,
-          email
+          email,
+          nickname
         ),
         devices:device_id (
           device_number,

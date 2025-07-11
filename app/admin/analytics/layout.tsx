@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { 
   Calendar,
   DollarSign,
-  Users
+  Users,
+  ChevronLeft
 } from 'lucide-react';
 
 export default function AnalyticsLayout({
@@ -31,11 +32,31 @@ export default function AnalyticsLayout({
   }
 
   return (
-    <div>
-      {/* 탭 네비게이션 */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+      {/* 헤더 */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          </button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              통계 분석
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+              데이터를 분석하여 비즈니스 인사이트를 제공합니다
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 탭 네비게이션 - 드래그 가능 */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm mb-6">
         <div className="px-6">
-          <nav className="flex space-x-1 -mb-px">
+          <nav className="flex space-x-1 -mb-px overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             {analyticsPages.map((page) => {
               const Icon = page.icon;
               const isActive = pathname === page.href;
@@ -44,10 +65,10 @@ export default function AnalyticsLayout({
                 <Link
                   key={page.href}
                   href={page.href}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap hover:scale-105 ${
                     isActive
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -60,7 +81,9 @@ export default function AnalyticsLayout({
       </div>
 
       {/* 페이지 콘텐츠 */}
-      {children}
+      <div>
+        {children}
+      </div>
     </div>
   );
 }

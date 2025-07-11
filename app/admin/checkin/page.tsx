@@ -125,7 +125,8 @@ export default function CheckInPage() {
             id,
             name,
             phone,
-            email
+            email,
+            nickname
           ),
           rental_time_slots (
             id,
@@ -159,7 +160,7 @@ export default function CheckInPage() {
         id: res.id,
         user: {
           id: res.users.id,
-          name: res.users.name,
+          name: res.users.nickname || res.users.name,
           phone: res.users.phone,
           email: res.users.email
         },
@@ -471,7 +472,7 @@ export default function CheckInPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-2">
@@ -481,9 +482,9 @@ export default function CheckInPage() {
           >
             <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </Link>
-          <h1 className="text-2xl font-bold dark:text-white">체크인 관리</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">체크인 관리</h1>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 ml-11">
           오늘의 예약 고객 체크인 및 기기 배정
         </p>
       </div>

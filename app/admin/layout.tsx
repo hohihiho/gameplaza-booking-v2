@@ -93,9 +93,9 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* 모바일 헤더 */}
-      <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+      <div className="lg:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <button
@@ -119,15 +119,15 @@ export default function AdminLayout({
       <div className="flex">
         {/* 사이드바 */}
         <aside className={`
-          fixed lg:sticky lg:top-0 inset-y-0 lg:h-screen left-0 z-50 lg:z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
+          fixed lg:sticky lg:top-0 inset-y-0 lg:h-screen left-0 z-[60] lg:z-40 w-64 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl lg:shadow-none
           transform transition-transform duration-200 ease-in-out lg:transform-none
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <div className="flex flex-col h-full">
             {/* 로고 */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+            <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold dark:text-white">게임플라자 관리자</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">게임플라자 관리자</h1>
                 <button
                   onClick={() => setIsSidebarOpen(false)}
                   className="lg:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -148,10 +148,10 @@ export default function AdminLayout({
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                       isActive
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                        ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/20 scale-[1.02]'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:text-gray-900 dark:hover:text-white hover:scale-[1.01]'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -162,9 +162,9 @@ export default function AdminLayout({
             </nav>
 
             {/* 사용자 정보 */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
                   {session?.user?.image ? (
                     <Image
                       src={session.user.image}
@@ -190,7 +190,7 @@ export default function AdminLayout({
               </div>
               <Link
                 href="/"
-                className="hidden lg:flex items-center justify-center gap-2 mt-4 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className="hidden lg:flex items-center justify-center gap-2 mt-4 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:scale-[1.02]"
               >
                 <ChevronLeft className="w-4 h-4" />
                 사이트로 돌아가기
@@ -202,7 +202,7 @@ export default function AdminLayout({
         {/* 모바일 오버레이 */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 z-[55] lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}

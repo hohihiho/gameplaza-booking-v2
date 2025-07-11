@@ -18,7 +18,7 @@ let isGoogleMapsLoaded = false;
 
 export default function GoogleMap({ address }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [, setMapLoaded] = useState(false);
 
   useEffect(() => {
     const initializeMap = () => {

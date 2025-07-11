@@ -366,20 +366,48 @@ export default function MachinesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
       {/* 페이지 헤더 */}
-      <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 py-16 px-5 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent" />
-        <div className="relative max-w-6xl mx-auto text-center">
+      <section className="relative bg-gradient-to-r from-purple-700 to-indigo-800 py-12 px-5 overflow-hidden">
+        {/* 애니메이션 배경 요소 */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="relative max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="flex flex-col md:flex-row items-center justify-between gap-6"
           >
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full mb-4">
-              <Activity className="w-4 h-4 text-white" />
-              <span className="text-sm text-white font-medium">실시간 업데이트</span>
+            {/* 왼쪽: 타이틀 */}
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full mb-3">
+                <Activity className="w-3.5 h-3.5 text-white animate-pulse" />
+                <span className="text-xs text-white font-medium">실시간 업데이트</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-white mb-2">기기 현황</h1>
+              <p className="text-sm md:text-base text-white/90 max-w-md">모든 게임기 상태를 실시간으로 확인하세요</p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">기기 현황</h1>
-            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">광주 게임플라자의 모든 게임기 상태를 실시간으로 확인하세요</p>
+            
+            {/* 오른쪽: 빠른 통계 */}
+            <div className="flex gap-4 md:gap-6">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="text-center"
+              >
+                <div className="text-2xl md:text-3xl font-black text-white">{stats.available}</div>
+                <div className="text-xs text-white/80">이용 가능</div>
+              </motion.div>
+              <div className="w-px bg-white/30" />
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="text-center"
+              >
+                <div className="text-2xl md:text-3xl font-black text-white">{stats.total}</div>
+                <div className="text-xs text-white/80">전체 기기</div>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -390,56 +418,65 @@ export default function MachinesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8 mt-8 relative z-10"
+          className="mb-8 mt-8 relative z-10 space-y-4"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">전체 기기</p>
-              <Gamepad2 className="w-5 h-5 text-gray-400" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-green-600 dark:text-green-400">이용 가능</p>
-              <Circle className="w-5 h-5 text-green-500 fill-current" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.available}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+          {/* 전체 기기 - 1열 */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                <Gamepad2 className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">전체 기기</p>
+                <div className="flex items-baseline gap-1">
+                  <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                  <p className="text-lg text-gray-500 dark:text-gray-400">대</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-blue-600 dark:text-blue-400">대여 중</p>
-              <Users className="w-5 h-5 text-blue-500" />
+
+          {/* 나머지 상태 - 2열 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-green-600 dark:text-green-400">이용 가능</p>
+                <Circle className="w-5 h-5 text-green-500 fill-current" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.available}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.inUse}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-blue-600 dark:text-blue-400">대여 중</p>
+                <Users className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.inUse}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+              </div>
             </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-amber-600 dark:text-amber-400">점검 중</p>
-              <Wrench className="w-5 h-5 text-amber-500" />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-amber-600 dark:text-amber-400">점검 중</p>
+                <Wrench className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.maintenance}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.maintenance}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-red-600 dark:text-red-400">사용불가</p>
-              <AlertCircle className="w-5 h-5 text-red-500" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.broken}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-red-600 dark:text-red-400">사용불가</p>
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.broken}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">대</p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -573,7 +610,7 @@ export default function MachinesPage() {
                               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                                 {deviceType.name}
                               </h3>
-                              <span className="text-sm px-3 py-1 bg-gradient-to-r from-indigo-100 to-cyan-100 dark:from-indigo-900/30 dark:to-cyan-900/30 text-indigo-700 dark:text-indigo-300 rounded-full font-medium">
+                              <span className="text-sm px-3 py-1 bg-gradient-to-r from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30 text-violet-700 dark:text-violet-300 rounded-full font-medium">
                                 {deviceType.company}
                               </span>
                             </div>
@@ -584,7 +621,7 @@ export default function MachinesPage() {
                                 </span>
                               )}
                               {deviceType.version_name && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                                   버전: {deviceType.version_name}
                                 </span>
                               )}

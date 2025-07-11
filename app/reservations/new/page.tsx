@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, Check, X, CreditCard, Users, Sparkles, ChevronRight, Info } from 'lucide-react';
-import { createReservation } from '@/lib/api/reservations';
+import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
@@ -60,7 +59,7 @@ type TimeSlot = {
 
 export default function NewReservationPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [supabase] = useState(() => createClient());
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
@@ -214,10 +213,22 @@ export default function NewReservationPage() {
         total_amount: calculateTotalPrice()
       };
 
-      const result = await createReservation(reservationData);
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData),
+      });
+
+      if (!response.ok) {
+        throw new Error('예약 생성에 실패했습니다');
+      }
+
+      const result = await response.json();
       
-      if (result.reservationId) {
-        setLastReservationId(result.reservationId);
+      if (result.reservation?.id) {
+        setLastReservationId(result.reservation.id);
         router.push('/reservations/complete');
       }
     } catch (error: any) {
@@ -248,7 +259,7 @@ export default function NewReservationPage() {
 
   const formatTime = (time: string) => {
     const [hour, minute] = time.split(':');
-    const hourNum = parseInt(hour);
+    const hourNum = parseInt(hour || '0');
     
     if (hourNum >= 0 && hourNum <= 5) {
       return `${hourNum + 24}:${minute}`;
@@ -534,7 +545,6 @@ export default function NewReservationPage() {
               ) : (
                 <div className="space-y-3">
                   {timeSlots.map((slot) => {
-                    const now = new Date();
                     const slotDate = createKSTDateTime(selectedDate, slot.start_time);
                     const within24Hours = isWithin24Hours(slotDate);
                     const isAvailable = slot.is_available && !within24Hours;

@@ -102,17 +102,17 @@ export default function Navigation() {
                     className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                      {user.image ? (
+                      {user?.image ? (
                         <Image
-                          src={user.image}
-                          alt={user.name || '프로필'}
+                          src={user?.image || ''}
+                          alt={user?.name || '프로필'}
                           width={32}
                           height={32}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm font-medium dark:text-white">
-                          {user.name?.[0] || 'U'}
+                          {user?.name?.[0] || 'U'}
                         </div>
                       )}
                     </div>
@@ -131,23 +131,23 @@ export default function Navigation() {
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                            {user.image ? (
+                            {user?.image ? (
                               <Image
-                                src={user.image}
-                                alt={user.name || '프로필'}
+                                src={user?.image || ''}
+                                alt={user?.name || '프로필'}
                                 width={48}
                                 height={48}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-lg font-medium dark:text-white">
-                                {user.name?.[0] || 'U'}
+                                {user?.name?.[0] || 'U'}
                               </div>
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="font-medium dark:text-white">{user.name || '사용자'}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                            <p className="font-medium dark:text-white">{user?.name || '사용자'}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
                           </div>
                         </div>
                       </div>

@@ -141,15 +141,15 @@ export const authOptions: AuthOptions = {
         };
       }
     },
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account }) {
       try {
         // 초기 로그인 시 사용자 정보를 토큰에 저장
         if (account && user) {
           console.log('Initial sign in, saving user info to token');
           token.id = user.id;
-          token.email = user.email;
-          token.name = user.name;
-          token.picture = user.image;
+          token.email = user.email || undefined;
+          token.name = user.name || undefined;
+          token.picture = user.image || undefined;
         }
         
         // 항상 관리자 권한 확인 (매 요청마다)

@@ -5,7 +5,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 // 테마 타입 정의
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'system';
 
 // Context 생성
 const ThemeContext = createContext<{
@@ -24,12 +24,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // 로컬 스토리지에서 저장된 테마 가져오기
     const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
       setTheme(savedTheme);
     } else {
-      // system이거나 없으면 시스템 설정 확인
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      setTheme(systemTheme);
+      // 기본값은 system으로 설정
+      setTheme('system');
     }
     setMounted(true);
   }, []);
@@ -40,10 +39,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 테마 적용 로직
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(theme);
+    
+    // system일 경우 시스템 설정 확인
+    const effectiveTheme = theme === 'system' 
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      : theme;
+    
+    root.classList.add(effectiveTheme);
 
     // 로컬 스토리지에 저장
     localStorage.setItem('theme', theme);
+  }, [theme, mounted]);
+
+  // 시스템 테마 변경 감지
+  useEffect(() => {
+    if (!mounted || theme !== 'system') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const root = window.document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(mediaQuery.matches ? 'dark' : 'light');
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme, mounted]);
 
   // 마운트되지 않았을 때는 아무것도 렌더링하지 않음 (hydration 오류 방지)

@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
@@ -275,14 +275,6 @@ export default function ReservationsPage() {
     return `${formatTimeKST(startTime || '')} - ${formatTimeKST(endTime || '')}`;
   };
 
-  const calculateDuration = (startTime: string, endTime: string) => {
-    const startParts = startTime.split(':').map(Number);
-    const endParts = endTime.split(':').map(Number);
-    const startHour = startParts[0] || 0;
-    let endHour = endParts[0] || 0;
-    if (endHour < startHour) endHour += 24;
-    return endHour - startHour;
-  };
 
   // 현재 페이지의 예약 목록
   const currentReservations = reservations.slice(

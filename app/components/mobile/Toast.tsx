@@ -51,6 +51,8 @@ export function Toast({ message, onClose }: ToastProps) {
 
       return () => clearTimeout(timer);
     }
+    
+    return undefined;
   }, [message, onClose]);
 
   return (

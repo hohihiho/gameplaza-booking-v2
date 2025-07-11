@@ -146,7 +146,7 @@ function checkWordBoundary(text: string, word: string, position: number): boolea
   
   // 단어 경계 문자 확인
   const boundaryChars = /[^a-zA-Z0-9]/;
-  return boundaryChars.test(before) && boundaryChars.test(after);
+  return boundaryChars.test(before || ' ') && boundaryChars.test(after || ' ');
 }
 
 // 영어 비속어 검사

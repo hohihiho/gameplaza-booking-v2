@@ -853,7 +853,7 @@ export default function DevicesPage() {
   // 카테고리 뷰
   if (view === 'categories') {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <button
@@ -862,9 +862,9 @@ export default function DevicesPage() {
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
-            <h1 className="text-2xl font-bold dark:text-white">기기 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">기기 관리</h1>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 ml-11">
             카테고리, 기종, 개별 기기를 관리합니다
           </p>
         </div>
@@ -1158,7 +1158,7 @@ export default function DevicesPage() {
       .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
 
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <button
@@ -1167,9 +1167,9 @@ export default function DevicesPage() {
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
-            <h1 className="text-2xl font-bold dark:text-white">{selectedCategory.name} 기종 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">{selectedCategory.name} 기종 관리</h1>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 ml-11">
             카테고리 내 기종을 관리합니다
           </p>
         </div>
@@ -1553,7 +1553,7 @@ export default function DevicesPage() {
   // 개별 기기 뷰
   if (view === 'devices' && selectedDeviceType) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <button
@@ -1562,16 +1562,16 @@ export default function DevicesPage() {
             >
               <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
-            <h1 className="text-2xl font-bold dark:text-white">{selectedDeviceType.name} 개별 기기 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">{selectedDeviceType.name} 개별 기기 관리</h1>
           </div>
           <div className="ml-11">
             {selectedDeviceType.model_name && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">모델: {selectedDeviceType.model_name}</p>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">모델: {selectedDeviceType.model_name}</p>
             )}
             {selectedDeviceType.version_name && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">버전: {selectedDeviceType.version_name}</p>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">버전: {selectedDeviceType.version_name}</p>
             )}
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
               개별 기기의 상태를 관리합니다
             </p>
           </div>

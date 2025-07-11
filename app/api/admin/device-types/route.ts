@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       .limit(1);
 
     const display_order = maxOrderData && maxOrderData.length > 0 
-      ? maxOrderData[0].display_order + 1 
+      ? (maxOrderData[0]?.display_order || 0) + 1 
       : 1;
 
     // device_types 테이블에 새 기종 추가

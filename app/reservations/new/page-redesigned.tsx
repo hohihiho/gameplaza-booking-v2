@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, Check, X } from 'lucide-react';
-import { createReservation } from '@/lib/api/reservations';
+import { motion } from 'framer-motion';
+import { ChevronLeft, Loader2, AlertCircle, Check } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
@@ -826,7 +825,6 @@ export default function NewReservationPageRedesigned() {
           ) : (
             <div className="space-y-3">
               {timeSlots.map((slot) => {
-                const now = new Date();
                 const slotDate = createKSTDateTime(reservationData.date, slot.start_time);
                 const within24Hours = isWithin24Hours(slotDate);
                 const isAvailable = slot.is_available && !within24Hours;

@@ -11,18 +11,29 @@ async function checkAdminAuth() {
     return { error: '로그인이 필요합니다', status: 401 };
   }
 
+  // Supabase에서 사용자 찾기
+  const { data: userData } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('email', session.user.email)
+    .single();
+
+  if (!userData) {
+    return { error: '사용자를 찾을 수 없습니다', status: 404 };
+  }
+
   // 관리자 확인
   const { data: adminData } = await supabaseAdmin
     .from('admins')
     .select('user_id')
-    .eq('user_id', session.user.id)
+    .eq('user_id', userData.id)
     .single();
 
   if (!adminData) {
     return { error: '관리자 권한이 필요합니다', status: 403 };
   }
 
-  return { success: true };
+  return { success: true, userId: userData.id };
 }
 
 // 금지어 목록 조회
@@ -68,7 +79,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await getServerSession(authOptions);
+    const authResult = await checkAdminAuth();
     const { data, error } = await supabaseAdmin
       .from('banned_words')
       .insert({
@@ -76,7 +87,7 @@ export async function POST(request: Request) {
         category,
         language,
         severity,
-        added_by: session?.user?.id,
+        added_by: authResult.userId,
         is_active: true
       })
       .select()

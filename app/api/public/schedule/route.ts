@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
     
     // 월의 시작일과 종료일 계산
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    // const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const endDate = new Date(parseInt(year), parseInt(month), 0);
     const startStr = `${year}-${month.padStart(2, '0')}-01`;
     const endStr = `${year}-${month.padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;

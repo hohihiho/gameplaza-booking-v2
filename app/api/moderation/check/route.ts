@@ -72,7 +72,7 @@ async function checkWithPatterns(text: string): Promise<{
     /[음읍][\s]*[경겅]/gi,
   ];
 
-  const categories = [];
+  const categories: string[] = [];
   let flagged = false;
 
   // 각 패턴 그룹 검사
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
       
       if (profanityWords && profanityWords.length > 0) {
         const lowerText = text.toLowerCase();
-        for (const { word, severity } of profanityWords) {
+        for (const { word } of profanityWords) {
           if (lowerText.includes(word.toLowerCase())) {
             console.log('Banned word found:', word, 'in text:', text);
             return NextResponse.json({

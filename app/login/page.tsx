@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Gamepad2, Loader2, Sparkles, Trophy, Users, Calendar, Shield, Star } from 'lucide-react';
+import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingButton } from '@/app/components/mobile';
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen">
       {/* 배경 그라데이션 */}
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-white to-cyan-100 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
         <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
@@ -103,7 +103,7 @@ export default function LoginPage() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-8"
+              className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-8 overflow-visible"
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">환영합니다!</h2>
               
@@ -114,7 +114,7 @@ export default function LoginPage() {
                   variant="secondary"
                   size="lg"
                   fullWidth
-                  className="shadow-md hover:shadow-lg"
+                  className="shadow-md"
                   haptic="medium"
                   icon={
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -158,9 +158,6 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
-                  로그인 시 <a href="/terms" className="underline hover:text-indigo-600 dark:hover:text-indigo-400">서비스 이용약관</a>에 동의하는 것으로 간주됩니다
-                </p>
               </div>
             </motion.div>
 
@@ -172,7 +169,7 @@ export default function LoginPage() {
               className="text-center mt-6"
             >
               <a 
-                href="https://open.kakao.com/o/sKZrYdYf"
+                href="https://open.kakao.com/o/sJPbo3Sb"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"

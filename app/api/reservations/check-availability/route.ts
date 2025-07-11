@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           // 시간 겹침 확인
           return !(resEnd <= slotStart || resStart >= slotEnd);
         })
-        .map(res => res.devices.device_number) || [];
+        .map((res: any) => res.devices?.device_number) || [];
 
       // 예약되지 않은 모든 기기
       const unreservedDevices = devices

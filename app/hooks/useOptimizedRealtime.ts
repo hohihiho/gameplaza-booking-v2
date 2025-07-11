@@ -54,7 +54,7 @@ export function useOptimizedRealtime({
     if (updateQueueRef.current.length > 0 && onUpdate) {
       // 배치된 업데이트 중 마지막 것만 처리 (또는 모든 업데이트 처리 가능)
       const lastUpdate = updateQueueRef.current[updateQueueRef.current.length - 1];
-      onUpdate(lastUpdate);
+      if (lastUpdate) onUpdate(lastUpdate);
       
       setState(prev => ({
         ...prev,

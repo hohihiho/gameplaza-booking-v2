@@ -44,7 +44,7 @@ export default function BottomSheet({
   // 열기/닫기 애니메이션
   useEffect(() => {
     if (isOpen) {
-      const snapHeight = sheetHeight * snapPoints[currentSnapIndex];
+      const snapHeight = sheetHeight * (snapPoints[currentSnapIndex] || 0.8);
       controls.start({ y: -snapHeight });
     } else {
       controls.start({ y: 0 });
@@ -63,7 +63,7 @@ export default function BottomSheet({
       const snapHeights = snapPoints.map(point => sheetHeight * point);
       
       let closestIndex = 0;
-      let closestDistance = Math.abs(currentY - snapHeights[0]);
+      let closestDistance = Math.abs(currentY - (snapHeights[0] || 0));
       
       snapHeights.forEach((height, index) => {
         const distance = Math.abs(currentY - height);
@@ -74,7 +74,7 @@ export default function BottomSheet({
       });
       
       setCurrentSnapIndex(closestIndex);
-      controls.start({ y: -snapHeights[closestIndex] });
+      controls.start({ y: -(snapHeights[closestIndex] || 0) });
     }
   };
 

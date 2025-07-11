@@ -6,10 +6,9 @@ import {
   PullToRefresh, 
   SwipeableCard, 
   TouchRipple, 
-  SkeletonCard, 
   SkeletonList 
 } from '@/app/components/mobile';
-import { Check, X, Trash2, Archive } from 'lucide-react';
+import { Trash2, Archive } from 'lucide-react';
 
 export default function MobileComponentsDemo() {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -39,7 +38,7 @@ export default function MobileComponentsDemo() {
     }
   };
 
-  const handleArchiveCard = (id: number) => {
+  const handleArchiveCard = () => {
     if (typeof window !== 'undefined' && (window as any).toast) {
       (window as any).toast.info('보관됨', '카드가 보관되었습니다');
     }
@@ -92,7 +91,7 @@ export default function MobileComponentsDemo() {
                     icon: <Archive className="w-5 h-5" />,
                     label: '보관',
                     color: 'bg-blue-500',
-                    action: () => handleArchiveCard(card.id)
+                    action: () => handleArchiveCard()
                   }}
                   rightAction={{
                     icon: <Trash2 className="w-5 h-5" />,

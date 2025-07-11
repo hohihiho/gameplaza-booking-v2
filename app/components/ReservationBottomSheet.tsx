@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CalendarPlus, FileText } from 'lucide-react';
+import { CalendarPlus, FileText } from 'lucide-react';
 
 interface ReservationBottomSheetProps {
   isOpen: boolean;

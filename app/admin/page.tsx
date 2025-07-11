@@ -2,16 +2,12 @@
 // 비전공자 설명: 관리자 메인 페이지로 전체 현황을 한눈에 볼 수 있습니다
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Calendar, 
   Gamepad2, 
   Clock,
   ChevronRight,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
   Timer,
   DollarSign,
   Activity,
@@ -22,9 +18,9 @@ import {
   BarChart3,
   FileText,
   TrendingUp,
-  Shield,
   Bell,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -52,17 +48,6 @@ type RecentReservation = {
 };
 
 export default function AdminDashboard() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [_lastUpdated, setLastUpdated] = useState(new Date());
-  
-  // 1초마다 현재 시간 업데이트
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
 
   // 통계 데이터 (실제로는 API에서 가져옴)
@@ -144,113 +129,29 @@ export default function AdminDashboard() {
   ];
 
 
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setLastUpdated(new Date());
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const getStatusBadge = (status: RecentReservation['status']) => {
-    switch (status) {
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 dark:from-yellow-900/30 dark:to-yellow-800/30 dark:text-yellow-400 shadow-sm">
-            <Timer className="w-3 h-3" />
-            대기중
-          </span>
-        );
-      case 'approved':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 dark:from-blue-900/30 dark:to-blue-800/30 dark:text-blue-400 shadow-sm">
-            <CheckCircle className="w-3 h-3" />
-            승인됨
-          </span>
-        );
-      case 'checked_in':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-green-200 text-green-800 dark:from-green-900/30 dark:to-green-800/30 dark:text-green-400 shadow-sm">
-            <Zap className="w-3 h-3" />
-            이용중
-          </span>
-        );
-      case 'rejected':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-red-200 text-red-800 dark:from-red-900/30 dark:to-red-800/30 dark:text-red-400 shadow-sm">
-            <XCircle className="w-3 h-3" />
-            거절됨
-          </span>
-        );
-      case 'cancelled':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 dark:from-gray-700/30 dark:to-gray-600/30 dark:text-gray-400 shadow-sm">
-            <XCircle className="w-3 h-3" />
-            취소됨
-          </span>
-        );
-    }
-  };
 
 
   // 결제 대기 현황
   const pendingPayments = 3;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
       {/* 배경 장식 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 rounded-full blur-3xl" />
       </div>
       
-      <div className="relative p-6 max-w-7xl mx-auto">
+      <div className="relative">
         {/* 헤더 */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl">
-                    <Shield className="w-6 h-6 text-white" />
-                  </div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                    관리자 대시보드
-                  </h1>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {currentTime.toLocaleDateString('ko-KR', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                  <span className="text-gray-400 dark:text-gray-600">•</span>
-                  <Clock className="w-4 h-4" />
-                  {currentTime.toLocaleTimeString('ko-KR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </p>
-              </div>
-              <motion.button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center p-2.5 text-white bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                title="새로고침"
-              >
-                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-2">
+            관리자 대시보드
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            전체 현황을 한눈에 확인하고 관리합니다
+          </p>
+        </div>
 
         {/* 처리 대기중인 항목 - 모든 화면에서 최상단에 표시 */}
         <AnimatePresence>
@@ -377,6 +278,16 @@ export default function AdminDashboard() {
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">통계분석</span>
             </Link>
+            
+            <Link
+              href="/admin/users"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-800/30 dark:hover:to-indigo-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">회원관리</span>
+            </Link>
           </div>
         </motion.div>
 
@@ -405,7 +316,7 @@ export default function AdminDashboard() {
                   href={stat.link || '#'}
                   className="block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-2xl transition-all"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 rounded-3xl transition-opacity" />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 rounded-3xl transition-opacity`} />
                   
                   <div className="relative">
                     <div className="flex items-start justify-between mb-4">
@@ -525,6 +436,16 @@ export default function AdminDashboard() {
                 <Clock className="w-6 h-6 text-white" />
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white text-center">대여기기관리</span>
+            </Link>
+            
+            <Link
+              href="/admin/users"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 hover:from-cyan-100 hover:to-cyan-200 dark:hover:from-cyan-800/30 dark:hover:to-cyan-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">회원 관리</span>
             </Link>
             
             <Link

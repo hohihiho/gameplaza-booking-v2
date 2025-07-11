@@ -100,7 +100,7 @@ export function handleError(error: unknown): ApiError {
     if (error.message.includes('fetch failed')) {
       return {
         code: ErrorCodes.NETWORK_ERROR,
-        message: errorMessages[ErrorCodes.NETWORK_ERROR],
+        message: errorMessages[ErrorCodes.NETWORK_ERROR] || 'Network error occurred',
         statusCode: 503,
       };
     }
@@ -115,7 +115,7 @@ export function handleError(error: unknown): ApiError {
     
     return {
       code: ErrorCodes.INTERNAL_ERROR,
-      message: errorMessages[ErrorCodes.INTERNAL_ERROR],
+      message: errorMessages[ErrorCodes.INTERNAL_ERROR] || 'Internal server error',
       statusCode: 500,
     };
   }
@@ -125,7 +125,7 @@ export function handleError(error: unknown): ApiError {
   
   return {
     code: ErrorCodes.INTERNAL_ERROR,
-    message: errorMessages[ErrorCodes.INTERNAL_ERROR],
+    message: errorMessages[ErrorCodes.INTERNAL_ERROR] || 'Internal server error',
     statusCode: 500,
   };
 }
@@ -177,14 +177,14 @@ export function handleSupabaseError(error: any): ApiError {
       case 'auth/user-not-found':
         return {
           code: ErrorCodes.INVALID_CREDENTIALS,
-          message: errorMessages[ErrorCodes.INVALID_CREDENTIALS],
+          message: errorMessages[ErrorCodes.INVALID_CREDENTIALS] || 'Invalid credentials',
           statusCode: 401,
         };
       
       case 'auth/wrong-password':
         return {
           code: ErrorCodes.INVALID_CREDENTIALS,
-          message: errorMessages[ErrorCodes.INVALID_CREDENTIALS],
+          message: errorMessages[ErrorCodes.INVALID_CREDENTIALS] || 'Invalid credentials',
           statusCode: 401,
         };
       

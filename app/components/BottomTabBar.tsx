@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Gamepad2, Clock, User, FileText, LogIn, CalendarPlus } from 'lucide-react';
+import { Home, Calendar, Gamepad2, Clock, User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
@@ -53,7 +53,7 @@ export default function BottomTabBar() {
           const Icon = tab.icon;
           
           // 특별한 예약 탭 처리
-          if (tab.isSpecial) {
+          if ('isSpecial' in tab && tab.isSpecial) {
             return (
               <button
                 key={tab.id}
@@ -81,7 +81,7 @@ export default function BottomTabBar() {
           return (
             <Link
               key={tab.href}
-              href={tab.href}
+              href={tab.href || '/'}
               className="relative flex flex-col items-center justify-center py-2"
             >
               {/* 활성 상태 인디케이터 */}
@@ -113,7 +113,7 @@ export default function BottomTabBar() {
               </motion.div>
               
               {/* featured 탭 특별 표시 - 그라데이션 배경 효과 */}
-              {tab.featured && !isActive && (
+              {'featured' in tab && tab.featured && !isActive && (
                 <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/10 to-transparent rounded-lg" />
               )}
             </Link>

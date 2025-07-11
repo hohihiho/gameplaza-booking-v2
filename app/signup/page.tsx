@@ -52,7 +52,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const supabase = createClient();
-  const nicknameTimerRef = useRef<NodeJS.Timeout>();
+  const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 세션 확인

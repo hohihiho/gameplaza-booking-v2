@@ -36,8 +36,8 @@ export default function TouchRipple({
     let x: number, y: number;
 
     if ('touches' in event) {
-      x = event.touches[0].clientX - rect.left;
-      y = event.touches[0].clientY - rect.top;
+      x = (event.touches[0]?.clientX || 0) - rect.left;
+      y = (event.touches[0]?.clientY || 0) - rect.top;
     } else {
       x = event.clientX - rect.left;
       y = event.clientY - rect.top;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Plus, Edit, Trash2, Calendar, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type TermsType = 'terms_of_service' | 'privacy_policy';
@@ -384,7 +384,7 @@ export default function AdminTermsPage() {
                 title: termTypeLabels[selectedType],
                 content: '',
                 version: '',
-                effective_date: new Date().toISOString().split('T')[0],
+                effective_date: new Date().toISOString().split('T')[0] || '',
                 created_at: '',
                 updated_at: '',
                 is_active: true

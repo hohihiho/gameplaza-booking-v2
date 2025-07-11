@@ -4,7 +4,6 @@ import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
-import { MapPin, MessageCircle, Clock } from 'lucide-react'
 // Stagewise 툴바 임시 비활성화
 // import { StagewiseToolbar } from '@stagewise/toolbar-next'
 // import { ReactPlugin } from '@stagewise-plugins/react'

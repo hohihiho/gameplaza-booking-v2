@@ -28,9 +28,9 @@ export function decomposeHangul(char: string): { cho: string; jung: string; jong
   const jongIndex = base % JUNG_BASE;
   
   return {
-    cho: CHO[choIndex],
-    jung: JUNG[jungIndex],
-    jong: JONG[jongIndex]
+    cho: CHO[choIndex] || '',
+    jung: JUNG[jungIndex] || '',
+    jong: JONG[jongIndex] || ''
   };
 }
 
@@ -74,7 +74,7 @@ export function generateSimilarPatterns(word: string): string[] {
   // 자음/모음 치환 패턴 생성
   for (let i = 0; i < decomposed.length; i++) {
     const char = decomposed[i];
-    const similar = SIMILAR_SOUNDS[char];
+    const similar = char ? SIMILAR_SOUNDS[char] : undefined;
     
     if (similar) {
       for (const replacement of similar) {

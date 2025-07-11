@@ -33,6 +33,8 @@ export default function SuccessAnimation({
       const timer = setTimeout(onComplete, 2000);
       return () => clearTimeout(timer);
     }
+    
+    return undefined;
   }, [onComplete]);
 
   return (

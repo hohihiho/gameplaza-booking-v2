@@ -16,9 +16,8 @@ import {
   createApiResponse 
 } from '@/lib/utils/error-handler';
 import { logger } from '@/lib/utils/logger';
-import { formatKSTDate, parseKSTDate } from '@/lib/utils/kst-date';
+import { formatKSTDate } from '@/lib/utils/kst-date';
 
-type Reservation = Database['public']['Tables']['reservations']['Row'];
 type ReservationInsert = Database['public']['Tables']['reservations']['Insert'];
 
 export class ReservationService {
@@ -55,12 +54,11 @@ export class ReservationService {
       // 3. 예약 생성
       const reservation: ReservationInsert = {
         user_id: userId,
-        device_id: data.deviceId,
-        date: data.date,
-        time_slot: data.timeSlot,
-        purpose: data.purpose,
-        participants: data.participants,
-        status: 'active',
+        rental_time_slot_id: data.timeSlot || '',
+        device_type_id: data.deviceId,
+        player_count: data.participants || 1,
+        total_price: 0, // 기본값 설정
+        status: 'pending',
       };
 
       const { data: created, error } = await this.supabase

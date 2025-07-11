@@ -63,7 +63,7 @@ export default function LoadingButton({
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         aria-busy={isLoading}
         aria-disabled={isDisabled}
-        {...props}
+        {...(props as any)}
       >
         <motion.div
           className="flex items-center gap-2"

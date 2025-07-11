@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
 // Firebase Admin은 전화번호 인증 토큰 생성을 지원하지 않으므로 클라이언트에서 처리
 
 
@@ -31,7 +30,7 @@ export async function POST(request: Request) {
 
     // SMS 발송 한도 체크 - 일단 비활성화 (테이블이 없음)
     // TODO: sms_limits 테이블 생성 후 활성화
-    const phoneNumber = phone.replace(/-/g, '');
+    // const phoneNumber = phone.replace(/-/g, '');
     
     /*
     const { data: limitCheck } = await supabaseAdmin

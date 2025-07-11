@@ -32,7 +32,7 @@ export default function ProfileEditPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
-  const nicknameTimerRef = useRef<NodeJS.Timeout>();
+  const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [canChangePhone, setCanChangePhone] = useState(true);
   const [nextPhoneChangeDate, setNextPhoneChangeDate] = useState<string | null>(null);
   const [showPhoneWarning, setShowPhoneWarning] = useState(false);
@@ -45,7 +45,7 @@ export default function ProfileEditPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const countdownRef = useRef<NodeJS.Timeout>();
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // 프로필 정보 불러오기
   useEffect(() => {
@@ -205,7 +205,9 @@ export default function ProfileEditPage() {
         countdownRef.current = setInterval(() => {
           setCountdown((prev) => {
             if (prev <= 1) {
-              clearInterval(countdownRef.current);
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+              }
               return 0;
             }
             return prev - 1;

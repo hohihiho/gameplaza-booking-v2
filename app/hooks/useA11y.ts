@@ -91,7 +91,7 @@ export function useA11y() {
           : Math.pow((channel + 0.055) / 1.055, 2.4);
       });
       
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      return 0.2126 * (r || 0) + 0.7152 * (g || 0) + 0.0722 * (b || 0);
     };
 
     const l1 = getLuminance(foreground);

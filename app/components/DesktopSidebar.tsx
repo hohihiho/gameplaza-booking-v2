@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { 
   Home, Calendar, FileText, Gamepad2, Clock, User, LogOut, 
-  ChevronRight, Sparkles, Shield, Settings, HelpCircle
+  ChevronRight, Sparkles, Shield, HelpCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggleWithMenu } from './ThemeToggleWithMenu';
 
 export default function DesktopSidebar() {
   const pathname = usePathname();
@@ -30,7 +31,7 @@ export default function DesktopSidebar() {
   ];
 
   return (
-    <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-800/50 z-50">
+    <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-800/50 z-40">
       <div className="flex flex-col h-full">
         {/* 로고 영역 */}
         <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50">
@@ -122,9 +123,11 @@ export default function DesktopSidebar() {
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
                 <div className="flex items-center gap-3 mb-3">
                   {session.user?.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
                       alt={session.user.name || '프로필'}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
@@ -163,7 +166,7 @@ export default function DesktopSidebar() {
           {/* 테마 토글 */}
           <div className="mt-3 flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">테마</span>
-            <ThemeToggle />
+            <ThemeToggleWithMenu variant="solid" />
           </div>
         </div>
       </div>

@@ -51,7 +51,7 @@ export async function PATCH(
 
 // 기종 삭제
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -62,7 +62,7 @@ export async function DELETE(
     const { data: devices } = await supabaseAdmin
       .from('devices')
       .select('id')
-      .eq('device_type_id', params.id)
+      .eq('device_type_id', id)
       .limit(1);
 
     if (devices && devices.length > 0) {

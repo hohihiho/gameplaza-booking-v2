@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
-import { verifyIdToken } from '@/lib/firebase/admin';
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { idToken, phone, code } = await request.json();
+    const { phone, code } = await request.json();
 
     if (!phone || !code) {
       return NextResponse.json(
@@ -30,7 +28,7 @@ export async function POST(request: Request) {
     
     try {
       // 전화번호 형식 표준화 (하이픈 제거)
-      const phoneNumber = phone.replace(/[\+\-]/g, '');
+      // const phoneNumber = phone.replace(/[\+\-]/g, '');
       
       // 임시로 성공 응답 반환
       // 실제로는 Firebase Admin SDK를 사용하여 검증해야 함

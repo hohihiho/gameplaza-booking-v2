@@ -18,7 +18,7 @@ export default function PullToRefresh({
   className = ''
 }: PullToRefreshProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isPulling, setIsPulling] = useState(false);
+  const [, setIsPulling] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const y = useMotionValue(0);
   
@@ -51,7 +51,7 @@ export default function PullToRefresh({
     y.set(info.offset.y * resistance);
   };
 
-  const handleDragEnd = async (_: any, info: PanInfo) => {
+  const handleDragEnd = async () => {
     setIsPulling(false);
 
     if (y.get() >= threshold && !isRefreshing) {

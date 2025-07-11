@@ -3,9 +3,6 @@ import {
   getAuth, 
   RecaptchaVerifier, 
   signInWithPhoneNumber,
-  PhoneAuthProvider,
-  signInWithCredential,
-  Auth,
   ConfirmationResult
 } from 'firebase/auth';
 
