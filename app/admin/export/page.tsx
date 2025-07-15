@@ -252,16 +252,8 @@ export default function DataExportPage() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </Link>
-          <h1 className="text-2xl font-bold dark:text-white">데이터 내보내기</h1>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+        <h1 className="text-2xl font-bold dark:text-white mb-2">데이터 내보내기</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           필요한 데이터를 선택하여 엑셀 파일로 다운로드하세요
         </p>
       </div>

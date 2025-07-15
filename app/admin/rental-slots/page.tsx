@@ -307,16 +307,8 @@ export default function RentalSlotManagementPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </Link>
-          <h1 className="text-2xl font-bold dark:text-white">대여 시간대 관리</h1>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+        <h1 className="text-2xl font-bold dark:text-white mb-2">대여 시간대 관리</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           기기별 대여 가능한 시간대와 가격을 설정합니다
         </p>
       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/app/lib/supabase'
+import { ScheduleService } from '@/lib/services/schedule.service'
 
 // 관리자용 예약 목록 조회
 export async function GET() {
@@ -75,6 +76,11 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       console.error('예약 상태 업데이트 에러:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 예약 승인 시 자동 스케줄 업데이트
+    if (status === 'approved') {
+      await ScheduleService.handleReservationApproved(id);
     }
 
     return NextResponse.json({ data });

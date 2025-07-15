@@ -35,22 +35,12 @@ export default function AnalyticsLayout({
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => window.history.back()}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-              통계 분석
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-              데이터를 분석하여 비즈니스 인사이트를 제공합니다
-            </p>
-          </div>
-        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          통계 분석
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          데이터를 분석하여 비즈니스 인사이트를 제공합니다
+        </p>
       </div>
 
       {/* 탭 네비게이션 - 드래그 가능 */}

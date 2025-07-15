@@ -55,6 +55,21 @@ const formatTime24Plus = (timeStr: string | null | undefined) => {
   return `${hour}:${minute}`;
 };
 
+// 영업시간 기준으로 오늘 날짜 계산 (06:00 기점으로 날짜 변경)
+const getBusinessToday = () => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  // 00:00-05:59는 전날 영업으로 간주
+  if (currentHour >= 0 && currentHour < 6) {
+    const businessDate = new Date(now);
+    businessDate.setDate(businessDate.getDate() - 1);
+    return businessDate;
+  }
+  
+  return now;
+};
+
 export default function SchedulePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -65,6 +80,15 @@ export default function SchedulePage() {
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
   const [supabase] = useState(() => createClient());
   const [, setIsLoading] = useState(false);
+  const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(false);
+  const [todaySchedule, setTodaySchedule] = useState<{ 
+    floor1Start: string; 
+    floor1End: string; 
+    floor2Start: string; 
+    floor2End: string; 
+    floor1EventType: 'early_open' | 'all_night' | 'early_close' | null;
+    floor2EventType: 'early_open' | 'all_night' | 'early_close' | null;
+  } | null>(null);
   
   // 기종별 색상 정보 로드
   useEffect(() => {
@@ -93,6 +117,99 @@ export default function SchedulePage() {
     
     loadDeviceColors();
   }, []);
+
+  // 오늘의 영업시간 가져오기
+  useEffect(() => {
+    const fetchTodaySchedule = async () => {
+      try {
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        // 특별 영업시간 조회
+        const { data: scheduleEvents } = await supabase
+          .from('schedule_events')
+          .select('title, start_time, end_time, type')
+          .eq('date', dateStr)
+          .in('type', ['early_open', 'overnight', 'early_close']);
+          
+        if (scheduleEvents && scheduleEvents.length > 0) {
+          // 제목에서 층 정보 파악 (예: "2층 조기마감")
+          const floor1Events = scheduleEvents.filter((e: any) => e.title?.includes('1층'));
+          const floor2Events = scheduleEvents.filter((e: any) => e.title?.includes('2층') || !e.title?.includes('층')); // 층 표시 없으면 2층으로 가정
+          
+          // 각 층별로 타입에 따라 이벤트 선택
+          const floor1Event = floor1Events.find((e: any) => e.type === 'early_open') || 
+                             floor1Events.find((e: any) => e.type === 'early_close' || e.type === 'overnight');
+          
+          const floor2EventOpen = floor2Events.find((e: any) => e.type === 'early_open');
+          const floor2EventClose = floor2Events.find((e: any) => e.type === 'early_close' || e.type === 'overnight');
+          
+          // 기본 영업시간 설정
+          const dayOfWeek = today.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const defaultFloor1Start = isWeekend ? '11:00' : '12:00';
+          const defaultFloor1End = '22:00';
+          const defaultFloor2Start = isWeekend ? '11:00' : '12:00';
+          const defaultFloor2End = isWeekend ? '22:00' : '24:00';
+          
+          // 특별 일정이 있으면 반영, 없으면 기본값 사용 (시간에서 초 제거)
+          // 조기영업은 시작시간만, 나머지는 종료시간만 변경
+          const floor1Start = floor1Event?.type === 'early_open' 
+            ? floor1Event?.start_time?.substring(0, 5) || defaultFloor1Start
+            : defaultFloor1Start;
+          const floor1End = floor1Event?.type === 'early_close' || floor1Event?.type === 'overnight'
+            ? floor1Event?.end_time?.substring(0, 5) || defaultFloor1End
+            : defaultFloor1End;
+          
+          // 2층은 조기영업과 마감시간 변경을 별도로 처리
+          const floor2Start = floor2EventOpen
+            ? floor2EventOpen?.start_time?.substring(0, 5) || defaultFloor2Start
+            : defaultFloor2Start;
+          const floor2End = floor2EventClose
+            ? floor2EventClose?.end_time?.substring(0, 5) || defaultFloor2End
+            : defaultFloor2End;
+          
+          setTodaySchedule({
+            floor1Start,
+            floor1End,
+            floor2Start,
+            floor2End,
+            floor1EventType: floor1Event?.type || null,
+            floor2EventType: floor2EventOpen?.type || floor2EventClose?.type || null
+          });
+        } else {
+          // 특별 일정이 없으면 기본 영업시간 사용
+          const dayOfWeek = today.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          
+          setTodaySchedule({
+            floor1Start: isWeekend ? '11:00' : '12:00',
+            floor1End: '22:00',
+            floor2Start: isWeekend ? '11:00' : '12:00',
+            floor2End: isWeekend ? '22:00' : '24:00',
+            floor1EventType: null,
+            floor2EventType: null
+          });
+        }
+      } catch (err) {
+        console.error('오늘 영업시간 조회 오류:', err);
+        // 오류 발생시 기본 영업시간 사용
+        const dayOfWeek = new Date().getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        
+        setTodaySchedule({
+          floor1Start: isWeekend ? '11:00' : '12:00',
+          floor1End: '22:00',
+          floor2Start: isWeekend ? '11:00' : '12:00',
+          floor2End: isWeekend ? '22:00' : '24:00',
+          floor1EventType: null,
+          floor2EventType: null
+        });
+      }
+    };
+    
+    fetchTodaySchedule();
+  }, [supabase]);
   
   // 운영 일정 및 예약 데이터 가져오기
   const fetchScheduleData = async () => {
@@ -439,14 +556,14 @@ export default function SchedulePage() {
                 <div className="text-center">
                   <div className="text-xs text-white/80 mb-1">1층</div>
                   <div className="text-lg md:text-xl font-bold text-white">
-                    {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                    {todaySchedule ? `${todaySchedule.floor1Start}-${todaySchedule.floor1End}` : '...'}
                   </div>
                 </div>
                 <div className="w-px h-10 bg-white/30" />
                 <div className="text-center">
                   <div className="text-xs text-white/80 mb-1">2층</div>
                   <div className="text-lg md:text-xl font-bold text-white">
-                    {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                    {todaySchedule ? `${todaySchedule.floor2Start}-${todaySchedule.floor2End}` : '...'}
                   </div>
                 </div>
               </div>
@@ -463,25 +580,64 @@ export default function SchedulePage() {
           transition={{ delay: 0.1 }}
           className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8 mt-8 relative z-10"
         >
-          <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            기본 영업시간
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              기본 영업시간
+            </h2>
+            <button
+              onClick={() => setIsDefaultHoursOpen(!isDefaultHoursOpen)}
+              className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ChevronRight className={`w-5 h-5 text-gray-500 transform transition-transform ${isDefaultHoursOpen ? 'rotate-90' : ''}`} />
+            </button>
+          </div>
           
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className={`${isDefaultHoursOpen ? 'block' : 'hidden'} md:block`}>
+            <div className="grid md:grid-cols-2 gap-6">
             <div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500/20 rounded border border-blue-400/50 flex items-center justify-center">
+                  <span className="text-blue-600 dark:text-blue-400 text-xs font-bold">1</span>
+                </div>
+                1층
+              </h3>
               <div className="space-y-4">
                 <div className="group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-gray-900 dark:text-white font-medium">일 ~ 목, 공휴일</span>
+                      <span className="text-gray-900 dark:text-white font-medium">평일, 주말</span>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         22시 이후 손님 없으면 조기 마감
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">12:00 - 22:00</span>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                      {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 22:00'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 mt-6 flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-500/20 rounded border border-purple-400/50 flex items-center justify-center">
+                  <span className="text-purple-600 dark:text-purple-400 text-xs font-bold">2</span>
+                </div>
+                2층
+              </h3>
+              <div className="space-y-4">
+                <div className="group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-gray-900 dark:text-white font-medium">일 ~ 목</span>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        평일 자정까지 운영
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                      {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 24:00'}
+                    </span>
                   </div>
                 </div>
                 
@@ -529,6 +685,7 @@ export default function SchedulePage() {
               </div>
             </div>
           </div>
+          </div>
         </motion.div>
         
         <div className="grid gap-6 lg:gap-8">
@@ -559,7 +716,7 @@ export default function SchedulePage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setCurrentMonth(new Date())}
+                    onClick={() => setCurrentMonth(getBusinessToday())}
                     className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium rounded-xl transition-colors"
                   >
                     오늘
@@ -592,7 +749,7 @@ export default function SchedulePage() {
                   const dateStr = formatDate(date);
                   const dayEvents = getEventsForDate(dateStr);
                   const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
-                  const isToday = formatDate(new Date()) === dateStr;
+                  const isToday = formatDate(getBusinessToday()) === dateStr;
                   const isSelected = selectedDate && formatDate(selectedDate) === dateStr;
                   const dayOfWeek = date.getDay();
                   
@@ -848,8 +1005,10 @@ export default function SchedulePage() {
                     </h4>
                     {(event.startTime || event.endTime) && event.type !== 'overnight' && event.type !== 'early_close' && event.type !== 'reservation_block' && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {event.startTime && `${event.startTime}`}
-                        {event.endTime && ` - ${event.endTime}`}
+                        {event.type === 'early_open' ? 
+                          event.startTime?.slice(0, 5) : 
+                          `${event.startTime?.slice(0, 5)} - ${event.endTime?.slice(0, 5)}`
+                        }
                       </p>
                     )}
                     {event.endTime && event.type === 'overnight' && (

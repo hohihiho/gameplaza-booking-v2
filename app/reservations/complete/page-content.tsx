@@ -129,8 +129,8 @@ export default function ReservationCompleteContent() {
   // 예약 ID가 없는 경우
   if (!reservationId) {
     return (
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        <div className="max-w-2xl mx-auto px-5 py-8">
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="max-w-2xl mx-auto px-5 py-8 w-full">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -163,8 +163,8 @@ export default function ReservationCompleteContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-2xl mx-auto px-5 py-8">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="max-w-2xl mx-auto px-5 py-8 w-full">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

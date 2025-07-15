@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
@@ -12,6 +13,7 @@ import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 export default function ReservationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   
   const [activeTab, setActiveTab] = useState('all');
   const [reservations, setReservations] = useState<any[]>([]);
@@ -45,8 +47,10 @@ export default function ReservationsPage() {
   
   // 초기 로드 시 전체 예약 목록 가져오기
   useEffect(() => {
-    loadAllReservations();
-  }, []);
+    if (status !== 'loading') {
+      loadAllReservations();
+    }
+  }, [status, session]);
 
   // 탭 변경 시 필터링
   useEffect(() => {
@@ -138,6 +142,12 @@ export default function ReservationsPage() {
   };
 
   const loadAllReservations = async () => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -196,6 +206,12 @@ export default function ReservationsPage() {
   };
 
   const handleCancel = async (reservationId: string) => {
+    if (!session) {
+      alert('로그인이 필요합니다');
+      router.push('/login');
+      return;
+    }
+    
     if (!confirm('정말 예약을 취소하시겠습니까?')) return;
 
     try {
@@ -283,148 +299,151 @@ export default function ReservationsPage() {
   );
   const totalPages = Math.ceil(reservations.length / itemsPerPage);
 
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {/* 상단 고정 헤더 */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto">
-          {/* 페이지 타이틀 - 공간 확대 */}
-          <div className="px-5 py-8">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4"
-            >
-              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">내 예약</h1>
-                <p className="text-base text-gray-600 dark:text-gray-400 mt-1">예약 현황을 확인하고 관리하세요</p>
-              </div>
-            </motion.div>
-          </div>
+  // 인증 상태 확인
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
-          {/* 탭 네비게이션 */}
-          <div className="px-5 pb-2">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {tabs.map((tab, index) => (
-                <motion.button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setCurrentPage(1);
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set('page', '1');
-                    params.set('tab', tab.id);
-                    params.set('perPage', itemsPerPage.toString());
-                    router.push(`/reservations?${params.toString()}`);
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative px-3 py-2 text-sm font-medium whitespace-nowrap rounded-full transition-all flex-shrink-0 ${
-                    activeTab === tab.id
-                      ? 'text-white'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                  }`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-lg"
-                      transition={{ type: "spring", bounce: 0.2 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {tab.label}
-                    <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-xs rounded-full ${
-                      activeTab === tab.id 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                    }`}>
-                      {tabCounts[tab.id] || 0}
-                    </span>
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          {/* 페이지네이션 (상단 고정) */}
-          {reservations.length > 0 && (
-            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  전체 {reservations.length}개 중 {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, reservations.length)}
-                </span>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-8 h-8 text-sm font-medium rounded-lg transition-all ${
-                            pageNum === currentPage
-                              ? 'bg-indigo-600 text-white'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                    className="ml-2 px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
-                  >
-                    <option value="5">5개</option>
-                    <option value="10">10개</option>
-                    <option value="20">20개</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg mb-4">로그인이 필요합니다</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            로그인하기
+          </button>
         </div>
-      </header>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* 상태별 탭 네비게이션 */}
+      <div className="mb-6">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {tabs.map((tab, index) => (
+            <motion.button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setCurrentPage(1);
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('page', '1');
+                params.set('tab', tab.id);
+                params.set('perPage', itemsPerPage.toString());
+                router.push(`/reservations?${params.toString()}`);
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`relative px-3 py-2 text-sm font-medium whitespace-nowrap rounded-full transition-all flex-shrink-0 ${
+                activeTab === tab.id
+                  ? 'text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-lg"
+                  transition={{ type: "spring", bounce: 0.2 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                {tab.label}
+                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-xs rounded-full ${
+                  activeTab === tab.id 
+                    ? 'bg-white/20 text-white' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}>
+                  {tabCounts[tab.id] || 0}
+                </span>
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {/* 페이지네이션 */}
+      {reservations.length > 0 && (
+        <div className="mb-6 p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              전체 {reservations.length}개 중 {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, reservations.length)}
+            </span>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-8 h-8 text-sm font-medium rounded-lg transition-all ${
+                        pageNum === currentPage
+                          ? 'bg-indigo-600 text-white'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="ml-2 px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+              >
+                <option value="5">5개</option>
+                <option value="10">10개</option>
+                <option value="20">20개</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 컨텐츠 영역 */}
-      <div className="max-w-4xl mx-auto px-5 py-6">
+      <div>
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -556,6 +575,6 @@ export default function ReservationsPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

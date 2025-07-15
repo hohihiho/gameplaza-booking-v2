@@ -41,7 +41,6 @@ export const authOptions: AuthOptions = {
                 name: user.name || '',
                 nickname: '', // 나중에 입력받음
                 phone: '', // 나중에 입력받음
-                phone_verified: false,
                 role: 'user',
                 is_blacklisted: false
               });
@@ -93,14 +92,12 @@ export const authOptions: AuthOptions = {
       try {
         // 토큰이 없으면 기본 세션 반환
         if (!token || !token.email) {
-          console.log('No valid token, returning default session');
           return session;
         }
 
         // 토큰에서 isAdmin 값 사용 (JWT 콜백에서 이미 확인됨)
         const isAdmin = token.isAdmin || false;
         
-        console.log('Session callback - email:', token.email, 'isAdmin:', isAdmin);
 
         // 세션이 없으면 새로 생성
         if (!session) {
@@ -130,10 +127,8 @@ export const authOptions: AuthOptions = {
           }
         };
         
-        console.log('Session callback returning:', JSON.stringify(finalSession, null, 2));
         return finalSession;
       } catch (error) {
-        console.error('Session callback error:', error);
         // 에러 시에도 기본 세션 반환
         return session || {
           expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -145,7 +140,6 @@ export const authOptions: AuthOptions = {
       try {
         // 초기 로그인 시 사용자 정보를 토큰에 저장
         if (account && user) {
-          console.log('Initial sign in, saving user info to token');
           token.id = user.id;
           token.email = user.email || undefined;
           token.name = user.name || undefined;
@@ -154,7 +148,6 @@ export const authOptions: AuthOptions = {
         
         // 항상 관리자 권한 확인 (매 요청마다)
         if (token.email) {
-          console.log('Checking admin status in JWT callback for:', token.email);
           
           const { data: userData } = await supabaseAdmin
             .from('users')
@@ -170,7 +163,6 @@ export const authOptions: AuthOptions = {
               .single();
             
             token.isAdmin = !!adminData?.is_super_admin;
-            console.log('JWT admin check result:', token.isAdmin);
           } else {
             token.isAdmin = false;
           }
@@ -178,7 +170,6 @@ export const authOptions: AuthOptions = {
         
         return token;
       } catch (error) {
-        console.error('JWT callback error:', error);
         return token || {};
       }
     }

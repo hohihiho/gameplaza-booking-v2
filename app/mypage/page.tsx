@@ -24,6 +24,7 @@ export default function MyPage() {
     total: 0,
     completed: 0,
     pending: 0,
+    approved: 0,
     cancelled: 0
   });
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
@@ -32,6 +33,8 @@ export default function MyPage() {
     type: 'success'
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.email) return;
@@ -93,6 +96,34 @@ export default function MyPage() {
     await signOut({ callbackUrl: '/' });
   };
 
+  const handleWithdraw = async () => {
+    if (isWithdrawing) return;
+    
+    setIsWithdrawing(true);
+    try {
+      const response = await fetch('/api/auth/withdraw', {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        showToast('회원탈퇴가 완료되었습니다', 'success');
+        setTimeout(async () => {
+          await signOut({ callbackUrl: '/' });
+        }, 1000);
+      } else {
+        showToast(data.error || '회원탈퇴 처리 중 오류가 발생했습니다', 'error');
+      }
+    } catch (error) {
+      console.error('회원탈퇴 오류:', error);
+      showToast('회원탈퇴 처리 중 오류가 발생했습니다', 'error');
+    } finally {
+      setIsWithdrawing(false);
+      setShowWithdrawModal(false);
+    }
+  };
+
   // 토스트 표시 함수
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
@@ -146,7 +177,7 @@ export default function MyPage() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-full blur-3xl" />
       </div>
       
-      <div className="relative max-w-lg mx-auto px-5 py-6">
+      <div className="relative max-w-lg lg:max-w-6xl mx-auto px-5 py-6">
         {/* 페이지 헤더 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -328,7 +359,7 @@ export default function MyPage() {
             <Calendar className="w-5 h-5 text-indigo-500" />
             예약 현황
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="relative overflow-hidden bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 p-5 rounded-2xl"
@@ -342,6 +373,28 @@ export default function MyPage() {
             
             <motion.div
               whileHover={{ scale: 1.05 }}
+              className="relative overflow-hidden bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-5 rounded-2xl"
+            >
+              <div className="relative z-10">
+                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{reservationStats.pending}</p>
+                <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80 mt-1">승인 대기</p>
+              </div>
+              <Calendar className="absolute -bottom-2 -right-2 w-16 h-16 text-yellow-200 dark:text-yellow-800/30" />
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-5 rounded-2xl"
+            >
+              <div className="relative z-10">
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{reservationStats.approved}</p>
+                <p className="text-sm text-blue-600/80 dark:text-blue-400/80 mt-1">승인됨</p>
+              </div>
+              <CheckCircle className="absolute -bottom-2 -right-2 w-16 h-16 text-blue-200 dark:text-blue-800/30" />
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.05 }}
               className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-5 rounded-2xl"
             >
               <div className="relative z-10">
@@ -349,17 +402,6 @@ export default function MyPage() {
                 <p className="text-sm text-green-600/80 dark:text-green-400/80 mt-1">완료</p>
               </div>
               <CheckCircle className="absolute -bottom-2 -right-2 w-16 h-16 text-green-200 dark:text-green-800/30" />
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="relative overflow-hidden bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-5 rounded-2xl"
-            >
-              <div className="relative z-10">
-                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{reservationStats.pending}</p>
-                <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80 mt-1">예정</p>
-              </div>
-              <Calendar className="absolute -bottom-2 -right-2 w-16 h-16 text-yellow-200 dark:text-yellow-800/30" />
             </motion.div>
             
             <motion.div
@@ -498,6 +540,7 @@ export default function MyPage() {
           <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
           
           <motion.button 
+            onClick={() => setShowWithdrawModal(true)}
             whileHover={{ x: 5 }}
             whileTap={{ scale: 0.98 }}
             className="w-full flex items-center justify-between p-4 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all group"
@@ -543,6 +586,81 @@ export default function MyPage() {
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* 회원탈퇴 확인 모달 */}
+      <AnimatePresence>
+        {showWithdrawModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-md w-full p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl mx-auto mb-6">
+                <UserX className="w-8 h-8 text-red-500" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">
+                정말 탈퇴하시겠습니까?
+              </h2>
+              
+              <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400 mb-8">
+                <p className="text-center">
+                  회원탈퇴 시 다음 정보가 모두 삭제됩니다:
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span>모든 예약 기록 및 이용 내역</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span>회원 정보 및 포인트</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span>기타 모든 개인 데이터</span>
+                  </li>
+                </ul>
+                <p className="text-center text-red-500 font-medium mt-4">
+                  삭제된 정보는 복구할 수 없습니다.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowWithdrawModal(false)}
+                  disabled={isWithdrawing}
+                  className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleWithdraw}
+                  disabled={isWithdrawing}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isWithdrawing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    '탈퇴하기'
+                  )}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

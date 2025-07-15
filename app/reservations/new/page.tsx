@@ -273,21 +273,24 @@ export default function NewReservationPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // 이번 달의 첫 날
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstDayOfWeek = firstDay.getDay(); // 0 = 일요일
+    // 오늘부터 30일간의 날짜 생성
+    const dates = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date);
+    }
     
-    // 첫 주의 빈 날짜 채우기
+    // 첫 번째 날짜의 요일 확인 (0 = 일요일)
+    const firstDayOfWeek = dates[0].getDay();
+    
+    // 첫 주의 빈 날짜 채우기 (일요일부터 시작)
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push(null);
     }
     
-    // 30일간의 날짜 추가
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      days.push(date);
-    }
+    // 실제 날짜들 추가
+    days.push(...dates);
     
     return days;
   };
@@ -304,36 +307,36 @@ export default function NewReservationPage() {
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* 헤더 */}
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-5">
-          <div className="py-4">
+        <div className="max-w-4xl mx-auto">
+          {/* 페이지 타이틀 */}
+          <div className="px-5 py-8">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </button>
-              <div className="flex-1">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">예약하기</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">원하는 시간에 기기를 예약하세요</p>
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+                <Gamepad2 className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">예약하기</h1>
+                <p className="text-base text-gray-600 dark:text-gray-400 mt-1">원하는 시간에 기기를 예약하세요</p>
               </div>
             </div>
           </div>
           
           {/* 진행 상태 */}
-          <div className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${(currentStep / 4) * 100}%` }}
-                  transition={{ duration: 0.3 }}
-                />
+          <div className="px-5 pb-2">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${(currentStep / 4) * 100}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium min-w-[40px] text-right">
+                  {currentStep}/4
+                </span>
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                {currentStep}/4
-              </span>
             </div>
           </div>
         </div>
@@ -435,19 +438,22 @@ export default function NewReservationPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <div className="flex items-center justify-between">
+              <div className="space-y-4">
+                {/* 이전 단계로 돌아가기 버튼 */}
+                <button
+                  onClick={() => handleStepChange(1)}
+                  className="inline-flex items-center gap-2 px-4 py-2 -ml-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-sm font-semibold">날짜 다시 선택</span>
+                </button>
+                
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">어떤 기기를 대여하실 건가요?</h2>
                   <p className="text-gray-600 dark:text-gray-400">
                     {formatKoreanDate(parseKSTDate(selectedDate))}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleStepChange(1)}
-                  className="text-sm text-indigo-600 hover:text-indigo-700"
-                >
-                  날짜 변경
-                </button>
               </div>
 
               {isLoadingDevices ? (
@@ -521,19 +527,22 @@ export default function NewReservationPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <div className="flex items-center justify-between">
+              <div className="space-y-4">
+                {/* 이전 단계로 돌아가기 버튼 */}
+                <button
+                  onClick={() => handleStepChange(2)}
+                  className="inline-flex items-center gap-2 px-4 py-2 -ml-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-sm font-semibold">기기 다시 선택</span>
+                </button>
+                
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">언제 이용하실 건가요?</h2>
                   <p className="text-gray-600 dark:text-gray-400">
                     {selectedDeviceInfo.name} • {formatKoreanDate(parseKSTDate(selectedDate))}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleStepChange(2)}
-                  className="text-sm text-indigo-600 hover:text-indigo-700"
-                >
-                  기기 변경
-                </button>
               </div>
 
               {isLoadingSlots ? (
@@ -544,7 +553,18 @@ export default function NewReservationPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {timeSlots.map((slot) => {
+                  {timeSlots
+                    .sort((a, b) => {
+                      // 밤샘대여를 맨 아래로
+                      if (a.slot_type === 'overnight' && b.slot_type !== 'overnight') return 1;
+                      if (a.slot_type !== 'overnight' && b.slot_type === 'overnight') return -1;
+                      // 조기대여를 두 번째로
+                      if (a.slot_type === 'early' && b.slot_type === 'regular') return -1;
+                      if (a.slot_type === 'regular' && b.slot_type === 'early') return 1;
+                      // 같은 타입이면 시간 순서대로
+                      return a.start_time.localeCompare(b.start_time);
+                    })
+                    .map((slot) => {
                     const slotDate = createKSTDateTime(selectedDate, slot.start_time);
                     const within24Hours = isWithin24Hours(slotDate);
                     const isAvailable = slot.is_available && !within24Hours;
@@ -602,24 +622,6 @@ export default function NewReservationPage() {
                               )}
                             </p>
                           </div>
-                          <div className="text-right">
-                            {slot.credit_options && slot.credit_options.length > 0 && (
-                              <>
-                                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                                  {slot.credit_options[0].price?.toLocaleString() || '가격 정보 없음'}원
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {slot.credit_options[0].type === 'fixed' && slot.credit_options[0].fixed_credits 
-                                    ? `${slot.credit_options[0].fixed_credits}크레딧` 
-                                    : slot.credit_options[0].type === 'freeplay' 
-                                      ? '프리플레이' 
-                                      : slot.credit_options[0].type === 'unlimited'
-                                        ? '무한크레딧'
-                                        : '1인 기준'}
-                                </p>
-                              </>
-                            )}
-                          </div>
                         </div>
                       </motion.button>
                     );
@@ -638,9 +640,20 @@ export default function NewReservationPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">예약 정보를 확인해주세요</h2>
-                <p className="text-gray-600 dark:text-gray-400">선택하신 내용을 확인하고 추가 옵션을 선택해주세요</p>
+              <div className="space-y-4">
+                {/* 이전 단계로 돌아가기 버튼 */}
+                <button
+                  onClick={() => handleStepChange(3)}
+                  className="inline-flex items-center gap-2 px-4 py-2 -ml-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-sm font-semibold">시간 다시 선택</span>
+                </button>
+                
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">예약 정보를 확인해주세요</h2>
+                  <p className="text-gray-600 dark:text-gray-400">선택하신 내용을 확인하고 추가 옵션을 선택해주세요</p>
+                </div>
               </div>
 
               {/* 예약 정보 요약 */}

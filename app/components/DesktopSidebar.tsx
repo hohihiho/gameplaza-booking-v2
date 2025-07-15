@@ -34,11 +34,24 @@ export default function DesktopSidebar() {
     <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-800/50 z-40">
       <div className="flex flex-col h-full">
         {/* 로고 영역 */}
-        <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50">
-          <Link href="/" className="block text-center">
-            <h1 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-orbitron tracking-wide">
-              GAMEPLAZA
-            </h1>
+        <div className="p-6">
+          <Link href="/" className="block">
+            <div className="relative group">
+              {/* 로고 텍스트 */}
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">GWANGJU</span>
+                <h1 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent font-orbitron tracking-wide leading-tight">
+                  GAMEPLAZA
+                </h1>
+                
+                {/* 액센트 라인 */}
+                <div className="flex items-center gap-1 mt-3">
+                  <div className="h-[2px] w-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full group-hover:w-8 transition-all duration-300" />
+                  <div className="h-[2px] w-2 bg-purple-500 rounded-full group-hover:w-4 transition-all duration-300 delay-75" />
+                  <div className="h-[2px] w-1 bg-pink-500 rounded-full group-hover:w-2 transition-all duration-300 delay-150" />
+                </div>
+              </div>
+            </div>
           </Link>
         </div>
 

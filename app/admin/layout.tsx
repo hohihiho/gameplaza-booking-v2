@@ -161,8 +161,8 @@ export default function AdminLayout({
               })}
             </nav>
 
-            {/* 사용자 정보 */}
-            <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
+            {/* 모바일에서만 표시되는 사용자 정보 및 사이트로 돌아가기 */}
+            <div className="lg:hidden p-4 border-t border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
                   {session?.user?.image ? (
@@ -190,7 +190,7 @@ export default function AdminLayout({
               </div>
               <Link
                 href="/"
-                className="hidden lg:flex items-center justify-center gap-2 mt-4 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:scale-[1.02]"
+                className="flex items-center justify-center gap-2 mt-4 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 hover:scale-[1.02]"
               >
                 <ChevronLeft className="w-4 h-4" />
                 사이트로 돌아가기

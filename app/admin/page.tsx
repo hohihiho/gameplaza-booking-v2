@@ -23,6 +23,7 @@ import {
   Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 type StatCard = {
   title: string;
@@ -43,96 +44,119 @@ type RecentReservation = {
   device_name: string;
   date: string;
   time: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'checked_in';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'checked_in' | 'completed' | 'no_show';
   created_at: string;
 };
 
+type DashboardData = {
+  stats: {
+    revenue: { value: number; trend: number };
+    reservations: { total: number; pending: number; trend: number };
+    currentlyUsing: { using: number; waiting: number };
+    devices: { available: number; total: number; maintenance: number };
+  };
+  recentReservations: RecentReservation[];
+  pendingPayments: number;
+};
+
 export default function AdminDashboard() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // 30초마다 데이터 새로고침
+    const interval = setInterval(fetchDashboardData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-  // 통계 데이터 (실제로는 API에서 가져옴)
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard');
+      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      
+      const dashboardData = await response.json();
+      setData(dashboardData);
+    } catch (error) {
+      console.error('Dashboard data fetch error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">데이터를 불러올 수 없습니다.</p>
+      </div>
+    );
+  }
+
+  // 통계 데이터 형식화
   const stats: StatCard[] = [
     {
       title: '오늘 대여 매출',
-      value: '₩485,000',
+      value: `₩${data.stats.revenue.value.toLocaleString()}`,
       subtext: '실제 이용시간 기준',
       icon: DollarSign,
-      trend: { value: 15, isUp: true },
+      trend: data.stats.revenue.trend ? { 
+        value: Math.abs(data.stats.revenue.trend), 
+        isUp: data.stats.revenue.trend > 0 
+      } : undefined,
       color: 'bg-emerald-500',
       link: '/admin/analytics/revenue'
     },
     {
       title: '오늘 예약',
-      value: 18,
-      subtext: '승인 대기 3건',
+      value: data.stats.reservations.total,
+      subtext: data.stats.reservations.pending > 0 
+        ? `승인 대기 ${data.stats.reservations.pending}건` 
+        : '모두 처리됨',
       icon: Calendar,
-      trend: { value: 20, isUp: true },
+      trend: data.stats.reservations.trend ? { 
+        value: Math.abs(data.stats.reservations.trend), 
+        isUp: data.stats.reservations.trend > 0 
+      } : undefined,
       color: 'bg-blue-500',
       link: '/admin/reservations'
     },
     {
       title: '현재 이용중',
-      value: 8,
-      subtext: '체크인 대기 2명',
+      value: data.stats.currentlyUsing.using,
+      subtext: data.stats.currentlyUsing.waiting > 0 
+        ? `체크인 대기 ${data.stats.currentlyUsing.waiting}명` 
+        : '대기 없음',
       icon: UserCheck,
       color: 'bg-green-500',
       link: '/admin/checkin'
     },
     {
       title: '대여 가능',
-      value: '15/20',
-      subtext: '점검중 2대',
+      value: `${data.stats.devices.available}/${data.stats.devices.total}`,
+      subtext: data.stats.devices.maintenance > 0 
+        ? `점검중 ${data.stats.devices.maintenance}대` 
+        : '모두 정상',
       icon: Activity,
       color: 'bg-purple-500',
       link: '/admin/devices'
     }
   ];
 
-  // 최근 예약 (실제로는 API에서 가져옴)
-  const recentReservations: RecentReservation[] = [
-    {
-      id: '1',
-      user_name: '김철수',
-      device_name: '마이마이 DX #1',
-      date: '2024-01-26',
-      time: '14:00-16:00',
-      status: 'pending',
-      created_at: '10분 전'
-    },
-    {
-      id: '2',
-      user_name: '이영희',
-      device_name: '사운드 볼텍스 #2',
-      date: '2024-01-26',
-      time: '16:00-18:00',
-      status: 'checked_in',
-      created_at: '30분 전'
-    },
-    {
-      id: '3',
-      user_name: '박민수',
-      device_name: '춘리즘 #1',
-      date: '2024-01-27',
-      time: '10:00-12:00',
-      status: 'approved',
-      created_at: '1시간 전'
-    },
-    {
-      id: '4',
-      user_name: '정수연',
-      device_name: '태고의달인 #1',
-      date: '2024-01-26',
-      time: '20:00-22:00',
-      status: 'pending',
-      created_at: '2시간 전'
-    }
-  ];
-
-
-
+  // 최근 예약
+  const recentReservations = data.recentReservations;
 
   // 결제 대기 현황
-  const pendingPayments = 3;
+  const pendingPayments = data.pendingPayments;
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
@@ -252,9 +276,11 @@ export default function AdminDashboard() {
                 <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg">
                   <Timer className="w-6 h-6 text-white" />
                 </div>
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
-                  3
-                </span>
+                {data.stats.reservations.pending > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                    {data.stats.reservations.pending}
+                  </span>
+                )}
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">예약승인</span>
             </Link>
@@ -280,13 +306,13 @@ export default function AdminDashboard() {
             </Link>
             
             <Link
-              href="/admin/users"
+              href="/admin/schedule"
               className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-800/30 dark:hover:to-indigo-700/30 transition-all group"
             >
               <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+                <Calendar className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">회원관리</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">일정관리</span>
             </Link>
           </div>
         </motion.div>
@@ -384,13 +410,20 @@ export default function AdminDashboard() {
                 <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
                   <UserCheck className="w-6 h-6 text-white" />
                 </div>
-                {pendingPayments > 0 && (
+                {(data.stats.currentlyUsing.waiting > 0 || pendingPayments > 0) && (
                   <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
-                    {pendingPayments}
+                    {data.stats.currentlyUsing.waiting + pendingPayments}
                   </span>
                 )}
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">체크인 관리</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">
+                체크인 관리
+                {data.stats.currentlyUsing.waiting > 0 && (
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    {data.stats.currentlyUsing.waiting}명 대기중
+                  </span>
+                )}
+              </span>
             </Link>
             
             <Link
@@ -401,9 +434,11 @@ export default function AdminDashboard() {
                 <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg">
                   <Timer className="w-6 h-6 text-white" />
                 </div>
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
-                  3
-                </span>
+                {data.stats.reservations.pending > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                    {data.stats.reservations.pending}
+                  </span>
+                )}
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white text-center">예약 승인</span>
             </Link>
@@ -439,13 +474,13 @@ export default function AdminDashboard() {
             </Link>
             
             <Link
-              href="/admin/users"
+              href="/admin/schedule"
               className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 hover:from-cyan-100 hover:to-cyan-200 dark:hover:from-cyan-800/30 dark:hover:to-cyan-700/30 transition-all group"
             >
               <div className="p-3 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+                <Calendar className="w-6 h-6 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">회원 관리</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">일정 관리</span>
             </Link>
             
             <Link
@@ -479,6 +514,68 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </motion.div>
+
+        {/* 최근 예약 목록 */}
+        {recentReservations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold dark:text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-indigo-500" />
+                최근 예약
+              </h2>
+              <Link
+                href="/admin/reservations"
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
+              >
+                전체 보기
+              </Link>
+            </div>
+            
+            <div className="space-y-3">
+              {recentReservations.map((reservation) => {
+                const statusConfig = {
+                  pending: { text: '대기중', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+                  approved: { text: '승인됨', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+                  rejected: { text: '거절됨', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+                  cancelled: { text: '취소됨', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
+                  checked_in: { text: '체크인', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+                  completed: { text: '완료됨', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
+                  no_show: { text: '노쇼', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' }
+                };
+                const status = statusConfig[reservation.status];
+                
+                return (
+                  <div
+                    key={reservation.id}
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {reservation.user_name}
+                        </p>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${status.color}`}>
+                          {status.text}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {reservation.device_name} • {reservation.date} {reservation.time}
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {reservation.created_at}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

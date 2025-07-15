@@ -39,7 +39,6 @@ export async function GET() {
           name: session.user.name || '',
           nickname: '',
           phone: '',
-          phone_verified: false,
           role: 'user',
           is_blacklisted: false
         })

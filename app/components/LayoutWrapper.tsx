@@ -4,9 +4,13 @@ import { usePathname } from 'next/navigation';
 import DesktopSidebar from './DesktopSidebar';
 import BottomTabBar from './BottomTabBar';
 import { ToastContainer } from './mobile';
+import { useProfileCheck } from '@/app/hooks/useProfileCheck';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  
+  // 로그인한 사용자의 프로필 체크
+  useProfileCheck();
   
   // 회원가입, 로그인, 이용약관, 환영 페이지에서는 사이드바와 하단바 숨기기
   const hideNavigation = pathname === '/signup' || pathname === '/login' || pathname === '/terms' || pathname === '/welcome';

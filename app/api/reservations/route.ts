@@ -21,25 +21,46 @@ export async function POST(request: Request) {
     const { 
       date,
       startTime,
+      start_time,
       endTime,
+      end_time,
       deviceId,
-      playerCount = 1,
+      device_id,
+      playerCount,
+      player_count,
       hourlyRate,
       totalAmount,
+      total_amount,
       userNotes,
-      creditType = 'freeplay'
+      user_notes,
+      creditType,
+      credit_type
     } = body
     
+    // 필드 이름 통일 (snake_case 우선)
+    const finalStartTime = start_time || startTime
+    const finalEndTime = end_time || endTime
+    const finalDeviceId = device_id || deviceId
+    const finalPlayerCount = player_count || playerCount || 1
+    const finalTotalAmount = total_amount || totalAmount
+    const finalUserNotes = user_notes || userNotes
+    const finalCreditType = credit_type || creditType || 'freeplay'
+    
+    // hourly_rate 처리
+    // 실제로는 시간대별 고정 가격을 사용하지만, DB 스키마상 NOT NULL이므로 임시로 설정
+    // total_amount가 실제 청구 금액
+    const finalHourlyRate = hourlyRate || finalTotalAmount || 0
+    
     // 필수 필드 검증
-    if (!date || !startTime || !endTime || !deviceId) {
-      console.error('필수 필드 누락:', { date, startTime, endTime, deviceId })
+    if (!date || !finalStartTime || !finalEndTime || !finalDeviceId) {
+      console.error('필수 필드 누락:', { date, finalStartTime, finalEndTime, finalDeviceId })
       return NextResponse.json({ 
         error: '필수 정보가 누락되었습니다',
         missing: {
           date: !date,
-          startTime: !startTime,
-          endTime: !endTime,
-          deviceId: !deviceId
+          startTime: !finalStartTime,
+          endTime: !finalEndTime,
+          deviceId: !finalDeviceId
         }
       }, { status: 400 })
     }
@@ -76,11 +97,45 @@ export async function POST(request: Request) {
       userData = newUser
     }
 
-    // 2. 선택한 기기가 devices에 있는지 확인
+    // 2. 관리자 여부 확인
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', userData.id)
+      .single()
+
+    const isAdmin = !!adminData
+
+    // 3. 일반 사용자의 경우 활성 예약 개수 제한 확인 (관리자는 제외)
+    if (!isAdmin) {
+      const { data: activeReservations, error: countError } = await supabaseAdmin
+        .from('reservations')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userData.id)
+        .in('status', ['pending', 'approved'])
+
+      if (countError) {
+        console.error('활성 예약 조회 에러:', countError)
+        return NextResponse.json({ error: '예약 상태 확인 중 오류가 발생했습니다' }, { status: 500 })
+      }
+
+      const activeCount = activeReservations?.length || 0
+      const MAX_ACTIVE_RESERVATIONS = 3
+
+      if (activeCount >= MAX_ACTIVE_RESERVATIONS) {
+        return NextResponse.json({ 
+          error: `현재 ${activeCount}개의 활성 예약이 있습니다. 최대 ${MAX_ACTIVE_RESERVATIONS}개까지만 예약 가능합니다.`,
+          activeCount,
+          maxCount: MAX_ACTIVE_RESERVATIONS
+        }, { status: 400 })
+      }
+    }
+
+    // 4. 선택한 기기가 devices에 있는지 확인
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('devices')
       .select('*')
-      .eq('id', deviceId)
+      .eq('id', finalDeviceId)
       .single()
 
     if (deviceError || !device) {
@@ -88,12 +143,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '유효하지 않은 기기입니다' }, { status: 400 })
     }
 
-    // 3. 해당 시간대에 이미 예약이 있는지 확인
+    // 5. 해당 시간대에 이미 예약이 있는지 확인
     // 시간이 겹치는 경우: 새 예약의 시작이 기존 예약 끝 전이고, 새 예약의 끝이 기존 예약 시작 후
     const { data: existingReservations, error: checkError } = await supabaseAdmin
       .from('reservations')
       .select('id, start_time, end_time')
-      .eq('device_id', deviceId)
+      .eq('device_id', finalDeviceId)
       .eq('date', date)
       .in('status', ['pending', 'approved', 'checked_in'])
 
@@ -110,7 +165,7 @@ export async function POST(request: Request) {
         const existingEnd = reservation.end_time;
         
         // 시간이 겹치는지 확인
-        return (startTime < existingEnd && endTime > existingStart);
+        return (finalStartTime < existingEnd && finalEndTime > existingStart);
       });
       
       if (hasOverlap) {
@@ -118,7 +173,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. 예약 번호 생성 (YYMMDD-순서)
+    // 6. 예약 번호 생성 (YYMMDD-순서)
     // 예약 날짜 기준으로 순서 생성
     const reservationDate = new Date(date)
     const dateStr = reservationDate.toLocaleDateString('ko-KR', { 
@@ -137,24 +192,24 @@ export async function POST(request: Request) {
     const sequence = (count || 0) + 1
     const reservationNumber = `${dateStr}-${String(sequence).padStart(3, '0')}`
 
-    // 5. 예약 생성
+    // 7. 예약 생성
     const { data: reservation, error: reservationError } = await supabaseAdmin
       .from('reservations')
       .insert({
         user_id: userData.id,
-        device_id: deviceId,
+        device_id: finalDeviceId,
         reservation_number: reservationNumber,
         date: date,
-        start_time: startTime,
-        end_time: endTime,
-        player_count: playerCount,
-        hourly_rate: hourlyRate,
-        total_amount: totalAmount,
+        start_time: finalStartTime,
+        end_time: finalEndTime,
+        player_count: finalPlayerCount,
+        hourly_rate: finalHourlyRate,
+        total_amount: finalTotalAmount,
         status: 'pending',
         payment_method: 'cash',
         payment_status: 'pending',
-        user_notes: userNotes || null,
-        credit_type: creditType,
+        user_notes: finalUserNotes || null,
+        credit_type: finalCreditType,
         created_at: new Date().toISOString()
       })
       .select(`
@@ -181,7 +236,7 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // 6. 실시간 업데이트를 위한 브로드캐스트 (클라이언트 supabase 사용)
+    // 8. 실시간 업데이트를 위한 브로드캐스트 (클라이언트 supabase 사용)
     try {
       await supabase
         .channel('reservations')
@@ -190,10 +245,10 @@ export async function POST(request: Request) {
           event: 'new_reservation',
           payload: { 
             date,
-            deviceId,
+            deviceId: finalDeviceId,
             reservationId: reservation.id,
-            startTime,
-            endTime
+            startTime: finalStartTime,
+            endTime: finalEndTime
           }
         })
     } catch (broadcastError) {

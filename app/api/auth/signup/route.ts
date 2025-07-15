@@ -17,6 +17,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { nickname, phone, agreeMarketing } = body;
 
+    console.log('회원가입 요청:', { nickname, phone, agreeMarketing });
+
     if (!nickname || !phone) {
       return NextResponse.json(
         { error: '닉네임과 전화번호를 모두 입력해주세요' },
@@ -28,7 +30,6 @@ export async function POST(request: Request) {
     const updateData: any = {
       nickname,
       phone: phone.replace(/-/g, ''), // 하이픈 제거
-      phone_verified: true, // 실제로는 인증 후 true로 변경
       updated_at: new Date().toISOString()
     };
 

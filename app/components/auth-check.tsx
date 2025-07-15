@@ -35,17 +35,14 @@ export function AuthCheck() {
         try {
           data = await response.json();
         } catch (jsonError) {
-          console.error('JSON 파싱 오류:', jsonError);
           return;
         }
 
         if (!response.ok || !data?.exists || data?.incomplete) {
           // 프로필이 없거나 불완전하면 회원가입 페이지로
-          console.log('회원가입 필요:', data);
           router.push('/signup');
         }
       } catch (err) {
-        console.error('프로필 체크 오류:', err);
       }
     };
 

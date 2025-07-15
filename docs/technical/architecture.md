@@ -153,11 +153,7 @@ Google OAuth 리다이렉트
     ↓
 세션 생성
     ↓
-전화번호 인증 요청
-    ↓
-SMS 발송 (FCM)
-    ↓
-인증 완료
+회원가입 정보 입력 (닉네임, 전화번호)
     ↓
 사용자 정보 DB 저장
 ```
@@ -200,7 +196,6 @@ erDiagram
         string email
         string name
         string phone
-        boolean phone_verified
         string role
         timestamp created_at
     }
@@ -291,7 +286,6 @@ Vercel 자동 배포
 
 2. **Firebase FCM**
    - 푸시 알림
-   - SMS 인증
 
 3. **Supabase**
    - 데이터베이스

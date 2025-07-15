@@ -11,51 +11,117 @@ export default function QuickReservationWidget() {
   const [availableCount, setAvailableCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  // const [todaySchedule, setTodaySchedule] = useState<{ 
-  //   floor2Start: string; 
-  //   floor2End: string; 
-  //   eventType: 'early_open' | 'all_night' | 'early_close' | null;
-  // } | null>(null);
+  const [todaySchedule, setTodaySchedule] = useState<{ 
+    floor1Start: string; 
+    floor1End: string; 
+    floor2Start: string; 
+    floor2End: string; 
+    floor1EventType: 'early_open' | 'all_night' | 'early_close' | null;
+    floor2EventType: 'early_open' | 'all_night' | 'early_close' | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchReservationStatus = async () => {
       try {
-        // 현재 시간
-        // const now = new Date();
-        // const currentHour = now.getHours();
-        // const currentMinutes = now.getMinutes();
-        // const currentTime = currentHour * 60 + currentMinutes;
-        
         // 오늘 날짜 (KST 기준)
-        // const today = new Date();
-        // const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
-        // 2층 특별 영업시간 조회 (테이블이 없을 수 있으므로 무시)
-        // TODO: schedule_events 테이블 생성 후 주석 해제
-        /*
+        // 특별 영업시간 조회
         try {
-          const { data: scheduleEvent } = await supabase
+          const { data: scheduleEvents } = await supabase
             .from('schedule_events')
-            .select('start_time, end_time, event_type')
+            .select('title, start_time, end_time, type')
             .eq('date', dateStr)
-            .in('event_type', ['early_open', 'all_night', 'early_close'])
-            .single();
+            .in('type', ['early_open', 'overnight', 'early_close']);
             
-          if (scheduleEvent) {
-            const startHour = parseInt(scheduleEvent.start_time.split(':')[0]);
-            const endHour = parseInt(scheduleEvent.end_time.split(':')[0]);
-            const endDisplay = endHour < 6 ? endHour + 24 : endHour; // 새벽 시간은 24시간 이상으로 표시
+          console.log('오늘 날짜:', dateStr);
+          console.log('조회된 특별 일정:', scheduleEvents);
+          scheduleEvents?.forEach(event => {
+            console.log(`- ${event.title}: ${event.type} ${event.start_time || ''} ~ ${event.end_time || ''}`);
+          });
+          
+          if (scheduleEvents && scheduleEvents.length > 0) {
+            // 제목에서 층 정보 파악 (예: "2층 조기마감")
+            const floor1Events = scheduleEvents.filter(e => e.title?.includes('1층'));
+            const floor2Events = scheduleEvents.filter(e => e.title?.includes('2층') || !e.title?.includes('층')); // 층 표시 없으면 2층으로 가정
+            
+            // 각 층별로 타입에 따라 이벤트 선택
+            const floor1Event = floor1Events.find(e => e.type === 'early_open') || 
+                               floor1Events.find(e => e.type === 'early_close' || e.type === 'overnight');
+            
+            const floor2EventOpen = floor2Events.find(e => e.type === 'early_open');
+            const floor2EventClose = floor2Events.find(e => e.type === 'early_close' || e.type === 'overnight');
+            
+            console.log('1층 이벤트:', floor1Event);
+            console.log('2층 조기영업:', floor2EventOpen);
+            console.log('2층 마감시간 변경:', floor2EventClose);
+            
+            // 기본 영업시간 설정
+            const dayOfWeek = today.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const defaultFloor1Start = isWeekend ? '11:00' : '12:00';
+            const defaultFloor1End = '22:00';
+            const defaultFloor2Start = isWeekend ? '11:00' : '12:00';
+            const defaultFloor2End = isWeekend ? '22:00' : '24:00';
+            
+            // 특별 일정이 있으면 반영, 없으면 기본값 사용 (시간에서 초 제거)
+            // 조기영업은 시작시간만, 나머지는 종료시간만 변경
+            const floor1Start = floor1Event?.type === 'early_open' 
+              ? floor1Event?.start_time?.substring(0, 5) || defaultFloor1Start
+              : defaultFloor1Start;
+            const floor1End = floor1Event?.type === 'early_close' || floor1Event?.type === 'overnight'
+              ? floor1Event?.end_time?.substring(0, 5) || defaultFloor1End
+              : defaultFloor1End;
+            
+            // 2층은 조기영업과 마감시간 변경을 별도로 처리
+            const floor2Start = floor2EventOpen
+              ? floor2EventOpen?.start_time?.substring(0, 5) || defaultFloor2Start
+              : defaultFloor2Start;
+            const floor2End = floor2EventClose
+              ? floor2EventClose?.end_time?.substring(0, 5) || defaultFloor2End
+              : defaultFloor2End;
+            
+            const schedule = {
+              floor1Start,
+              floor1End,
+              floor2Start,
+              floor2End,
+              floor1EventType: floor1Event?.type || null,
+              floor2EventType: floor2EventOpen?.type || floor2EventClose?.type || null
+            };
+            
+            console.log('최종 영업시간:', schedule);
+            setTodaySchedule(schedule);
+          } else {
+            // 특별 일정이 없으면 기본 영업시간 사용
+            const dayOfWeek = today.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             
             setTodaySchedule({
-              floor2Start: scheduleEvent.start_time,
-              floor2End: endDisplay > 23 ? `${endDisplay}:00` : scheduleEvent.end_time,
-              eventType: scheduleEvent.event_type
+              floor1Start: isWeekend ? '11:00' : '12:00',
+              floor1End: '22:00',
+              floor2Start: isWeekend ? '11:00' : '12:00',
+              floor2End: isWeekend ? '22:00' : '24:00',
+              floor1EventType: null,
+              floor2EventType: null
             });
           }
         } catch (err) {
-          // 특별 영업시간이 없어도 괜찮음
+          console.error('특별 영업시간 조회 오류:', err);
+          // 오류 발생시 기본 영업시간 사용
+          const dayOfWeek = today.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          
+          setTodaySchedule({
+            floor1Start: isWeekend ? '11:00' : '12:00',
+            floor1End: '22:00',
+            floor2Start: isWeekend ? '11:00' : '12:00',
+            floor2End: isWeekend ? '22:00' : '24:00',
+            floor1EventType: null,
+            floor2EventType: null
+          });
         }
-        */
 
         // 전체 기기 수 조회
         const { data: devices, error: devicesError } = await supabase
@@ -95,7 +161,10 @@ export default function QuickReservationWidget() {
   const availablePercentage = totalCount > 0 ? (availableCount / totalCount) * 100 : 0;
 
   return (
-    <div className="relative overflow-hidden h-[50vh] md:h-[45vh] max-h-[350px] min-h-[280px]">
+    <div className="relative overflow-hidden 
+      min-h-[250px] xs:min-h-[280px] sm:min-h-[300px] md:min-h-[320px] lg:min-h-[360px] xl:min-h-[380px] 
+      max-h-[70vh] sm:max-h-[75vh] lg:max-h-[80vh] 
+      h-auto hero-compact hero-ultra-compact hero-tablet-portrait">
       {/* 다중 레이어 배경 */}
       <div className="absolute inset-0">
         {/* 기본 그라데이션 */}
@@ -131,15 +200,15 @@ export default function QuickReservationWidget() {
       </div>
       
       {/* 콘텐츠 */}
-      <div className="relative z-10 px-6 py-6 md:px-8 md:py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="relative z-10 px-2 py-2 xs:px-3 xs:py-3 sm:px-6 sm:py-4 md:px-8 md:py-6 lg:px-8 lg:py-8 xl:py-12 h-full flex items-center">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-10 items-center lg:items-start">
             {/* 왼쪽: 텍스트 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="space-y-6 text-center lg:text-left"
+              className="space-y-2 xs:space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 xl:space-y-7 text-center lg:text-left"
             >
               {/* 메인 헤드라인 */}
               <div className="space-y-2">
@@ -147,11 +216,11 @@ export default function QuickReservationWidget() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-purple-200 text-sm md:text-base font-semibold"
+                  className="hero-subtitle text-purple-200 text-sm xs:text-base sm:text-lg md:text-xl font-semibold"
                 >
                   광주 최고의 리듬게임 전문 오락실
                 </motion.p>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight">
+                <h1 className="hero-title text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-white leading-tight break-keep">
                   <span className="relative">
                     <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 bg-clip-text text-transparent drop-shadow-2xl">
                       게임플라자
@@ -173,33 +242,33 @@ export default function QuickReservationWidget() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="lg:hidden space-y-3"
+                className="hero-cards lg:hidden space-y-1.5 xs:space-y-2 sm:space-y-3 max-w-xs xs:max-w-sm sm:max-w-md mx-auto lg:mx-0 px-2 xs:px-0"
               >
                 {/* 이용 가능 기기 */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Zap className="w-4 h-4 text-yellow-300" />
-                    <span className="text-white text-sm font-medium">현재 이용 가능</span>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
+                  <div className="flex items-center gap-1.5 xs:gap-2 mb-2 sm:mb-3">
+                    <Zap className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-yellow-300" />
+                    <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">현재 이용 가능</span>
                     <div className="flex items-center gap-1 ml-auto">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-xs text-white/70">실시간</span>
+                      <span className="text-2xs xs:text-xs text-white/70">실시간</span>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-white text-2xl font-bold">
-                        {loading ? '...' : `${availableCount}대`}
-                      </span>
-                      <span className="text-white/80 text-sm ml-2">
-                        / {totalCount}대
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white text-lg font-bold">
-                        {Math.round(availablePercentage)}%
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-white text-lg xs:text-xl sm:text-2xl font-bold">
+                          {loading ? '...' : availableCount}
+                        </span>
+                        <span className="text-white/80 text-xs xs:text-sm font-medium">
+                          /{totalCount}대
+                        </span>
+                        <span className="text-white text-xs xs:text-sm sm:text-base font-bold ml-2">
+                          {Math.round(availablePercentage)}%
+                        </span>
                       </div>
-                      <div className="w-20 bg-white/20 rounded-full h-2 mt-1">
+                      <div className="w-full bg-white/20 rounded-full h-2 mt-2">
                         <div 
                           className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-1000 ease-out"
                           style={{ width: `${availablePercentage}%` }}
@@ -210,39 +279,29 @@ export default function QuickReservationWidget() {
                 </div>
                 
                 {/* 운영시간 */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-white" />
-                    <span className="text-white text-sm font-medium">오늘 영업시간</span>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
+                  <div className="flex items-center gap-1.5 xs:gap-2 mb-2">
+                    <Clock className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-white" />
+                    <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">오늘 영업시간</span>
                     <div className="flex items-center gap-1 ml-auto">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-xs text-white/70">영업중</span>
+                      <span className="text-2xs xs:text-xs text-white/70">영업중</span>
                     </div>
                   </div>
                   
-                  {/* 1층/2층 시간 - 구분 개선 */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-blue-500/20 rounded border border-blue-400/50 flex items-center justify-center">
-                          <span className="text-blue-300 text-xs font-bold">1</span>
-                        </div>
-                        <span className="text-white/90 text-xs">1층</span>
-                      </div>
-                      <span className="text-white text-xs font-medium">
-                        {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                  {/* 1층/2층 시간 - 컴팩트 버전 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs xs:text-sm">
+                      <span className="text-blue-300 font-medium">1층</span>
+                      <span className="text-white font-medium">
+                        {todaySchedule ? `${todaySchedule.floor1Start}-${todaySchedule.floor1End}` : '...'}
                       </span>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-purple-500/20 rounded border border-purple-400/50 flex items-center justify-center">
-                          <span className="text-purple-300 text-xs font-bold">2</span>
-                        </div>
-                        <span className="text-white/90 text-xs">2층</span>
-                      </div>
-                      <span className="text-white text-xs font-medium">
-                        {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00-22:00' : '12:00-22:00'}
+                    <div className="flex items-center justify-between text-xs xs:text-sm">
+                      <span className="text-purple-300 font-medium">2층</span>
+                      <span className="text-white font-medium">
+                        {todaySchedule ? `${todaySchedule.floor2Start}-${todaySchedule.floor2End}` : '...'}
                       </span>
                     </div>
                   </div>
@@ -255,7 +314,7 @@ export default function QuickReservationWidget() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="hidden lg:flex flex-row gap-4"
+              className="hidden lg:flex flex-col xl:flex-row gap-4 h-fit"
             >
               {/* 이용 가능 기기 카드 */}
               <div className="relative bg-gradient-to-br from-white/25 via-white/20 to-white/15 backdrop-blur-xl rounded-3xl p-6 border border-white/40 shadow-2xl overflow-hidden flex-1">
@@ -353,7 +412,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">1층</span>
                         <span className="text-lg font-bold text-white">
-                          {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 22:00'}
+                          {todaySchedule ? `${todaySchedule.floor1Start} - ${todaySchedule.floor1End}` : '...'}
                         </span>
                       </div>
                     </div>
@@ -361,7 +420,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">2층</span>
                         <span className="text-lg font-bold text-white">
-                          {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 22:00'}
+                          {todaySchedule ? `${todaySchedule.floor2Start} - ${todaySchedule.floor2End}` : '...'}
                         </span>
                       </div>
                     </div>

@@ -27,7 +27,7 @@ BEGIN
   -- 체크인 시 해당 기기를 rental 상태로 변경
   IF NEW.status = 'checked_in' AND OLD.status = 'approved' THEN
     UPDATE devices 
-    SET status = 'rental'
+    SET status = 'in_use'
     WHERE device_number = NEW.assigned_device_number
     AND device_type_id = (
       SELECT device_type_id 

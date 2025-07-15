@@ -2,7 +2,7 @@
 // 비전공자 설명: 예약 관련 각종 통계를 시각화하여 보여주는 페이지입니다
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
@@ -19,13 +19,14 @@ import {
   Timer,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 // 차트 라이브러리 (실제로는 recharts 등 사용)
 // import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-type DateRange = '7days' | '30days' | '90days' | 'custom';
+type DateRange = 'week' | 'month' | 'quarter' | '6months' | '12months' | 'yearly' | 'custom';
 type ChartData = {
   date: string;
   count: number;
@@ -34,89 +35,66 @@ type ChartData = {
 };
 
 export default function ReservationAnalyticsPage() {
-  const [dateRange, setDateRange] = useState<DateRange>('30days');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>('month');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
 
-  // 통계 데이터 (실제로는 API에서 가져옴)
-  const summaryStats = {
-    totalReservations: 342,
-    completionRate: 92.3,
-    cancellationRate: 7.7,
-    avgReservationsPerDay: 11.4,
-    peakHour: '14:00-16:00',
-    popularDevice: '마이마이 DX',
-    avgLeadTime: 2.3, // 예약부터 이용까지 평균 일수
-    repeatCustomerRate: 68.5
+  // API에서 데이터 가져오기
+  const fetchAnalyticsData = async () => {
+    try {
+      setIsLoading(true);
+      let url = `/api/admin/analytics/reservations?range=${dateRange}`;
+      
+      if (dateRange === 'custom' && selectedYear) {
+        url += `&year=${selectedYear}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('데이터 조회 실패');
+      
+      const data = await response.json();
+      setAnalyticsData(data);
+    } catch (error) {
+      console.error('Analytics fetch error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // 일별 예약 추이 데이터
-  const dailyReservations: ChartData[] = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    const count = Math.floor(Math.random() * 15) + 5;
-    const cancelled = Math.floor(count * 0.08);
-    const completed = count - cancelled;
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [dateRange, selectedYear]);
 
-    return {
-      date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
-      count,
-      cancelled,
-      completed
-    };
-  });
+  // 로딩 중이거나 데이터가 없으면 로딩 표시
+  if (isLoading || !analyticsData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
-  // 시간대별 예약 분포
-  const hourlyDistribution = [
-    { hour: '10-12', count: 45, percentage: 13.2 },
-    { hour: '12-14', count: 52, percentage: 15.2 },
-    { hour: '14-16', count: 78, percentage: 22.8 },
-    { hour: '16-18', count: 65, percentage: 19.0 },
-    { hour: '18-20', count: 58, percentage: 17.0 },
-    { hour: '20-22', count: 44, percentage: 12.8 }
-  ];
-
-  // 기기별 예약 분포
-  const deviceDistribution = [
-    { name: '마이마이 DX', count: 125, percentage: 36.5, color: 'bg-pink-500' },
-    { name: '사운드 볼텍스', count: 87, percentage: 25.4, color: 'bg-blue-500' },
-    { name: '춘리즘', count: 68, percentage: 19.9, color: 'bg-purple-500' },
-    { name: '태고의달인', count: 42, percentage: 12.3, color: 'bg-orange-500' },
-    { name: '기타', count: 20, percentage: 5.9, color: 'bg-gray-500' }
-  ];
-
-  // 요일별 예약 패턴
-  const weekdayPattern = [
-    { day: '월', count: 38, avg: 5.4 },
-    { day: '화', count: 35, avg: 5.0 },
-    { day: '수', count: 42, avg: 6.0 },
-    { day: '목', count: 45, avg: 6.4 },
-    { day: '금', count: 68, avg: 9.7 },
-    { day: '토', count: 85, avg: 12.1 },
-    { day: '일', count: 72, avg: 10.3 }
-  ];
+  const {
+    summaryStats,
+    dailyReservations,
+    hourlyDistribution,
+    deviceDistribution,
+    weekdayPattern,
+    statusStats
+  } = analyticsData;
 
   // 예약 상태별 통계
   const statusBreakdown = {
-    pending: { count: 8, percentage: 2.3 },
-    approved: { count: 18, percentage: 5.3 },
-    completed: { count: 285, percentage: 83.3 },
-    cancelled: { count: 26, percentage: 7.6 },
-    noShow: { count: 5, percentage: 1.5 }
+    pending: { count: statusStats.pending, percentage: summaryStats.totalReservations > 0 ? (statusStats.pending / summaryStats.totalReservations * 100) : 0 },
+    approved: { count: statusStats.approved, percentage: summaryStats.totalReservations > 0 ? (statusStats.approved / summaryStats.totalReservations * 100) : 0 },
+    completed: { count: statusStats.completed, percentage: summaryStats.totalReservations > 0 ? (statusStats.completed / summaryStats.totalReservations * 100) : 0 },
+    cancelled: { count: statusStats.cancelled, percentage: summaryStats.totalReservations > 0 ? (statusStats.cancelled / summaryStats.totalReservations * 100) : 0 },
+    noShow: { count: statusStats.noShow, percentage: summaryStats.totalReservations > 0 ? (statusStats.noShow / summaryStats.totalReservations * 100) : 0 }
   };
 
-  // 신규 vs 재방문 고객
-  // const customerTypeData = [
-  //   { type: '신규 고객', count: 108, percentage: 31.5 },
-  //   { type: '재방문 고객', count: 234, percentage: 68.5 }
-  // ];
-
   const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    fetchAnalyticsData();
   };
 
   const handleExport = () => {
@@ -132,7 +110,7 @@ export default function ReservationAnalyticsPage() {
         <div className="flex flex-col md:flex-row gap-4">
           {/* 기간 선택 */}
           <div className="flex-1 flex flex-wrap gap-2">
-            {(['7days', '30days', '90days'] as const).map((range) => (
+            {(['week', 'month', 'quarter', '6months', '12months', 'yearly', 'custom'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
@@ -142,21 +120,15 @@ export default function ReservationAnalyticsPage() {
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                {range === '7days' && '최근 7일'}
-                {range === '30days' && '최근 30일'}
-                {range === '90days' && '최근 90일'}
+                {range === 'week' && '이번주'}
+                {range === 'month' && '이번달'}
+                {range === 'quarter' && '분기별'}
+                {range === '6months' && '반기별'}
+                {range === '12months' && '12개월'}
+                {range === 'yearly' && '년도별'}
+                {range === 'custom' && '기간 선택'}
               </button>
             ))}
-            <button
-              onClick={() => setDateRange('custom')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                dateRange === 'custom'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              직접 선택
-            </button>
           </div>
 
           {/* 액션 버튼 */}
@@ -179,37 +151,35 @@ export default function ReservationAnalyticsPage() {
           </div>
         </div>
 
-        {/* 커스텀 날짜 선택 */}
+        {/* 커스텀 기간 선택 - 년도 선택 */}
         {dateRange === 'custom' && (
-          <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div>
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="max-w-xs">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                시작일
+                년도 선택
               </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                종료일
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                {/* 최근 5년간 년도 표시 */}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <option key={year} value={year}>
+                      {year}년
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           </div>
         )}
       </div>
 
       {/* 핵심 지표 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -217,14 +187,20 @@ export default function ReservationAnalyticsPage() {
         >
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-green-600 dark:text-green-400">+12.5%</span>
+            <span className={`text-sm ${
+              (summaryStats.reservationGrowthRate || 0) >= 0 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {(summaryStats.reservationGrowthRate || 0) >= 0 ? '+' : ''}{summaryStats.reservationGrowthRate || 0}%
+            </span>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {summaryStats.totalReservations}
+            {summaryStats.totalReservations.toLocaleString()}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">총 예약 수</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            일평균 {summaryStats.avgReservationsPerDay}건
+            일평균 {summaryStats.avgReservationsPerDay.toFixed(1)}건
           </p>
         </motion.div>
 
@@ -236,7 +212,13 @@ export default function ReservationAnalyticsPage() {
         >
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-green-600 dark:text-green-400">+2.3%</span>
+            <span className={`text-sm ${
+              (summaryStats.completionRateChange || 0) >= 0 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {(summaryStats.completionRateChange || 0) >= 0 ? '+' : ''}{summaryStats.completionRateChange || 0}%
+            </span>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
             {summaryStats.completionRate}%
@@ -247,43 +229,6 @@ export default function ReservationAnalyticsPage() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-green-600 dark:text-green-400">+5.7%</span>
-          </div>
-          <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {summaryStats.repeatCustomerRate}%
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">재방문율</p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            평균 {summaryStats.avgLeadTime}일 전 예약
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <Gamepad2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <h3 className="text-lg font-bold dark:text-white mb-1">
-            {summaryStats.peakHour}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">피크 시간대</p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            인기: {summaryStats.popularDevice}
-          </p>
-        </motion.div>
       </div>
 
       {/* 차트 섹션 */}
@@ -292,40 +237,61 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.2 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold dark:text-white">일별 예약 추이</h2>
+            <h2 className="text-lg font-semibold dark:text-white">
+              {dateRange === 'week' && '일별 예약 추이 (월~일)'}
+              {dateRange === 'month' && '주별 예약 추이'}
+              {dateRange === 'quarter' && '분기별 예약 추이 (1~4분기)'}
+              {dateRange === '6months' && '반기별 예약 추이'}
+              {dateRange === '12months' && '월별 예약 추이 (1~12월)'}
+              {dateRange === 'yearly' && '년도별 예약 추이'}
+              {dateRange === 'custom' && '월별 예약 추이 (1~12월)'}
+            </h2>
             <Activity className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
           {/* 차트 영역 (실제로는 recharts 등 사용) */}
-          <div className="h-64 flex items-end justify-between gap-1">
-            {dailyReservations.map((data, index) => {
-              const maxCount = Math.max(...dailyReservations.map(d => d.count));
-              const height = (data.count / maxCount) * 100;
-              
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center"
-                  title={`${data.date}: ${data.count}건`}
-                >
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t relative">
+          <div className="h-64">
+            {dailyReservations && dailyReservations.length > 0 ? (
+              <div className="h-full flex items-end gap-1">
+                {dailyReservations.map((data, index) => {
+                  const maxCount = Math.max(...dailyReservations.map(d => d.count), 1);
+                  const height = data.count > 0 ? (data.count / maxCount) * 100 : 0;
+                  
+                  return (
                     <div
-                      className="absolute bottom-0 w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                  {index % 5 === 0 && (
-                    <span className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {data.date.split(' ')[1]}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+                      key={index}
+                      className="flex-1 min-w-0 flex flex-col items-center"
+                      title={`${data.date}: ${data.count}건`}
+                    >
+                      <div className="w-full h-56 relative flex items-end">
+                        <div
+                          className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
+                          style={{ height: `${height}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-nowrap">
+                        {dateRange === 'week' && data.date.includes('(') 
+                          ? data.date.split('(')[1].replace(')', '') // 요일만 표시
+                          : dateRange === '12months' && data.date.includes('월')
+                          ? data.date.replace('월', '') // 숫자만 표시
+                          : dateRange === 'custom' && data.date.includes('월')
+                          ? data.date.replace('월', '') // 숫자만 표시
+                          : data.date
+                        }
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">데이터가 없습니다</p>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4 mt-4 text-sm">
@@ -340,7 +306,7 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
@@ -349,24 +315,41 @@ export default function ReservationAnalyticsPage() {
           </div>
           
           <div className="space-y-4">
-            {hourlyDistribution.map((hour, index) => (
-              <div key={hour.hour} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">{hour.hour}시</span>
-                  <span className="font-medium dark:text-white">
-                    {hour.count}건 ({hour.percentage}%)
-                  </span>
+            {hourlyDistribution.length > 0 ? (
+              hourlyDistribution.map((hour, index) => (
+                <div key={`${hour.hour}-${hour.slot_type}-${index}`} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 dark:text-gray-400">{hour.hour}시</span>
+                      {hour.slot_type && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          hour.slot_type === 'early' 
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' 
+                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        }`}>
+                          {hour.slot_type === 'early' ? '조기' : '밤샘'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-medium dark:text-white">
+                      {hour.count}건 ({hour.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${hour.percentage}%` }}
+                      transition={{ delay: 0.4 + index * 0.05 }}
+                      className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${hour.percentage}%` }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                    className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                등록된 대여 시간대가 없습니다
+              </p>
+            )}
           </div>
         </motion.div>
       </div>
@@ -377,33 +360,39 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.4 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold dark:text-white">기기별 예약</h2>
+            <h2 className="text-lg font-semibold dark:text-white">기종별 예약</h2>
             <PieChart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
           <div className="space-y-3">
-            {deviceDistribution.map((device) => (
-              <div key={device.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded ${device.color}`} />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {device.name}
+            {deviceDistribution.length > 0 ? (
+              deviceDistribution.map((device) => (
+                <div key={device.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded ${device.color}`} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {device.name}
+                    </span>
+                  </div>
+                  <span className="font-medium dark:text-white">
+                    {device.percentage.toFixed(1)}%
                   </span>
                 </div>
-                <span className="font-medium dark:text-white">
-                  {device.percentage}%
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                예약 데이터가 없습니다
+              </p>
+            )}
           </div>
           
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              총 {summaryStats.totalReservations}건 중
+              총 {summaryStats.totalReservations.toLocaleString()}건 중
             </p>
           </div>
         </motion.div>
@@ -412,7 +401,7 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.5 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
@@ -420,32 +409,41 @@ export default function ReservationAnalyticsPage() {
             <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
-          <div className="flex items-end justify-between gap-2 h-40">
-            {weekdayPattern.map((day) => {
-              const maxCount = Math.max(...weekdayPattern.map(d => d.count));
-              const height = (day.count / maxCount) * 100;
-              
-              return (
-                <div key={day.day} className="flex-1 flex flex-col items-center">
-                  <div className="relative w-full h-full flex items-end">
-                    <div
-                      className={`w-full rounded-t transition-all ${
-                        ['토', '일'].includes(day.day)
-                          ? 'bg-blue-500 hover:bg-blue-600'
-                          : 'bg-gray-400 hover:bg-gray-500'
-                      }`}
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium dark:text-white mt-2">
-                    {day.day}
-                  </span>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                    {day.avg}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="h-48">
+            {weekdayPattern && weekdayPattern.length > 0 ? (
+              <div className="h-full flex items-end gap-2">
+                {weekdayPattern.map((day) => {
+                  const maxCount = Math.max(...weekdayPattern.map(d => d.count), 1);
+                  const height = day.count > 0 ? (day.count / maxCount) * 100 : 0;
+                  
+                  return (
+                    <div key={day.day} className="flex-1 min-w-0 flex flex-col items-center">
+                      <div className="w-full h-32 relative flex items-end">
+                        <div
+                          className={`w-full rounded-t transition-all ${
+                            ['토', '일'].includes(day.day)
+                              ? 'bg-blue-500 hover:bg-blue-600'
+                              : 'bg-gray-400 hover:bg-gray-500'
+                          }`}
+                          style={{ height: height > 0 ? `${height}%` : '2px' }}
+                          title={`${day.count}건`}
+                        />
+                      </div>
+                      <span className="text-sm font-medium dark:text-white mt-2">
+                        {day.day}
+                      </span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {day.count}건
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <p className="text-sm text-gray-500 dark:text-gray-400">데이터가 없습니다</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -453,7 +451,7 @@ export default function ReservationAnalyticsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.6 }}
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
@@ -470,7 +468,7 @@ export default function ReservationAnalyticsPage() {
                 </span>
               </div>
               <span className="font-semibold text-green-800 dark:text-green-200">
-                {statusBreakdown.completed.percentage}%
+                {statusBreakdown.completed.percentage.toFixed(1)}%
               </span>
             </div>
             
@@ -482,7 +480,7 @@ export default function ReservationAnalyticsPage() {
                 </span>
               </div>
               <span className="font-semibold text-red-800 dark:text-red-200">
-                {statusBreakdown.cancelled.percentage}%
+                {statusBreakdown.cancelled.percentage.toFixed(1)}%
               </span>
             </div>
             
@@ -506,7 +504,7 @@ export default function ReservationAnalyticsPage() {
                 </span>
               </div>
               <span className="font-semibold text-gray-800 dark:text-gray-200">
-                {statusBreakdown.noShow.percentage}%
+                {statusBreakdown.noShow.percentage.toFixed(1)}%
               </span>
             </div>
           </div>

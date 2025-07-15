@@ -147,7 +147,7 @@ export default function WelcomePage() {
           className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white text-center"
         >
           <h2 className="text-xl font-bold mb-4">
-            이제 시작해볼까요? 🎮
+            이제 시작해볼까요?
           </h2>
           <motion.button
             whileHover={{ scale: 1.02 }}

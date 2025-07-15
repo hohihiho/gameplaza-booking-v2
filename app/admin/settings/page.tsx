@@ -2,7 +2,7 @@
 // 비전공자 설명: 시스템 전반의 설정을 관리하는 페이지입니다
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Banknote,
@@ -13,9 +13,12 @@ import {
   Save,
   Copy,
   Edit,
-  Clock
+  Clock,
+  User,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 type BankAccount = {
   bank: string;
@@ -47,11 +50,13 @@ type SystemSettings = {
 };
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>({
     bankAccount: {
-      bank: '광주은행',
-      accountNumber: '062-1234-5678-90',
-      accountHolder: '게임플라자'
+      bank: '',
+      accountNumber: '',
+      accountHolder: ''
     },
     wifiInfo: {
       ssid: 'GamePlaza_5G',
@@ -77,17 +82,77 @@ export default function SettingsPage() {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [tempSettings, setTempSettings] = useState<SystemSettings>(settings);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdminAccount, setIsAdminAccount] = useState(false); // 관리자 개인 계좌 사용 여부
+
+  // 설정 불러오기
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      // 슈퍼관리자 권한 확인
+      const adminResponse = await fetch('/api/admin/check-super');
+      if (adminResponse.ok) {
+        const adminData = await adminResponse.json();
+        setIsSuperAdmin(adminData.isSuperAdmin);
+      }
+
+      // 관리자 개인 계좌 정보 불러오기
+      const bankResponse = await fetch('/api/admin/settings/bank-account');
+      if (bankResponse.ok) {
+        const bankData = await bankResponse.json();
+        if (bankData.bankAccount && bankData.isPersonalAccount) {
+          setSettings(prev => ({
+            ...prev,
+            bankAccount: {
+              bank: bankData.bankAccount.bank || '',
+              accountNumber: bankData.bankAccount.account || '',
+              accountHolder: bankData.bankAccount.holder || ''
+            }
+          }));
+          setIsAdminAccount(true);
+        }
+      }
+
+      // 기타 설정 불러오기 (WiFi, 운영시간 등)
+      // TODO: API 구현 후 추가
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
     
-    // API 호출 시뮬레이션
-    setTimeout(() => {
+    try {
+      if (editingSection === 'bankAccount') {
+        // 계좌 정보 저장
+        const response = await fetch('/api/admin/settings/bank-account', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bank: tempSettings.bankAccount.bank,
+            account: tempSettings.bankAccount.accountNumber,
+            holder: tempSettings.bankAccount.accountHolder,
+            isPersonalAccount: isAdminAccount
+          })
+        });
+        
+        if (!response.ok) throw new Error('Failed to save bank account');
+      }
+      
+      // 다른 설정 저장 로직 추가
+      
       setSettings(tempSettings);
       setEditingSection(null);
-      setIsLoading(false);
       alert('설정이 저장되었습니다.');
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('설정 저장에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -104,31 +169,30 @@ export default function SettingsPage() {
     <div className="p-6 max-w-4xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </Link>
-          <h1 className="text-2xl font-bold dark:text-white">설정</h1>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+        <h1 className="text-2xl font-bold dark:text-white mb-2">설정</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           시스템 설정 및 메시지 템플릿 관리
         </p>
       </div>
 
       <div className="space-y-6">
-        {/* 계좌 정보 설정 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
-        >
+        {/* 계좌 정보 설정 - 슈퍼관리자만 */}
+        {isSuperAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+          >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Banknote className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-lg font-semibold dark:text-white">계좌 정보</h2>
+              {isAdminAccount && (
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-full flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  관리자 개인 계좌
+                </span>
+              )}
             </div>
             {editingSection === 'bankAccount' ? (
               <div className="flex gap-2">
@@ -159,6 +223,28 @@ export default function SettingsPage() {
 
           {editingSection === 'bankAccount' ? (
             <div className="space-y-4">
+              {/* 계좌 유형 선택 */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAdminAccount}
+                    onChange={(e) => setIsAdminAccount(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        관리자 개인 계좌 사용
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {session?.user?.name} 관리자님의 개인 계좌로 입금받습니다
+                    </p>
+                  </div>
+                </label>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   은행명
@@ -231,7 +317,8 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* WiFi 정보 설정 */}
         <motion.div

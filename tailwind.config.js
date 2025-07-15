@@ -9,6 +9,11 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      // 폴드 화면을 위한 커스텀 브레이크포인트
+      screens: {
+        'xs': '320px',    // 갤럭시 폴드 등 매우 좁은 화면
+        'fold': '280px',  // 가장 좁은 폴드 화면
+      },
       // 커스텀 폰트
       fontFamily: {
         sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],

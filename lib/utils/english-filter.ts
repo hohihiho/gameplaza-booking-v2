@@ -52,22 +52,22 @@ function escapeRegExp(string: string): string {
 
 // 영어 비속어 패턴 목록
 export const ENGLISH_PROFANITY_PATTERNS = [
-  // 심각한 비속어 (severity: 3)
-  { pattern: 'fuck', severity: 3 },
-  { pattern: 'shit', severity: 3 },
-  { pattern: 'bitch', severity: 3 },
-  { pattern: 'cunt', severity: 3 },
-  { pattern: 'dick', severity: 3 },
-  { pattern: 'cock', severity: 3 },
-  { pattern: 'pussy', severity: 3 },
-  { pattern: 'asshole', severity: 3 },
-  { pattern: 'bastard', severity: 3 },
-  { pattern: 'whore', severity: 3 },
-  { pattern: 'slut', severity: 3 },
-  { pattern: 'nigger', severity: 3 },
-  { pattern: 'nigga', severity: 3 },
-  { pattern: 'faggot', severity: 3 },
-  { pattern: 'fag', severity: 3 },
+  // 심각한 비속어 (severity: 4)
+  { pattern: 'fuck', severity: 4 },
+  { pattern: 'shit', severity: 4 },
+  { pattern: 'bitch', severity: 4 },
+  { pattern: 'cunt', severity: 4 },
+  { pattern: 'dick', severity: 4 },
+  { pattern: 'cock', severity: 4 },
+  { pattern: 'pussy', severity: 4 },
+  { pattern: 'asshole', severity: 4 },
+  { pattern: 'bastard', severity: 4 },
+  { pattern: 'whore', severity: 4 },
+  { pattern: 'slut', severity: 4 },
+  { pattern: 'nigger', severity: 4 },
+  { pattern: 'nigga', severity: 4 },
+  { pattern: 'faggot', severity: 4 },
+  { pattern: 'fag', severity: 4 },
   
   // 중간 정도의 비속어 (severity: 2)
   { pattern: 'ass', severity: 2 },

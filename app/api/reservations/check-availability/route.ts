@@ -31,6 +31,12 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+    
+    console.log('등록된 시간대:', timeSlots?.map(ts => ({
+      slot_type: ts.slot_type,
+      start_time: ts.start_time,
+      end_time: ts.end_time
+    })))
 
     // 2. 해당 날짜의 예약 조회
     const { data: reservations, error: reservationsError } = await supabaseAdmin

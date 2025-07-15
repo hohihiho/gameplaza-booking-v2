@@ -27,7 +27,6 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(100) NOT NULL,
   phone VARCHAR(20),
-  phone_verified BOOLEAN DEFAULT false,
   nickname VARCHAR(50),
   role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'staff', 'admin')),
   is_blacklisted BOOLEAN DEFAULT false,

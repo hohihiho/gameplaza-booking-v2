@@ -48,7 +48,7 @@ export async function GET(request: Request) {
         const { data: reservations } = await supabase
           .from('reservations')
           .select('device_number')
-          .eq('device_time_slot_id', slot.id)
+          .eq('rental_time_slot_id', slot.id)
           .in('status', ['pending', 'approved'])
 
         const reservedDevices = reservations?.map(r => r.device_number) || []

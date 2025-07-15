@@ -13,23 +13,36 @@ export async function GET(request: Request) {
     // NextAuth 세션 확인
     const session = await getServerSession(authOptions);
     
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    // 관리자 권한 확인
-    const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-    const isAdmin = adminEmails.includes(session.user.email || '');
-    
-    if (!isAdmin) {
+    const supabase = createAdminClient();
+
+    // 데이터베이스에서 관리자 권한 확인
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!userData) {
+      return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (!adminData) {
       return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
     }
 
-    const supabase = createAdminClient()
-
     let query = supabase
       .from('schedule_events')
-      .select('*')
+      .select('*, is_auto_generated, source_type')
       .order('date', { ascending: true });
 
     // 년월 필터링
@@ -63,19 +76,32 @@ export async function POST(request: Request) {
     
     // NextAuth 세션 확인
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    // 관리자 권한 확인
-    const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-    const isAdmin = adminEmails.includes(session.user.email || '');
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    const supabase = createAdminClient();
+
+    // 데이터베이스에서 관리자 권한 확인
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!userData) {
+      return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const supabase = createAdminClient();
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (!adminData) {
+      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    }
 
     // 필수 필드 검증
     if (!body.date || !body.type || !body.title) {
@@ -123,19 +149,32 @@ export async function PATCH(request: Request) {
     
     // NextAuth 세션 확인
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    // 관리자 권한 확인
-    const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-    const isAdmin = adminEmails.includes(session.user.email || '');
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    const supabase = createAdminClient();
+
+    // 데이터베이스에서 관리자 권한 확인
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!userData) {
+      return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const supabase = createAdminClient();
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (!adminData) {
+      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    }
 
     if (!body.id) {
       return NextResponse.json({ error: '일정 ID가 필요합니다' }, { status: 400 });
@@ -186,19 +225,32 @@ export async function DELETE(request: Request) {
     
     // NextAuth 세션 확인
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    // 관리자 권한 확인
-    const adminEmails = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
-    const isAdmin = adminEmails.includes(session.user.email || '');
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    const supabase = createAdminClient();
+
+    // 데이터베이스에서 관리자 권한 확인
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!userData) {
+      return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const supabase = createAdminClient();
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (!adminData) {
+      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
+    }
 
     const { error } = await supabase
       .from('schedule_events')

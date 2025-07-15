@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/app/lib/supabase';
 
 export async function POST(
   req: NextRequest,
@@ -18,20 +18,31 @@ export async function POST(
     }
 
     // 관리자 권한 확인
-    const supabase = await createClient();
-    const { data: userData, error: userError } = await supabase
+    // session.user.email 사용 (NextAuth 세션에는 이메일이 포함됨)
+    const userEmail = session.user?.email;
+    if (!userEmail) {
+      return NextResponse.json({ error: '사용자 이메일을 찾을 수 없습니다' }, { status: 404 });
+    }
+
+    // 관리자 확인
+    const { data: userData } = await supabaseAdmin
       .from('users')
-      .select('email')
-      .eq('id', session.user.id)
+      .select('id')
+      .eq('email', userEmail)
       .single();
 
-    if (userError || !userData) {
+    if (!userData) {
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const isAdmin = ['admin@gameplaza.kr', 'ndz5496@gmail.com'].includes(userData.email);
-    if (!isAdmin) {
-      return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (!adminData) {
+      return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
     }
 
     // 요청 데이터 파싱
@@ -43,18 +54,9 @@ export async function POST(
     }
 
     // 예약 정보 조회
-    const { data: reservation, error: reservationError } = await supabase
+    const { data: reservation, error: reservationError } = await supabaseAdmin
       .from('reservations')
-      .select(`
-        *,
-        rental_time_slots (
-          id,
-          date,
-          start_time,
-          end_time,
-          price
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -68,23 +70,24 @@ export async function POST(
     }
 
     // 시간 조정 이력 저장
-    const { error: adjustmentError } = await supabase
+    const { error: adjustmentError } = await supabaseAdmin
       .from('time_adjustments')
       .insert({
         reservation_id: id,
-        adjusted_by: session.user.id,
+        adjusted_by: userData.id,
         adjustment_type: adjustment_type || 'both',
-        old_start_time: reservation.actual_start_time || `${reservation.rental_time_slots.date}T${reservation.rental_time_slots.start_time}`,
+        old_start_time: reservation.actual_start_time || `${reservation.date}T${reservation.start_time}`,
         new_start_time: actual_start_time,
-        old_end_time: reservation.actual_end_time || `${reservation.rental_time_slots.date}T${reservation.rental_time_slots.end_time}`,
+        old_end_time: reservation.actual_end_time || `${reservation.date}T${reservation.end_time}`,
         new_end_time: actual_end_time,
         reason: reason,
-        old_amount: reservation.total_price,
+        old_amount: reservation.total_amount,
         new_amount: null // TODO: 금액 계산 로직 추가
       });
 
     if (adjustmentError) {
       console.error('시간 조정 이력 저장 실패:', adjustmentError);
+      // 테이블이 없는 경우에도 계속 진행 (이력은 나중에 추가 가능)
     }
 
     // 예약 정보 업데이트
@@ -99,7 +102,7 @@ export async function POST(
       updateData.actual_end_time = actual_end_time;
     }
 
-    const { data: _updatedReservation, error: updateError } = await supabase
+    const { data: updatedReservation, error: updateError } = await supabaseAdmin
       .from('reservations')
       .update(updateData)
       .eq('id', id)
@@ -110,38 +113,11 @@ export async function POST(
       return NextResponse.json({ error: '시간 조정 실패' }, { status: 500 });
     }
 
-    // 조정된 금액 계산 (실제 이용시간 기준)
-    let adjustedAmount = reservation.total_price;
-    if (actual_start_time && actual_end_time) {
-      const start = new Date(actual_start_time);
-      const end = new Date(actual_end_time);
-      const actualMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-      const actualHours = Math.ceil(actualMinutes / 60); // 시간 올림 처리
-      
-      // 시간당 요금 계산
-      const slotStart = new Date(`1970-01-01T${reservation.rental_time_slots.start_time}`);
-      const slotEnd = new Date(`1970-01-01T${reservation.rental_time_slots.end_time}`);
-      const slotMinutes = (slotEnd.getTime() - slotStart.getTime()) / (1000 * 60);
-      const slotHours = slotMinutes / 60;
-      const hourlyRate = reservation.rental_time_slots.price / slotHours;
-      
-      adjustedAmount = Math.round(hourlyRate * actualHours);
-    }
-
-    // 조정된 금액 업데이트
-    if (adjustedAmount !== reservation.total_price) {
-      await supabase
-        .from('reservations')
-        .update({ adjusted_amount: adjustedAmount })
-        .eq('id', id);
-    }
+    // 스케줄 시스템이 자동으로 처리하므로 여기서는 업데이트만 수행
 
     return NextResponse.json({
       success: true,
       data: {
-        original_amount: reservation.total_price,
-        adjusted_amount: adjustedAmount,
-        actual_start_time: actual_start_time,
         actual_end_time: actual_end_time,
         adjustment_saved: true
       }

@@ -183,40 +183,36 @@ export async function POST(request: Request) {
 
     console.log('Moderation check for:', text);
     
-    // 1. 한국어 특화 비속어 체크 - 임시로 severity 기준 상향
+    // 1. 한국어 특화 비속어 체크
     const koreanCheck = checkKoreanProfanity(text);
     console.log('Korean check result:', koreanCheck);
     if (koreanCheck.found) {
       const severity = koreanCheck.severity;
-      // severity 4 이상만 차단 (기존 3)
+      // severity 4 이상만 차단 (심각한 욕설만)
       if (severity >= 4) {
         return NextResponse.json({
           valid: false,
           reason: '사용할 수 없는 표현이 포함되어 있습니다',
           severity: 'block'
         });
-      } else if (severity >= 3) {
-        // 경고만 표시하고 통과 (기존 2)
-        console.log('Warning only for severity 3:', text);
       }
+      // severity 3 이하는 통과 (경미한 표현은 허용)
     }
 
-    // 2. 영어 특화 비속어 체크 - 임시로 severity 기준 상향
+    // 2. 영어 특화 비속어 체크
     const englishCheck = checkEnglishProfanity(text);
     console.log('English check result:', englishCheck);
     if (englishCheck.found) {
       const severity = englishCheck.severity;
-      // severity 4 이상만 차단 (기존 3)
+      // severity 4 이상만 차단 (심각한 욕설만)
       if (severity >= 4) {
         return NextResponse.json({
           valid: false,
           reason: '사용할 수 없는 표현이 포함되어 있습니다',
           severity: 'block'
         });
-      } else if (severity >= 3) {
-        // 경고만 표시하고 통과 (기존 2)
-        console.log('Warning only for severity 3:', text);
       }
+      // severity 3 이하는 통과 (경미한 표현은 허용)
     }
 
     // 3. 스팸/광고 패턴 체크

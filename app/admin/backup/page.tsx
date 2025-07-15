@@ -169,16 +169,8 @@ export default function BackupPage() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </Link>
-          <h1 className="text-2xl font-bold dark:text-white">백업 관리</h1>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+        <h1 className="text-2xl font-bold dark:text-white mb-2">백업 관리</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           시스템 데이터를 안전하게 백업하고 복원합니다
         </p>
       </div>

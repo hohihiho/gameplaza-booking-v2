@@ -855,16 +855,8 @@ export default function DevicesPage() {
     return (
       <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
-            <button
-              onClick={() => router.push('/admin')}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">기기 관리</h1>
-          </div>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 ml-11">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-2">기기 관리</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             카테고리, 기종, 개별 기기를 관리합니다
           </p>
         </div>

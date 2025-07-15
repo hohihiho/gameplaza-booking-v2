@@ -14,14 +14,29 @@ export async function GET() {
       );
     }
 
+
     // 사용자 프로필 조회
     const { data: profile, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
+    
 
-    if (error && error.code !== 'PGRST116') { // PGRST116: 행이 없음
+    // PGRST116: 행이 없음 (프로필이 없는 경우)
+    if (error && error.code === 'PGRST116') {
+      return NextResponse.json(
+        { 
+          exists: false,
+          incomplete: true,
+          profile: null,
+          isAdmin: false
+        },
+        { status: 200 }
+      );
+    }
+
+    if (error) {
       console.error('프로필 조회 오류:', error);
       return NextResponse.json(
         { error: '프로필 조회 중 오류가 발생했습니다' },
@@ -41,13 +56,13 @@ export async function GET() {
       isAdmin = !!adminData?.is_super_admin;
     }
 
-    // 프로필이 없거나 불완전한 경우
-    if (!profile || !profile.nickname || !profile.phone) {
+    // 프로필이 불완전한 경우
+    if (!profile.nickname || !profile.phone) {
       return NextResponse.json(
         { 
-          exists: false,
+          exists: true,
           incomplete: true,
-          profile: profile || null,
+          profile: profile,
           isAdmin
         },
         { status: 200 }

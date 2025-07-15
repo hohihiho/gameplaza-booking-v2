@@ -46,7 +46,8 @@ export async function GET() {
     const stats = {
       total: reservations?.length || 0,
       completed: reservations?.filter(r => r.status === 'completed').length || 0,
-      pending: reservations?.filter(r => r.status === 'approved' || r.status === 'pending').length || 0,
+      pending: reservations?.filter(r => r.status === 'pending').length || 0,
+      approved: reservations?.filter(r => r.status === 'approved').length || 0,
       cancelled: reservations?.filter(r => r.status === 'cancelled' || r.status === 'rejected').length || 0
     };
 

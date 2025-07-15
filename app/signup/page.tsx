@@ -8,31 +8,17 @@ import { useSession, signOut } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-// Firebase imports with error handling
-let sendVerificationCode: any;
-let firebaseVerifyCode: any; 
-let clearRecaptcha: any;
-
-try {
-  const firebaseModule = require('@/lib/firebase/client');
-  sendVerificationCode = firebaseModule.sendVerificationCode;
-  firebaseVerifyCode = firebaseModule.verifyCode;
-  clearRecaptcha = firebaseModule.clearRecaptcha;
-} catch (error) {
-  console.warn('Firebase module not available');
-}
 
 export default function SignupPage() {
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isVerificationSent, setIsVerificationSent] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   
   // 약관 동의 상태
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -53,6 +39,7 @@ export default function SignupPage() {
   const { data: session, status } = useSession();
   const supabase = createClient();
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const phoneTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 세션 확인
@@ -102,12 +89,12 @@ export default function SignupPage() {
     }
   }, []);
 
-  // 컴포넌트 언마운트 시 reCAPTCHA 정리 및 페이지 이탈 감지
+  // 페이지 이탈 감지
   useEffect(() => {
     // 페이지 이탈 감지를 위한 이벤트 핸들러
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // 회원가입이 완료되지 않은 상태에서 페이지를 떠나려고 할 때
-      if (session?.user && (!nickname || !isVerified)) {
+      if (session?.user && (!nickname || !phone)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -116,7 +103,7 @@ export default function SignupPage() {
     // 라우트 변경 감지
     const handleRouteChange = () => {
       // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
-      if (session?.user && (!nickname || !isVerified)) {
+      if (session?.user && (!nickname || !phone)) {
         signOut({ redirect: false }).then(() => {
           router.push('/login');
         });
@@ -126,119 +113,14 @@ export default function SignupPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     // Next.js 라우터 이벤트 리스너 추가
-    const originalPush = router.push;
-    router.push = (...args: Parameters<typeof router.push>) => {
-      handleRouteChange();
-      return originalPush.apply(router, args);
-    };
+    // router.push 오버라이드 제거 - 문제의 원인일 수 있음
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      router.push = originalPush;
-      
-      if (clearRecaptcha) {
-        clearRecaptcha();
-      }
     };
-  }, [session, nickname, isVerified, router]);
+  }, [session, nickname, phone, router]);
 
 
-  const sendVerification = async () => {
-    if (!sendVerificationCode) {
-      setError('전화번호 인증 기능을 사용할 수 없습니다');
-      return;
-    }
-
-    if (!phone || phone.length < 13) {
-      setError('올바른 전화번호를 입력해주세요');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // 먼저 서버에서 SMS 발송 한도 체크
-      const limitResponse = await fetch('/api/auth/phone/send-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone }),
-      });
-
-      const limitData = await limitResponse.json();
-
-      if (!limitResponse.ok) {
-        throw new Error(limitData.error || 'SMS 발송 한도를 확인할 수 없습니다');
-      }
-
-      // Firebase로 SMS 발송
-      const result = await sendVerificationCode(phone, 'recaptcha-container');
-
-      if (!result.success) {
-        throw new Error(result.error || '인증번호 발송에 실패했습니다');
-      }
-
-      setIsVerificationSent(true);
-      setSuccess('인증번호가 발송되었습니다');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (error: any) {
-      setError(error.message || '인증번호 발송에 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const verifyCode = async () => {
-    if (!firebaseVerifyCode) {
-      setError('전화번호 인증 기능을 사용할 수 없습니다');
-      return;
-    }
-
-    if (!verificationCode || verificationCode.length < 6) {
-      setError('6자리 인증번호를 입력해주세요');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Firebase로 인증 코드 확인
-      const result = await firebaseVerifyCode(verificationCode);
-
-      if (!result.success) {
-        throw new Error(result.error || '인증에 실패했습니다');
-      }
-
-      // 서버에 인증 확인
-      const response = await fetch('/api/auth/phone/verify-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          idToken: result.idToken,
-          phone 
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || '인증에 실패했습니다');
-      }
-
-      setIsVerified(true);
-      setSuccess('전화번호 인증이 완료되었습니다');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (error: any) {
-      setError(error.message || '인증번호가 일치하지 않습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatPhoneNumber = (value: string) => {
     // 숫자만 추출
@@ -257,6 +139,49 @@ export default function SignupPage() {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhone(formatted);
+    
+    // 기존 타이머 클리어
+    if (phoneTimerRef.current) {
+      clearTimeout(phoneTimerRef.current);
+    }
+    
+    // 전화번호가 완성되면 중복 체크
+    if (formatted.length === 13) {
+      setPhoneError(null);
+      phoneTimerRef.current = setTimeout(() => {
+        checkPhoneDuplicate(formatted);
+      }, 500);
+    } else if (formatted.length > 0) {
+      setPhoneError('올바른 전화번호 형식을 입력해주세요');
+    } else {
+      setPhoneError(null);
+    }
+  };
+
+  // 전화번호 중복 체크
+  const checkPhoneDuplicate = async (phoneNumber: string) => {
+    setIsCheckingPhone(true);
+    setPhoneError(null);
+
+    try {
+      const response = await fetch('/api/auth/phone/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone: phoneNumber }),
+      });
+
+      const data = await response.json();
+
+      if (!data.available) {
+        setPhoneError(data.message || '이미 사용 중인 전화번호입니다');
+      }
+    } catch (error) {
+      console.error('전화번호 중복 체크 오류:', error);
+    } finally {
+      setIsCheckingPhone(false);
+    }
   };
 
 
@@ -341,13 +266,18 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nickname || !isVerified) {
-      setError('모든 필드를 입력하고 전화번호 인증을 완료해주세요');
+    if (!nickname || !phone || phone.length < 13) {
+      setError('모든 필드를 올바르게 입력해주세요');
       return;
     }
 
     if (nicknameError) {
       setError('유효한 닉네임을 입력해주세요');
+      return;
+    }
+
+    if (phoneError) {
+      setError('유효한 전화번호를 입력해주세요');
       return;
     }
 
@@ -361,6 +291,8 @@ export default function SignupPage() {
     setError(null);
 
     try {
+      console.log('회원가입 시도:', { nickname, phone, agreeMarketing });
+      
       // API를 통해 회원가입 처리
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -375,13 +307,19 @@ export default function SignupPage() {
       });
 
       const data = await response.json();
+      console.log('회원가입 응답:', response.status, data);
 
       if (!response.ok) {
         throw new Error(data.error || '회원가입 실패');
       }
 
       // 성공하면 환영 페이지로 이동
+      console.log('회원가입 성공, welcome 페이지로 이동');
       router.push('/welcome');
+      // 라우터가 작동하지 않을 경우를 대비
+      setTimeout(() => {
+        window.location.href = '/welcome';
+      }, 100);
     } catch (error: any) {
       console.error('Signup error:', error);
       setError(error.message || '회원가입 중 오류가 발생했습니다');
@@ -474,67 +412,27 @@ export default function SignupPage() {
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 전화번호
               </label>
-              <div className="flex gap-2">
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={handlePhoneChange}
-                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                  placeholder="010-1234-5678"
-                  maxLength={13}
-                  disabled={isVerified}
-                  required
-                />
-                {!isVerified && (
-                  <button
-                    type="button"
-                    onClick={sendVerification}
-                    disabled={isLoading || !phone || phone.length < 13}
-                    className="px-4 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isVerificationSent ? '재발송' : '인증하기'}
-                  </button>
-                )}
-                {isVerified && (
-                  <div className="flex items-center px-4 text-green-600 dark:text-green-400">
-                    <Check className="w-5 h-5" />
-                  </div>
-                )}
-              </div>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
+                placeholder="010-1234-5678"
+                maxLength={13}
+                required
+              />
+              {phoneError && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {phoneError}
+                </p>
+              )}
+              {isCheckingPhone && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  전화번호 확인 중...
+                </p>
+              )}
             </div>
-
-            {/* 인증번호 입력 */}
-            {isVerificationSent && !isVerified && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.2 }}
-              >
-                <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  인증번호
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="code"
-                    type="text"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                    placeholder="6자리 인증번호"
-                    maxLength={6}
-                  />
-                  <button
-                    type="button"
-                    onClick={verifyCode}
-                    disabled={!verificationCode || verificationCode.length < 6}
-                    className="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    확인
-                  </button>
-                </div>
-              </motion.div>
-            )}
 
             {/* 약관 동의 */}
             <div className="space-y-4 border-t pt-6">
@@ -637,7 +535,7 @@ export default function SignupPage() {
             {/* 가입 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || !nickname || !isVerified || !!nicknameError || isCheckingNickname || !agreeTerms || !agreePrivacy || !agreeAge}
+              disabled={isLoading || !nickname || !phone || phone.length < 13 || !!nicknameError || !!phoneError || isCheckingNickname || isCheckingPhone || !agreeTerms || !agreePrivacy || !agreeAge}
               className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
@@ -651,8 +549,6 @@ export default function SignupPage() {
             </button>
           </form>
 
-          {/* Firebase reCAPTCHA 컨테이너 */}
-          <div id="recaptcha-container"></div>
         </motion.div>
       </div>
       
