@@ -12,7 +12,7 @@ export async function POST() {
 
     // 테이블이 존재하는지 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('machine_rules')
+  const { data: machinerulesData } = await supabaseAdmin.from('machine_rules')
       .select('id')
       .limit(1)
 

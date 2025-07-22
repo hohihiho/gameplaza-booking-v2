@@ -2,136 +2,180 @@
  * 예약 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-import { createClient } from '@/lib/supabase/client';
-import { Database } from '@/types/database';
-import { 
-  ReservationRequest, 
-  ReservationResponse,
-  ApiResponse 
-} from '@/types/api';
+import { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/lib/database.types'
+import { ReservationRepository } from '@/lib/repositories/reservation.repository'
+import { DeviceRepository } from '@/lib/repositories/device.repository'
+import { UserRepository } from '@/lib/repositories/user.repository'
 import { 
   AppError, 
-  ErrorCodes, 
-  handleSupabaseError,
-  createApiResponse 
-} from '@/lib/utils/error-handler';
-import { logger } from '@/lib/utils/logger';
-import { formatKSTDate } from '@/lib/utils/kst-date';
+  ErrorCodes 
+} from '@/lib/utils/error-handler'
+import { logger } from '@/lib/utils/logger'
 
-type ReservationInsert = Database['public']['Tables']['reservations']['Insert'];
+type ReservationInsert = Database['public']['Tables']['reservations']['Insert']
+
+export interface CreateReservationDto {
+  date: string
+  startTime: string
+  endTime: string
+  deviceId: string
+  playerCount?: number
+  hourlyRate?: number
+  totalAmount?: number
+  userNotes?: string
+  creditType?: string
+}
 
 export class ReservationService {
-  private supabase = createClient();
+  private reservationRepo: ReservationRepository
+  private deviceRepo: DeviceRepository
+  private userRepo: UserRepository
+
+  constructor(supabase: SupabaseClient<Database>) {
+    this.reservationRepo = new ReservationRepository(supabase)
+    this.deviceRepo = new DeviceRepository(supabase)
+    this.userRepo = new UserRepository(supabase)
+  }
 
   /**
    * 새 예약 생성
    */
-  async createReservation(
-    userId: string,
-    data: ReservationRequest
-  ): Promise<ApiResponse<ReservationResponse>> {
+  async createReservation(userId: string, data: CreateReservationDto) {
     try {
-      logger.info('Creating reservation', { userId, data });
+      logger.info('Creating reservation', { userId, data })
 
-      // 1. 입력값 검증
-      this.validateReservationInput(data);
+      // 1. 관리자 여부 확인
+      const isAdmin = await this.userRepo.isAdmin(userId)
 
-      // 2. 시간대 가용성 확인
-      const isAvailable = await this.checkTimeSlotAvailability(
-        data.deviceId,
+      // 2. 일반 사용자의 경우 활성 예약 개수 제한 확인
+      if (!isAdmin) {
+        const { count } = await this.reservationRepo.findActiveByUserId(userId)
+        const MAX_ACTIVE_RESERVATIONS = 3
+
+        if (count >= MAX_ACTIVE_RESERVATIONS) {
+          throw new AppError(
+            ErrorCodes.RESERVATION_CONFLICT,
+            `현재 ${count}개의 활성 예약이 있습니다. 최대 ${MAX_ACTIVE_RESERVATIONS}개까지만 예약 가능합니다.`,
+            400,
+            { activeCount: count, maxCount: MAX_ACTIVE_RESERVATIONS }
+          )
+        }
+      }
+
+      // 3. 기기 유효성 확인
+      const device = await this.deviceRepo.findByIdWithType(data.deviceId)
+      if (!device) {
+        throw new AppError(ErrorCodes.DEVICE_NOT_FOUND, '유효하지 않은 기기입니다', 400)
+      }
+
+      // 4. 시간대 중복 확인
+      const existingReservations = await this.reservationRepo.findByDateAndDevice(
         data.date,
-        data.timeSlot
-      );
+        data.deviceId,
+        ['pending', 'approved', 'checked_in']
+      )
 
-      if (!isAvailable) {
-        throw new AppError(
-          ErrorCodes.TIME_SLOT_UNAVAILABLE,
-          '선택한 시간대는 이미 예약되었습니다.',
-          409
-        );
+      const hasOverlap = existingReservations.some(reservation => {
+        return (data.startTime < reservation.end_time && data.endTime > reservation.start_time)
+      })
+
+      if (hasOverlap) {
+        throw new AppError(ErrorCodes.TIME_SLOT_UNAVAILABLE, '해당 시간대에 이미 예약이 있습니다', 400)
       }
 
-      // 3. 예약 생성
-      const reservation: ReservationInsert = {
+      // 5. 예약 번호 생성
+      const reservationNumber = await this.generateReservationNumber(data.date)
+
+      // 6. 예약 생성
+      const reservationData: ReservationInsert = {
         user_id: userId,
-        rental_time_slot_id: data.timeSlot || '',
-        device_type_id: data.deviceId,
-        player_count: data.participants || 1,
-        total_price: 0, // 기본값 설정
+        device_id: data.deviceId,
+        reservation_number: reservationNumber,
+        date: data.date,
+        start_time: data.startTime,
+        end_time: data.endTime,
+        player_count: data.playerCount || 1,
+        hourly_rate: data.hourlyRate || 0,
+        total_amount: data.totalAmount || 0,
         status: 'pending',
-      };
-
-      const { data: created, error } = await this.supabase
-        .from('reservations')
-        .insert(reservation)
-        .select()
-        .single();
-
-      if (error) {
-        throw handleSupabaseError(error);
+        payment_method: 'cash',
+        payment_status: 'pending',
+        user_notes: data.userNotes || null,
+        credit_type: data.creditType || 'freeplay',
+        created_at: new Date().toISOString()
       }
 
-      logger.info('Reservation created successfully', { reservationId: created.id });
+      const reservation = await this.reservationRepo.createWithDetails(reservationData)
 
-      return createApiResponse(this.mapToResponse(created));
+      logger.info('Reservation created successfully', { reservationId: reservation?.id })
+
+      return {
+        reservation,
+        message: '예약이 접수되었습니다. 관리자 승인을 기다려주세요.'
+      }
     } catch (error) {
-      logger.error('Failed to create reservation', error);
-      throw error;
+      logger.error('Failed to create reservation', error)
+      throw error
+    }
+  }
+
+  /**
+   * 예약 상태 업데이트
+   */
+  async updateReservationStatus(
+    reservationId: string,
+    status: string,
+    adminNotes?: string
+  ) {
+    try {
+      logger.info('Updating reservation status', { reservationId, status })
+
+      const reservation = await this.reservationRepo.updateStatus(reservationId, status, adminNotes)
+      
+      if (!reservation) {
+        throw new AppError(ErrorCodes.RESERVATION_NOT_FOUND, '예약을 찾을 수 없습니다', 404)
+      }
+
+      return reservation
+    } catch (error) {
+      logger.error('Failed to update reservation status', error)
+      throw error
     }
   }
 
   /**
    * 예약 취소
    */
-  async cancelReservation(
-    reservationId: string,
-    userId: string
-  ): Promise<ApiResponse<ReservationResponse>> {
+  async cancelReservation(reservationId: string, userId: string, isAdmin: boolean = false) {
     try {
-      logger.info('Cancelling reservation', { reservationId, userId });
+      logger.info('Cancelling reservation', { reservationId, userId, isAdmin })
 
-      // 1. 예약 확인 및 권한 체크
-      const { data: reservation, error: fetchError } = await this.supabase
-        .from('reservations')
-        .select()
-        .eq('id', reservationId)
-        .eq('user_id', userId)
-        .single();
+      // 예약 확인
+      const reservation = await this.reservationRepo.findById(reservationId)
+      
+      if (!reservation) {
+        throw new AppError(ErrorCodes.RESERVATION_NOT_FOUND, '예약을 찾을 수 없습니다', 404)
+      }
 
-      if (fetchError || !reservation) {
-        throw new AppError(
-          ErrorCodes.RESERVATION_NOT_FOUND,
-          '예약을 찾을 수 없습니다.',
-          404
-        );
+      // 권한 확인 (관리자가 아닌 경우 본인 예약만 취소 가능)
+      if (!isAdmin && reservation.user_id !== userId) {
+        throw new AppError(ErrorCodes.UNAUTHORIZED, '예약을 취소할 권한이 없습니다', 403)
       }
 
       if (reservation.status === 'cancelled') {
-        throw new AppError(
-          ErrorCodes.RESERVATION_CANCELLED,
-          '이미 취소된 예약입니다.',
-          400
-        );
+        throw new AppError(ErrorCodes.RESERVATION_CANCELLED, '이미 취소된 예약입니다', 400)
       }
 
-      // 2. 예약 취소
-      const { data: updated, error: updateError } = await this.supabase
-        .from('reservations')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', reservationId)
-        .select()
-        .single();
+      // 예약 취소
+      const updated = await this.reservationRepo.updateStatus(reservationId, 'cancelled')
 
-      if (updateError) {
-        throw handleSupabaseError(updateError);
-      }
+      logger.info('Reservation cancelled successfully', { reservationId })
 
-      logger.info('Reservation cancelled successfully', { reservationId });
-
-      return createApiResponse(this.mapToResponse(updated));
+      return updated
     } catch (error) {
-      logger.error('Failed to cancel reservation', error);
-      throw error;
+      logger.error('Failed to cancel reservation', error)
+      throw error
     }
   }
 
@@ -140,164 +184,166 @@ export class ReservationService {
    */
   async getUserReservations(
     userId: string,
-    status?: 'active' | 'cancelled' | 'completed'
-  ): Promise<ApiResponse<ReservationResponse[]>> {
+    options?: {
+      status?: string
+      page?: number
+      pageSize?: number
+    }
+  ) {
     try {
-      let query = this.supabase
-        .from('reservations')
-        .select(`
-          *,
-          devices (
-            id,
-            name,
-            type,
-            image
-          )
-        `)
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .order('time_slot', { ascending: false });
+      const offset = ((options?.page || 1) - 1) * (options?.pageSize || 10)
+      const limit = options?.pageSize || 10
 
-      if (status) {
-        query = query.eq('status', status);
+      const { data, count } = await this.reservationRepo.findByUserId(userId, {
+        status: options?.status,
+        offset,
+        limit
+      })
+
+      return {
+        reservations: data,
+        total: count,
+        page: options?.page || 1,
+        pageSize: limit,
+        totalPages: Math.ceil(count / limit)
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw handleSupabaseError(error);
-      }
-
-      const reservations = data.map(this.mapToResponse);
-      return createApiResponse(reservations);
     } catch (error) {
-      logger.error('Failed to fetch user reservations', error);
-      throw error;
+      logger.error('Failed to fetch user reservations', error)
+      throw error
     }
   }
 
   /**
-   * 특정 날짜의 예약 가능한 시간대 조회
+   * 특정 날짜와 기기의 예약 가능한 시간대 조회
    */
-  async getAvailableTimeSlots(
-    deviceId: string,
-    date: string
-  ): Promise<ApiResponse<string[]>> {
+  async getAvailableTimeSlots(deviceId: string, date: string) {
     try {
-      // 1. 해당 날짜의 모든 예약 조회
-      const { data: reservations, error } = await this.supabase
-        .from('reservations')
-        .select('time_slot')
-        .eq('device_id', deviceId)
-        .eq('date', date)
-        .eq('status', 'active');
+      // 해당 날짜의 예약된 시간대 조회
+      const reservations = await this.reservationRepo.findByDateAndDevice(
+        date,
+        deviceId,
+        ['pending', 'approved', 'checked_in']
+      )
 
-      if (error) {
-        throw handleSupabaseError(error);
-      }
+      // 전체 운영 시간대 생성 (10:00 ~ 29:00)
+      const allSlots = this.generateAllTimeSlots()
+      
+      // 예약된 시간대 제외
+      const availableSlots = allSlots.filter(slot => {
+        const slotStart = slot.start
+        const slotEnd = slot.end
 
-      // 2. 예약된 시간대 추출
-      const bookedSlots = new Set(reservations.map(r => r.time_slot));
+        return !reservations.some(reservation => {
+          return (slotStart < reservation.end_time && slotEnd > reservation.start_time)
+        })
+      })
 
-      // 3. 전체 시간대에서 예약된 시간대 제외
-      const allTimeSlots = this.generateTimeSlots();
-      const availableSlots = allTimeSlots.filter(slot => !bookedSlots.has(slot));
-
-      return createApiResponse(availableSlots);
+      return availableSlots
     } catch (error) {
-      logger.error('Failed to fetch available time slots', error);
-      throw error;
+      logger.error('Failed to fetch available time slots', error)
+      throw error
     }
   }
 
   /**
-   * 입력값 검증
+   * 예약 번호 생성 (YYMMDD-순서)
    */
-  private validateReservationInput(data: ReservationRequest): void {
-    if (!data.deviceId || !data.date || !data.timeSlot || !data.purpose) {
-      throw new AppError(
-        ErrorCodes.MISSING_REQUIRED_FIELD,
-        '필수 항목을 모두 입력해주세요.',
-        400
-      );
-    }
-
-    if (data.participants < 1 || data.participants > 8) {
-      throw new AppError(
-        ErrorCodes.INVALID_INPUT,
-        '참여 인원은 1명 이상 8명 이하여야 합니다.',
-        400
-      );
-    }
-
-    // 날짜 검증 (과거 날짜 예약 불가)
-    const today = formatKSTDate(new Date());
-    if (data.date < today) {
-      throw new AppError(
-        ErrorCodes.INVALID_INPUT,
-        '과거 날짜는 예약할 수 없습니다.',
-        400
-      );
-    }
+  private async generateReservationNumber(date: string): Promise<string> {
+    const reservationDate = new Date(date)
+    const dateStr = reservationDate.toLocaleDateString('ko-KR', { 
+      year: '2-digit', 
+      month: '2-digit', 
+      day: '2-digit',
+      timeZone: 'Asia/Seoul'
+    }).replace(/\. /g, '').replace('.', '')
+    
+    const count = await this.reservationRepo.countByDate(date)
+    const sequence = count + 1
+    
+    return `${dateStr}-${String(sequence).padStart(3, '0')}`
   }
 
   /**
-   * 시간대 가용성 확인
+   * 전체 운영 시간대 생성 (10:00 ~ 익일 05:00)
    */
-  private async checkTimeSlotAvailability(
-    deviceId: string,
-    date: string,
-    timeSlot: string
-  ): Promise<boolean> {
-    const { data, error } = await this.supabase
-      .from('reservations')
-      .select('id')
-      .eq('device_id', deviceId)
-      .eq('date', date)
-      .eq('time_slot', timeSlot)
-      .eq('status', 'active')
-      .limit(1);
-
-    if (error) {
-      logger.error('Error checking time slot availability', error);
-      return false;
+  private generateAllTimeSlots() {
+    const slots = []
+    
+    // 10:00 ~ 23:00
+    for (let hour = 10; hour <= 23; hour++) {
+      slots.push({
+        start: `${hour.toString().padStart(2, '0')}:00`,
+        end: `${hour.toString().padStart(2, '0')}:30`,
+        display: `${hour}:00 ~ ${hour}:30`
+      })
+      slots.push({
+        start: `${hour.toString().padStart(2, '0')}:30`,
+        end: `${(hour + 1).toString().padStart(2, '0')}:00`,
+        display: `${hour}:30 ~ ${hour + 1}:00`
+      })
     }
-
-    return data.length === 0;
-  }
-
-  /**
-   * 시간대 생성 (10:00 ~ 21:00)
-   */
-  private generateTimeSlots(): string[] {
-    const slots: string[] = [];
-    for (let hour = 10; hour <= 20; hour++) {
-      slots.push(`${hour}:00`);
-      if (hour < 20) {
-        slots.push(`${hour}:30`);
+    
+    // 24:00 ~ 29:00 (익일 0:00 ~ 5:00)
+    for (let hour = 24; hour <= 29; hour++) {
+      const displayHour = hour
+      const actualHour = hour - 24
+      
+      slots.push({
+        start: `${actualHour.toString().padStart(2, '0')}:00`,
+        end: `${actualHour.toString().padStart(2, '0')}:30`,
+        display: `${displayHour}:00 ~ ${displayHour}:30`
+      })
+      
+      if (hour < 29) {
+        slots.push({
+          start: `${actualHour.toString().padStart(2, '0')}:30`,
+          end: `${(actualHour + 1).toString().padStart(2, '0')}:00`,
+          display: `${displayHour}:30 ~ ${displayHour + 1}:00`
+        })
       }
     }
-    return slots;
+    
+    return slots
   }
 
   /**
-   * DB 모델을 API 응답 형식으로 변환
+   * 예약 통계 조회
    */
-  private mapToResponse(reservation: any): ReservationResponse {
-    return {
-      id: reservation.id,
-      userId: reservation.user_id,
-      deviceId: reservation.device_id,
-      date: reservation.date,
-      timeSlot: reservation.time_slot,
-      purpose: reservation.purpose,
-      participants: reservation.participants,
-      status: reservation.status,
-      createdAt: reservation.created_at,
-      updatedAt: reservation.updated_at,
-    };
+  async getReservationStats(userId: string) {
+    try {
+      const { data: allReservations } = await this.reservationRepo.findByUserId(userId)
+      
+      const stats = {
+        total: allReservations.length,
+        pending: 0,
+        approved: 0,
+        completed: 0,
+        cancelled: 0
+      }
+
+      allReservations.forEach(reservation => {
+        switch (reservation.status) {
+          case 'pending':
+            stats.pending++
+            break
+          case 'approved':
+          case 'checked_in':
+            stats.approved++
+            break
+          case 'completed':
+            stats.completed++
+            break
+          case 'cancelled':
+          case 'rejected':
+            stats.cancelled++
+            break
+        }
+      })
+
+      return stats
+    } catch (error) {
+      logger.error('Failed to fetch reservation stats', error)
+      throw error
+    }
   }
 }
-
-// 싱글톤 인스턴스 export
-export const reservationService = new ReservationService();

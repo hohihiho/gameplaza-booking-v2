@@ -1,4 +1,9 @@
 <svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" rx="48" fill="#3B82F6"/>
-  <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="77" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">🎮</text>
+  <rect width="192" height="192" rx="42" fill="#3B82F6"/>
+  <g transform="translate(48, 48)">
+    <path d="M48 16C30.327 16 16 30.327 16 48C16 65.673 30.327 80 48 80C65.673 80 80 65.673 80 48C80 30.327 65.673 16 48 16Z" fill="white" fill-opacity="0.2"/>
+    <path d="M48 24C34.745 24 24 34.745 24 48C24 61.255 34.745 72 48 72C61.255 72 72 61.255 72 48C72 34.745 61.255 24 48 24ZM48 32C56.837 32 64 39.163 64 48C64 56.837 56.837 64 48 64C39.163 64 32 56.837 32 48C32 39.163 39.163 32 48 32Z" fill="white"/>
+    <circle cx="48" cy="48" r="8" fill="white"/>
+    <path d="M40 48L44 52L56 40" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>

@@ -5,10 +5,10 @@
       "name": "통계 페이지 차트 시각화 구현",
       "description": "현재 데이터만 표시되는 통계 페이지들에 Recharts 라이브러리를 적용하여 시각적인 차트를 구현합니다. 예약 통계, 매출 분석, 고객 분석, 기종 분석 페이지에 각각 적절한 차트를 추가합니다.",
       "notes": "모바일 환경에서 차트가 잘 보이도록 특별히 신경써야 합니다. 터치 인터랙션도 고려하세요.",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [],
       "createdAt": "2025-07-22T06:25:56.101Z",
-      "updatedAt": "2025-07-22T06:25:56.101Z",
+      "updatedAt": "2025-07-22T07:02:22.595Z",
       "relatedFiles": [
         {
           "path": "/app/admin/analytics/reservations/page.tsx",
@@ -33,17 +33,19 @@
       ],
       "implementationGuide": "1. Recharts 라이브러리 설치\n2. 각 통계 페이지에 적합한 차트 컴포넌트 개발\n   - 예약통계: BarChart (시간대별), LineChart (일별 추이)\n   - 매출분석: LineChart (일별), PieChart (기종별/결제수단별)\n   - 고객분석: PieChart (세그먼트), BarChart (재방문율)\n   - 기종분석: BarChart (이용률), TreeMap (매출기여도)\n3. 반응형 차트 디자인 적용\n4. 다크모드 지원",
       "verificationCriteria": "각 통계 페이지에서 데이터가 차트로 시각화되어 표시되고, 모바일과 데스크톱 모두에서 잘 보이며, 다크모드에서도 정상 작동하는지 확인",
-      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
+      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다.",
+      "summary": "Recharts 라이브러리를 성공적으로 적용하여 통계 페이지들의 차트 시각화를 구현했습니다. 예약 통계, 매출 분석, 고객 분석, 기종 분석 페이지에 각각 적합한 차트 컴포넌트를 적용했으며, 모바일 반응형과 다크모드를 지원합니다.",
+      "completedAt": "2025-07-22T07:02:22.595Z"
     },
     {
       "id": "e02c86b3-5122-4efc-954d-1940c83a5443",
       "name": "PWA 설정 및 오프라인 지원",
       "description": "Progressive Web App 설정을 완료하여 홈화면 추가, 오프라인 기본 지원, 푸시 알림 준비 등을 구현합니다.",
       "notes": "Next.js 14의 PWA 플러그인을 활용하면 더 쉽게 구현할 수 있습니다.",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [],
       "createdAt": "2025-07-22T06:25:56.101Z",
-      "updatedAt": "2025-07-22T06:25:56.101Z",
+      "updatedAt": "2025-07-22T07:10:06.083Z",
       "relatedFiles": [
         {
           "path": "/public/manifest.json",
@@ -63,47 +65,19 @@
       ],
       "implementationGuide": "1. manifest.json 파일 생성 및 설정\n   - 앱 이름, 아이콘, 테마 색상 설정\n   - display: standalone 설정\n2. Service Worker 구현\n   - 기본 캐싱 전략 설정\n   - 오프라인 시 기본 페이지 표시\n3. 아이콘 세트 준비 (다양한 크기)\n4. Apple 기기용 메타 태그 추가\n5. 설치 프롬프트 구현",
       "verificationCriteria": "모바일에서 홈화면에 추가 가능하고, 설치 후 전체화면으로 실행되며, 오프라인 상태에서도 기본 페이지가 표시되는지 확인",
-      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
-    },
-    {
-      "id": "c9d669ac-d5b6-45b4-b331-05488a3df8f0",
-      "name": "SMS 인증 서비스 실제 연동",
-      "description": "현재 콘솔에만 출력되는 SMS 인증 코드를 실제 SMS 서비스(알리고, 솔라피 등)와 연동합니다.",
-      "notes": "비용을 고려하여 1일 발송 제한을 설정하는 것이 좋습니다.",
-      "status": "pending",
-      "dependencies": [],
-      "createdAt": "2025-07-22T06:25:56.101Z",
-      "updatedAt": "2025-07-22T06:25:56.101Z",
-      "relatedFiles": [
-        {
-          "path": "/lib/services/sms.service.ts",
-          "type": "CREATE",
-          "description": "SMS 서비스 로직"
-        },
-        {
-          "path": "/app/api/auth/send-code/route.ts",
-          "type": "TO_MODIFY",
-          "description": "인증 코드 발송 API"
-        },
-        {
-          "path": "/.env.local",
-          "type": "TO_MODIFY",
-          "description": "SMS API 키 추가"
-        }
-      ],
-      "implementationGuide": "1. SMS 서비스 제공업체 선택 (알리고 추천)\n2. API 키 발급 및 환경변수 설정\n3. /lib/services/sms.service.ts 구현\n   - sendVerificationCode 함수\n   - 발송 상태 확인 함수\n4. /app/api/auth/send-code/route.ts 수정\n5. 발송 실패 시 fallback 처리\n6. 발송 내역 로깅",
-      "verificationCriteria": "회원가입 시 실제 휴대폰으로 인증 문자가 발송되고, 인증 코드 입력 시 정상적으로 인증이 완료되는지 확인",
-      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
+      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다.",
+      "summary": "PWA 설정을 성공적으로 완료했습니다. manifest.json 파일 구성, Service Worker 등록, 오프라인 페이지 생성, 메타 태그 추가, 설치 프롬프트 관리 훅, PWA 설치 배너 등 모든 핵심 기능을 구현했습니다.",
+      "completedAt": "2025-07-22T07:10:06.083Z"
     },
     {
       "id": "65cdd1e7-b3fa-4567-82d8-e2ab48a13fae",
       "name": "계좌번호 관리 기능 완성",
       "description": "관리자가 결제용 계좌번호를 관리할 수 있는 기능을 완성합니다. 설정 페이지에서 계좌 정보를 추가/수정/삭제할 수 있어야 합니다.",
       "notes": "계좌번호는 암호화하여 저장하고, 표시할 때는 일부만 마스킹하여 보여주세요.",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [],
       "createdAt": "2025-07-22T06:25:56.101Z",
-      "updatedAt": "2025-07-22T06:25:56.101Z",
+      "updatedAt": "2025-07-22T08:40:05.516Z",
       "relatedFiles": [
         {
           "path": "/app/admin/settings/payment/page.tsx",
@@ -123,7 +97,9 @@
       ],
       "implementationGuide": "1. /app/admin/settings/payment 페이지 생성\n2. 계좌 정보 관리 UI 구현\n   - 은행명, 계좌번호, 예금주 입력\n   - 복수 계좌 등록 가능\n   - 기본 계좌 설정\n3. payment_accounts 테이블 생성\n4. API 엔드포인트 구현\n5. 예약 상세에서 계좌 정보 표시",
       "verificationCriteria": "계좌 정보를 추가/수정/삭제할 수 있고, 예약 상세 페이지에서 계좌 정보가 표시되는지 확인",
-      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
+      "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다.",
+      "summary": "계좌번호 관리 기능 구현 완료. 프론트엔드 UI(/app/admin/settings/payment/page.tsx)와 API 엔드포인트 모두 구현했으며, Supabase에 payment_accounts 테이블과 RLS 정책도 설정함",
+      "completedAt": "2025-07-22T08:40:05.515Z"
     },
     {
       "id": "72a1c22c-8c1a-48fb-9c77-a2c148afc791",
@@ -192,19 +168,16 @@
     {
       "id": "f572bc1f-743f-46cc-81d6-9ee33ea40ba6",
       "name": "예약 리마인더 알림 구현",
-      "description": "예약 1시간 전에 고객에게 리마인더 알림을 보내는 기능을 구현합니다.",
+      "description": "예약 1시간 전에 고객에게 리마인더 알림을 보내는 기능을 구현합니다. PWA 푸시 알림만 사용합니다.",
       "notes": "알림 수신 동의를 받은 고객에게만 발송하도록 처리하세요.",
       "status": "pending",
       "dependencies": [
-        {
-          "taskId": "c9d669ac-d5b6-45b4-b331-05488a3df8f0"
-        },
         {
           "taskId": "e02c86b3-5122-4efc-954d-1940c83a5443"
         }
       ],
       "createdAt": "2025-07-22T06:25:56.101Z",
-      "updatedAt": "2025-07-22T06:25:56.101Z",
+      "updatedAt": "2025-07-22T06:54:43.765Z",
       "relatedFiles": [
         {
           "path": "/supabase/functions/send-reminders/index.ts",
@@ -217,7 +190,7 @@
           "description": "알림 서비스"
         }
       ],
-      "implementationGuide": "1. Supabase Edge Function 생성\n   - 1시간 후 예약 조회\n   - 알림 발송 처리\n2. 알림 발송 서비스 구현\n   - SMS 리마인더 (선택)\n   - 푸시 알림 (PWA)\n3. 발송 내역 기록\n4. 중복 발송 방지 로직\n5. 크론잡 설정 (5분마다)",
+      "implementationGuide": "1. Supabase Edge Function 생성\n   - 1시간 후 예약 조회\n   - 알림 발송 처리\n2. 알림 발송 서비스 구현\n   - PWA 푸시 알림만 사용\n   - FCM 설정\n3. 발송 내역 기록\n4. 중복 발송 방지 로직\n5. 크론잡 설정 (5분마다)",
       "verificationCriteria": "예약 1시간 전에 자동으로 리마인더가 발송되고, 중복 발송이 되지 않으며, 발송 내역이 기록되는지 확인",
       "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
     },
@@ -304,6 +277,1528 @@
       "implementationGuide": "1. Playwright 설치 및 설정\n2. 핵심 시나리오 테스트 작성\n   - 회원가입/로그인 플로우\n   - 예약 생성 플로우\n   - 관리자 체크인 플로우\n   - 예약 취소 플로우\n3. CI/CD 파이프라인 연동\n4. 테스트 데이터 초기화 스크립트",
       "verificationCriteria": "주요 사용자 플로우가 자동화된 테스트로 검증되고, CI에서 실행되는지 확인",
       "analysisResult": "게임플라자 예약 시스템 MVP 오픈을 위한 필수 작업 완료. 현재 85% 완성도로 핵심 기능은 대부분 구현되었으나, 통계 시각화, PWA 설정, 일부 관리 기능이 미완성 상태입니다."
+    },
+    {
+      "id": "44a73e23-7b26-4428-b5a7-a2a3598f05a6",
+      "name": "테스트 환경 설정 및 Jest 구성",
+      "description": "Next.js 15와 호환되는 Jest 환경을 구성하고 테스트 헬퍼 유틸리티를 생성합니다. React Testing Library, MSW(Mock Service Worker) 등 필요한 테스트 도구들을 설치하고 설정합니다.",
+      "notes": "Next.js 15의 App Router와 Server Components를 고려한 설정 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": "jest.config.js",
+          "type": "CREATE",
+          "description": "Jest 설정 파일"
+        },
+        {
+          "path": "jest.setup.js",
+          "type": "CREATE",
+          "description": "Jest 초기화 파일"
+        },
+        {
+          "path": "package.json",
+          "type": "TO_MODIFY",
+          "description": "테스트 스크립트 추가"
+        }
+      ],
+      "implementationGuide": "1. Jest 설정 파일 생성 (jest.config.js, jest.setup.js)\n2. 테스트 관련 패키지 설치 (jest, @testing-library/react, @testing-library/jest-dom, msw)\n3. TypeScript 타입 설정\n4. 테스트 헬퍼 함수 작성 (render wrapper, mock providers 등)",
+      "verificationCriteria": "npm test 명령어 실행 시 테스트가 정상적으로 동작하고, 샘플 테스트가 통과해야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "eed5e7a0-f171-4359-9f3c-73eb7b47db9f",
+      "name": "예약 서비스 단위 테스트 작성",
+      "description": "핵심 비즈니스 로직인 예약 서비스(reservation.service.ts)에 대한 단위 테스트를 작성합니다. 예약 생성, 충돌 검사, 시간대 계산 등의 핵심 기능을 테스트합니다.",
+      "notes": "KST 시간대 처리와 24시간 표시 체계가 정확히 테스트되어야 함",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/__tests__/reservation.service.test.ts",
+          "type": "CREATE",
+          "description": "예약 서비스 테스트"
+        },
+        {
+          "path": "lib/services/reservation.service.ts",
+          "type": "REFERENCE",
+          "description": "테스트 대상 서비스"
+        }
+      ],
+      "implementationGuide": "1. reservation.service.test.ts 파일 생성\n2. 예약 생성 로직 테스트 (정상 케이스, 충돌 케이스)\n3. 시간대 계산 테스트 (24시간 표시 체계 포함)\n4. 예약 상태 변경 테스트\n5. Mock Supabase 클라이언트 사용",
+      "verificationCriteria": "모든 예약 관련 비즈니스 로직이 90% 이상의 커버리지를 달성해야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "77b61828-3ded-47cf-895a-d9b58b9d8c36",
+      "name": "API 라우트 통합 테스트 작성",
+      "description": "주요 API 엔드포인트에 대한 통합 테스트를 작성합니다. MSW를 사용하여 외부 의존성을 모킹하고, 실제 API 호출 플로우를 테스트합니다.",
+      "notes": "Next.js 15의 Route Handlers 테스트 방식 적용",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": "app/api/__tests__/reservations.test.ts",
+          "type": "CREATE",
+          "description": "예약 API 테스트"
+        },
+        {
+          "path": "app/api/__tests__/auth.test.ts",
+          "type": "CREATE",
+          "description": "인증 API 테스트"
+        }
+      ],
+      "implementationGuide": "1. API 라우트 테스트 헬퍼 생성\n2. /api/reservations 엔드포인트 테스트\n3. /api/auth 엔드포인트 테스트\n4. 인증 미들웨어 테스트\n5. 에러 핸들링 테스트",
+      "verificationCriteria": "모든 API 엔드포인트가 정상/에러 케이스를 포함하여 테스트되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "d10a1f8f-0297-4e75-a4a1-ce465ca252a3",
+      "name": "React 컴포넌트 테스트 작성",
+      "description": "주요 UI 컴포넌트들에 대한 테스트를 작성합니다. 사용자 인터랙션, 상태 변화, 접근성 등을 테스트합니다.",
+      "notes": "모바일 퍼스트 원칙에 따라 터치 인터페이스 테스트 중요",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": "app/components/__tests__/ReservationForm.test.tsx",
+          "type": "CREATE",
+          "description": "예약 폼 테스트"
+        },
+        {
+          "path": "app/components/__tests__/TimeSlotPicker.test.tsx",
+          "type": "CREATE",
+          "description": "시간대 선택 테스트"
+        }
+      ],
+      "implementationGuide": "1. 예약 폼 컴포넌트 테스트\n2. 시간대 선택 컴포넌트 테스트\n3. 모바일 터치 최적화 테스트\n4. 에러 바운더리 테스트\n5. 접근성(a11y) 테스트 포함",
+      "verificationCriteria": "주요 사용자 시나리오가 모두 테스트되고, 접근성 테스트를 통과해야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "55f2114a-0503-42c4-8f5c-0aa4d681745f",
+      "name": "E2E 테스트 기본 구성 (Playwright)",
+      "description": "Playwright를 사용하여 실제 사용자 시나리오를 테스트하는 E2E 테스트 환경을 구성합니다.",
+      "notes": "실제 프로덕션 환경과 유사한 조건에서 테스트",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": "playwright.config.ts",
+          "type": "CREATE",
+          "description": "Playwright 설정"
+        },
+        {
+          "path": "e2e/reservation.spec.ts",
+          "type": "CREATE",
+          "description": "예약 E2E 테스트"
+        }
+      ],
+      "implementationGuide": "1. Playwright 설치 및 설정\n2. 예약 전체 플로우 E2E 테스트\n3. 로그인/회원가입 플로우 테스트\n4. 관리자 기능 테스트\n5. 모바일 뷰포트 테스트",
+      "verificationCriteria": "핵심 사용자 플로우가 E2E 테스트로 커버되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "ab00361c-3b18-4ad4-a013-1fdbe7ca840f",
+      "name": "CI/CD 파이프라인에 테스트 통합",
+      "description": "GitHub Actions를 사용하여 자동화된 테스트 파이프라인을 구성합니다. PR 생성 시 자동으로 테스트가 실행되도록 설정합니다.",
+      "notes": "테스트 실패 시 머지 차단 설정",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        },
+        {
+          "taskId": "55f2114a-0503-42c4-8f5c-0aa4d681745f"
+        }
+      ],
+      "createdAt": "2025-07-22T16:59:08.659Z",
+      "updatedAt": "2025-07-22T16:59:08.659Z",
+      "relatedFiles": [
+        {
+          "path": ".github/workflows/test.yml",
+          "type": "CREATE",
+          "description": "테스트 자동화 워크플로우"
+        }
+      ],
+      "implementationGuide": "1. GitHub Actions 워크플로우 생성\n2. 단위 테스트 실행 스텝\n3. 통합 테스트 실행 스텝\n4. 테스트 커버리지 리포트\n5. PR 코멘트로 결과 표시",
+      "verificationCriteria": "PR 생성 시 자동으로 테스트가 실행되고 결과가 표시되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 안정성과 품질을 높이기 위한 테스트 주도 개발(TDD) 도입"
+    },
+    {
+      "id": "7003dde7-17a2-4e48-9adf-536b38c5f3f3",
+      "name": "비즈니스 로직과 UI 분리 - 예약 도메인",
+      "description": "예약 관련 비즈니스 로직을 UI 컴포넌트에서 분리하여 순수 함수와 클래스로 추출합니다. 의존성 주입을 통해 테스트 가능한 구조로 만듭니다.",
+      "notes": "도메인 주도 설계(DDD) 원칙 적용, 외부 의존성 최소화",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "domain/reservation/entities",
+          "type": "CREATE",
+          "description": "예약 엔티티 정의"
+        },
+        {
+          "path": "domain/reservation/repositories",
+          "type": "CREATE",
+          "description": "리포지토리 인터페이스"
+        },
+        {
+          "path": "domain/reservation/services",
+          "type": "CREATE",
+          "description": "도메인 서비스"
+        }
+      ],
+      "implementationGuide": "1. domain/reservation 폴더 생성\n2. ReservationEntity, ReservationRepository 인터페이스 정의\n3. 예약 생성, 검증, 충돌 체크 로직을 순수 함수로 추출\n4. 시간 계산 로직을 별도 유틸리티로 분리\n5. 의존성 주입 컨테이너 설정",
+      "verificationCriteria": "모든 비즈니스 로직이 외부 의존성 없이 단위 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "3de39f15-aee8-473e-b180-db5bb1d32871",
+      "name": "API 라우트 핸들러 리팩토링",
+      "description": "Next.js API 라우트를 컨트롤러-서비스-리포지토리 패턴으로 재구성합니다. 각 계층을 독립적으로 테스트할 수 있도록 분리합니다.",
+      "notes": "각 API 핸들러는 단순히 컨트롤러를 호출하는 역할만 수행",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        }
+      ],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "app/api",
+          "type": "TO_MODIFY",
+          "description": "기존 API 라우트"
+        },
+        {
+          "path": "lib/controllers",
+          "type": "CREATE",
+          "description": "컨트롤러 계층"
+        },
+        {
+          "path": "lib/dto",
+          "type": "CREATE",
+          "description": "데이터 전송 객체"
+        }
+      ],
+      "implementationGuide": "1. controllers 폴더에 비즈니스 로직 분리\n2. 요청 검증을 별도 미들웨어로 추출\n3. 응답 포맷팅을 표준화\n4. 에러 핸들링 중앙화\n5. 의존성 주입으로 서비스 연결",
+      "verificationCriteria": "API 핸들러가 30줄 이하로 축소되고 모든 로직이 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "3a27acf9-aee7-4aba-a8bd-fc1ca68811ee",
+      "name": "데이터 접근 계층 추상화",
+      "description": "Supabase 의존성을 리포지토리 패턴으로 추상화합니다. 인터페이스를 통해 데이터베이스 구현을 교체 가능하게 만듭니다.",
+      "notes": "테스트 시 실제 DB 대신 Mock 사용 가능",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "lib/repositories/interfaces",
+          "type": "CREATE",
+          "description": "리포지토리 인터페이스"
+        },
+        {
+          "path": "lib/repositories/supabase",
+          "type": "CREATE",
+          "description": "Supabase 구현체"
+        },
+        {
+          "path": "lib/repositories/mock",
+          "type": "CREATE",
+          "description": "Mock 구현체"
+        }
+      ],
+      "implementationGuide": "1. 리포지토리 인터페이스 정의\n2. Supabase 구현체 작성\n3. 메모리 기반 Mock 구현체 작성\n4. 트랜잭션 지원 추가\n5. 쿼리 빌더 패턴 적용",
+      "verificationCriteria": "모든 DB 접근이 리포지토리를 통해 이루어지고 Mock으로 대체 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "f656a020-8642-4547-ae0b-02593d908817",
+      "name": "상태 관리 리팩토링 - Zustand 스토어",
+      "description": "Zustand 스토어를 테스트 가능한 구조로 재구성합니다. 액션과 셀렉터를 분리하고 비즈니스 로직을 제거합니다.",
+      "notes": "스토어는 상태 컨테이너 역할만 수행, 로직은 서비스로 이동",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "stores",
+          "type": "TO_MODIFY",
+          "description": "기존 Zustand 스토어"
+        },
+        {
+          "path": "stores/slices",
+          "type": "CREATE",
+          "description": "스토어 슬라이스"
+        },
+        {
+          "path": "stores/actions",
+          "type": "CREATE",
+          "description": "액션 함수"
+        }
+      ],
+      "implementationGuide": "1. 스토어를 슬라이스로 분할\n2. 액션을 순수 함수로 추출\n3. 셀렉터 패턴 적용\n4. 미들웨어로 부수 효과 처리\n5. 테스트용 스토어 팩토리 생성",
+      "verificationCriteria": "각 스토어 슬라이스가 독립적으로 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "0ff21dc2-6ed6-4ab1-8411-c31a10e4091c",
+      "name": "React 컴포넌트 계층 분리",
+      "description": "컴포넌트를 Presentational과 Container 컴포넌트로 분리합니다. 커스텀 훅으로 로직을 추출하여 테스트를 용이하게 만듭니다.",
+      "notes": "View 컴포넌트는 순수하게 props만 받아 렌더링",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "app/components/views",
+          "type": "CREATE",
+          "description": "Presentational 컴포넌트"
+        },
+        {
+          "path": "app/components/containers",
+          "type": "CREATE",
+          "description": "Container 컴포넌트"
+        },
+        {
+          "path": "hooks",
+          "type": "CREATE",
+          "description": "커스텀 훅"
+        }
+      ],
+      "implementationGuide": "1. 각 페이지를 Container와 View로 분리\n2. 비즈니스 로직을 커스텀 훅으로 추출\n3. Props 인터페이스 명확히 정의\n4. 컴포넌트 합성 패턴 적용\n5. Storybook 스토리 작성",
+      "verificationCriteria": "View 컴포넌트가 props만으로 완전히 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "ae220f66-f7dd-45cd-a0c6-cc93dca39175",
+      "name": "의존성 주입 시스템 구축",
+      "description": "IoC 컨테이너를 구현하여 의존성을 중앙에서 관리합니다. 테스트 시 쉽게 Mock으로 교체할 수 있도록 설정합니다.",
+      "notes": "Next.js App Router와 호환되는 방식으로 구현",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:01:31.801Z",
+      "updatedAt": "2025-07-22T17:01:31.801Z",
+      "relatedFiles": [
+        {
+          "path": "lib/di/container.ts",
+          "type": "CREATE",
+          "description": "DI 컨테이너"
+        },
+        {
+          "path": "lib/di/providers.tsx",
+          "type": "CREATE",
+          "description": "React Provider"
+        },
+        {
+          "path": "lib/di/decorators.ts",
+          "type": "CREATE",
+          "description": "주입 데코레이터"
+        }
+      ],
+      "implementationGuide": "1. DI 컨테이너 라이브러리 선택 (tsyringe 등)\n2. 서비스 인터페이스 정의\n3. 프로덕션/테스트 설정 분리\n4. React Context로 DI 통합\n5. 자동 주입 데코레이터 설정",
+      "verificationCriteria": "모든 서비스가 인터페이스를 통해 주입되고 Mock으로 교체 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "2390f518-d29c-4367-bfba-0fc36ab04e66",
+      "name": "유틸리티 함수 순수화 및 테스트",
+      "description": "날짜 처리, 시간 계산, 포맷팅 등의 유틸리티 함수들을 순수 함수로 리팩토링하고 완전한 테스트 커버리지를 확보합니다.",
+      "notes": "특히 KST 시간 처리와 24시간 표시 로직 중점 테스트",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/utils",
+          "type": "TO_MODIFY",
+          "description": "기존 유틸리티"
+        },
+        {
+          "path": "lib/utils/__tests__",
+          "type": "CREATE",
+          "description": "유틸리티 테스트"
+        }
+      ],
+      "implementationGuide": "1. utils 폴더 재구성 (date, time, format, validation)\n2. 모든 함수를 순수 함수로 변환\n3. 부수 효과 제거 (Date.now() 등)\n4. 입력 검증 강화\n5. 각 함수별 단위 테스트 작성",
+      "verificationCriteria": "모든 유틸리티 함수가 100% 테스트 커버리지 달성",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "b7f650e8-7bbc-43df-8474-5c4e0b9b3f86",
+      "name": "인증/인가 시스템 리팩토링",
+      "description": "인증 로직을 테스트 가능한 구조로 재설계합니다. 미들웨어, 가드, 프로바이더를 분리하여 각각 독립적으로 테스트합니다.",
+      "notes": "서버/클라이언트 양쪽에서 동작하는 통합 인증 시스템",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "ae220f66-f7dd-45cd-a0c6-cc93dca39175"
+        }
+      ],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/auth",
+          "type": "TO_MODIFY",
+          "description": "기존 인증 시스템"
+        },
+        {
+          "path": "lib/auth/services",
+          "type": "CREATE",
+          "description": "인증 서비스"
+        },
+        {
+          "path": "lib/auth/guards",
+          "type": "CREATE",
+          "description": "인증 가드"
+        }
+      ],
+      "implementationGuide": "1. AuthService 인터페이스 정의\n2. Supabase Auth 래퍼 구현\n3. Mock Auth 프로바이더 생성\n4. 인증 가드를 HOC로 분리\n5. 권한 체크 로직 추출",
+      "verificationCriteria": "인증 플로우 전체가 Mock으로 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "ee6954d2-042a-4970-a19b-5480644184aa",
+      "name": "폼 검증 로직 분리",
+      "description": "폼 검증 로직을 별도 레이어로 추출하여 재사용 가능하고 테스트 가능한 구조로 만듭니다.",
+      "notes": "클라이언트/서버 공통 검증 로직 사용",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/validation",
+          "type": "CREATE",
+          "description": "검증 스키마"
+        },
+        {
+          "path": "lib/validation/schemas",
+          "type": "CREATE",
+          "description": "도메인별 스키마"
+        },
+        {
+          "path": "hooks/useValidation",
+          "type": "CREATE",
+          "description": "검증 훅"
+        }
+      ],
+      "implementationGuide": "1. 검증 스키마 정의 (Zod 사용)\n2. 검증 규칙을 도메인별로 분리\n3. 커스텀 검증 함수 추출\n4. 에러 메시지 중앙화\n5. 폼 헬퍼 훅 생성",
+      "verificationCriteria": "모든 폼 입력이 스키마 기반으로 검증되어야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "fd795758-8475-4fa3-8611-111029243186",
+      "name": "에러 처리 시스템 표준화",
+      "description": "전체 애플리케이션의 에러 처리를 표준화하고 테스트 가능한 구조로 개선합니다.",
+      "notes": "프로덕션/개발 환경별 다른 처리",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/errors",
+          "type": "CREATE",
+          "description": "에러 클래스"
+        },
+        {
+          "path": "lib/errors/handlers",
+          "type": "CREATE",
+          "description": "에러 핸들러"
+        },
+        {
+          "path": "components/ErrorBoundary",
+          "type": "TO_MODIFY",
+          "description": "에러 바운더리"
+        }
+      ],
+      "implementationGuide": "1. 커스텀 에러 클래스 계층 구조 정의\n2. 에러 핸들러 미들웨어 구현\n3. 에러 바운더리 개선\n4. 로깅 시스템 통합\n5. 에러 리포팅 추상화",
+      "verificationCriteria": "모든 에러가 적절히 분류되고 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "4f675546-5664-44f0-9863-0b87e46ae645",
+      "name": "이벤트 시스템 구축",
+      "description": "도메인 이벤트 시스템을 구축하여 모듈 간 결합도를 낮추고 테스트를 용이하게 만듭니다.",
+      "notes": "예약 생성, 변경 등 주요 액션을 이벤트로 처리",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/events",
+          "type": "CREATE",
+          "description": "이벤트 시스템"
+        },
+        {
+          "path": "lib/events/domain",
+          "type": "CREATE",
+          "description": "도메인 이벤트"
+        },
+        {
+          "path": "lib/events/handlers",
+          "type": "CREATE",
+          "description": "이벤트 핸들러"
+        }
+      ],
+      "implementationGuide": "1. EventBus 인터페이스 정의\n2. 도메인 이벤트 타입 정의\n3. 이벤트 핸들러 등록 시스템\n4. 비동기 이벤트 처리\n5. 이벤트 로깅 및 재시도",
+      "verificationCriteria": "이벤트 발행과 처리가 독립적으로 테스트 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "9939108c-8a74-4dfe-9aab-0144122c5339",
+      "name": "캐싱 전략 구현 및 추상화",
+      "description": "데이터 캐싱을 추상화하여 테스트 가능하고 교체 가능한 구조로 만듭니다.",
+      "notes": "서버/클라이언트 캐싱 전략 분리",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:16.268Z",
+      "updatedAt": "2025-07-22T17:02:16.268Z",
+      "relatedFiles": [
+        {
+          "path": "lib/cache",
+          "type": "CREATE",
+          "description": "캐시 시스템"
+        },
+        {
+          "path": "lib/cache/strategies",
+          "type": "CREATE",
+          "description": "캐싱 전략"
+        },
+        {
+          "path": "hooks/useCache",
+          "type": "CREATE",
+          "description": "캐시 훅"
+        }
+      ],
+      "implementationGuide": "1. Cache 인터페이스 정의\n2. 메모리 캐시 구현\n3. Redis 캐시 구현 (옵션)\n4. 캐시 무효화 전략\n5. React Query 통합",
+      "verificationCriteria": "캐시 동작이 Mock으로 완전히 제어 가능해야 함",
+      "analysisResult": "게임플라자 예약 시스템을 TDD 원칙에 맞게 전면 리팩토링 - 추가 태스크"
+    },
+    {
+      "id": "00d010c7-b904-4bb6-bdd5-c64d0b968250",
+      "name": "레거시 코드 점진적 마이그레이션 전략",
+      "description": "기존 코드를 새로운 TDD 구조로 점진적으로 마이그레이션하는 전략을 수립하고 도구를 구축합니다.",
+      "notes": "서비스 중단 없이 점진적 전환",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        },
+        {
+          "taskId": "3a27acf9-aee7-4aba-a8bd-fc1ca68811ee"
+        }
+      ],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": "lib/legacy",
+          "type": "CREATE",
+          "description": "레거시 어댑터"
+        },
+        {
+          "path": "scripts/migration",
+          "type": "CREATE",
+          "description": "마이그레이션 스크립트"
+        }
+      ],
+      "implementationGuide": "1. Strangler Fig 패턴 적용\n2. 레거시 래퍼 생성\n3. 기능별 마이그레이션 순서 정의\n4. 임시 어댑터 패턴 구현\n5. 마이그레이션 진행 상황 추적",
+      "verificationCriteria": "각 마이그레이션 단계마다 기능이 정상 동작해야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "b9a43891-f6e7-4c50-89b1-159bab901dbc",
+      "name": "통합 테스트 환경 구축",
+      "description": "리팩토링된 코드와 레거시 코드가 함께 동작하는 통합 테스트 환경을 구축합니다.",
+      "notes": "CI/CD 파이프라인과 연동",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": "docker-compose.test.yml",
+          "type": "CREATE",
+          "description": "테스트 환경 설정"
+        },
+        {
+          "path": "tests/integration",
+          "type": "CREATE",
+          "description": "통합 테스트"
+        }
+      ],
+      "implementationGuide": "1. Docker Compose로 테스트 환경 구성\n2. 테스트 DB 시딩 자동화\n3. 통합 테스트 헬퍼 작성\n4. 병렬 테스트 실행 설정\n5. 테스트 격리 보장",
+      "verificationCriteria": "모든 통합 테스트가 격리된 환경에서 실행되어야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "734ec3af-a7c6-42ec-a258-c23f1fe831d5",
+      "name": "성능 모니터링 및 최적화",
+      "description": "리팩토링 후 성능을 모니터링하고 최적화합니다. TDD 방식으로 성능 테스트를 작성합니다.",
+      "notes": "리팩토링 전후 성능 비교",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": "tests/performance",
+          "type": "CREATE",
+          "description": "성능 테스트"
+        },
+        {
+          "path": "lib/monitoring/performance",
+          "type": "CREATE",
+          "description": "성능 모니터링"
+        }
+      ],
+      "implementationGuide": "1. 성능 벤치마크 테스트 작성\n2. 프로파일링 도구 통합\n3. 메모리 누수 탐지\n4. 번들 크기 분석\n5. 런타임 성능 측정",
+      "verificationCriteria": "주요 성능 지표가 기준치를 충족해야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "9e60d304-99c1-482c-b52e-59cb895f255a",
+      "name": "문서화 시스템 구축",
+      "description": "리팩토링된 코드베이스를 위한 자동화된 문서화 시스템을 구축합니다.",
+      "notes": "코드와 문서의 동기화 보장",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": "docs/api",
+          "type": "CREATE",
+          "description": "API 문서"
+        },
+        {
+          "path": "docs/architecture",
+          "type": "CREATE",
+          "description": "아키텍처 문서"
+        }
+      ],
+      "implementationGuide": "1. TypeDoc 설정\n2. API 문서 자동 생성\n3. 아키텍처 다이어그램 생성\n4. 코드 예제 통합\n5. 변경 이력 추적",
+      "verificationCriteria": "모든 공개 API가 문서화되어야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "5ec4d518-4f19-41a0-9403-650bfef7e3a6",
+      "name": "코드 품질 자동화 도구 설정",
+      "description": "코드 품질을 자동으로 검사하고 TDD 원칙 준수를 강제하는 도구들을 설정합니다.",
+      "notes": "PR 머지 전 자동 검사",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": ".eslintrc.js",
+          "type": "TO_MODIFY",
+          "description": "ESLint 설정"
+        },
+        {
+          "path": ".husky",
+          "type": "CREATE",
+          "description": "Git 훅"
+        }
+      ],
+      "implementationGuide": "1. ESLint 규칙 강화\n2. Prettier 설정 통일\n3. Husky pre-commit 훅\n4. 테스트 커버리지 게이트\n5. SonarQube 통합",
+      "verificationCriteria": "모든 커밋이 품질 기준을 통과해야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "fcbfb506-fded-4dc3-a92e-8a502c8bd9ad",
+      "name": "개발자 온보딩 가이드 작성",
+      "description": "새로운 TDD 구조에 대한 개발자 가이드와 베스트 프랙티스를 작성합니다.",
+      "notes": "팀원들의 빠른 적응 지원",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "9e60d304-99c1-482c-b52e-59cb895f255a"
+        }
+      ],
+      "createdAt": "2025-07-22T17:02:56.014Z",
+      "updatedAt": "2025-07-22T17:02:56.014Z",
+      "relatedFiles": [
+        {
+          "path": "docs/developer-guide",
+          "type": "CREATE",
+          "description": "개발자 가이드"
+        },
+        {
+          "path": "docs/best-practices",
+          "type": "CREATE",
+          "description": "베스트 프랙티스"
+        }
+      ],
+      "implementationGuide": "1. 아키텍처 개요 문서\n2. TDD 워크플로우 가이드\n3. 코드 예제 및 템플릿\n4. 트러블슈팅 가이드\n5. 체크리스트 작성",
+      "verificationCriteria": "신규 개발자가 가이드만으로 개발 시작 가능해야 함",
+      "analysisResult": "TDD 리팩토링을 위한 통합 및 마이그레이션 태스크"
+    },
+    {
+      "id": "ce7d4396-b09d-43d2-b304-62b7fec30ce5",
+      "name": "통계 페이지 차트 시각화 구현 (TDD)",
+      "description": "현재 데이터만 표시되는 통계 페이지들에 Recharts 라이브러리를 적용하여 시각적인 차트를 구현합니다. 이번에는 TDD 방식으로 테스트를 먼저 작성하고 구현합니다.",
+      "notes": "TDD 방식으로 재구현 - 테스트 먼저 작성",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T17:05:37.530Z",
+      "updatedAt": "2025-07-22T17:05:37.530Z",
+      "relatedFiles": [
+        {
+          "path": "app/components/charts",
+          "type": "CREATE",
+          "description": "차트 컴포넌트"
+        },
+        {
+          "path": "app/components/charts/__tests__",
+          "type": "CREATE",
+          "description": "차트 테스트"
+        }
+      ],
+      "implementationGuide": "1. 차트 컴포넌트 테스트 작성\n2. 데이터 변환 유틸리티 테스트 작성\n3. Recharts 라이브러리 설치\n4. 예약 통계, 매출 분석, 고객 분석, 기종 분석 차트 구현\n5. 반응형 디자인 및 모바일 최적화",
+      "verificationCriteria": "모든 차트 컴포넌트가 테스트를 통과하고 데이터가 올바르게 시각화되어야 함",
+      "analysisResult": "이전에 완료한 태스크들을 TDD 리팩토링을 위해 다시 시작"
+    },
+    {
+      "id": "50dfbab0-320e-400a-8469-dc1d180caf64",
+      "name": "PWA 설정 및 오프라인 지원 (TDD)",
+      "description": "Progressive Web App 설정을 TDD 방식으로 재구현합니다. Service Worker와 관련 기능들을 테스트 가능한 구조로 만듭니다.",
+      "notes": "TDD 방식으로 재구현 - 테스트 가능한 Service Worker",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        }
+      ],
+      "createdAt": "2025-07-22T17:05:37.530Z",
+      "updatedAt": "2025-07-22T17:05:37.530Z",
+      "relatedFiles": [
+        {
+          "path": "public/sw.js",
+          "type": "TO_MODIFY",
+          "description": "Service Worker"
+        },
+        {
+          "path": "tests/pwa",
+          "type": "CREATE",
+          "description": "PWA 테스트"
+        }
+      ],
+      "implementationGuide": "1. Service Worker 테스트 환경 구축\n2. 캐싱 전략 테스트 작성\n3. manifest.json 검증 테스트\n4. 오프라인 시나리오 테스트\n5. PWA 기능 구현",
+      "verificationCriteria": "모든 PWA 기능이 테스트되고 오프라인에서도 정상 작동해야 함",
+      "analysisResult": "이전에 완료한 태스크들을 TDD 리팩토링을 위해 다시 시작"
+    },
+    {
+      "id": "729aed7f-31c8-45c9-b2b9-4d71a25d2b77",
+      "name": "계좌번호 관리 기능 완성 (TDD)",
+      "description": "관리자가 결제용 계좌번호를 관리할 수 있는 기능을 TDD 방식으로 재구현합니다. 도메인 로직을 분리하고 테스트 가능한 구조로 만듭니다.",
+      "notes": "TDD 방식으로 재구현 - 도메인 주도 설계 적용",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "44a73e23-7b26-4428-b5a7-a2a3598f05a6"
+        },
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        }
+      ],
+      "createdAt": "2025-07-22T17:05:37.530Z",
+      "updatedAt": "2025-07-22T17:05:37.530Z",
+      "relatedFiles": [
+        {
+          "path": "domain/payment",
+          "type": "CREATE",
+          "description": "결제 도메인"
+        },
+        {
+          "path": "domain/payment/__tests__",
+          "type": "CREATE",
+          "description": "결제 도메인 테스트"
+        }
+      ],
+      "implementationGuide": "1. 계좌 도메인 엔티티 및 테스트 작성\n2. 계좌 관리 서비스 테스트 작성\n3. API 엔드포인트 테스트 작성\n4. UI 컴포넌트 테스트 작성\n5. 기능 구현 및 통합",
+      "verificationCriteria": "계좌 관리의 모든 비즈니스 로직이 테스트되고 UI와 분리되어야 함",
+      "analysisResult": "이전에 완료한 태스크들을 TDD 리팩토링을 위해 다시 시작"
+    },
+    {
+      "id": "86a51f0d-9b69-45e4-8550-a22288114a93",
+      "name": "예약 생성 플로우 리팩토링 - 도메인 모델",
+      "description": "예약 생성 관련 도메인 모델을 정의하고 비즈니스 규칙을 순수 함수로 구현합니다. 예약 가능 여부 검증, 시간 충돌 체크, 요금 계산 등을 포함합니다.",
+      "notes": "모든 비즈니스 로직은 외부 의존성 없이 테스트 가능해야 함",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "domain/reservation/models/Reservation.ts",
+          "type": "CREATE",
+          "description": "예약 엔티티"
+        },
+        {
+          "path": "domain/reservation/models/TimeSlot.ts",
+          "type": "CREATE",
+          "description": "시간대 값 객체"
+        },
+        {
+          "path": "domain/reservation/policies",
+          "type": "CREATE",
+          "description": "비즈니스 정책"
+        }
+      ],
+      "implementationGuide": "1. Reservation 엔티티 클래스 정의\n2. ReservationPolicy 인터페이스 정의\n3. TimeSlot 값 객체 구현\n4. 예약 충돌 검증 로직 구현\n5. 24시간 표시 체계 로직 포함",
+      "verificationCriteria": "모든 예약 비즈니스 규칙이 단위 테스트로 검증되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "7c638733-11eb-4d59-a701-564fe12bd771",
+      "name": "예약 생성 플로우 리팩토링 - 유스케이스",
+      "description": "예약 생성 유스케이스를 구현하고 도메인 모델을 조합하여 완전한 예약 생성 프로세스를 만듭니다.",
+      "notes": "유스케이스는 도메인 모델과 인프라 계층을 연결하는 역할",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "86a51f0d-9b69-45e4-8550-a22288114a93"
+        },
+        {
+          "taskId": "3a27acf9-aee7-4aba-a8bd-fc1ca68811ee"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "application/use-cases/reservation/CreateReservation.ts",
+          "type": "CREATE",
+          "description": "예약 생성 유스케이스"
+        },
+        {
+          "path": "application/dto/reservation",
+          "type": "CREATE",
+          "description": "DTO 정의"
+        }
+      ],
+      "implementationGuide": "1. CreateReservationUseCase 클래스 구현\n2. 입력 DTO와 출력 DTO 정의\n3. 트랜잭션 처리 로직 추가\n4. 이벤트 발행 로직 구현\n5. 에러 처리 표준화",
+      "verificationCriteria": "유스케이스가 모든 예약 시나리오를 처리하고 테스트되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "f032fdb4-f32e-4589-b8b2-fa79102e49bf",
+      "name": "예약 조회 기능 리팩토링",
+      "description": "예약 조회 기능을 CQRS 패턴으로 재구성하여 조회 성능을 최적화하고 테스트 가능한 구조로 만듭니다.",
+      "notes": "조회는 도메인 모델과 분리하여 성능 최적화",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3a27acf9-aee7-4aba-a8bd-fc1ca68811ee"
+        },
+        {
+          "taskId": "9939108c-8a74-4dfe-9aab-0144122c5339"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "application/queries/reservation",
+          "type": "CREATE",
+          "description": "예약 조회 쿼리"
+        },
+        {
+          "path": "infrastructure/repositories/reservation/ReadRepository.ts",
+          "type": "CREATE",
+          "description": "조회 전용 리포지토리"
+        }
+      ],
+      "implementationGuide": "1. ReservationQuery 인터페이스 정의\n2. 조회 전용 모델 생성\n3. 필터링 및 정렬 로직 구현\n4. 페이지네이션 처리\n5. 캐싱 전략 적용",
+      "verificationCriteria": "조회 성능이 개선되고 모든 조회 시나리오가 테스트되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "5a85e50b-b8a8-4977-98c5-66e9bf275868",
+      "name": "사용자 인증 플로우 리팩토링 - 도메인",
+      "description": "사용자 인증 관련 도메인 모델을 정의하고 인증 규칙을 구현합니다. 전화번호 인증, 세션 관리 등을 포함합니다.",
+      "notes": "인증 로직은 프레임워크 독립적으로 구현",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "b7f650e8-7bbc-43df-8474-5c4e0b9b3f86"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "domain/auth/models/User.ts",
+          "type": "CREATE",
+          "description": "사용자 엔티티"
+        },
+        {
+          "path": "domain/auth/models/AuthToken.ts",
+          "type": "CREATE",
+          "description": "인증 토큰"
+        },
+        {
+          "path": "domain/auth/policies",
+          "type": "CREATE",
+          "description": "인증 정책"
+        }
+      ],
+      "implementationGuide": "1. User 엔티티 정의\n2. PhoneNumber 값 객체 구현\n3. AuthenticationToken 모델 정의\n4. 인증 정책 구현\n5. 세션 유효성 검증 로직",
+      "verificationCriteria": "모든 인증 시나리오가 도메인 레벨에서 테스트되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "15066a77-e86b-4248-90ae-bd0d3cc4a830",
+      "name": "관리자 대시보드 리팩토링 - 통계 집계",
+      "description": "관리자 대시보드의 통계 집계 로직을 별도 서비스로 분리하고 테스트 가능한 구조로 만듭니다.",
+      "notes": "대용량 데이터 처리를 고려한 설계",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3a27acf9-aee7-4aba-a8bd-fc1ca68811ee"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "application/services/statistics",
+          "type": "CREATE",
+          "description": "통계 서비스"
+        },
+        {
+          "path": "infrastructure/aggregations",
+          "type": "CREATE",
+          "description": "집계 쿼리"
+        }
+      ],
+      "implementationGuide": "1. StatisticsService 인터페이스 정의\n2. 집계 쿼리 최적화\n3. 실시간 업데이트 로직 구현\n4. 데이터 변환 및 포맷팅\n5. 캐싱 전략 적용",
+      "verificationCriteria": "통계 데이터가 정확하고 성능이 최적화되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "52f52195-14f8-440e-b270-83f91f56731e",
+      "name": "기기 관리 시스템 리팩토링",
+      "description": "게임 기기 관리 시스템을 도메인 주도 설계로 재구성합니다. 기기 상태 관리, 점검 이력, 가용성 체크 등을 포함합니다.",
+      "notes": "기기 상태 변경은 이벤트 소싱 패턴 고려",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        },
+        {
+          "taskId": "4f675546-5664-44f0-9863-0b87e46ae645"
+        }
+      ],
+      "createdAt": "2025-07-22T17:06:42.447Z",
+      "updatedAt": "2025-07-22T17:06:42.447Z",
+      "relatedFiles": [
+        {
+          "path": "domain/device/models",
+          "type": "CREATE",
+          "description": "기기 도메인 모델"
+        },
+        {
+          "path": "domain/device/events",
+          "type": "CREATE",
+          "description": "기기 이벤트"
+        },
+        {
+          "path": "domain/device/services",
+          "type": "CREATE",
+          "description": "기기 도메인 서비스"
+        }
+      ],
+      "implementationGuide": "1. Device 애그리게이트 정의\n2. DeviceStatus 상태 머신 구현\n3. MaintenanceRecord 엔티티 구현\n4. 가용성 체크 로직 구현\n5. 기기 할당 정책 정의",
+      "verificationCriteria": "기기 관리의 모든 비즈니스 규칙이 테스트되어야 함",
+      "analysisResult": "게임플라자 예약 시스템의 주요 기능들을 TDD 방식으로 상세히 리팩토링"
+    },
+    {
+      "id": "6566f19c-598c-4680-bd70-75d3f8f8ac8c",
+      "name": "24시간 표시 체계 리팩토링",
+      "description": "익일 새벽 0~5시를 24~29시로 표시하는 시간 처리 로직을 도메인 모델로 분리하고 테스트 가능한 구조로 만듭니다.",
+      "notes": "기획서: 익일 새벽 시간대(0~5시)는 24~29시로 표시",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2390f518-d29c-4367-bfba-0fc36ab04e66"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/time/TimeDisplay.ts",
+          "type": "CREATE",
+          "description": "시간 표시 도메인 모델"
+        },
+        {
+          "path": "domain/time/__tests__",
+          "type": "CREATE",
+          "description": "시간 표시 테스트"
+        }
+      ],
+      "implementationGuide": "1. TimeDisplay 값 객체 생성\n2. 24시간 표시 변환 로직 구현\n3. KST 타임존 처리 통합\n4. 영업일 기준 06시 리셋 로직\n5. 시간대별 정렬 로직 구현",
+      "verificationCriteria": "모든 시간 표시가 24시간 체계로 정확히 변환되어야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "e1a518f4-48bf-4099-97e0-58f5ad736f13",
+      "name": "예약 번호 시스템 리팩토링",
+      "description": "YYMMDD-NNN 형식의 예약 번호 생성 로직을 도메인 서비스로 분리하고 순차 번호 관리를 구현합니다.",
+      "notes": "기획서: YYMMDD-NNN 형식 (예: 250701-001)",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/reservation/services/ReservationNumberService.ts",
+          "type": "CREATE",
+          "description": "예약 번호 서비스"
+        },
+        {
+          "path": "domain/reservation/models/ReservationNumber.ts",
+          "type": "CREATE",
+          "description": "예약 번호 모델"
+        }
+      ],
+      "implementationGuide": "1. ReservationNumber 값 객체 생성\n2. 날짜 기반 순차 번호 생성 로직\n3. 중복 방지 및 동시성 처리\n4. 예약 번호 포맷팅\n5. 영업일 기준 번호 리셋",
+      "verificationCriteria": "예약 번호가 형식에 맞게 생성되고 중복이 없어야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "5b465583-5cd3-43fc-9806-db4a9087b6ec",
+      "name": "크레딧 타입 시스템 리팩토링",
+      "description": "고정크레딧, 프리플레이, 무한크레딧 시스템을 도메인 모델로 구현하고 가격 계산 로직을 분리합니다.",
+      "notes": "기획서: fixed, freeplay, unlimited 크레딧 타입",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7003dde7-17a2-4e48-9adf-536b38c5f3f3"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/credit/models",
+          "type": "CREATE",
+          "description": "크레딧 도메인 모델"
+        },
+        {
+          "path": "domain/credit/policies",
+          "type": "CREATE",
+          "description": "크레딧 정책"
+        }
+      ],
+      "implementationGuide": "1. CreditType 열거형 정의\n2. CreditPolicy 인터페이스 구현\n3. 각 타입별 가격 계산 로직\n4. 크레딧 옵션 검증 로직\n5. 기기별 크레딧 설정 관리",
+      "verificationCriteria": "각 크레딧 타입별로 정확한 가격 계산이 되어야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "5e6677b1-54bc-42d1-ba7f-c9994c284418",
+      "name": "체크인 프로세스 리팩토링",
+      "description": "예약 30분 전 체크인 가능 규칙과 결제 확인 프로세스를 도메인 서비스로 구현합니다.",
+      "notes": "기획서: 예약 30분 전부터 체크인 가능",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7c638733-11eb-4d59-a701-564fe12bd771"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/checkin/services",
+          "type": "CREATE",
+          "description": "체크인 서비스"
+        },
+        {
+          "path": "domain/checkin/models",
+          "type": "CREATE",
+          "description": "체크인 모델"
+        }
+      ],
+      "implementationGuide": "1. CheckInService 구현\n2. 체크인 가능 시간 검증 로직\n3. 결제 상태 관리 상태머신\n4. 계좌이체 링크 생성 로직\n5. 체크인 취소 및 상태 복원",
+      "verificationCriteria": "체크인 규칙이 정확히 적용되고 상태 전환이 올바르게 동작해야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "8c804322-7590-44f3-9220-8ec570bcd195",
+      "name": "기기 3단계 계층 구조 리팩토링",
+      "description": "카테고리-기종-개별기기의 3단계 계층 구조를 도메인 모델로 구현하고 상태 관리를 분리합니다.",
+      "notes": "기획서: SEGA/KONAMI 등 카테고리, 마이마이 DX 등 기종, #1/#2 등 개별기기",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "52f52195-14f8-440e-b270-83f91f56731e"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/device/aggregates",
+          "type": "CREATE",
+          "description": "기기 애그리게이트"
+        },
+        {
+          "path": "domain/device/models/hierarchy",
+          "type": "CREATE",
+          "description": "계층 구조 모델"
+        }
+      ],
+      "implementationGuide": "1. DeviceCategory 애그리게이트 정의\n2. DeviceType 엔티티 구현\n3. Device 엔티티 및 상태 관리\n4. 기기 자동 생성 로직\n5. 계층별 관계 및 제약 조건",
+      "verificationCriteria": "3단계 계층 구조가 정확히 모델링되고 제약조건이 지켜져야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "9fcdadad-26e5-40a6-8142-a5e2c53a925f",
+      "name": "영업일 기준 통계 리팩토링",
+      "description": "06시 리셋 기준의 영업일 통계 집계 로직을 도메인 서비스로 구현합니다.",
+      "notes": "기획서: 영업일 기준 06시 리셋, 00:00~05:59는 전날 영업일",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "15066a77-e86b-4248-90ae-bd0d3cc4a830"
+        },
+        {
+          "taskId": "6566f19c-598c-4680-bd70-75d3f8f8ac8c"
+        }
+      ],
+      "createdAt": "2025-07-22T17:07:49.020Z",
+      "updatedAt": "2025-07-22T17:07:49.020Z",
+      "relatedFiles": [
+        {
+          "path": "domain/statistics/BusinessDay.ts",
+          "type": "CREATE",
+          "description": "영업일 모델"
+        },
+        {
+          "path": "domain/statistics/services",
+          "type": "CREATE",
+          "description": "통계 서비스"
+        }
+      ],
+      "implementationGuide": "1. BusinessDay 값 객체 구현\n2. 영업일 기준 날짜 변환 로직\n3. 통계 집계 서비스 구현\n4. 시간대별 매출 계산\n5. 대시보드 데이터 변환",
+      "verificationCriteria": "영업일 기준으로 모든 통계가 정확히 집계되어야 함",
+      "analysisResult": "기획서 기반 게임플라자 예약 시스템의 상세 기능별 TDD 리팩토링"
+    },
+    {
+      "id": "9ad99aa1-9f73-4cc8-8687-afa99f7d25d4",
+      "name": "운영 일정 자동 관리 시스템 리팩토링",
+      "description": "자동 스케줄 생성/삭제 로직을 테스트 가능한 구조로 분리하고, 06시 영업일 기준 처리를 명확히 구현",
+      "notes": "영업일 기준 06시 리셋 로직이 모든 계산에 일관되게 적용되어야 함",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "app/api/admin/schedule/route.ts",
+          "type": "TO_MODIFY",
+          "description": "스케줄 관리 API"
+        },
+        {
+          "path": "app/api/admin/schedule/sync-reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "예약 동기화"
+        },
+        {
+          "path": "app/api/admin/schedule/adjust-early-opening/route.ts",
+          "type": "TO_MODIFY",
+          "description": "조기영업 조정"
+        }
+      ],
+      "implementationGuide": "1. ScheduleService 도메인 서비스 생성\n2. 영업일 계산 로직 분리 (BusinessDayCalculator)\n3. 자동 스케줄 생성 규칙 엔진 구현\n4. 스케줄 삭제 조건 판단 로직 분리\n5. 조기영업 시간 자동 조정 알고리즘 구현\n\npseudocode:\ninterface ScheduleService {\n  createAutoSchedule(reservation: Reservation): Schedule | null\n  shouldDeleteSchedule(schedule: Schedule, activeReservations: Reservation[]): boolean\n  adjustEarlyOpeningTime(schedule: Schedule, remainingReservations: Reservation[]): Schedule\n}\n\nclass BusinessDayCalculator {\n  getBusinessDay(date: Date): Date // 06시 기준 영업일 반환\n  isEarlyOpening(startTime: string): boolean // 6-12시 판단\n  isNightOwl(startTime: string): boolean // 22시 이후 또는 0-6시 판단\n}",
+      "verificationCriteria": "1. 영업일 계산이 06시 기준으로 정확히 작동하는지 테스트\n2. 자동 스케줄 생성 조건이 명확히 테스트되는지 확인\n3. 스케줄 삭제 조건이 정확히 판단되는지 검증\n4. 조기영업 시간 조정이 올바르게 작동하는지 테스트",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "cc64f06e-ba4d-4e43-800a-1d32f61d7694",
+      "name": "알림 시스템 도메인 모델 분리",
+      "description": "FCM 알림 시스템을 도메인 이벤트 기반으로 리팩토링하고 테스트 가능한 구조로 개선",
+      "notes": "알림 전송 실패 시 재시도 로직 고려",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/notification.service.ts",
+          "type": "CREATE",
+          "description": "알림 서비스"
+        },
+        {
+          "path": "app/api/admin/reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "예약 승인 시 알림"
+        },
+        {
+          "path": "app/api/admin/checkin/payment-confirm/route.ts",
+          "type": "TO_MODIFY",
+          "description": "결제 확인 알림"
+        }
+      ],
+      "implementationGuide": "1. NotificationService 인터페이스 정의\n2. 도메인 이벤트 정의 (ReservationApproved, PaymentRequested 등)\n3. 이벤트 핸들러와 알림 전송 로직 분리\n4. FCM 구현을 인터페이스 뒤로 숨김\n5. 알림 템플릿 관리 시스템 구현\n\npseudocode:\ninterface NotificationService {\n  sendReservationApproved(reservation: Reservation): Promise<void>\n  sendPaymentRequest(checkin: CheckIn): Promise<void>\n  sendReminder(reservation: Reservation): Promise<void>\n}\n\nclass DomainEventPublisher {\n  publish(event: DomainEvent): void\n}\n\nclass NotificationEventHandler {\n  handle(event: ReservationApprovedEvent): void {\n    // 알림 전송 로직\n  }\n}",
+      "verificationCriteria": "1. 각 알림 타입별 전송 로직이 독립적으로 테스트 가능한지\n2. FCM 의존성이 인터페이스로 격리되었는지\n3. 도메인 이벤트 발행과 처리가 분리되었는지\n4. 알림 템플릿이 테스트 가능한지",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "6838e1a6-d723-4416-9beb-efb4516d0597",
+      "name": "고객 블랙리스트 관리 시스템 리팩토링",
+      "description": "블랙리스트 관리를 독립적인 도메인으로 분리하고 규칙 기반 차단 시스템 구현",
+      "notes": "GDPR 등 개인정보 보호 규정 준수 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/blacklist.service.ts",
+          "type": "CREATE",
+          "description": "블랙리스트 서비스"
+        },
+        {
+          "path": "app/api/admin/users/[id]/route.ts",
+          "type": "TO_MODIFY",
+          "description": "사용자 차단 API"
+        },
+        {
+          "path": "app/api/moderation/check/route.ts",
+          "type": "TO_MODIFY",
+          "description": "스팸 체크 API"
+        }
+      ],
+      "implementationGuide": "1. BlacklistService 도메인 서비스 생성\n2. 차단 규칙 엔진 구현 (이메일, 전화번호, IP 등)\n3. 차단 이력 관리 시스템 구현\n4. 차단 사유 및 기간 관리 로직 분리\n5. AI 기반 스팸 감지 인터페이스 정의\n\npseudocode:\ninterface BlacklistService {\n  isBlocked(user: User): BlockResult\n  addToBlacklist(user: User, reason: string, duration?: number): void\n  removeFromBlacklist(userId: string): void\n}\n\nclass BlockingRuleEngine {\n  evaluate(user: User): BlockingDecision\n  addRule(rule: BlockingRule): void\n}\n\ninterface SpamDetector {\n  detectSpam(content: string): SpamScore\n}",
+      "verificationCriteria": "1. 차단 규칙이 독립적으로 테스트 가능한지\n2. 차단 이력이 정확히 기록되는지\n3. 다양한 차단 조건이 올바르게 작동하는지\n4. 스팸 감지 로직이 격리되어 있는지",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "63737f98-aa32-47c7-902d-6e4681a502c1",
+      "name": "콘텐츠 관리 시스템(CMS) 도메인 분리",
+      "description": "동적 콘텐츠 관리를 독립적인 도메인으로 분리하고 버전 관리 기능 추가",
+      "notes": "마크다운 지원 및 이미지 업로드 기능 고려",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/content.service.ts",
+          "type": "CREATE",
+          "description": "콘텐츠 서비스"
+        },
+        {
+          "path": "app/api/admin/guide-content/route.ts",
+          "type": "TO_MODIFY",
+          "description": "가이드 콘텐츠 API"
+        },
+        {
+          "path": "app/admin/settings/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "설정 페이지"
+        }
+      ],
+      "implementationGuide": "1. ContentService 인터페이스 정의\n2. 콘텐츠 타입별 모델 정의 (Page, Notice, FAQ 등)\n3. 콘텐츠 버전 관리 시스템 구현\n4. 콘텐츠 렌더링 엔진 분리\n5. 미리보기 기능 구현\n\npseudocode:\ninterface ContentService {\n  getContent(type: ContentType, id: string): Content\n  updateContent(content: Content): void\n  previewContent(content: Content): RenderedContent\n  getContentHistory(contentId: string): ContentVersion[]\n}\n\nclass ContentVersionManager {\n  saveVersion(content: Content): void\n  restoreVersion(contentId: string, versionId: string): Content\n}\n\nclass ContentRenderer {\n  render(content: Content, context: RenderContext): string\n}",
+      "verificationCriteria": "1. 콘텐츠 CRUD가 독립적으로 테스트 가능한지\n2. 버전 관리가 정확히 작동하는지\n3. 렌더링 로직이 분리되어 있는지\n4. 미리보기가 실제 렌더링과 일치하는지",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "e5a62f64-6888-4bff-951a-4d471455afb0",
+      "name": "통계 분석 시스템 리팩토링",
+      "description": "통계 계산 로직을 순수 함수로 분리하고 영업일 기준 집계 시스템 구현",
+      "notes": "대용량 데이터 처리 시 성능 최적화 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/analytics.service.ts",
+          "type": "TO_MODIFY",
+          "description": "분석 서비스"
+        },
+        {
+          "path": "app/api/admin/analytics/revenue/route.ts",
+          "type": "TO_MODIFY",
+          "description": "매출 통계 API"
+        },
+        {
+          "path": "app/api/admin/analytics/devices/route.ts",
+          "type": "TO_MODIFY",
+          "description": "기기 통계 API"
+        }
+      ],
+      "implementationGuide": "1. AnalyticsService 도메인 서비스 생성\n2. 메트릭 계산 엔진 구현 (시간별, 기기별, 고객별)\n3. 영업일 기준 집계 로직 구현 (06시 리셋)\n4. 캐싱 전략 구현\n5. 통계 데이터 익스포트 기능 분리\n\npseudocode:\ninterface AnalyticsService {\n  getRevenueByBusinessDay(startDate: Date, endDate: Date): RevenueData[]\n  getDeviceUtilization(period: Period): DeviceStats[]\n  getCustomerAnalytics(customerId: string): CustomerStats\n  exportData(format: ExportFormat, data: AnalyticsData): Buffer\n}\n\nclass MetricsCalculator {\n  calculateRevenue(reservations: Reservation[]): number\n  calculateUtilizationRate(devices: Device[], reservations: Reservation[]): number\n  groupByBusinessDay(data: any[], dateField: string): Map<Date, any[]>\n}",
+      "verificationCriteria": "1. 통계 계산이 순수 함수로 구현되어 테스트 가능한지\n2. 영업일 기준 집계가 정확한지\n3. 다양한 기간별 통계가 올바르게 계산되는지\n4. 익스포트 기능이 독립적으로 작동하는지",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "81f86ce6-605b-48a1-a3a6-6f30bd24a463",
+      "name": "실시간 동기화 시스템 추상화",
+      "description": "Supabase Realtime을 추상화하여 테스트 가능한 실시간 통신 계층 구현",
+      "notes": "네트워크 불안정 상황 대응 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:11:34.477Z",
+      "updatedAt": "2025-07-22T17:11:34.477Z",
+      "relatedFiles": [
+        {
+          "path": "lib/services/realtime.service.ts",
+          "type": "CREATE",
+          "description": "실시간 서비스"
+        },
+        {
+          "path": "app/hooks/useRealtimeSubscription.ts",
+          "type": "CREATE",
+          "description": "실시간 구독 훅"
+        },
+        {
+          "path": "app/machines/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "기기 현황 실시간 업데이트"
+        }
+      ],
+      "implementationGuide": "1. RealtimeService 인터페이스 정의\n2. 채널 관리 및 구독 시스템 구현\n3. 이벤트 타입 정의 및 핸들러 분리\n4. 재연결 및 오류 처리 로직 구현\n5. 실시간 상태 동기화 매니저 구현\n\npseudocode:\ninterface RealtimeService {\n  subscribe(channel: string, handler: EventHandler): Subscription\n  broadcast(channel: string, event: RealtimeEvent): void\n  getConnectionStatus(): ConnectionStatus\n}\n\nclass RealtimeEventDispatcher {\n  dispatch(event: RealtimeEvent): void\n  registerHandler(eventType: string, handler: EventHandler): void\n}\n\nclass StateSyncManager {\n  syncState(entity: Entity): void\n  handleConflict(local: State, remote: State): State\n}",
+      "verificationCriteria": "1. 실시간 통신이 인터페이스로 추상화되었는지\n2. 이벤트 핸들링이 테스트 가능한지\n3. 재연결 로직이 안정적으로 작동하는지\n4. 상태 동기화 충돌이 올바르게 해결되는지",
+      "analysisResult": "게임플라자 예약 시스템의 핵심 기능들을 TDD 방식으로 리팩토링하여 테스트 가능하고 유지보수가 용이한 구조로 개선"
+    },
+    {
+      "id": "0ab20a14-90c1-441b-8bf7-b4d1ff9be3b0",
+      "name": "PWA 및 오프라인 지원 시스템 리팩토링",
+      "description": "PWA 기능을 테스트 가능한 구조로 분리하고 오프라인 전략 구현",
+      "notes": "Service Worker 테스트는 브라우저 환경 모킹 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "public/sw.js",
+          "type": "TO_MODIFY",
+          "description": "Service Worker"
+        },
+        {
+          "path": "app/components/PWAInstallBanner.tsx",
+          "type": "TO_MODIFY",
+          "description": "PWA 설치 배너"
+        },
+        {
+          "path": "app/hooks/usePWAInstall.tsx",
+          "type": "TO_MODIFY",
+          "description": "PWA 설치 훅"
+        }
+      ],
+      "implementationGuide": "1. PWAService 인터페이스 정의\n2. 캐싱 전략 관리자 구현\n3. 오프라인 상태 감지 및 처리 로직 분리\n4. 설치 프롬프트 관리 시스템\n5. 백그라운드 동기화 매니저 구현\n\npseudocode:\ninterface PWAService {\n  canInstall(): boolean\n  promptInstall(): Promise<InstallResult>\n  getCacheStatus(): CacheStatus\n  syncOfflineData(): Promise<void>\n}\n\nclass CacheStrategyManager {\n  setCacheStrategy(route: string, strategy: CacheStrategy): void\n  getCachedData(request: Request): Promise<Response | null>\n  updateCache(request: Request, response: Response): void\n}\n\nclass OfflineQueueManager {\n  enqueue(action: OfflineAction): void\n  processQueue(): Promise<void>\n}",
+      "verificationCriteria": "1. 캐싱 전략이 독립적으로 테스트 가능한지\n2. 오프라인 큐가 정확히 작동하는지\n3. 설치 프롬프트가 적절한 시점에 표시되는지\n4. 백그라운드 동기화가 안정적인지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
+    },
+    {
+      "id": "027f59d9-478b-4a71-9fbd-cd9d6a0e2ca0",
+      "name": "모니터링 및 에러 추적 시스템 구현",
+      "description": "에러 추적과 성능 모니터링을 위한 관찰 가능한 시스템 구축",
+      "notes": "GDPR 준수를 위한 개인정보 필터링 필요",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "lib/monitoring/error-tracking.ts",
+          "type": "TO_MODIFY",
+          "description": "에러 추적"
+        },
+        {
+          "path": "lib/monitoring/performance.ts",
+          "type": "CREATE",
+          "description": "성능 모니터링"
+        },
+        {
+          "path": "app/providers/monitoring-provider.tsx",
+          "type": "CREATE",
+          "description": "모니터링 프로바이더"
+        }
+      ],
+      "implementationGuide": "1. MonitoringService 인터페이스 정의\n2. 에러 수집 및 분류 시스템 구현\n3. 성능 메트릭 수집기 구현\n4. 로그 집계 및 분석 엔진\n5. 알림 규칙 엔진 구현\n\npseudocode:\ninterface MonitoringService {\n  trackError(error: Error, context?: ErrorContext): void\n  trackPerformance(metric: PerformanceMetric): void\n  trackUserAction(action: UserAction): void\n  getHealthStatus(): HealthStatus\n}\n\nclass ErrorClassifier {\n  classify(error: Error): ErrorCategory\n  getSeverity(error: Error): ErrorSeverity\n}\n\nclass MetricsAggregator {\n  aggregate(metrics: Metric[]): AggregatedMetrics\n  detectAnomalies(metrics: AggregatedMetrics): Anomaly[]\n}",
+      "verificationCriteria": "1. 에러가 정확히 분류되고 추적되는지\n2. 성능 메트릭이 올바르게 수집되는지\n3. 개인정보가 필터링되는지\n4. 임계값 초과 시 알림이 작동하는지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
+    },
+    {
+      "id": "f66eab5b-3fbf-4695-a642-1088176e72c1",
+      "name": "보안 계층 추상화 및 강화",
+      "description": "인증/인가 로직을 도메인 레벨로 분리하고 보안 정책 엔진 구현",
+      "notes": "Zero Trust 보안 모델 고려",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "lib/auth/security.service.ts",
+          "type": "CREATE",
+          "description": "보안 서비스"
+        },
+        {
+          "path": "lib/auth/middleware.ts",
+          "type": "TO_MODIFY",
+          "description": "인증 미들웨어"
+        },
+        {
+          "path": "lib/middleware/rate-limit.ts",
+          "type": "CREATE",
+          "description": "속도 제한"
+        }
+      ],
+      "implementationGuide": "1. SecurityService 인터페이스 정의\n2. 권한 정책 엔진 구현\n3. 세션 관리 시스템 분리\n4. CSRF/XSS 방어 로직 구현\n5. Rate Limiting 시스템 구현\n\npseudocode:\ninterface SecurityService {\n  authenticate(credentials: Credentials): AuthResult\n  authorize(user: User, resource: Resource, action: Action): boolean\n  validateSession(sessionId: string): SessionValidation\n  generateCSRFToken(): string\n}\n\nclass PermissionPolicyEngine {\n  evaluate(user: User, policy: Policy): boolean\n  addPolicy(policy: Policy): void\n}\n\nclass RateLimiter {\n  checkLimit(identifier: string, action: string): RateLimitResult\n  reset(identifier: string): void\n}",
+      "verificationCriteria": "1. 권한 정책이 독립적으로 테스트 가능한지\n2. 세션 관리가 안전하게 구현되었는지\n3. CSRF 토큰이 올바르게 검증되는지\n4. Rate Limiting이 정확히 작동하는지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
+    },
+    {
+      "id": "9c93131f-f27d-4119-993e-b5ce06571cc2",
+      "name": "데이터 마이그레이션 시스템 구축",
+      "description": "기존 데이터 마이그레이션을 위한 안전하고 테스트 가능한 시스템 구현",
+      "notes": "대용량 데이터 처리 시 배치 처리 고려",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "scripts/migrations/index.ts",
+          "type": "CREATE",
+          "description": "마이그레이션 인덱스"
+        },
+        {
+          "path": "lib/services/migration.service.ts",
+          "type": "CREATE",
+          "description": "마이그레이션 서비스"
+        },
+        {
+          "path": "scripts/migrate-payment-accounts.ts",
+          "type": "TO_MODIFY",
+          "description": "결제 계좌 마이그레이션"
+        }
+      ],
+      "implementationGuide": "1. MigrationService 인터페이스 정의\n2. 마이그레이션 스크립트 관리자 구현\n3. 데이터 변환 파이프라인 구축\n4. 롤백 메커니즘 구현\n5. 진행 상황 추적 시스템\n\npseudocode:\ninterface MigrationService {\n  runMigration(version: string): MigrationResult\n  rollback(version: string): RollbackResult\n  getStatus(): MigrationStatus\n  validateData(schema: Schema): ValidationResult\n}\n\nclass DataTransformer {\n  transform(data: any, rules: TransformRule[]): any\n  validate(data: any, schema: Schema): boolean\n}\n\nclass MigrationRunner {\n  execute(migration: Migration): Promise<void>\n  handleError(error: Error): RecoveryStrategy\n}",
+      "verificationCriteria": "1. 마이그레이션이 원자적으로 실행되는지\n2. 롤백이 안전하게 작동하는지\n3. 데이터 무결성이 보장되는지\n4. 진행 상황이 정확히 추적되는지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
+    },
+    {
+      "id": "f33df884-44ac-4f09-b470-e8c347d8c84a",
+      "name": "API 버전 관리 시스템 구현",
+      "description": "API 버전 관리와 하위 호환성을 위한 시스템 구축",
+      "notes": "OpenAPI 스펙 준수 고려",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "lib/api/versioning.ts",
+          "type": "CREATE",
+          "description": "API 버전 관리"
+        },
+        {
+          "path": "app/api/v1/index.ts",
+          "type": "CREATE",
+          "description": "v1 API 라우트"
+        },
+        {
+          "path": "app/api-test/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "API 테스트 페이지"
+        }
+      ],
+      "implementationGuide": "1. APIVersionManager 인터페이스 정의\n2. 버전별 라우팅 시스템 구현\n3. 응답 변환 레이어 구축\n4. Deprecation 관리 시스템\n5. API 문서 자동 생성\n\npseudocode:\ninterface APIVersionManager {\n  registerVersion(version: string, routes: Route[]): void\n  getActiveVersions(): Version[]\n  deprecateVersion(version: string, sunset: Date): void\n}\n\nclass ResponseTransformer {\n  transform(data: any, fromVersion: string, toVersion: string): any\n  getTransformRules(version: string): TransformRule[]\n}\n\nclass APIDocGenerator {\n  generate(version: string): APIDocumentation\n  compareVersions(v1: string, v2: string): VersionDiff\n}",
+      "verificationCriteria": "1. 버전별 라우팅이 정확히 작동하는지\n2. 응답 변환이 올바르게 수행되는지\n3. Deprecation 경고가 표시되는지\n4. API 문서가 자동으로 생성되는지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
+    },
+    {
+      "id": "7b9faffd-c59e-4e84-9af5-78f0687e87ad",
+      "name": "비즈니스 규칙 엔진 구현",
+      "description": "복잡한 비즈니스 로직을 규칙 기반으로 관리하는 시스템 구축",
+      "notes": "24시간 룰, 예약 제한 등 복잡한 규칙 관리",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-07-22T17:12:47.805Z",
+      "updatedAt": "2025-07-22T17:12:47.805Z",
+      "relatedFiles": [
+        {
+          "path": "lib/rules/rule-engine.ts",
+          "type": "CREATE",
+          "description": "규칙 엔진"
+        },
+        {
+          "path": "lib/rules/reservation-rules.ts",
+          "type": "CREATE",
+          "description": "예약 규칙"
+        },
+        {
+          "path": "app/api/admin/reservation-rules/route.ts",
+          "type": "TO_MODIFY",
+          "description": "예약 규칙 API"
+        }
+      ],
+      "implementationGuide": "1. RuleEngine 인터페이스 정의\n2. 규칙 정의 DSL 구현\n3. 규칙 평가 엔진 구축\n4. 규칙 충돌 감지 시스템\n5. 규칙 버전 관리\n\npseudocode:\ninterface RuleEngine {\n  addRule(rule: BusinessRule): void\n  evaluate(context: RuleContext): RuleResult\n  validateRules(): ValidationResult\n  getRuleHistory(ruleId: string): RuleVersion[]\n}\n\nclass RuleEvaluator {\n  evaluate(rule: Rule, context: Context): boolean\n  combineResults(results: RuleResult[]): FinalResult\n}\n\nclass RuleConflictDetector {\n  detectConflicts(rules: Rule[]): Conflict[]\n  suggestResolution(conflict: Conflict): Resolution\n}",
+      "verificationCriteria": "1. 규칙이 독립적으로 테스트 가능한지\n2. 규칙 충돌이 정확히 감지되는지\n3. 규칙 평가가 일관되게 수행되는지\n4. 규칙 변경 이력이 추적되는지",
+      "analysisResult": "게임플라자 예약 시스템의 모든 기능을 TDD 방식으로 체계적으로 리팩토링하여 유지보수성과 확장성을 향상"
     }
   ]
 }

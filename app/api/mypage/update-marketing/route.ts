@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     // 먼저 사용자 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: error } = await supabaseAdmin.from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     // 마케팅 동의 여부 업데이트
-    const supabaseAdmin = createAdminClient();
+    
   const { error$1 } = await supabaseAdmin.from('users')
       .update({
         marketing_agreed: marketing_agreed,

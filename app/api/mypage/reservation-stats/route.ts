@@ -16,7 +16,7 @@ export async function GET() {
 
     // 사용자 정보 가져오기
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: profile, error: profileError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -29,8 +29,8 @@ export async function GET() {
     }
 
     // 예약 통계 가져오기
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: data, error: reservationError } = await supabaseAdmin.from('reservations')
       .select('status')
       .eq('user_id', userProfile.id);
 

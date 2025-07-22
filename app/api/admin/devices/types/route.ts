@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // 기기 타입 생성
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
       .insert({ category_id, name, description, is_rentable })
       .select()
       .single()
@@ -80,8 +80,7 @@ export async function POST(request: NextRequest) {
         display_order: index + 1
       }))
 
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('play_modes')
+  const { error } = await supabaseAdmin.from('play_modes')
         .insert(modesData)
 
       if (modesError) throw modesError
@@ -97,8 +96,7 @@ export async function POST(request: NextRequest) {
         status: 'available' as const
       }))
 
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('devices')
+  const { data: createdDevices, error: devicesError } = await supabaseAdmin.from('devices')
         .insert(devicesData)
         .select()
 
@@ -112,8 +110,8 @@ export async function POST(request: NextRequest) {
 
     // 대여 가능한 경우 rental_settings 생성
     if (is_rentable) {
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('rental_settings')
+      
+  const { error: insertError } = await supabaseAdmin.from('rental_settings')
         .insert({
           device_type_id: deviceType.id,
           base_price: 40000, // 기본값
@@ -143,7 +141,7 @@ export async function PATCH(request: NextRequest) {
     if (display_order !== undefined) updateData.display_order = display_order
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+  const { data: deviceTypesData2 } = await supabaseAdmin.from('device_types')
       .update(updateData)
       .eq('id', id)
       .select()

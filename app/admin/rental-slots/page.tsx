@@ -19,7 +19,6 @@ import {
   DollarSign,
   Coins
 } from 'lucide-react';
-import Link from 'next/link';
 
 type DeviceType = {
   id: string;
@@ -76,7 +75,7 @@ export default function RentalSlotManagementPage() {
   const fetchDeviceTypes = async () => {
     try {
       const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+  const { data: deviceTypesData, error } = await supabase.from('device_types')
         .select('*')
         .eq('is_rentable', true)
         .eq('is_active', true)
@@ -171,7 +170,7 @@ export default function RentalSlotManagementPage() {
       const dateStr = formatDate(selectedDate);
       
       const supabase = createClient();
-  const { data$1 } = await supabase.from('rental_time_slots')
+  const { data: slotsData, error } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', selectedDeviceType)
         .eq('date', dateStr)
@@ -249,7 +248,7 @@ export default function RentalSlotManagementPage() {
       }
       
       const supabase = createClient();
-  const { error$1 } = await supabase.from('rental_time_slots')
+  const { error } = await supabase.from('rental_time_slots')
         .insert({
           device_type_id: selectedDeviceType,
           date: formatDate(selectedDate),
@@ -287,7 +286,7 @@ export default function RentalSlotManagementPage() {
     
     try {
       const supabase = createClient();
-  const { error$1 } = await supabase.from('rental_time_slots')
+  const { error } = await supabase.from('rental_time_slots')
         .delete()
         .eq('id', slotId);
 

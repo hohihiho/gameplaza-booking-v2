@@ -1,12 +1,11 @@
-import { createServerClient as createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server.server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const supabase = await createClient()
 
-  const supabase = createClient();
-  const { data$1 } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: `${requestUrl.origin}/auth/callback`,

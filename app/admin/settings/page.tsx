@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Wifi,
   Calendar,
-  ChevronLeft,
   Save,
   Copy,
   Edit,
@@ -17,7 +16,6 @@ import {
   User,
   Shield
 } from 'lucide-react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
 type BankAccount = {

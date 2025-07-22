@@ -8,7 +8,6 @@ import {
   Calendar,
   DollarSign,
   Users,
-  ChevronLeft,
   Gamepad2
 } from 'lucide-react';
 

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     // 관리자 권한 확인
     console.log('사용자 조회 중:', session.user.email);
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -31,8 +31,8 @@ export async function GET(request: Request) {
     }
 
     console.log('관리자 확인 중:', userData.id);
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -117,8 +117,7 @@ export async function GET(request: Request) {
       deviceFilter = `.eq('device_type_id', '${deviceTypeId}')`;
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         date,
@@ -163,8 +162,8 @@ export async function GET(request: Request) {
     });
 
     // 모든 기종 목록 조회
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+    
+  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
       .select('id, name, category_id')
       .order('name');
 

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // 임시로 device_time_slots 테이블 사용
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_time_slots')
+  const { data: devicetimeslotsData } = await supabaseAdmin.from('device_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .eq('date', new Date().toISOString().split('T')[0])
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // device_time_slots 테이블에 저장 (임시)
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_time_slots')
+  const { data: devicetimeslotsData2 } = await supabaseAdmin.from('device_time_slots')
       .insert({
         date: new Date().toISOString().split('T')[0],
         device_type_id,

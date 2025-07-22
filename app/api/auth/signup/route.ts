@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     try {
       // 컬럼 존재 여부 확인을 위해 먼저 조회
       const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: error } = await supabaseAdmin.from('users')
         .select('*')
         .eq('email', session.user.email!)
         .single();
@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     }
 
     // 사용자 정보 업데이트
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    
+  const { data: data, error: error } = await supabaseAdmin.from('users')
       .update(updateData)
       .eq('email', session.user.email!)
       .select()

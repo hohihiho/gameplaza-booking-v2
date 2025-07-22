@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // 관리자 정보 및 계좌 정보 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,8 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin, bank_account')
       .eq('user_id', userData.id)
       .single();
@@ -41,8 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 개인 계좌가 없으면 시스템 기본 계좌 반환
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('settings')
+    
+  const { data: settingsData } = await supabaseAdmin.from('settings')
       .select('value')
       .eq('key', 'payment_info')
       .single();
@@ -86,7 +85,7 @@ export async function PUT(request: NextRequest) {
 
     // 사용자 정보 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData2 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -96,8 +95,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    
+  const { data: adminData2 } = await supabaseAdmin.from('admins')
       .select('id')
       .eq('user_id', userData.id)
       .single();
@@ -108,8 +107,8 @@ export async function PUT(request: NextRequest) {
 
     if (isPersonalAccount) {
       // 관리자 개인 계좌로 저장
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('admins')
+      
+  const { error } = await supabaseAdmin.from('admins')
         .update({
           bank_account: {
             bank,
@@ -125,8 +124,8 @@ export async function PUT(request: NextRequest) {
       }
     } else {
       // 시스템 기본 계좌로 저장 (super admin만 가능)
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+      
+  const { data: adminData3 } = await supabaseAdmin.from('admins')
         .select('is_super_admin')
         .eq('user_id', userData.id)
         .single();
@@ -138,8 +137,7 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('settings')
+  const { error: updateError } = await supabaseAdmin.from('settings')
         .update({
           value: {
             bank,

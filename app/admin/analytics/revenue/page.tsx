@@ -18,6 +18,25 @@ import {
   CreditCard,
   Receipt
 } from 'lucide-react';
+import { 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Area,
+  AreaChart
+} from 'recharts';
+import { 
+  ChartWrapper, 
+  CustomTooltip, 
+  chartColors, 
+  commonChartProps,
+  getAxisStyle,
+  getGridStyle,
+  formatters,
+  chartAnimation
+} from '@/app/components/charts/AnalyticsChart';
+import { useTheme } from '@/hooks/useTheme';
 
 type DateRange = 'week' | 'month' | 'quarter' | '6months' | 'yearly' | 'custom';
 type RevenueTrend = {
@@ -32,6 +51,7 @@ export default function RevenueAnalyticsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [isLoading, setIsLoading] = useState(false);
   const [revenueData, setRevenueData] = useState<any>(null);
+  const { theme } = useTheme();
 
   // API 데이터 가져오기
   useEffect(() => {
@@ -75,7 +95,7 @@ export default function RevenueAnalyticsPage() {
   };
 
   // API 데이터 기반으로 처리 (날짜 형식 그대로 사용)
-  const dailyRevenue: RevenueTrend[] = revenueData?.dailyRevenue?.map(item => ({
+  const dailyRevenue: RevenueTrend[] = revenueData?.dailyRevenue?.map((item: any) => ({
     date: item.date, // 기간별로 이미 적절한 형식으로 반환됨
     revenue: item.revenue,
     count: item.count,
@@ -288,79 +308,54 @@ export default function RevenueAnalyticsPage() {
           <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </div>
         
-        {/* 디버깅 정보 추가 */}
-        <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
-          <p>dailyRevenue 길이: {dailyRevenue.length}</p>
-          <p>isLoading: {isLoading ? 'true' : 'false'}</p>
-          <p>첫 번째 데이터: {dailyRevenue[0] ? JSON.stringify(dailyRevenue[0]) : 'null'}</p>
-          <p>최대 매출: {dailyRevenue.length > 0 ? Math.max(...dailyRevenue.map(d => d.revenue)) : 0}</p>
-        </div>
-        
         {dailyRevenue.length > 0 ? (
-          <div className="h-64 flex items-end justify-between gap-1 border border-red-500">
-            {dailyRevenue.map((data, index) => {
-              const maxRevenue = Math.max(...dailyRevenue.map(d => d.revenue));
-              const height = maxRevenue > 0 ? (data.revenue / maxRevenue) * 100 : 0;
-              
-              console.log(`차트 바 ${index}:`, {
-                date: data.date,
-                revenue: data.revenue,
-                maxRevenue,
-                height,
-                heightStyle: `${height}%`
-              });
-              
-              // 주말 체크 로직 (이번주 기간일 때만)
-              let isWeekend = false;
-              if (dateRange === 'week' && data.date.includes('(')) {
-                const dayOfWeek = data.date.split('(')[1].replace(')', '');
-                isWeekend = dayOfWeek === '토' || dayOfWeek === '일';
-              }
-              
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center border border-blue-500"
-                  title={`${data.date}: ${formatCurrency(data.revenue)}`}
-                >
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t relative border border-green-500" style={{ height: '240px' }}>
-                    <div
-                      className={`absolute bottom-0 w-full rounded-t transition-all ${
-                        isWeekend 
-                          ? 'bg-green-500 hover:bg-green-600' 
-                          : 'bg-blue-500 hover:bg-blue-600'
-                      }`}
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                  {(dailyRevenue.length <= 7 || index % 2 === 0) && (
-                    <span className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {dateRange === 'week' && data.date.includes('(') 
-                        ? data.date.split('(')[1].replace(')', '') 
-                        : data.date
-                      }
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+          <div className="h-64">
+            <ChartWrapper height={256}>
+              <AreaChart data={dailyRevenue} {...commonChartProps}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid {...getGridStyle(theme)} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={getAxisStyle(theme)}
+                  tickFormatter={(value) => {
+                    if (dateRange === 'week' && value.includes('(')) {
+                      return value.split('(')[1].replace(')', '');
+                    }
+                    return value;
+                  }}
+                />
+                <YAxis 
+                  tick={getAxisStyle(theme)}
+                  tickFormatter={formatters.currency}
+                />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  formatter={(value: number) => formatters.currency(value)}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke={chartColors.primary}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                  name="매출"
+                  animationDuration={chartAnimation.duration}
+                  animationEasing={chartAnimation.easing}
+                />
+              </AreaChart>
+            </ChartWrapper>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             {isLoading ? '데이터 로딩 중...' : '데이터가 없습니다'}
           </div>
         )}
-        
-        <div className="flex items-center gap-4 mt-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded" />
-            <span className="text-gray-600 dark:text-gray-400">평일</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded" />
-            <span className="text-gray-600 dark:text-gray-400">주말</span>
-          </div>
-        </div>
       </motion.div>
 
       {/* 상세 분석 */}
@@ -378,7 +373,7 @@ export default function RevenueAnalyticsPage() {
           </div>
           
           <div className="space-y-4">
-            {deviceRevenue.map((device, index) => (
+            {deviceRevenue.map((device: any, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium dark:text-white">{device.name}</span>
@@ -410,7 +405,7 @@ export default function RevenueAnalyticsPage() {
           </div>
           
           <div className="space-y-4">
-            {hourlyRevenue.map((hour, index) => (
+            {hourlyRevenue.map((hour: any, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium dark:text-white">{hour.hour}시</span>
@@ -442,7 +437,7 @@ export default function RevenueAnalyticsPage() {
           </div>
           
           <div className="space-y-4">
-            {paymentMethodRevenue.map((method, index) => (
+            {paymentMethodRevenue.map((method: any, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium dark:text-white">{method.method}</span>

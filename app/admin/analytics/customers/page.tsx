@@ -4,10 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { 
   Users,
-  ChevronLeft,
   UserPlus,
   UserCheck,
   TrendingUp,
@@ -383,8 +381,8 @@ export default function CustomerAnalyticsPage() {
           
           <div className="h-64 flex items-end justify-between gap-2">
             {dailyCustomers.length > 0 ? (
-              dailyCustomers.slice(0, 12).map((data, index) => {
-                const maxTotal = Math.max(...dailyCustomers.map(d => (d.totalCustomers || 0)));
+              dailyCustomers.slice(0, 12).map((data: any, index: number) => {
+                const maxTotal = Math.max(...dailyCustomers.map((d: any) => (d.totalCustomers || 0)));
                 const totalHeight = ((data.totalCustomers || 0) / maxTotal) * 100;
                 const newHeight = ((data.newCustomers || 0) / (data.totalCustomers || 1)) * totalHeight;
                 
@@ -445,7 +443,7 @@ export default function CustomerAnalyticsPage() {
           </div>
           
           <div className="space-y-3">
-            {retentionData.map((data) => (
+            {retentionData.map((data: any) => (
               <div key={data.period} className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {data.period}
@@ -485,7 +483,7 @@ export default function CustomerAnalyticsPage() {
           </div>
           
           <div className="space-y-3">
-            {customerActivityHours.map((hour) => (
+            {customerActivityHours.map((hour: any) => (
               <div key={hour.hour} className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {hour.hour}시

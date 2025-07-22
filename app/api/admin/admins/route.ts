@@ -8,7 +8,7 @@ async function checkSuperAdmin(email: string): Promise<boolean> {
   try {
     // 사용자 ID 찾기
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', email)
       .single();
@@ -16,8 +16,7 @@ async function checkSuperAdmin(email: string): Promise<boolean> {
     if (!userData) return false;
 
     // 슈퍼관리자 권한 확인
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .eq('is_super_admin', true)
@@ -47,7 +46,7 @@ export async function GET() {
 
     // 관리자 목록 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    const { data: admins, error } = await supabaseAdmin.from('admins')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -55,8 +54,8 @@ export async function GET() {
 
     // 사용자 이메일 정보 추가
     const userIds = admins?.map(admin => admin.user_id) || [];
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    
+    const { data: users } = await supabaseAdmin.from('users')
       .select('id, email')
       .in('id', userIds);
 
@@ -98,7 +97,7 @@ export async function POST(request: Request) {
 
     // 이메일로 사용자 찾기
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    const { data: userData, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', email)
       .single();
@@ -110,8 +109,8 @@ export async function POST(request: Request) {
     }
 
     // 이미 관리자인지 확인
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    
+    const { data: existingAdmin } = await supabaseAdmin.from('admins')
       .select('id')
       .eq('user_id', userData.id)
       .single();
@@ -123,8 +122,8 @@ export async function POST(request: Request) {
     }
 
     // 관리자 추가
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('admins')
+    
+    const { error: insertError } = await supabaseAdmin.from('admins')
       .insert({ 
         user_id: userData.id,
         is_super_admin: false,

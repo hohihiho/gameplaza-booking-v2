@@ -22,7 +22,7 @@ export async function PUT(
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
+  const { data: timeSlotsData } = await supabaseAdmin.from('rental_time_slots')
       .update({
         slot_type,
         start_time,
@@ -54,7 +54,7 @@ export async function DELETE(
     const { id } = await params
 
     const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('rental_time_slots')
+  const { error } = await supabaseAdmin.from('rental_time_slots')
       .delete()
       .eq('id', id)
 

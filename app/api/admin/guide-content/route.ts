@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('guide_content')
+  const { data: guidecontentData } = await supabaseAdmin.from('guide_content')
       .select('content')
       .eq('page_slug', pageSlug)
       .single();
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // upsert로 저장 (없으면 생성, 있으면 업데이트)
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('guide_content')
+  const { data: guidecontentData2 } = await supabaseAdmin.from('guide_content')
       .upsert({
         page_slug: pageSlug,
         content,

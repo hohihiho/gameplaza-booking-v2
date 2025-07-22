@@ -18,7 +18,7 @@ export async function DELETE() {
 
     // 1. 사용자 정보 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    const { data: user, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -37,8 +37,7 @@ export async function DELETE() {
 
     // 2. 관련 데이터 삭제 (CASCADE 설정이 없는 경우 수동 삭제)
     // 예약 데이터 삭제
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('reservations')
+    const { error: reservationError } = await supabaseAdmin.from('reservations')
       .delete()
       .eq('user_id', userId);
 
@@ -47,8 +46,7 @@ export async function DELETE() {
     }
 
     // 3. admins 테이블에서 삭제 (관리자인 경우)
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('admins')
+    const { error: adminError } = await supabaseAdmin.from('admins')
       .delete()
       .eq('user_id', userId);
 
@@ -57,8 +55,7 @@ export async function DELETE() {
     }
 
     // 4. 사용자 정보 삭제
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('users')
+    const { error: deleteError } = await supabaseAdmin.from('users')
       .delete()
       .eq('id', userId);
 

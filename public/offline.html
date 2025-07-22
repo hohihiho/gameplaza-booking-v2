@@ -1,113 +1,99 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>오프라인 - 광주 게임플라자</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            text-align: center;
-            max-width: 400px;
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 24px;
-            background-color: #ef4444;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .icon svg {
-            width: 48px;
-            height: 48px;
-            stroke: white;
-            stroke-width: 2;
-        }
-        
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: #111827;
-        }
-        
-        p {
-            font-size: 16px;
-            line-height: 1.5;
-            color: #6b7280;
-            margin-bottom: 24px;
-        }
-        
-        button {
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        button:hover {
-            background-color: #2563eb;
-        }
-        
-        .game-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오프라인 - 광주 게임플라자</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      opacity: 0.5;
+    }
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #f1f5f9;
+    }
+    
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #94a3b8;
+      margin-bottom: 32px;
+    }
+    
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    .button:hover {
+      background-color: #2563eb;
+    }
+    
+    .offline-icon {
+      fill: #64748b;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="game-icon">🎮</div>
-        <div class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
-            </svg>
-        </div>
-        <h1>인터넷 연결이 필요합니다</h1>
-        <p>
-            현재 오프라인 상태입니다.<br>
-            예약 시스템을 이용하려면 인터넷에 연결해주세요.
-        </p>
-        <button onclick="window.location.reload()">
-            다시 시도
-        </button>
+  <div class="container">
+    <div class="icon">
+      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.513 4.856l2.879-2.88a1.842 1.842 0 012.606 0l2.026 2.026a1.842 1.842 0 010 2.606l-2.88 2.879m-4.631 4.631L7.636 17l-4.95 4.95-1.414-1.414L6.222 15.586l2.88-2.88m4.631-4.631L18.364 3.444m-4.631 4.631L9.1 12.707" />
+        <path d="M2 12l10-10m0 10l10-10" />
+      </svg>
     </div>
+    <h1>인터넷 연결이 끊어졌습니다</h1>
+    <p>네트워크 연결을 확인하고 다시 시도해 주세요.<br>연결이 복구되면 자동으로 페이지가 새로고침됩니다.</p>
+    <button class="button" onclick="location.reload()">다시 시도</button>
+  </div>
+  
+  <script>
+    // 온라인 상태가 되면 자동으로 새로고침
+    window.addEventListener('online', () => {
+      location.reload();
+    });
     
-    <script>
-        // 온라인 상태가 되면 자동으로 새로고침
-        window.addEventListener('online', () => {
-            window.location.reload();
-        });
-    </script>
+    // 주기적으로 연결 상태 확인
+    setInterval(() => {
+      if (navigator.onLine) {
+        location.reload();
+      }
+    }, 5000);
+  </script>
 </body>
 </html>

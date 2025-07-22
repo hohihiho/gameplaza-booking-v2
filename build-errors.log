@@ -1,0 +1,26 @@
+
+> gameplaza-v2@1.0.0 build
+> next build
+
+   ▲ Next.js 15.3.4
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ⨯ preloadEntriesOnStart
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (100kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 20.0s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/admin/analytics/reservations/page.tsx:422:46
+Type error: Parameter '_entry' implicitly has an 'any' type.
+
+[0m [90m 420 |[39m                     animationEasing[33m=[39m{chartAnimation[33m.[39measing}[0m
+[0m [90m 421 |[39m                   [33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 422 |[39m                     {deviceDistribution[33m.[39mmap((_entry[33m,[39m index) [33m=>[39m {[0m
+[0m [90m     |[39m                                              [31m[1m^[22m[39m[0m
+[0m [90m 423 |[39m                       [36mconst[39m colors [33m=[39m [[0m
+[0m [90m 424 |[39m                         chartColors[33m.[39mprimary[33m,[39m[0m
+[0m [90m 425 |[39m                         chartColors[33m.[39msecondary[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null

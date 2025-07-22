@@ -28,7 +28,7 @@
       "@/*": ["./*"],
       "@/components/*": ["./app/components/*"],
       "@/lib/*": ["./lib/*"],
-      "@/hooks/*": ["./app/hooks/*"],
+      "@/hooks/*": ["./hooks/*"],
       "@/types/*": ["./types/*"],
       "@/store/*": ["./app/store/*"],
       "@/utils/*": ["./app/utils/*"]

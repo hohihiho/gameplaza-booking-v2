@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,8 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -38,8 +37,8 @@ export async function GET(request: NextRequest) {
     const today = kstNow.toISOString().split('T')[0];
 
     // 오늘의 승인된/체크인된/완료된 예약 조회 (모든 시간대)
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select(`
         *,
         users:user_id (

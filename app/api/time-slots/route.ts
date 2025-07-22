@@ -1,4 +1,4 @@
-import { createServerClient as createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server.server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -45,8 +45,7 @@ export async function GET(request: Request) {
     const slotsWithAvailability = await Promise.all(
       timeSlots.map(async (slot) => {
         // 해당 시간대의 예약 조회
-        const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+        const { data: reservations, error: reservationError } = await supabase.from('reservations')
           .select('device_number')
           .eq('rental_time_slot_id', slot.id)
           .in('status', ['pending', 'approved'])
@@ -85,8 +84,7 @@ export async function POST(request: Request) {
     }
 
     // 관리자 권한 확인
-    const supabase = createClient();
-  const { data$1 } = await supabase.from('users')
+    const { data: profile, error: profileError } = await supabase.from('users')
       .select('is_admin')
       .eq('id', user.id)
       .single()
@@ -108,8 +106,8 @@ export async function POST(request: Request) {
     } = body
 
     // 시간대 슬롯 생성
-    const supabase = createClient();
-  const { data$1 } = await supabase.from('device_time_slots')
+    
+  const { data: slot, error: slotError } = await supabase.from('device_time_slots')
       .insert({
         date,
         device_type_id: deviceTypeId,

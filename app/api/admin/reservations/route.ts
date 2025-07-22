@@ -4,8 +4,9 @@ import { ScheduleService } from '@/lib/services/schedule.service'
 import { withAuth } from '@/lib/auth'
 
 // 관리자용 예약 목록 조회
-export const GET = withAuth(async (request: NextRequest, { user }) => {
-  try {
+export const GET = withAuth(
+  async (request: NextRequest, { user }) => {
+    try {
     const supabaseAdmin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
@@ -68,11 +69,14 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       details: error instanceof Error ? error.message : '알 수 없는 오류'
     }, { status: 500 });
   }
-}, { requireAdmin: true });
+  },
+  { requireAdmin: true }
+);
 
 // 예약 상태 업데이트
-export const PATCH = withAuth(async (request: NextRequest, { user }) => {
-  try {
+export const PATCH = withAuth(
+  async (request: NextRequest, { user }) => {
+    try {
     const body = await request.json();
     const { id, status, notes } = body;
 
@@ -91,7 +95,7 @@ export const PATCH = withAuth(async (request: NextRequest, { user }) => {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    const { data, error } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -111,8 +115,8 @@ export const PATCH = withAuth(async (request: NextRequest, { user }) => {
     if (status === 'rejected' || status === 'cancelled') {
       try {
         // 예약 정보를 조회해서 날짜 가져오기
-        const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+        const supabaseAdmin2 = createAdminClient();
+        const { data: reservationData } = await supabaseAdmin2.from('reservations')
           .select('date')
           .eq('id', id)
           .single();
@@ -153,4 +157,6 @@ export const PATCH = withAuth(async (request: NextRequest, { user }) => {
       details: error instanceof Error ? error.message : '알 수 없는 오류'
     }, { status: 500 });
   }
-}, { requireAdmin: true });
+  },
+  { requireAdmin: true }
+);

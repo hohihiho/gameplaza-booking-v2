@@ -30,7 +30,7 @@ export async function PATCH(
     console.log('[기종 업데이트] 업데이트 데이터:', updateData);
     
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+    const { data, error } = await supabaseAdmin.from('device_types')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -60,7 +60,7 @@ export async function DELETE(
 
     // 연결된 기기가 있는지 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('devices')
+    const { data: devices } = await supabaseAdmin.from('devices')
       .select('id')
       .eq('device_type_id', id)
       .limit(1);
@@ -72,8 +72,8 @@ export async function DELETE(
     }
 
     // 기종 삭제
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('device_types')
+    
+  const { error } = await supabaseAdmin.from('device_types')
       .delete()
       .eq('id', id);
 

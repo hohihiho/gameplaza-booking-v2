@@ -1,4 +1,4 @@
-import { createServerClient as createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server.server'
 import { NextResponse } from 'next/server'
 
 // 대여 가능한 기기 목록 조회
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     if (date && startTime && endTime && machines) {
       // 해당 시간대의 예약 조회
       const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+  const { data: data, error: error } = await supabase.from('reservations')
         .select('rental_machine_id')
         .eq('date', date)
         .in('status', ['pending', 'approved', 'checked_in'])

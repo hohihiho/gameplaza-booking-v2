@@ -4,18 +4,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { 
   Calendar,
-  ChevronLeft,
-  Users,
   Clock,
   BarChart3,
-  PieChart,
   Activity,
   Download,
   RefreshCw,
-  Gamepad2,
   Timer,
   CheckCircle,
   XCircle,
@@ -23,22 +18,87 @@ import {
   Loader2
 } from 'lucide-react';
 
-// 차트 라이브러리 (실제로는 recharts 등 사용)
-// import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+// 차트 라이브러리
+import { 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell,
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip
+} from 'recharts';
+import { 
+  ChartWrapper, 
+  CustomTooltip, 
+  chartColors, 
+  commonChartProps,
+  getAxisStyle,
+  getGridStyle,
+  formatters,
+  chartAnimation
+} from '@/app/components/charts/AnalyticsChart';
+import { useTheme } from '@/hooks/useTheme';
 
 type DateRange = 'week' | 'month' | 'quarter' | '6months' | '12months' | 'yearly' | 'custom';
-type ChartData = {
+
+type DeviceDistribution = {
+  name: string;
+  value: number;
+  percentage: number;
+  count?: number;
+};
+
+type HourlyData = {
+  hour: string;
+  count: number;
+};
+
+type DailyData = {
   date: string;
   count: number;
-  cancelled: number;
-  completed: number;
+};
+
+type WeekdayData = {
+  day: string;
+  count: number;
+};
+
+type AnalyticsData = {
+  summaryStats: {
+    totalReservations: number;
+    avgDuration: number;
+    peakHour: string;
+    avgAdvanceBooking: number;
+    reservationGrowthRate?: number;
+    avgReservationsPerDay?: number;
+    completionRateChange?: number;
+    completionRate?: number;
+    cancellationRate?: number;
+  };
+  dailyReservations: DailyData[];
+  hourlyDistribution: HourlyData[];
+  deviceDistribution: DeviceDistribution[];
+  weekdayPattern: WeekdayData[];
+  statusStats: {
+    pending: number;
+    approved: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+  };
 };
 
 export default function ReservationAnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [isLoading, setIsLoading] = useState(true);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const { theme } = useTheme();
 
   // API에서 데이터 가져오기
   const fetchAnalyticsData = async () => {
@@ -200,7 +260,7 @@ export default function ReservationAnalyticsPage() {
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">총 예약 수</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            일평균 {summaryStats.avgReservationsPerDay.toFixed(1)}건
+            일평균 {summaryStats.avgReservationsPerDay?.toFixed(1) || '0'}건
           </p>
         </motion.div>
 
@@ -221,11 +281,11 @@ export default function ReservationAnalyticsPage() {
             </span>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {summaryStats.completionRate}%
+            {summaryStats.completionRate || 0}%
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">완료율</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            취소율 {summaryStats.cancellationRate}%
+            취소율 {summaryStats.cancellationRate || 0}%
           </p>
         </motion.div>
 
@@ -253,52 +313,48 @@ export default function ReservationAnalyticsPage() {
             <Activity className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
-          {/* 차트 영역 (실제로는 recharts 등 사용) */}
+          {/* 차트 영역 - Recharts 적용 */}
           <div className="h-64">
             {dailyReservations && dailyReservations.length > 0 ? (
-              <div className="h-full flex items-end gap-1">
-                {dailyReservations.map((data, index) => {
-                  const maxCount = Math.max(...dailyReservations.map(d => d.count), 1);
-                  const height = data.count > 0 ? (data.count / maxCount) * 100 : 0;
-                  
-                  return (
-                    <div
-                      key={index}
-                      className="flex-1 min-w-0 flex flex-col items-center"
-                      title={`${data.date}: ${data.count}건`}
-                    >
-                      <div className="w-full h-56 relative flex items-end">
-                        <div
-                          className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
-                          style={{ height: `${height}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-nowrap">
-                        {dateRange === 'week' && data.date.includes('(') 
-                          ? data.date.split('(')[1].replace(')', '') // 요일만 표시
-                          : dateRange === '12months' && data.date.includes('월')
-                          ? data.date.replace('월', '') // 숫자만 표시
-                          : dateRange === 'custom' && data.date.includes('월')
-                          ? data.date.replace('월', '') // 숫자만 표시
-                          : data.date
-                        }
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <ChartWrapper height={256}>
+                <LineChart data={dailyReservations} {...commonChartProps}>
+                  <CartesianGrid {...getGridStyle(theme)} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={getAxisStyle(theme)}
+                    tickFormatter={(value) => {
+                      if (dateRange === 'week' && value.includes('(')) {
+                        return value.split('(')[1].replace(')', '');
+                      }
+                      if ((dateRange === '12months' || dateRange === 'custom') && value.includes('월')) {
+                        return value.replace('월', '');
+                      }
+                      return value;
+                    }}
+                  />
+                  <YAxis 
+                    tick={getAxisStyle(theme)}
+                    tickFormatter={formatters.number}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke={chartColors.primary}
+                    strokeWidth={2}
+                    dot={{ fill: chartColors.primary, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="예약 수"
+                    animationDuration={chartAnimation.duration}
+                    animationEasing={chartAnimation.easing}
+                  />
+                </LineChart>
+              </ChartWrapper>
             ) : (
               <div className="h-full flex items-center justify-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400">데이터가 없습니다</p>
               </div>
             )}
-          </div>
-          
-          <div className="flex items-center gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded" />
-              <span className="text-gray-600 dark:text-gray-400">예약 수</span>
-            </div>
           </div>
         </motion.div>
 
@@ -314,42 +370,68 @@ export default function ReservationAnalyticsPage() {
             <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
-          <div className="space-y-4">
-            {hourlyDistribution.length > 0 ? (
-              hourlyDistribution.map((hour, index) => (
-                <div key={`${hour.hour}-${hour.slot_type}-${index}`} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600 dark:text-gray-400">{hour.hour}시</span>
-                      {hour.slot_type && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          hour.slot_type === 'early' 
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' 
-                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                        }`}>
-                          {hour.slot_type === 'early' ? '조기' : '밤샘'}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-medium dark:text-white">
-                      {hour.count}건 ({hour.percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${hour.percentage}%` }}
-                      transition={{ delay: 0.4 + index * 0.05 }}
-                      className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                    />
-                  </div>
-                </div>
-              ))
+          <div className="h-64">
+            {hourlyDistribution && hourlyDistribution.length > 0 ? (
+              <ChartWrapper height={256}>
+                <BarChart data={hourlyDistribution} {...commonChartProps}>
+                  <CartesianGrid {...getGridStyle(theme)} />
+                  <XAxis 
+                    dataKey="hour" 
+                    tick={getAxisStyle(theme)}
+                    tickFormatter={(value) => `${value}시`}
+                  />
+                  <YAxis 
+                    tick={getAxisStyle(theme)}
+                    tickFormatter={formatters.number}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    formatter={(value: number) => [`${value}건`, '예약']}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill={chartColors.primary}
+                    radius={[4, 4, 0, 0]}
+                    animationDuration={chartAnimation.duration}
+                    animationEasing={chartAnimation.easing}
+                  >
+                    {hourlyDistribution.map((entry: any, index: number) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={
+                          entry.slot_type === 'early' 
+                            ? chartColors.warning 
+                            : entry.slot_type === 'overnight'
+                            ? chartColors.secondary
+                            : chartColors.primary
+                        } 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartWrapper>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                등록된 대여 시간대가 없습니다
-              </p>
+              <div className="h-full flex items-center justify-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  등록된 대여 시간대가 없습니다
+                </p>
+              </div>
             )}
+          </div>
+          
+          <div className="flex items-center gap-4 mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: chartColors.primary }} />
+              <span className="text-gray-600 dark:text-gray-400">일반</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: chartColors.warning }} />
+              <span className="text-gray-600 dark:text-gray-400">조기</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: chartColors.secondary }} />
+              <span className="text-gray-600 dark:text-gray-400">밤샘</span>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -368,32 +450,72 @@ export default function ReservationAnalyticsPage() {
             <PieChart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           
-          <div className="space-y-3">
-            {deviceDistribution.length > 0 ? (
-              deviceDistribution.map((device) => (
-                <div key={device.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded ${device.color}`} />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {device.name}
-                    </span>
-                  </div>
-                  <span className="font-medium dark:text-white">
-                    {device.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              ))
+          <div className="h-64">
+            {deviceDistribution && deviceDistribution.length > 0 ? (
+              <ChartWrapper height={200}>
+                <PieChart>
+                  <Pie
+                    data={deviceDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    dataKey="percentage"
+                    startAngle={90}
+                    endAngle={-270}
+                    animationDuration={chartAnimation.duration}
+                    animationEasing={chartAnimation.easing}
+                  >
+                    {deviceDistribution.map((_entry: DeviceDistribution, index: number) => {
+                      const colors = [
+                        chartColors.primary,
+                        chartColors.secondary,
+                        chartColors.success,
+                        chartColors.warning,
+                        chartColors.danger
+                      ];
+                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                    })}
+                  </Pie>
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    formatter={(value: number) => `${value.toFixed(1)}%`}
+                  />
+                </PieChart>
+              </ChartWrapper>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                예약 데이터가 없습니다
-              </p>
+              <div className="h-64 flex items-center justify-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  예약 데이터가 없습니다
+                </p>
+              </div>
             )}
           </div>
           
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              총 {summaryStats.totalReservations.toLocaleString()}건 중
-            </p>
+          <div className="space-y-2 mt-4">
+            {deviceDistribution.map((device: DeviceDistribution, index: number) => {
+              const colors = [
+                chartColors.primary,
+                chartColors.secondary,
+                chartColors.success,
+                chartColors.warning,
+                chartColors.danger
+              ];
+              return (
+                <div key={device.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded" 
+                      style={{ backgroundColor: colors[index % colors.length] }}
+                    />
+                    <span className="text-gray-600 dark:text-gray-400">{device.name}</span>
+                  </div>
+                  <span className="font-medium dark:text-white">
+                    {device.count}건 ({device.percentage.toFixed(1)}%)
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </motion.div>
 
@@ -411,34 +533,40 @@ export default function ReservationAnalyticsPage() {
           
           <div className="h-48">
             {weekdayPattern && weekdayPattern.length > 0 ? (
-              <div className="h-full flex items-end gap-2">
-                {weekdayPattern.map((day) => {
-                  const maxCount = Math.max(...weekdayPattern.map(d => d.count), 1);
-                  const height = day.count > 0 ? (day.count / maxCount) * 100 : 0;
-                  
-                  return (
-                    <div key={day.day} className="flex-1 min-w-0 flex flex-col items-center">
-                      <div className="w-full h-32 relative flex items-end">
-                        <div
-                          className={`w-full rounded-t transition-all ${
-                            ['토', '일'].includes(day.day)
-                              ? 'bg-blue-500 hover:bg-blue-600'
-                              : 'bg-gray-400 hover:bg-gray-500'
-                          }`}
-                          style={{ height: height > 0 ? `${height}%` : '2px' }}
-                          title={`${day.count}건`}
-                        />
-                      </div>
-                      <span className="text-sm font-medium dark:text-white mt-2">
-                        {day.day}
-                      </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {day.count}건
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <ChartWrapper height={192}>
+                <BarChart data={weekdayPattern} {...commonChartProps}>
+                  <CartesianGrid {...getGridStyle(theme)} />
+                  <XAxis 
+                    dataKey="day" 
+                    tick={getAxisStyle(theme)}
+                  />
+                  <YAxis 
+                    tick={getAxisStyle(theme)}
+                    tickFormatter={formatters.number}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    formatter={(value: number) => [`${value}건`, '예약']}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    radius={[4, 4, 0, 0]}
+                    animationDuration={chartAnimation.duration}
+                    animationEasing={chartAnimation.easing}
+                  >
+                    {weekdayPattern.map((entry: WeekdayData, index: number) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={
+                          ['토', '일'].includes(entry.day)
+                            ? chartColors.primary
+                            : chartColors.gray
+                        } 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartWrapper>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
                 <p className="text-sm text-gray-500 dark:text-gray-400">데이터가 없습니다</p>

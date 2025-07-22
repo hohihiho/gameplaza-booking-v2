@@ -38,6 +38,15 @@ export const metadata: Metadata = {
     title: '게임플라자 광주점',
     description: '광주 게임플라자 리듬게임 기기 예약 시스템',
   },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icons/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/icons/icon-152x152.svg', sizes: '152x152', type: 'image/svg+xml' },
+    ],
+  },
 }
 
 export const viewport = {
@@ -54,6 +63,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-152x152.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="게임플라자" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
         <Providers>
           <ThemeProvider>

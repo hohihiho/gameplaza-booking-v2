@@ -169,15 +169,14 @@ export default function MachinesPage() {
 
       // 카테고리 정보 가져오기
       const supabase = createClient();
-  const { data$1 } = await supabase.from('device_categories')
+      const { data: categories, error: categoriesError } = await supabase.from('device_categories')
         .select('*')
         .order('display_order', { ascending: true });
 
       if (categoriesError) throw categoriesError;
 
       // device_types와 devices, play_modes를 함께 가져오기
-      const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+      const { data: deviceTypes, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
           device_categories!category_id (

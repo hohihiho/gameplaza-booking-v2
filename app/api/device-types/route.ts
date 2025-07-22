@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient as createServerClient } from '@/lib/supabase/server.server';
 import { 
   apiHandler, 
   parseRequestBody, 
@@ -66,8 +66,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   }
 
   // 관리자 권한 확인
-  const supabase = createClient();
-  const { data$1 } = await supabase.from('users')
+  const { data: profile, error: profileError } = await supabase.from('users')
     .select('is_admin')
     .eq('id', user.id)
     .single();
@@ -93,8 +92,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   validateRequiredFields({ name, category }, ['name', 'category']);
 
   // 기기 타입 생성
-  const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+  const { data: deviceType, error: insertError } = await supabase.from('device_types')
     .insert({
       name,
       category,
@@ -110,8 +108,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
     .select()
     .single();
 
-  if (error) {
-    logger.error('Create device type error:', error);
+  if (insertError) {
+    logger.error('Create device type error:', insertError);
     throw new AppError(ErrorCodes.DATABASE_ERROR, '기기 타입 생성에 실패했습니다', 500);
   }
 

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     // 관리자 권한 확인
     console.log('사용자 조회 중:', session.user.email);
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    const { data: userData, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -31,8 +31,8 @@ export async function GET(request: Request) {
     }
 
     console.log('관리자 확인 중:', userData.id);
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    
+    const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -136,8 +136,8 @@ export async function GET(request: Request) {
     console.log('매출 API - 날짜 범위:', { startDateStr, endDateStr, range });
 
     // 우선 모든 예약 데이터 조회해서 상태 확인 (time_end 추가)
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+    const { data: allReservations, error: allReservationsError } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         total_amount,
@@ -212,8 +212,7 @@ export async function GET(request: Request) {
     prevStartDate.setTime(startDate.getTime() - periodLength);
     prevEndDate.setTime(endDate.getTime() - periodLength);
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    const { data: prevAllReservations } = await supabaseAdmin.from('reservations')
       .select('total_amount, status')
       .gte('date', prevStartDate.toISOString().split('T')[0])
       .lte('date', prevEndDate.toISOString().split('T')[0]);
@@ -235,7 +234,7 @@ export async function GET(request: Request) {
       : 0;
 
     // 기간별 차트 데이터 생성
-    let dailyRevenueData = [];
+    const dailyRevenueData = [];
     
     if (range === 'week') {
       // 이번주: 월화수목금토일
@@ -282,7 +281,7 @@ export async function GET(request: Request) {
       const lastDay = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
       
       let weekNum = 1;
-      let currentWeekStart = new Date(firstDay);
+      const currentWeekStart = new Date(firstDay);
       
       while (currentWeekStart <= lastDay) {
         const weekEnd = new Date(currentWeekStart);
@@ -453,9 +452,8 @@ export async function GET(request: Request) {
       prevMonth.setMonth(prevMonth.getMonth() - 1);
       const prevMonthStart = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
       const prevMonthEnd = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0);
-      
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+
+      const { data: prevMonthAllData } = await supabaseAdmin.from('reservations')
         .select('total_amount, status')
         .gte('date', prevMonthStart.toISOString().split('T')[0])
         .lte('date', prevMonthEnd.toISOString().split('T')[0]);
@@ -505,8 +503,8 @@ export async function GET(request: Request) {
       .slice(0, 5);
 
     // 시간대별 매출 (rental_time_slots 테이블 기준)
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
+    
+    const { data: timeSlots } = await supabaseAdmin.from('rental_time_slots')
       .select('start_time, end_time, slot_type')
       .order('start_time');
 

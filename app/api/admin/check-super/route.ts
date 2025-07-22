@@ -13,7 +13,7 @@ export async function GET() {
 
     // 사용자 ID 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -23,8 +23,8 @@ export async function GET() {
     }
 
     // 슈퍼관리자 여부 확인
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();

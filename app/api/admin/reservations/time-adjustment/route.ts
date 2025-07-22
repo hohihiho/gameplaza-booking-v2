@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,8 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -40,8 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 현재 예약 정보 가져오기
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select(`
         *,
         rental_time_slots (
@@ -77,8 +76,8 @@ export async function POST(request: NextRequest) {
     const newStartTime = oldStartTime;
 
     // 트랜잭션으로 처리
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.rpc('create_time_adjustment', {
+    
+  const { error: adjustmentError } = await supabaseAdmin.rpc('create_time_adjustment', {
       p_reservation_id: reservationId,
       p_adjusted_by: userData.id,
       p_new_start_time: newStartTime.toISOString(),
@@ -89,8 +88,8 @@ export async function POST(request: NextRequest) {
     if (adjustmentError) {
       // RPC 함수가 없으면 직접 처리
       // 1. time_adjustments 테이블에 기록 추가
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('time_adjustments')
+      
+  const { error: historyError } = await supabaseAdmin.from('time_adjustments')
         .insert({
           reservation_id: reservationId,
           adjusted_by: userData.id,
@@ -109,8 +108,8 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. reservations 테이블 업데이트
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('reservations')
+      
+  const { error: updateError } = await supabaseAdmin.from('reservations')
         .update({
           actual_end_time: newEndTime,
           time_adjustment_reason: reason || '관리자 수동 조정',
@@ -158,7 +157,7 @@ export async function GET(request: NextRequest) {
 
     // 시간 조정 이력 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('time_adjustments')
+  const { data: timeadjustmentsData } = await supabaseAdmin.from('time_adjustments')
       .select(`
         *,
         users!adjusted_by (

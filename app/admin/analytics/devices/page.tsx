@@ -12,12 +12,9 @@ import {
   Activity,
   Download,
   RefreshCw,
-  ArrowUp,
-  ArrowDown,
   Gamepad2,
   Clock,
   Target,
-  Users,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -257,7 +254,7 @@ export default function DeviceAnalyticsPage() {
                 <BarChart3 className="w-4 h-4" />
                 전체 비교
               </button>
-              {analyticsData.deviceTypes.map((deviceType) => (
+              {analyticsData.deviceTypes.map((deviceType: any) => (
                 <button
                   key={deviceType.id}
                   onClick={() => setSelectedDeviceType(deviceType.id)}
@@ -291,7 +288,7 @@ export default function DeviceAnalyticsPage() {
             </div>
             
             <div className="space-y-4">
-              {analyticsData?.deviceTypes?.map((deviceType) => {
+              {analyticsData?.deviceTypes?.map((deviceType: any) => {
                 const deviceData = analyticsData.deviceAnalytics[deviceType.id];
                 if (!deviceData) return null;
                 
@@ -411,7 +408,7 @@ export default function DeviceAnalyticsPage() {
               </div>
               
               <div className="space-y-4">
-                {currentDeviceData.hourlyBookings?.map((slot, index) => (
+                {currentDeviceData.hourlyBookings?.map((slot: any, index: number) => (
                   <div key={slot.timeSlot} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">{slot.timeSlot}시</span>
@@ -445,7 +442,7 @@ export default function DeviceAnalyticsPage() {
               </div>
               
               <div className="space-y-3">
-                {currentDeviceData.deviceUsage?.slice(0, 5).map((device) => (
+                {currentDeviceData.deviceUsage?.slice(0, 5).map((device: any) => (
                   <div key={device.deviceNumber} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
@@ -551,7 +548,7 @@ export default function DeviceAnalyticsPage() {
               </div>
               
               <div className="space-y-4">
-                {currentDeviceData.creditAnalysis?.map((credit, index) => {
+                {currentDeviceData.creditAnalysis?.map((credit: any, index: number) => {
                   const getCreditLabel = (type: string) => {
                     switch (type) {
                       case 'freeplay': return '프리플레이';

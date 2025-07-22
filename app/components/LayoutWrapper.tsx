@@ -5,6 +5,7 @@ import DesktopSidebar from './DesktopSidebar';
 import BottomTabBar from './BottomTabBar';
 import { ToastContainer } from './mobile';
 import { useProfileCheck } from '@/app/hooks/useProfileCheck';
+import ServiceWorkerRegistration from './ServiceWorkerRegistration';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -38,6 +39,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       
       {/* Toast 메시지 컨테이너 */}
       <ToastContainer />
+      
+      {/* Service Worker 등록 */}
+      <ServiceWorkerRegistration />
     </>
   );
 }

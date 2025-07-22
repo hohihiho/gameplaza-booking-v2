@@ -321,9 +321,43 @@
     padding-top: env(safe-area-inset-top);
   }
   
-  /* 터치 타겟 최소 크기 보장 */
+  /* 터치 타겟 최소 크기 보장 (44px) */
   .touch-target {
-    @apply min-h-[44px] min-w-[44px];
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 버튼 터치 영역 확대 */
+  .btn-touch {
+    @apply relative overflow-visible;
+  }
+  
+  .btn-touch::before {
+    content: '';
+    @apply absolute -inset-2;
+  }
+  
+  /* 터치 피드백 개선 */
+  .touch-feedback {
+    @apply transition-all duration-75 active:scale-95 active:opacity-80;
+  }
+  
+  /* 리스트 아이템 터치 최적화 */
+  .list-item-touch {
+    @apply min-h-[56px] px-4 py-3 active:bg-gray-100 dark:active:bg-gray-800;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 스와이프 가능한 요소 */
+  .swipeable {
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* 카드 터치 효과 */
+  .card-touch {
+    @apply transition-all duration-200 active:scale-[0.98] active:shadow-md;
   }
   
   /* 스크롤 성능 최적화 */
@@ -549,6 +583,98 @@
     
     .hero-tablet-portrait .hero-title {
       @apply text-2xl md:text-3xl lg:text-4xl;
+    }
+  }
+  
+  /* ============================================
+     3G 네트워크 최적화
+     ============================================ */
+  
+  /* 스켈레톤 로더 */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
+  }
+  
+  .skeleton-text {
+    @apply h-4 w-full skeleton mb-2;
+  }
+  
+  .skeleton-title {
+    @apply h-6 w-3/4 skeleton mb-4;
+  }
+  
+  .skeleton-button {
+    @apply h-10 w-24 skeleton;
+  }
+  
+  .skeleton-card {
+    @apply p-4 border border-gray-200 dark:border-gray-700 rounded-lg;
+  }
+  
+  /* 이미지 레이지 로딩 */
+  .lazy-image {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+  
+  .lazy-image[data-loaded="true"] {
+    @apply bg-transparent;
+  }
+  
+  /* 로딩 상태 최적화 */
+  .loading-spinner {
+    @apply inline-block w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin;
+  }
+  
+  .loading-dots {
+    @apply inline-flex space-x-1;
+  }
+  
+  .loading-dots span {
+    @apply w-2 h-2 bg-primary rounded-full animate-bounce;
+  }
+  
+  .loading-dots span:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  
+  .loading-dots span:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+  
+  /* 오프라인 상태 표시 */
+  .offline-indicator {
+    @apply fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .offline-indicator.show {
+    transform: translateY(0);
+  }
+  
+  /* 입력 필드 최적화 (iOS 줌 방지) */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important; /* iOS 줌 방지 */
+  }
+  
+  /* GPU 가속 사용 */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* 애니메이션 설정 감소 지원 */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 }

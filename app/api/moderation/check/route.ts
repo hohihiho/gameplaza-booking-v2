@@ -129,7 +129,7 @@ async function checkCustomBannedWords(text: string): Promise<{
 }> {
   // 금지어 목록 조회
   const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('banned_words')
+  const { data: data, error: error } = await supabaseAdmin.from('banned_words')
     .select('word, severity')
     .eq('is_active', true);
 
@@ -149,7 +149,6 @@ async function checkCustomBannedWords(text: string): Promise<{
 
   return { flagged: false };
 }
-
 
 export async function POST(request: Request) {
   try {
@@ -239,7 +238,7 @@ export async function POST(request: Request) {
     if (context === 'nickname') {
       // 닉네임에서는 비속어만 체크
       const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('banned_words')
+  const { data: data, error: error } = await supabaseAdmin.from('banned_words')
         .select('word, severity')
         .eq('is_active', true)
         .in('category', ['profanity', 'offensive', 'sexual']);
@@ -271,7 +270,6 @@ export async function POST(request: Request) {
       }
     }
 
-
     // 6. 특수 문자 및 형식 체크
     if (context === 'nickname') {
       // 닉네임에 허용된 문자만 체크 (한글, 영문, 숫자, 일부 특수문자) - 공백 제외
@@ -284,8 +282,8 @@ export async function POST(request: Request) {
       }
       
       // 7. 닉네임 중복 체크
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+      
+  const { data: data, error: error } = await supabaseAdmin.from('users')
         .select('id')
         .eq('nickname', text)
         .neq('email', session.user.email) // 자기 자신은 제외

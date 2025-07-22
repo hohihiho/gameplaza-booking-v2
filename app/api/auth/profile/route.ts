@@ -14,14 +14,12 @@ export async function GET() {
       );
     }
 
-
     // 사용자 프로필 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: error } = await supabaseAdmin.from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
-    
 
     // PGRST116: 행이 없음 (프로필이 없는 경우)
     if (error && error.code === 'PGRST116') {
@@ -47,8 +45,8 @@ export async function GET() {
     // 관리자 권한 확인
     let isAdmin = false;
     if (profile?.id) {
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+      
+  const { data: adminData, error: error } = await supabaseAdmin.from('admins')
         .select('is_super_admin')
         .eq('user_id', profile.id)
         .single();

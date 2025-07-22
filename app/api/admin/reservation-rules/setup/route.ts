@@ -38,7 +38,7 @@ export async function POST() {
 
     // 테이블 생성 실행
     const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('reservation_rules')
+  const { error } = await supabaseAdmin.from('reservation_rules')
       .select('id')
       .limit(1);
 
@@ -76,8 +76,7 @@ export async function POST() {
         }
       ];
 
-      const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('reservation_rules')
+  const { error: insertError } = await supabaseAdmin.from('reservation_rules')
         .insert(sampleRules);
 
       if (insertError) {

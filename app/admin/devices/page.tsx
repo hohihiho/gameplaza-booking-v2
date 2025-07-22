@@ -592,7 +592,7 @@ export default function DevicesPage() {
   const loadDeviceTypes = async () => {
     try {
       const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+  const { data: types, error } = await supabase.from('device_types')
         .select(`
           *,
           devices (

@@ -5,28 +5,17 @@
 
 // 클라이언트 exports
 export { createClient, getClient } from './client'
-export { createClient as createServerClient, createActionClient } from './server'
+// Server exports는 별도로 import해서 사용하세요: import { createClient } from '@/lib/supabase/server.server'
+// export { createClient as createServerClient, createActionClient } from './server'
 export { createAdminClient, getAdminClient } from './admin'
 
-// 타입 exports
-export * from './types'
+// 타입 exports - 명시적으로 export
+export type { Database, Tables, TablesInsert, TablesUpdate, Enums, User, Reservation, Device, DeviceType, Admin } from './types'
 
 // 헬퍼 함수들
-import { isServer } from '@/lib/config/env'
+// import { isServer } from '@/lib/config/env'
 
-/**
- * 현재 환경에 맞는 Supabase 클라이언트를 자동으로 선택
- * 서버: createServerClient 사용
- * 클라이언트: createClient 사용
- * 
- * @deprecated 명시적으로 클라이언트 타입을 선택하는 것을 권장합니다.
- */
-export async function getSupabaseClient() {
-  if (isServer()) {
-    const { createClient } = await import('./server')
-    return createClient()
-  } else {
-    const { createClient } = await import('./client')
-    return createClient()
-  }
-}
+// getSupabaseClient 함수는 제거되었습니다.
+// 대신 다음을 사용하세요:
+// - Client Component: import { createClient } from '@/lib/supabase'
+// - Server Component/API Route: import { createClient } from '@/lib/supabase/server.server'

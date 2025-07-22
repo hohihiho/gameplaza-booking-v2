@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     let scheduleEvents: any[] = [];
     try {
       const supabase = createClient();
-  const { data$1 } = await supabase.from('schedule_events')
+  const { data: data, error: error } = await supabase.from('schedule_events')
         .select('*')
         .gte('date', startStr)
         .lte('date', endStr)
@@ -44,8 +44,8 @@ export async function GET(request: Request) {
     }
     
     // 2. 예약 데이터 가져오기 (대기, 취소 제외)
-    const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+    
+  const { data: data, error: error } = await supabase.from('reservations')
       .select(`
         id,
         device_id,
@@ -68,8 +68,8 @@ export async function GET(request: Request) {
     if (reservations && reservations.length > 0) {
       const deviceIds = [...new Set(reservations.map(r => r.device_id).filter(Boolean))];
       if (deviceIds.length > 0) {
-        const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+        
+  const { data: data, error: error } = await supabase.from('devices')
           .select(`
             id,
             device_number,

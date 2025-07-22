@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -35,8 +35,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -133,8 +132,8 @@ export async function GET(request: Request) {
     });
 
     // 고객 통계 조회 - 모든 상태의 예약 포함 (rejected, cancelled 제외)
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: allReservations } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         created_at,
@@ -220,8 +219,7 @@ export async function GET(request: Request) {
     prevStartDate.setTime(startDate.getTime() - periodLength);
     prevEndDate.setTime(endDate.getTime() - periodLength);
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
       .select('user_id, status, users(created_at)')
       .gte('created_at', prevStartDate.toISOString())
       .lte('created_at', prevEndDate.toISOString());

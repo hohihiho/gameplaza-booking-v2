@@ -1,16 +1,20 @@
 {
-  "name": "광주 게임플라자 예약 시스템",
+  "name": "광주 게임플라자",
   "short_name": "게임플라자",
-  "description": "광주 게임플라자 리듬게임 기기 예약 시스템",
+  "description": "광주 게임플라자 예약 시스템 - 언제 어디서나 간편하게 게임 기기를 예약하세요",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
   "orientation": "portrait",
   "scope": "/",
   "lang": "ko-KR",
   "dir": "ltr",
-  "categories": ["entertainment", "games"],
+  "categories": ["games", "entertainment", "lifestyle"],
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-72x72.svg",

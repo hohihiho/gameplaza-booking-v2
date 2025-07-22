@@ -26,7 +26,7 @@ export async function PATCH(request: Request) {
 
     // 현재 사용자 정보 가져오기
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: fetchError } = await supabaseAdmin.from('users')
       .select('phone, phone_changed_at')
       .eq('email', session.user.email)
       .single();
@@ -70,15 +70,15 @@ export async function PATCH(request: Request) {
     }
 
     // 프로필 업데이트
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+    
+  const { data: updatedUser, error: updateError } = await supabaseAdmin.from('users')
       .update(updateData)
       .eq('email', session.user.email)
       .select()
       .single();
 
-    if (error) {
-      console.error('프로필 업데이트 오류:', error);
+    if (updateError) {
+      console.error('프로필 업데이트 오류:', updateError);
       return NextResponse.json(
         { error: '프로필 수정에 실패했습니다' },
         { status: 500 }

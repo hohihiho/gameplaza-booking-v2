@@ -13,7 +13,7 @@ export async function PATCH(
 
     // 기기 타입 업데이트
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
       .update({ is_rentable })
       .eq('id', id)
       .select()
@@ -36,7 +36,7 @@ export async function DELETE(
   try {
     const { id } = await params
     const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('device_types')
+  const { error } = await supabaseAdmin.from('device_types')
       .delete()
       .eq('id', id)
 

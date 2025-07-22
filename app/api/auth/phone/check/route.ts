@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     // 전화번호 중복 체크
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: error } = await supabaseAdmin.from('users')
       .select('id')
       .eq('phone', phoneNumbers)
       .neq('email', session.user.email) // 자기 자신 제외

@@ -17,7 +17,7 @@ export async function GET() {
 
     // Supabase admin client로 사용자 찾기 (RLS 우회)
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: data, error: error } = await supabaseAdmin.from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
@@ -32,8 +32,8 @@ export async function GET() {
 
     if (!userData) {
       // 사용자가 없으면 생성
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+      
+  const { data: data, error: error } = await supabaseAdmin.from('users')
         .insert({
           email: session.user.email,
           name: session.user.name || '',

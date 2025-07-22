@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const supabase = supabaseAdmin
+    const supabase = createAdminClient()
     const body = await request.json()
 
     // 업데이트할 데이터 준비
@@ -29,8 +29,7 @@ export async function PATCH(
     }
 
     // 기기 업데이트
-    const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+    const { data, error } = await supabase.from('devices')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -52,11 +51,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = supabaseAdmin
+    const supabase = createAdminClient()
 
     // 기기 상태 확인
-    const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+    const { data: device, error: fetchError } = await supabase.from('devices')
       .select('status')
       .eq('id', id)
       .single()
@@ -72,8 +70,8 @@ export async function DELETE(
     }
 
     // 기기 삭제
-    const supabase = createClient();
-  const { error$1 } = await supabase.from('devices')
+    
+  const { error: deleteError } = await supabase.from('devices')
       .delete()
       .eq('id', id)
 

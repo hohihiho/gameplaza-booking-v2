@@ -23,7 +23,6 @@ import {
   Eye,
   X
 } from 'lucide-react';
-import Link from 'next/link';
 
 // 24시간 이상 시간 포맷팅
 const formatTime = (time: string) => {
@@ -42,7 +41,7 @@ const formatTime = (time: string) => {
 const getShiftType = (startTime: string) => {
   if (!startTime) return null;
   const [hour] = startTime.split(':');
-  const h = parseInt(hour);
+  const h = parseInt(hour || '0');
   
   if (h >= 6 && h <= 23) {
     return 'early'; // 조기영업 (06:00-23:59)
@@ -123,12 +122,17 @@ export default function ReservationManagementPage() {
     const [year, month, day] = date.split('-').map(Number);
     const [hour] = startTime.split(':').map(Number);
     
+    // 기본값 설정
+    const safeYear = year || new Date().getFullYear();
+    const safeMonth = month || 1;
+    const safeDay = day || 1;
+    
     // 0~5시는 전날 영업일로 간주
-    if (hour >= 0 && hour <= 5) {
-      const businessDate = new Date(year, month - 1, day - 1);
+    if (hour !== undefined && hour >= 0 && hour <= 5) {
+      const businessDate = new Date(safeYear, safeMonth - 1, safeDay - 1);
       return businessDate;
     } else {
-      const businessDate = new Date(year, month - 1, day);
+      const businessDate = new Date(safeYear, safeMonth - 1, safeDay);
       return businessDate;
     }
   };

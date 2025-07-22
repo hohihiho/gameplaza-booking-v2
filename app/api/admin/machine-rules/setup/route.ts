@@ -42,7 +42,7 @@ export async function POST() {
     if (count === 0) {
       // 초기 데이터 삽입
       const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('machine_rules')
+  const { error } = await supabaseAdmin.from('machine_rules')
         .insert(initialRules)
 
       if (error) throw error

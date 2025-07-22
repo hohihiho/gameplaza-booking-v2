@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_settings')
+  const { data: rentalsettingsData } = await supabaseAdmin.from('rental_settings')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .single()
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // 먼저 기존 설정이 있는지 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_settings')
+  const { data: rentalsettingsData2 } = await supabaseAdmin.from('rental_settings')
       .select('*')
       .eq('device_type_id', device_type_id)
       .single()
@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     let result
     if (existing) {
       // 업데이트
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_settings')
+      
+  const { data: rentalsettingsData3 } = await supabaseAdmin.from('rental_settings')
         .update({
           max_rental_units: max_rental_units !== undefined ? max_rental_units : existing.max_rental_units,
           updated_at: getKSTNow()
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
       result = data
     } else {
       // 새로 생성
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('rental_settings')
+      
+  const { data: rentalsettingsData4 } = await supabaseAdmin.from('rental_settings')
         .insert({
           device_type_id,
           max_rental_units: max_rental_units || null,
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
 
     // device_types 테이블도 업데이트 (호환성을 위해)
     // 기존 rental_settings 가져오기
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('device_types')
+    
+  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
       .select('rental_settings')
       .eq('id', device_type_id)
       .single()
@@ -101,8 +101,7 @@ export async function POST(request: NextRequest) {
       updatedSettings.display_order = display_order
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('device_types')
+  const { error } = await supabaseAdmin.from('device_types')
       .update({
         rental_settings: updatedSettings
       })

@@ -41,7 +41,6 @@ type UserType = {
 
 export default function UsersPage() {
   const router = useRouter();
-  const [supabase] = useState(() => createClient());
   
   // 상태 관리
   const [users, setUsers] = useState<UserType[]>([]);
@@ -60,7 +59,7 @@ export default function UsersPage() {
     try {
       // 사용자 정보 가져오기
       const supabase = createClient();
-  const { data$1 } = await supabase.from('users')
+  const { data: usersData, error: usersError } = await supabase.from('users')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -76,8 +75,7 @@ export default function UsersPage() {
             .eq('user_id', user.id);
 
           // 최근 예약
-          const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+          const { data: recentReservation } = await supabase.from('reservations')
             .select(`
               date,
               devices!inner (
@@ -153,7 +151,7 @@ export default function UsersPage() {
   const toggleBanUser = async (userId: string, currentBanStatus: boolean) => {
     try {
       const supabase = createClient();
-  const { error$1 } = await supabase.from('users')
+  const { error } = await supabase.from('users')
         .update({ is_banned: !currentBanStatus })
         .eq('id', userId);
 

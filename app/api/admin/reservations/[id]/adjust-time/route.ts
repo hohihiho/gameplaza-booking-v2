@@ -5,6 +5,28 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 
+// 조정된 금액 계산 함수
+function calculateAdjustedAmount(reservation: any, newStartTime: string, newEndTime: string): number {
+  const originalHours = calculateHours(reservation.start_time, reservation.end_time);
+  const actualHours = calculateHours(
+    new Date(newStartTime).toTimeString().slice(0, 5),
+    new Date(newEndTime).toTimeString().slice(0, 5)
+  );
+  
+  const hourlyRate = reservation.total_amount / originalHours;
+  return Math.round(hourlyRate * actualHours);
+}
+
+function calculateHours(startTime: string, endTime: string): number {
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
+  
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  
+  return (endMinutes - startMinutes) / 60;
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,7 +48,7 @@ export async function POST(
 
     // 관리자 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', userEmail)
       .single();
@@ -35,8 +57,7 @@ export async function POST(
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -54,8 +75,8 @@ export async function POST(
     }
 
     // 예약 정보 조회
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -70,8 +91,8 @@ export async function POST(
     }
 
     // 시간 조정 이력 저장
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('time_adjustments')
+    
+  const { error } = await supabaseAdmin.from('time_adjustments')
       .insert({
         reservation_id: id,
         adjusted_by: userData.id,
@@ -82,7 +103,7 @@ export async function POST(
         new_end_time: actual_end_time,
         reason: reason,
         old_amount: reservation.total_amount,
-        new_amount: null // TODO: 금액 계산 로직 추가
+        new_amount: calculateAdjustedAmount(reservation, actual_start_time, actual_end_time)
       });
 
     if (adjustmentError) {
@@ -102,8 +123,7 @@ export async function POST(
       updateData.actual_end_time = actual_end_time;
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()

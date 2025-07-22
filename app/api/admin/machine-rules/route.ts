@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase'
 export async function GET() {
   try {
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('machine_rules')
+  const { data: machinerulesData } = await supabaseAdmin.from('machine_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const { content, display_order } = await request.json()
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('machine_rules')
+  const { data: machinerulesData2 } = await supabaseAdmin.from('machine_rules')
       .insert([{ 
         content,
         display_order: display_order || 0,
@@ -71,7 +71,7 @@ export async function PUT(request: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('machine_rules')
+  const { data: machinerulesData3 } = await supabaseAdmin.from('machine_rules')
       .update({
         ...updateData,
         updated_at: new Date().toISOString()
@@ -104,7 +104,7 @@ export async function DELETE(request: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('machine_rules')
+  const { error } = await supabaseAdmin.from('machine_rules')
       .delete()
       .eq('id', id)
 

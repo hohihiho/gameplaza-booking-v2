@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Plus, AlertCircle, Search, Shield, Globe } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, Search, Shield, Globe, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type BannedWord = {

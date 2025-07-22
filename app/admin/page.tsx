@@ -19,8 +19,7 @@ import {
   FileText,
   TrendingUp,
   Bell,
-  Settings,
-  Users
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';

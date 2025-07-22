@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,8 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -41,8 +40,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 예약 정보 조회
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select('*, users:user_id(name, nickname)')
       .eq('id', reservationId)
       .single();
@@ -66,8 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 예약 상태 업데이트
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+    
+  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', reservationId)
       .select()
@@ -89,8 +88,8 @@ export async function POST(request: NextRequest) {
       });
       
       // device_id를 사용하여 정확한 기기 업데이트
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('devices')
+      
+  const { data: devicesData } = await supabaseAdmin.from('devices')
         .update({ status: 'in_use' })
         .eq('id', reservation.device_id)
         .select();
@@ -106,9 +105,8 @@ export async function POST(request: NextRequest) {
         assigned_device_number: reservation.assigned_device_number,
         device_type_id: reservation.device_type_id
       });
-      
-      const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('devices')
+
+  const { data: devicesData2 } = await supabaseAdmin.from('devices')
         .update({ status: 'in_use' })
         .eq('device_number', reservation.assigned_device_number)
         .eq('device_type_id', reservation.device_type_id)

@@ -130,8 +130,7 @@ export default function UserDetailPage() {
     setIsLoading(true);
     try {
       // 사용자 정보
-      const supabase = createClient();
-  const { data$1 } = await supabase.from('users')
+      const { data: userData, error: userError } = await supabase.from('users')
         .select('*')
         .eq('id', userId)
         .single();
@@ -141,8 +140,7 @@ export default function UserDetailPage() {
       setEditedUser(userData);
 
       // 예약 내역
-      const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+      const { data: reservationsData, error: reservationsError } = await supabase.from('reservations')
         .select(`
           id,
           date,
@@ -163,7 +161,7 @@ export default function UserDetailPage() {
 
       if (reservationsError) throw reservationsError;
 
-      const formattedReservations = reservationsData.map((res: any) => ({
+      const formattedReservations = (reservationsData || []).map((res: any) => ({
         id: res.id,
         date: res.date,
         start_time: res.start_time,
@@ -198,7 +196,7 @@ export default function UserDetailPage() {
   const handleSaveUser = async () => {
     try {
       const supabase = createClient();
-  const { error$1 } = await supabase.from('users')
+  const { error } = await supabase.from('users')
         .update({
           nickname: editedUser.nickname,
           phone: editedUser.phone
@@ -222,7 +220,7 @@ export default function UserDetailPage() {
     
     try {
       const supabase = createClient();
-  const { error$1 } = await supabase.from('users')
+  const { error } = await supabase.from('users')
         .update({ is_banned: !user.is_banned })
         .eq('id', userId);
 

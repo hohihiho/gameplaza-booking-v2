@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // 해당 날짜의 활성 예약 조회 (pending, approved, checked_in 상태)
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservations')
+  const { data: reservationsData } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         date,
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     console.log(`${date} 조기영업 시간대 활성 예약:`, earlyReservations);
 
     // 자동 생성된 조기영업 스케줄 조회
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('schedule_events')
+    
+  const { data: scheduleeventsData } = await supabaseAdmin.from('schedule_events')
       .select('*')
       .eq('date', date)
       .eq('type', 'early_open')
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // 수동 생성 스케줄이 있는지 확인
-        const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('schedule_events')
+        
+  const { data: scheduleeventsData2 } = await supabaseAdmin.from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'early_open')
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // 수동 생성 스케줄이 있는지 확인
-        const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('schedule_events')
+        
+  const { data: scheduleeventsData3 } = await supabaseAdmin.from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'early_open')

@@ -134,7 +134,7 @@ export default function CheckInPage() {
       }
 
       // 데이터 포맷팅
-      const formattedReservations: CheckInReservation[] = (reservationsData || []).map(res => {
+      const formattedReservations: CheckInReservation[] = (reservationsData || []).map((res: any) => {
         // 기기 타입 정보 추출 - 다양한 경로에서 시도
         let deviceTypeName = '알 수 없음';
         let deviceTypeId = '';
@@ -309,12 +309,12 @@ export default function CheckInPage() {
     approved: todayReservations.filter(r => r.status === 'approved').length,
     approvedEarly: todayReservations.filter(r => {
       if (r.status !== 'approved') return false;
-      const startHour = parseInt(r.time_slot.split('-')[0].split(':')[0]);
+      const startHour = parseInt(r.time_slot?.split('-')[0]?.split(':')[0] || '0');
       return startHour >= 7 && startHour < 12;
     }).length,
     approvedNight: todayReservations.filter(r => {
       if (r.status !== 'approved') return false;
-      const startHour = parseInt(r.time_slot.split('-')[0].split(':')[0]);
+      const startHour = parseInt(r.time_slot?.split('-')[0]?.split(':')[0] || '0');
       return (startHour >= 12 && startHour <= 23) || (startHour >= 0 && startHour <= 5);
     }).length,
     checked_in: todayReservations.filter(r => r.status === 'checked_in' && r.payment_status !== 'paid').length,
@@ -455,7 +455,7 @@ export default function CheckInPage() {
       
       // 예약 상태 업데이트
       const supabase = createClient();
-  const { error$1 } = await supabase.from('reservations')
+  const { error } = await supabase.from('reservations')
         .update({
           status: 'approved',
           check_in_at: null,
@@ -473,7 +473,7 @@ export default function CheckInPage() {
       // 기기 상태를 사용 가능으로 변경
       if (reservation.device_id) {
         const supabase = createClient();
-  const { error$1 } = await supabase.from('devices')
+  const { error: deviceError } = await supabase.from('devices')
           .update({ status: 'available' })
           .eq('id', reservation.device_id);
           
@@ -838,7 +838,7 @@ export default function CheckInPage() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedReservation(reservation);
-                                      setPaymentMethod(reservation.payment_method);
+                                      setPaymentMethod(reservation.payment_method || 'cash');
                                       setShowPaymentModal(true);
                                     }}
                                     className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
@@ -1412,7 +1412,7 @@ export default function CheckInPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!adjustmentReason || !adjustedStartTime || !adjustedEndTime) {
+                    if (!adjustmentReason || !adjustedEndTime) {
                       toast.warning('입력 필요', '모든 필드를 입력해주세요.');
                       return;
                     }
@@ -1422,7 +1422,8 @@ export default function CheckInPage() {
                       
                       // 날짜 객체 생성
                       const today = adjustingReservation.date;
-                      const actualStartTime = new Date(`${today}T${adjustedStartTime}:00`);
+                      // 기존 예약 시작 시간 사용
+                      const actualStartTime = new Date(`${today}T${adjustingReservation.time_slot.split(' - ')[0]}:00`);
                       const actualEndTime = new Date(`${today}T${adjustedEndTime}:00`);
                       
                       // 조정된 금액 계산
@@ -1432,7 +1433,7 @@ export default function CheckInPage() {
                       
                       // 데이터베이스 업데이트
                       const supabase = createClient();
-  const { error$1 } = await supabase.from('reservations')
+  const { error } = await supabase.from('reservations')
                         .update({
                           actual_start_time: actualStartTime.toISOString(),
                           actual_end_time: actualEndTime.toISOString(),
@@ -1652,11 +1653,11 @@ export default function CheckInPage() {
                       const reservationDate = adjustingReservation.date;
                       const [hours, minutes] = adjustedEndTime.split(':');
                       const endDate = new Date(
-                        parseInt(reservationDate.split('-')[0]), // 년
-                        parseInt(reservationDate.split('-')[1]) - 1, // 월 (0-based)
-                        parseInt(reservationDate.split('-')[2]), // 일
-                        parseInt(hours), // 시
-                        parseInt(minutes), // 분
+                        parseInt(reservationDate?.split('-')[0] || new Date().getFullYear().toString()), // 년
+                        parseInt(reservationDate?.split('-')[1] || '1') - 1, // 월 (0-based)
+                        parseInt(reservationDate?.split('-')[2] || '1'), // 일
+                        parseInt(hours || '0'), // 시
+                        parseInt(minutes || '0'), // 분
                         0 // 초
                       );
                       
@@ -1857,8 +1858,6 @@ export default function CheckInPage() {
                       setIsLoading(true);
                       
                       const adjustedAmount = parseInt(refundAmount);
-                      const refundAmountValue = adjustingReservation.total_price - adjustedAmount;
-                      const isRefund = refundAmountValue > 0;
 
                       const response = await fetch(`/api/admin/reservations/${adjustingReservation.id}/adjust-amount`, {
                         method: 'POST',

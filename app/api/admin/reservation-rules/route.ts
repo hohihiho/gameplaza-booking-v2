@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservation_rules')
+  const { data: reservationrulesData } = await supabaseAdmin.from('reservation_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const { content, display_order } = body
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservation_rules')
+  const { data: reservationrulesData2 } = await supabaseAdmin.from('reservation_rules')
       .insert({
         content,
         display_order,
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
     console.log('업데이트 데이터:', updateData)
 
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('reservation_rules')
+  const { data: reservationrulesData3 } = await supabaseAdmin.from('reservation_rules')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -122,7 +122,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('reservation_rules')
+  const { error } = await supabaseAdmin.from('reservation_rules')
       .delete()
       .eq('id', id)
 

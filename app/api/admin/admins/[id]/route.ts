@@ -7,15 +7,14 @@ import { createAdminClient } from '@/lib/supabase';
 async function checkSuperAdmin(email: string): Promise<boolean> {
   try {
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('users')
+  const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', email)
       .single();
 
     if (!userData) return false;
 
-    const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .eq('is_super_admin', true)
@@ -50,7 +49,7 @@ export async function DELETE(
 
     // 관리자 정보 조회
     const supabaseAdmin = createAdminClient();
-  const { data$1 } = await supabaseAdmin.from('admins')
+    const { data: adminToDelete, error: fetchError } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('id', id)
       .single();
@@ -65,8 +64,8 @@ export async function DELETE(
     }
 
     // 관리자 삭제
-    const supabaseAdmin = createAdminClient();
-  const { error$1 } = await supabaseAdmin.from('admins')
+    
+    const { error: deleteError } = await supabaseAdmin.from('admins')
       .delete()
       .eq('id', id);
 

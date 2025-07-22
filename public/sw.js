@@ -1,13 +1,22 @@
 // Service Worker for 광주 게임플라자 PWA
-const CACHE_NAME = 'gameplaza-v1';
+const CACHE_NAME = 'gameplaza-v2';
+const STATIC_CACHE = 'gameplaza-static-v2';
+const DYNAMIC_CACHE = 'gameplaza-dynamic-v2';
+const IMAGE_CACHE = 'gameplaza-images-v2';
+
+// 핵심 리소스 (설치 시 캐시)
 const urlsToCache = [
   '/',
   '/offline.html',
   '/manifest.json',
-  '/_next/static/css/app/layout.css',
-  '/_next/static/chunks/main.js',
-  '/_next/static/chunks/app-pages-internals.js',
 ];
+
+// 캐시 우선순위 설정
+const CACHE_STRATEGY = {
+  networkFirst: ['/api/', '/auth/', '/supabase/'],
+  cacheFirst: ['/_next/static/', '/icons/', '.svg', '.woff2'],
+  staleWhileRevalidate: ['/images/', '.jpg', '.png', '.webp'],
+};
 
 // 설치 이벤트 - 캐시 초기화
 self.addEventListener('install', (event) => {
