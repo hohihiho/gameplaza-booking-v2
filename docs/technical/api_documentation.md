@@ -1,14 +1,17 @@
 # 📡 API 문서
 
+> 최종 업데이트: 2025-07-23
+
 ## 개요
 
 광주 게임플라자 예약 시스템의 RESTful API 문서입니다. 모든 API는 `/api` 경로로 시작합니다.
 
 ### 기본 정보
 - **Base URL**: `https://gameplaza.vercel.app/api`
-- **인증 방식**: Bearer Token (JWT)
+- **인증 방식**: JWT Token (구글 OAuth 기반)
 - **응답 형식**: JSON
 - **문자 인코딩**: UTF-8
+- **타임존**: KST (한국 표준시)
 
 ### 공통 응답 형식
 
@@ -42,35 +45,122 @@
 - `404 Not Found`: 리소스를 찾을 수 없음
 - `500 Internal Server Error`: 서버 오류
 
+### 인증 헤더
+인증이 필요한 API는 다음 헤더를 포함해야 합니다:
+```http
+Authorization: Bearer {jwt_token}
+```
+
 ---
 
 ## 🔐 인증 API
 
-### 세션 확인
-현재 로그인된 사용자의 세션 정보를 확인합니다.
+### 구글 OAuth 로그인
+구글 계정으로 로그인을 시작합니다.
 
 ```http
-GET /api/auth/session
+GET /api/auth/google
+```
+
+#### 응답
+- 구글 OAuth URL로 리다이렉트
+
+### 전화번호 OTP 발송
+SMS OTP 인증 코드를 발송합니다.
+
+```http
+POST /api/auth/phone
+```
+
+#### Request Body
+```json
+{
+  "phone": "010-1234-5678"
+}
 ```
 
 #### 응답 예시
 ```json
 {
-  "user": {
-    "name": "홍길동",
-    "email": "hong@gmail.com",
-    "image": "https://...",
-    "role": "user"
-  },
-  "expires": "2024-02-01T00:00:00.000Z"
+  "success": true,
+  "message": "인증 코드가 발송되었습니다"
 }
 ```
 
-### 로그아웃
-현재 세션을 종료합니다.
+### 전화번호 OTP 검증
+발송된 OTP 코드를 검증합니다.
 
 ```http
-POST /api/auth/signout
+POST /api/auth/phone/verify
+```
+
+#### Request Body
+```json
+{
+  "phone": "010-1234-5678",
+  "code": "123456"
+}
+```
+
+### 전화번호 중복 확인
+전화번호 사용 가능 여부를 확인합니다.
+
+```http
+POST /api/auth/phone/check
+```
+
+#### Request Body
+```json
+{
+  "phone": "010-1234-5678"
+}
+```
+
+### 프로필 조회/수정
+현재 로그인한 사용자의 프로필 정보를 관리합니다.
+
+```http
+GET /api/auth/profile
+PUT /api/auth/profile
+```
+
+#### PUT Request Body
+```json
+{
+  "name": "홍길동",
+  "phone": "010-1234-5678",
+  "marketing_agreed": true
+}
+```
+
+### 토큰 갱신
+만료된 인증 토큰을 갱신합니다.
+
+```http
+POST /api/auth/refresh
+```
+
+### 회원가입
+신규 회원가입을 처리합니다.
+
+```http
+POST /api/auth/signup
+```
+
+#### Request Body
+```json
+{
+  "email": "user@example.com",
+  "name": "홍길동",
+  "phone": "010-1234-5678"
+}
+```
+
+### 회원 탈퇴
+현재 계정을 삭제합니다.
+
+```http
+DELETE /api/auth/withdraw
 ```
 
 ---
@@ -87,9 +177,9 @@ GET /api/reservations
 #### Query Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| status | string | No | 예약 상태 필터 (pending, approved, rejected, cancelled, completed) |
+| status | string | No | 예약 상태 필터 (pending, approved, rejected, cancelled, completed, checked_in, no_show) |
 | page | number | No | 페이지 번호 (기본값: 1) |
-| limit | number | No | 페이지당 항목 수 (기본값: 10) |
+| pageSize | number | No | 페이지당 항목 수 (기본값: 10) |
 
 #### 응답 예시
 ```json
@@ -115,12 +205,7 @@ GET /api/reservations
         "created_at": "2025-07-01T10:00:00Z"
       }
     ],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 25,
-      "totalPages": 3
-    }
+    "totalCount": 25
   }
 }
 ```
@@ -148,14 +233,13 @@ POST /api/reservations
 ```json
 {
   "date": "2025-07-01",
-  "startTime": "14:00",
-  "endTime": "18:00",
-  "deviceId": "device_123",
-  "playerCount": 1,
-  "hourlyRate": 10000,
-  "totalAmount": 40000,
-  "creditType": "freeplay",
-  "userNotes": "친구와 함께 이용 예정"
+  "start_time": "14:00:00",
+  "end_time": "18:00:00",
+  "device_id": "device_123",
+  "player_count": 1,
+  "total_amount": 40000,
+  "credit_type": "freeplay",
+  "user_notes": "친구와 함께 이용 예정"
 }
 ```
 
@@ -164,10 +248,25 @@ POST /api/reservations
 {
   "success": true,
   "data": {
-    "reservation_id": "res_456",
+    "id": "res_456",
+    "reservation_number": "250701-002",
     "status": "pending",
     "message": "예약이 접수되었습니다. 관리자 승인을 기다려주세요."
   }
+}
+```
+
+### 예약 수정
+예약 정보를 수정합니다.
+
+```http
+PATCH /api/reservations/{id}
+```
+
+#### Request Body
+```json
+{
+  "user_notes": "변경된 메모"
 }
 ```
 
@@ -178,179 +277,406 @@ POST /api/reservations
 DELETE /api/reservations/{id}
 ```
 
-#### Path Parameters
+### 예약 가능 여부 확인
+특정 시간대의 예약 가능 여부를 확인합니다.
+
+```http
+POST /api/reservations/check-availability
+```
+
+#### Request Body
+```json
+{
+  "date": "2025-07-01",
+  "start_time": "14:00:00",
+  "end_time": "18:00:00",
+  "device_id": "device_123"
+}
+```
+
+### 예약 통계
+사용자의 예약 통계를 조회합니다.
+
+```http
+GET /api/reservations/stats
+```
+
+---
+
+## 👤 마이페이지 API
+
+### 프로필 정보 조회
+마이페이지 프로필 정보를 조회합니다.
+
+```http
+GET /api/mypage/profile
+```
+
+### 프로필 정보 수정
+프로필 정보를 수정합니다.
+
+```http
+PUT /api/mypage/profile
+```
+
+#### Request Body
+```json
+{
+  "name": "홍길동",
+  "phone": "010-1234-5678"
+}
+```
+
+### 예약 통계 상세
+상세한 예약 통계를 조회합니다.
+
+```http
+GET /api/mypage/reservation-stats
+```
+
+### 마케팅 수신 동의 설정
+마케팅 수신 동의를 업데이트합니다.
+
+```http
+PUT /api/mypage/update-marketing
+```
+
+#### Request Body
+```json
+{
+  "marketing_agreed": true
+}
+```
+
+---
+
+## 🌐 공개 API
+
+### 운영 일정 조회
+월별 운영 일정과 예약 현황을 조회합니다.
+
+```http
+GET /api/public/schedule
+```
+
+#### Query Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| id | string | Yes | 예약 ID |
+| year | number | Yes | 연도 (예: 2025) |
+| month | number | Yes | 월 (1-12) |
+
+### 기기 타입 목록
+전체 기기 타입 목록을 조회합니다.
+
+```http
+GET /api/device-types
+```
+
+### 예약 가능 기기 목록
+현재 예약 가능한 기기 목록을 조회합니다.
+
+```http
+GET /api/available-machines
+```
+
+### 대여 가능 기기 정보
+대여 가능한 기기의 상세 정보를 조회합니다.
+
+```http
+GET /api/rental-machines
+```
+
+### 예약 가능 시간대
+예약 가능한 시간대를 조회합니다.
+
+```http
+GET /api/time-slots
+```
 
 ---
 
 ## 👨‍💼 관리자 API
 
-> 관리자 권한이 필요한 API입니다.
+> 모든 관리자 API는 관리자 권한이 필요합니다.
 
-### 예약 승인
-대기 중인 예약을 승인합니다.
+### 권한 확인
 
+#### 관리자 권한 확인
 ```http
-PATCH /api/admin/reservations
+GET /api/admin/auth/check
+```
+
+#### 슈퍼 관리자 확인
+```http
+GET /api/admin/check-super
+```
+
+### 관리자 계정 관리
+
+#### 관리자 목록 조회
+```http
+GET /api/admin/admins
+```
+
+#### 관리자 추가
+```http
+POST /api/admin/admins
 ```
 
 #### Request Body
 ```json
 {
-  "id": "reservation_123",
-  "status": "approved"
+  "user_id": "user_123",
+  "role": "admin"
 }
 ```
 
-### 예약 취소
-대기 중인 예약을 취소합니다.
-
+#### 관리자 정보 수정
 ```http
-PATCH /api/admin/reservations
+PUT /api/admin/admins/{id}
 ```
 
-#### Request Body
-```json
-{
-  "id": "reservation_123",
-  "status": "rejected",
-  "notes": "취소 사유: 대여 인원 부족"
-}
-```
-
-#### 취소 사유 옵션
-- 대여 인원 부족
-- 회원 요청
-- 기타 (직접 입력)
-
-### 체크인 처리
-승인된 예약을 체크인 처리합니다.
-
+#### 관리자 삭제
 ```http
-POST /api/admin/reservations/{id}/checkin
+DELETE /api/admin/admins/{id}
 ```
 
-#### Request Body
-```json
-{
-  "device_number": 2,
-  "payment_method": "cash",
-  "notes": "현금 결제 완료"
-}
-```
+### 대시보드 & 통계
 
-### 결제 확인
-계좌이체 결제를 확인 처리합니다.
-
+#### 대시보드 통계
 ```http
-POST /api/admin/reservations/{id}/confirm-payment
+GET /api/admin/dashboard
 ```
 
----
-
-## 🎮 기기 관리 API
-
-### 기기 목록 조회
-전체 기기 목록을 조회합니다.
-
-```http
-GET /api/admin/devices
-```
-
-#### Query Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| category | string | No | 카테고리 필터 |
-| status | string | No | 상태 필터 (available, rental, maintenance, unavailable) |
-
-### 기기 상태 변경
-기기의 상태를 변경합니다.
-
-```http
-PATCH /api/admin/devices/{id}/status
-```
-
-#### Request Body
-```json
-{
-  "status": "maintenance",
-  "notes": "정기 점검"
-}
-```
-
-### 기기 타입 추가
-새로운 기종을 추가합니다.
-
-```http
-POST /api/admin/device-types
-```
-
-#### Request Body
-```json
-{
-  "category_id": "cat_001",
-  "name": "마이마이 DX",
-  "description": "최신 리듬게임",
-  "play_modes": [
-    {"name": "스탠다드", "price": 500},
-    {"name": "DX 모드", "price": 1000}
-  ],
-  "is_rentable": true,
-  "device_count": 4
-}
-```
-
----
-
-## 📊 통계 API
-
-### 대시보드 통계
-관리자 대시보드용 통계를 조회합니다.
-
-```http
-GET /api/admin/analytics/dashboard
-```
-
-#### 응답 예시
-```json
-{
-  "success": true,
-  "data": {
-    "today": {
-      "reservations": 15,
-      "revenue": 600000,
-      "checkins": 12
-    },
-    "week": {
-      "reservations": 85,
-      "revenue": 3400000,
-      "popular_device": "마이마이 DX"
-    }
-  }
-}
-```
-
-### 매출 통계
-기간별 매출 통계를 조회합니다.
-
+#### 매출 분석
 ```http
 GET /api/admin/analytics/revenue
 ```
 
-#### Query Parameters
+##### Query Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| start_date | string | Yes | 시작일 (YYYY-MM-DD) |
-| end_date | string | Yes | 종료일 (YYYY-MM-DD) |
-| group_by | string | No | 그룹 기준 (day, week, month) |
+| range | string | No | 기간 (week, month, quarter, 6months, yearly, custom) |
+| year | number | No | 연도 |
+| startDate | string | No | 시작일 (custom range) |
+| endDate | string | No | 종료일 (custom range) |
+
+#### 고객 분석
+```http
+GET /api/admin/analytics/customers
+```
+
+#### 기기 분석
+```http
+GET /api/admin/analytics/devices
+```
+
+#### 예약 분석
+```http
+GET /api/admin/analytics/reservations
+```
+
+### 예약 관리
+
+#### 예약 목록 관리
+```http
+GET /api/admin/reservations
+POST /api/admin/reservations
+```
+
+#### 예약 시간 조정
+```http
+POST /api/admin/reservations/{id}/adjust-time
+```
+
+##### Request Body
+```json
+{
+  "actual_start_time": "14:30:00",
+  "actual_end_time": "18:30:00",
+  "reason": "고객 요청",
+  "adjustment_type": "customer_request"
+}
+```
+
+#### 예약 금액 조정
+```http
+POST /api/admin/reservations/{id}/adjust-amount
+```
+
+##### Request Body
+```json
+{
+  "adjusted_amount": 35000,
+  "reason": "할인 적용"
+}
+```
+
+#### 노쇼 처리
+```http
+POST /api/admin/reservations/{id}/no-show
+```
+
+### 체크인 관리
+
+#### 체크인 대기 목록
+```http
+GET /api/admin/checkin
+```
+
+#### 체크인 처리
+```http
+POST /api/admin/checkin/process
+```
+
+##### Request Body
+```json
+{
+  "reservationId": "res_123",
+  "additionalNotes": "현금 결제"
+}
+```
+
+#### 결제 확인
+```http
+POST /api/admin/checkin/payment-confirm
+```
+
+##### Request Body
+```json
+{
+  "reservationId": "res_123",
+  "paymentMethod": "bank_transfer"
+}
+```
+
+### 기기 관리
+
+#### 기기 목록
+```http
+GET /api/admin/devices
+POST /api/admin/devices
+```
+
+#### 기기 상세 관리
+```http
+GET /api/admin/devices/{id}
+PUT /api/admin/devices/{id}
+DELETE /api/admin/devices/{id}
+```
+
+#### 기기 타입 관리
+```http
+GET /api/admin/devices/types
+POST /api/admin/devices/types
+```
+
+#### 기기 타입 상세
+```http
+GET /api/admin/devices/types/{id}
+PUT /api/admin/devices/types/{id}
+DELETE /api/admin/devices/types/{id}
+```
+
+#### 플레이 모드 관리
+```http
+GET /api/admin/devices/types/{id}/play-modes
+POST /api/admin/devices/types/{id}/play-modes
+```
+
+#### 카테고리 관리
+```http
+GET /api/admin/devices/categories
+POST /api/admin/devices/categories
+```
+
+### 결제 계좌 관리
+
+#### 계좌 목록 조회
+```http
+GET /api/admin/settings/payment
+```
+
+#### 계좌 추가
+```http
+POST /api/admin/settings/payment
+```
+
+##### Request Body
+```json
+{
+  "bank_name": "국민은행",
+  "account_number": "123-456-789012",
+  "account_holder": "홍길동",
+  "is_primary": false
+}
+```
+
+#### 계좌 정보 수정
+```http
+PUT /api/admin/settings/payment/{id}
+```
+
+#### 계좌 삭제
+```http
+DELETE /api/admin/settings/payment/{id}
+```
+
+#### 기본 계좌 설정
+```http
+POST /api/admin/settings/payment/{id}/primary
+```
+
+#### 계좌 활성화/비활성화
+```http
+POST /api/admin/settings/payment/{id}/toggle
+```
+
+### 운영 관리
+
+#### 운영 일정 관리
+```http
+GET /api/admin/schedule
+POST /api/admin/schedule
+PUT /api/admin/schedule/{id}
+DELETE /api/admin/schedule/{id}
+```
+
+#### 조기 개점 설정
+```http
+POST /api/admin/schedule/adjust-early-opening
+```
+
+#### 예약 동기화
+```http
+POST /api/admin/schedule/sync-reservations
+```
+
+#### 대여 시간대 관리
+```http
+GET /api/admin/rental-time-slots
+POST /api/admin/rental-time-slots
+```
+
+#### 금지어 관리
+```http
+GET /api/admin/banned-words
+POST /api/admin/banned-words
+DELETE /api/admin/banned-words/{id}
+```
+
+#### 가이드 콘텐츠 관리
+```http
+GET /api/admin/guide-content
+POST /api/admin/guide-content
+PUT /api/admin/guide-content/{id}
+```
 
 ---
 
-## 🔄 크론잡 API
+## 🔧 시스템 API
 
-### 기기 상태 업데이트
+### 기기 상태 자동 업데이트 (크론잡)
 예약이 종료된 기기의 상태를 자동으로 업데이트합니다.
 
 ```http
@@ -362,68 +688,30 @@ GET /api/cron/update-device-status
 |--------|-------|----------|-------------|
 | Authorization | Bearer {CRON_SECRET} | Yes | 크론잡 인증 토큰 |
 
-#### 응답 예시
-```json
-{
-  "success": true,
-  "message": "Device status updated successfully",
-  "timestamp": "2024-01-20T15:00:00Z",
-  "devicesChecked": 12
-}
-```
-
----
-
-## 🔔 알림 API
-
-### 푸시 토큰 등록
-FCM 푸시 토큰을 등록합니다.
+### 자동 일정 테스트
+자동 일정 생성 기능을 테스트합니다.
 
 ```http
-POST /api/notifications/register
+GET /api/test-auto-schedule
+```
+
+### 콘텐츠 검열 확인
+텍스트 콘텐츠의 적절성을 검사합니다.
+
+```http
+POST /api/moderation/check
 ```
 
 #### Request Body
 ```json
 {
-  "token": "fcm_token_here",
-  "device_info": {
-    "platform": "web",
-    "browser": "Chrome"
-  }
-}
-```
-
-### 알림 발송
-특정 사용자에게 알림을 발송합니다. (관리자 전용)
-
-```http
-POST /api/admin/notifications/send
-```
-
-#### Request Body
-```json
-{
-  "user_id": "user_123",
-  "title": "예약이 승인되었습니다",
-  "body": "1월 25일 14:00 예약이 승인되었습니다.",
-  "data": {
-    "type": "reservation_approved",
-    "reservation_id": "res_123"
-  }
+  "text": "검사할 텍스트"
 }
 ```
 
 ---
 
 ## 🛡️ 보안 고려사항
-
-### 인증 헤더
-인증이 필요한 모든 API는 다음 헤더를 포함해야 합니다:
-
-```http
-Authorization: Bearer {jwt_token}
-```
 
 ### Rate Limiting
 - 일반 사용자: 분당 60회
@@ -432,12 +720,16 @@ Authorization: Bearer {jwt_token}
 
 ### CORS 설정
 ```javascript
-// 허용된 도메인만 접근 가능
 const allowedOrigins = [
   'https://gameplaza.vercel.app',
   'http://localhost:3000'
 ];
 ```
+
+### 시간 처리
+- 모든 시간은 KST(한국 표준시) 기준
+- 익일 새벽 0~5시는 24~29시로 표시
+- 영업일 기준 06시 리셋
 
 ---
 
@@ -451,9 +743,24 @@ const allowedOrigins = [
 | RESOURCE_NOT_FOUND | 리소스를 찾을 수 없습니다 |
 | VALIDATION_ERROR | 입력값 검증 실패 |
 | DUPLICATE_RESERVATION | 중복된 예약입니다 |
-| RESERVATION_LIMIT | 24시간 룰 위반 |
+| RESERVATION_LIMIT | 예약 제한 초과 (최대 3개) |
+| TIME_CONFLICT | 시간대가 중복됩니다 |
 | DEVICE_UNAVAILABLE | 기기를 사용할 수 없습니다 |
+| INVALID_TIME_RANGE | 잘못된 시간 범위입니다 |
+| PAYMENT_REQUIRED | 결제가 필요합니다 |
 | SERVER_ERROR | 서버 오류가 발생했습니다 |
+
+---
+
+## 📝 변경 이력
+
+### 2025-07-23
+- 전체 API 엔드포인트 최신화
+- 실제 구현과 동기화
+- 전화번호 인증 API 추가
+- 결제 계좌 관리 API 추가
+- 예약 시간 조정 API 추가
+- 통계 분석 API 상세화
 
 ---
 

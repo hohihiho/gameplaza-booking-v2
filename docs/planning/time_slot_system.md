@@ -1,5 +1,7 @@
 # 기기별 시간대 예약 시스템 상세 설계
 
+> 🔙 **[통합 기획서로 돌아가기](./complete_specification.md)** | **[기획 문서 가이드](./README.md)**
+
 ## 1. 시스템 개요
 
 광주 게임플라자는 **기기별로 시간대를 설정**하여 예약받는 시스템을 사용합니다.
@@ -404,3 +406,13 @@ async function createReservation(userId, deviceTimeSlotId, quantity, options) {
 ---
 
 이 시스템은 유연하면서도 관리가 용이하도록 설계되었으며, 향후 확장에도 대응할 수 있는 구조입니다.
+
+---
+
+## 📚 관련 문서
+
+- **[통합 기획서](./complete_specification.md)** - 전체 프로젝트 개요
+- **[기기 예약 시스템](./device_number_reservation.md)** - 기기 선택 및 예약 로직
+- **[시간 조정 기능](./time_adjustment_implementation_plan.md)** - 예약 시간 조정 상세
+- **[관리자 플로우](./admin_flow.md)** - 시간대 관리 방법
+- **[기획 문서 가이드](./README.md)** - 전체 문서 구조

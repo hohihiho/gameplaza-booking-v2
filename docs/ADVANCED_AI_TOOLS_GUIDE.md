@@ -1,5 +1,8 @@
 # 🚀 게임플라자 고급 AI 도구 사용 가이드
 
+> 📅 **최종 업데이트**: 2025년 1월 22일
+> 🔄 **주요 변경사항**: Headless PM 제거, 아키텍처 개선 사항 반영
+
 이 문서는 게임플라자 프로젝트에 통합된 모든 고급 AI 도구들의 설치, 설정, 사용법을 상세히 설명합니다.
 
 ## 📋 목차
@@ -7,9 +10,8 @@
 1. [시스템 개요](#-시스템-개요)
 2. [MCP 서버 시스템](#-mcp-서버-시스템)
 3. [SuperClaude Framework](#-superclaude-framework)
-4. [Headless PM 협업 시스템](#-headless-pm-협업-시스템)
-5. [통합 워크플로우](#-통합-워크플로우)
-6. [문제 해결](#-문제-해결)
+4. [통합 워크플로우](#-통합-워크플로우)
+5. [문제 해결](#-문제-해결)
 
 ---
 
@@ -23,7 +25,7 @@
 └─────────────────┬───────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────┐
-│              MCP 서버 시스템                      │
+│              MCP 서버 시스템 (7개)               │
 │  ├── Shrimp Task Manager (작업 관리)            │
 │  ├── Context7 (최신 문서 검색)                   │
 │  ├── Supabase (데이터베이스 관리)                │
@@ -38,17 +40,18 @@
 │  ├── /think - 체계적 사고 모드                  │
 │  ├── /research - 기술 조사 모드                 │
 │  ├── /automate - 브라우저 자동화                │
-│  ├── /remember - 프로젝트 메모리                │
-│  └── /headless-pm - AI 협업 모드                │
+│  └── /remember - 프로젝트 메모리                │
 └─────────────────┬───────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────┐
-│            Headless PM 협업 시스템                │
-│  ├── PM (프로젝트 매니저)                        │
-│  ├── Frontend Dev (React/TypeScript)           │
-│  ├── Backend Dev (Supabase/API)               │
-│  ├── Architect (시스템 설계)                    │
-│  └── QA (품질 보증)                            │
+│         에이전트 페르소나 시스템                  │
+│  ├── Frontend Developer                        │
+│  ├── Backend Developer                         │
+│  ├── UI/UX Designer                           │
+│  ├── Security Expert                          │
+│  ├── QA Engineer                              │
+│  ├── Architect (SuperClaude)                  │
+│  └── Scribe (SuperClaude)                      │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -57,14 +60,14 @@
 - **📚 최신 정보**: Context7으로 실시간 기술 문서 검색
 - **🤖 자동화**: Playwright로 브라우저/모바일 테스트 자동화
 - **💾 지속성**: Memory MCP로 프로젝트 컨텍스트 유지
-- **👥 협업**: Headless PM으로 다중 AI 에이전트 조율
+- **👥 협업**: 에이전트 페르소나 시스템으로 전문가 모드 활용
 - **📊 관리**: Shrimp Task Manager로 체계적 작업 추적
 
 ---
 
 ## 🔧 MCP 서버 시스템
 
-### 현재 설치된 MCP 서버들
+### 현재 설치된 MCP 서버들 (7개)
 
 #### 1. **Shrimp Task Manager** ⭐⭐⭐⭐⭐
 ```json
@@ -318,17 +321,6 @@ SuperClaude Framework의 핵심인 슬래시 명령어들이 게임플라자 프
 - 성능 최적화 사례
 - 보안 고려사항
 
-#### `/headless-pm` - AI 협업 모드 👥
-
-**위치**: `.claude/commands/project/headless-pm.md`
-
-**기능**: Headless PM 시스템을 통한 다중 AI 에이전트 협업
-
-**사용법**:
-```bash
-/headless-pm
-```
-
 ### 에이전트 시스템
 
 #### 기존 에이전트 (Single Mode)
@@ -355,210 +347,98 @@ SuperClaude Framework의 핵심인 슬래시 명령어들이 게임플라자 프
 
 ---
 
-## 🤖 Headless PM 협업 시스템
+## 🤖 에이전트 페르소나 시스템
 
-### 시스템 아키텍처
+### 개요
+게임플라자 프로젝트는 다양한 전문가 에이전트 페르소나를 활용하여 고품질 개발을 수행합니다. 각 에이전트는 특정 역할에 특화된 전문성을 가지고 있습니다.
 
-Headless PM은 다중 AI 에이전트가 체계적으로 협업할 수 있는 REST API 기반 시스템입니다.
+### 에이전트 역할 및 전문성
 
-```
-┌─────────────────────────────────────────────────┐
-│                 Headless PM                     │
-│                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │ API Server  │  │ MCP Server  │  │ Dashboard  │ │
-│  │ :6969      │  │ :6968       │  │ :3001      │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘ │
-│                                                 │
-│  ┌─────────────────────────────────────────────┐ │
-│  │            SQLite Database              │ │
-│  │ Epic → Feature → Task 계층 구조            │ │
-│  └─────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
-                        │
-    ┌───────────────────┼───────────────────┐
-    │                   │                   │
-┌───▼───┐         ┌─────▼─────┐         ┌───▼───┐
-│  PM   │         │Frontend   │         │Backend│
-│Agent  │         │Developer  │         │Developer│
-└───────┘         └───────────┘         └───────┘
-    │                   │                   │
-┌───▼───┐         ┌─────▼─────┐         ┌───▼───┐
-│Architect│       │    QA     │         │ 기타  │
-│Agent   │         │ Engineer  │         │Agent  │
-└───────┘         └───────────┘         └───────┘
-```
+#### 기본 에이전트 (Single Mode)
+**위치**: `/docs/agents/`
 
-### 설치 및 실행
+1. **Frontend Developer** (`frontend-developer.md`)
+   - React/TypeScript 전문가
+   - 모바일 퍼스트 UI/UX 구현
+   - 성능 최적화 및 접근성
+   - PWA 및 실시간 동기화
 
-#### 1. Headless PM 서버 시작
-
-```bash
-# 서버 시작 (별도 터미널에서)
-cd /Users/seeheejang/Documents/project/headless-pm
-source venv/bin/activate
-./start.sh
-
-# 실행 확인
-# ✅ API Server: http://localhost:6969
-# ✅ MCP Server: http://localhost:6968  
-# ✅ Web Dashboard: http://localhost:3001
-```
-
-#### 2. 웹 대시보드 접속
-
-```bash
-# 브라우저에서 접속
-open http://localhost:3001
-
-# 또는 API 문서 확인
-open http://localhost:6969/api/v1/docs
-```
-
-### 게임플라자 전용 AI 에이전트
-
-#### 에이전트 역할 정의
-**위치**: `/headlesspm/team_roles/`
-
-1. **`gameplaza_pm.md`** - 프로젝트 매니저
-   - Epic/Feature/Task 생성 및 관리
-   - 에이전트 간 작업 조율
-   - 진행 상황 모니터링
-
-2. **`gameplaza_frontend_dev.md`** - 프론트엔드 개발자
-   - React + TypeScript PWA 개발
-   - 모바일 퍼스트 UI 구현
-   - 실시간 상태 동기화
-
-3. **`gameplaza_backend_dev.md`** - 백엔드 개발자
-   - Supabase + Next.js API 개발
+2. **Backend Developer** (`backend-developer.md`)
+   - Supabase/PostgreSQL 전문가
+   - API 설계 및 데이터 모델링
    - 예약 시스템 로직 구현
-   - 데이터베이스 스키마 관리
+   - 실시간 데이터 동기화
 
-4. **`gameplaza_architect.md`** - 시스템 아키텍트
-   - 전체 시스템 설계
-   - 코드 리뷰 및 승인
-   - 기술적 의사결정
+3. **UI/UX Designer** (`ui-ux-designer.md`)
+   - 모바일 사용자 경험 전문가
+   - 접근성 및 사용성 최적화
+   - 디자인 시스템 및 컴포넌트 설계
+   - 사용자 테스트 및 피드백 분석
 
-5. **`gameplaza_qa.md`** - QA 엔지니어
-   - 기능/성능 테스트
-   - 모바일 UX 검증
-   - 품질 보증
+4. **Security Expert** (`security-expert.md`)
+   - 보안 감사 및 취약점 분석
+   - 인증/인가 시스템 설계
+   - 데이터 보호 및 암호화
+   - OWASP 가이드라인 준수
 
-### 협업 워크플로우
+5. **QA Engineer** (`qa-engineer.md`)
+   - 테스트 전략 및 자동화
+   - 성능 테스트 및 부하 테스트
+   - 모바일 기기 호환성 테스트
+   - 버그 추적 및 품질 보증
 
-#### 1. 에이전트 등록
+#### SuperClaude 에이전트 (Enhanced Mode)
+**위치**: `.claude/commands/agent/`
+
+1. **Architect** (`architect.md`)
+   - 시스템 전체 아키텍처 설계
+   - 기술 스택 선택 및 평가
+   - 성능 및 확장성 최적화
+   - 코드 리뷰 및 베스트 프랙티스
+
+2. **Scribe** (`scribe.md`)
+   - 기술 문서화 전문가
+   - API 문서 및 사용자 가이드
+   - 코드 주석 및 README 작성
+   - 프로세스 및 워크플로우 문서화
+
+### 에이전트 활용 방법
+
+#### 1. 특정 에이전트 호출
 ```bash
-cd /Users/seeheejang/Documents/project/gameplaza-v2/headlesspm
+# 명시적 호출
+"Frontend Developer 에이전트로 이 컴포넌트 검토해줘"
+"Security Expert 관점에서 이 API 보안 분석해줘"
+"Architect로서 시스템 설계 검토해줘"
 
-# PM 에이전트 등록
-python headless_pm_client.py register \
-  --agent-id "gameplaza_pm" \
-  --role "pm" \
-  --level "principal"
-
-# Frontend 개발자 등록
-python headless_pm_client.py register \
-  --agent-id "gameplaza_frontend_dev" \
-  --role "frontend_dev" \
-  --level "senior"
-
-# Backend 개발자 등록
-python headless_pm_client.py register \
-  --agent-id "gameplaza_backend_dev" \
-  --role "backend_dev" \
-  --level "senior"
-
-# 아키텍트 등록
-python headless_pm_client.py register \
-  --agent-id "gameplaza_architect" \
-  --role "architect" \
-  --level "principal"
-
-# QA 엔지니어 등록  
-python headless_pm_client.py register \
-  --agent-id "gameplaza_qa" \
-  --role "qa" \
-  --level "senior"
+# 슬래시 명령어 사용
+/agent:architect
+/agent:scribe
 ```
 
-#### 2. Epic/Feature/Task 관리
+#### 2. 자동 활성화 트리거
+각 에이전트는 특정 키워드나 작업에 따라 자동 활성화됩니다:
+- React 코드 작성 → Frontend Developer
+- Supabase 쿼리 → Backend Developer
+- 보안 감사 → Security Expert
+- 문서 작성 → Scribe
 
+#### 3. 다중 에이전트 협업
 ```bash
-# Epic 생성 (PM만 가능)
-python headless_pm_client.py epics create \
-  --name "예약 시스템 개선" \
-  --description "사용자 예약 플로우 전반적 개선" \
-  --agent-id "gameplaza_pm"
-
-# Feature 생성
-python headless_pm_client.py features create \
-  --epic-id [EPIC_ID] \
-  --name "24시간 시간 선택 UI" \
-  --description "새벽 시간대(24~29시) 표시 개선"
-
-# Task 생성
-python headless_pm_client.py tasks create \
-  --feature-id [FEATURE_ID] \
-  --title "시간 선택 컴포넌트 리팩토링" \
-  --description "24시간 표시 로직을 별도 Hook으로 분리" \
-  --complexity "major" \
-  --role "frontend_dev" \
-  --level "senior"
+# 예시: 새로운 기능 개발
+"Frontend와 Backend 에이전트가 함께 예약 API 설계해줘"
+"모든 에이전트가 이 기능 검토해줘"
 ```
 
-#### 3. 작업 실행 패턴
+### 게임플라자 특화 전문성
 
-**개발자 에이전트 워크플로우**:
-```bash
-# 1. 작업 받기
-python headless_pm_client.py tasks next --role frontend_dev --level senior
+각 에이전트는 게임플라자 프로젝트의 특수성을 이해하고 있습니다:
 
-# 2. 작업 잠금
-python headless_pm_client.py tasks lock [TASK_ID] --agent-id "gameplaza_frontend_dev"
-
-# 3. 작업 시작
-python headless_pm_client.py tasks status [TASK_ID] under_work
-
-# 4. 개발 작업 (게임플라자 프로젝트에서)
-cd /Users/seeheejang/Documents/project/gameplaza-v2
-npm run dev
-
-# 5. 완료 보고
-python headless_pm_client.py tasks status [TASK_ID] dev_done
-
-# 6. 리뷰 요청
-python headless_pm_client.py documents create \
-  --content "@gameplaza_architect 코드 리뷰 요청: 시간 선택 컴포넌트 리팩토링 완료"
-```
-
-#### 4. 에이전트 간 커뮤니케이션
-
-```bash
-# @mention 시스템 활용
-python headless_pm_client.py documents create --content "
-@gameplaza_frontend_dev API 스펙 변경 안내:
-- 예약 응답 형식이 변경되었습니다
-- 새로운 필드: display_time (24시간 표시용)
-
-@gameplaza_qa 통합 테스트 요청
-
-#api-change #breaking-change
-"
-```
-
-#### 5. 실시간 모니터링
-
-```bash
-# CLI 대시보드 (실시간)
-cd /Users/seeheejang/Documents/project/headless-pm
-python -m src.cli.main dashboard
-
-# 진행 상황 확인
-python headless_pm_client.py epics list        # Epic 진행률
-python headless_pm_client.py agents list       # 활성 에이전트
-python headless_pm_client.py changelog         # 최근 활동
-```
+- **모바일 퍼스트 (99% 사용자)**: 모바일 기기에서의 사용성 최우선
+- **KST 시간대**: 모든 시간 처리는 한국 표준시 기준
+- **24시간 표시**: 새벽 0~5시는 24~29시로 표시
+- **실시간 동기화**: 예약/기기 상태의 실시간 업데이트
+- **접근성**: WCAG 2.1 AA 기준 준수
 
 ---
 
@@ -570,12 +450,7 @@ python headless_pm_client.py changelog         # 최근 활동
 ```bash
 # 1. Claude Desktop 실행 (MCP 서버 자동 시작)
 
-# 2. Headless PM 서버 시작 (별도 터미널)
-cd /Users/seeheejang/Documents/project/headless-pm
-source venv/bin/activate
-./start.sh
-
-# 3. 게임플라자 개발 서버 시작 (별도 터미널)
+# 2. 게임플라자 개발 서버 시작
 cd /Users/seeheejang/Documents/project/gameplaza-v2
 npm run dev
 ```
@@ -596,44 +471,22 @@ npm run dev
 # Step 4: 자동화 테스트 실행
 /automate
 
-# Step 5: 팀 협업 모드로 작업 분배
-/headless-pm
+# Step 5: 에이전트 활용
+"Frontend Developer로서 이 컴포넌트 최적화해줘"
 ```
 
-#### 3. 다중 에이전트 협업 시나리오
+#### 3. 작업 관리 및 추적
 
-**시나리오**: 새로운 기능 개발
-
-1. **PM 에이전트** → Epic/Feature/Task 생성
-2. **Architect 에이전트** → 기술적 설계 및 검토
-3. **Frontend 에이전트** → UI 컴포넌트 개발
-4. **Backend 에이전트** → API 및 데이터베이스 작업
-5. **QA 에이전트** → 테스트 및 품질 검증
-
+**Shrimp Task Manager 활용**:
 ```bash
-# 실제 사용 예시
-cd /Users/seeheejang/Documents/project/gameplaza-v2/headlesspm
+# 작업 계획 수립
+"이번 스프린트의 작업 계획을 세워줘"
 
-# PM이 새 Epic 생성
-python headless_pm_client.py epics create \
-  --name "실시간 알림 시스템" \
-  --description "예약 상태 변경 시 실시간 푸시 알림" \
-  --agent-id "gameplaza_pm"
+# 진행 상황 추적
+"현재 진행 중인 작업 상태를 보여줘"
 
-# Architect가 설계 Task 생성
-python headless_pm_client.py tasks create \
-  --title "실시간 알림 아키텍처 설계" \
-  --complexity "major" \
-  --role "architect"
-
-# Frontend가 UI Task 수행
-python headless_pm_client.py tasks next --role frontend_dev
-
-# QA가 테스트 시나리오 작성
-python headless_pm_client.py tasks create \
-  --title "알림 시스템 테스트 시나리오" \
-  --complexity "minor" \
-  --role "qa"
+# 완료 처리
+"예약 시스템 리팩토링 작업을 완료로 표시해줘"
 ```
 
 ### 프로젝트 메모리 관리
@@ -678,28 +531,7 @@ cat ~/.claude/claude_desktop_config.json
 # Claude Desktop → 설정 → 개발자 → MCP 서버 재로드
 ```
 
-#### 2. Headless PM 서버 실행 실패
-
-**증상**: Connection refused 에러
-```bash
-# 문제 확인
-curl -X GET "http://localhost:6969/api/v1/docs"
-
-# 해결책
-cd /Users/seeheejang/Documents/project/headless-pm
-source venv/bin/activate
-
-# 포트 충돌 확인
-lsof -i :6969
-lsof -i :6968  
-lsof -i :3001
-
-# 강제 종료 후 재시작
-pkill -f headless-pm
-./start.sh
-```
-
-#### 3. Shrimp Task Manager 웹 GUI 접속 불가
+#### 2. Shrimp Task Manager 웹 GUI 접속 불가
 
 **증상**: http://localhost:7001 접속 실패
 ```bash
@@ -713,18 +545,14 @@ lsof -i :7001
 # "WEB_PORT": "7001" 설정 확인
 ```
 
-#### 4. 가상환경 활성화 문제
+#### 3. 가상환경 활성화 문제
 
 **증상**: Python 모듈을 찾을 수 없음
 ```bash
-# Headless PM 가상환경 활성화
-cd /Users/seeheejang/Documents/project/headless-pm
-source venv/bin/activate
-
-# Sequential Thinking 가상환경 (별도)
+# Sequential Thinking 가상환경
 source /Users/seeheejang/.claude/mcp-sequential-thinking/venv/bin/activate
 
-# Memory MCP 가상환경 (별도)  
+# Memory MCP 가상환경  
 source /Users/seeheejang/.claude/claude-memory-mcp/venv/bin/activate
 ```
 
@@ -739,14 +567,10 @@ source /Users/seeheejang/.claude/claude-memory-mcp/venv/bin/activate
 # "playwright": { ... } 섹션 제거 또는 주석 처리
 ```
 
-#### 2. Headless PM 데이터베이스 최적화
+#### 2. 메모리 사용량 최적화
 ```bash
-cd /Users/seeheejang/Documents/project/headless-pm
-source venv/bin/activate
-
-# 데이터베이스 정리
-python -m src.cli.main reset  # ⚠️ 모든 데이터 삭제
-python -m src.cli.main init   # 초기화
+# 대용량 파일 처리 시
+# Filesystem MCP 대신 Glob/Grep 도구 사용 권장
 ```
 
 ### 백업 및 복구
@@ -760,17 +584,7 @@ cp ~/.claude/claude_desktop_config.json ~/.claude/claude_desktop_config.backup.j
 cp ~/.claude/claude_desktop_config.backup.json ~/.claude/claude_desktop_config.json
 ```
 
-#### 2. Headless PM 데이터 백업
-```bash
-# SQLite 데이터베이스 백업
-cd /Users/seeheejang/Documents/project/headless-pm
-cp headless-pm.db headless-pm.backup.db
-
-# 복구
-cp headless-pm.backup.db headless-pm.db
-```
-
-#### 3. 프로젝트 메모리 백업
+#### 2. 프로젝트 메모리 백업
 ```bash
 # Memory MCP 데이터 백업
 cp ~/.claude/memory.json ~/.claude/memory.backup.json
@@ -787,7 +601,6 @@ cp ~/.claude/memory.backup.json ~/.claude/memory.json
 - **MCP 프로토콜**: https://modelcontextprotocol.io/
 - **Supabase MCP**: https://github.com/supabase/mcp-server-supabase
 - **Context7**: https://context7.ai/
-- **Headless PM**: https://github.com/madviking/headless-pm
 
 ### 게임플라자 관련 문서
 - **프로젝트 규칙**: `/CLAUDE.md`
@@ -803,14 +616,11 @@ cp ~/.claude/memory.backup.json ~/.claude/memory.json
 # SuperClaude 슬래시 명령어
 /Users/seeheejang/Documents/project/gameplaza-v2/.claude/commands/
 
-# Headless PM 에이전트 역할
-/Users/seeheejang/Documents/project/gameplaza-v2/headlesspm/team_roles/
-
 # 프로젝트 메모리
 ~/.claude/memory.json
 
-# Headless PM 데이터베이스
-/Users/seeheejang/Documents/project/headless-pm/headless-pm.db
+# Shrimp Task Manager 웹 GUI
+http://localhost:7001
 ```
 
 ---
@@ -818,19 +628,19 @@ cp ~/.claude/memory.backup.json ~/.claude/memory.json
 ## 🎯 다음 단계
 
 ### 1. 시스템 활용도 높이기
-- 모든 슬래시 명령어 (`/think`, `/research`, `/automate`, `/remember`, `/headless-pm`) 적극 활용
-- Headless PM으로 복잡한 기능을 에이전트별로 분담 개발
+- 모든 슬래시 명령어 (`/think`, `/research`, `/automate`, `/remember`) 적극 활용
+- 에이전트 페르소나를 통한 전문적인 코드 리뷰
 - Memory MCP로 중요한 학습 내용과 결정사항 지속적 기록
 
 ### 2. 워크플로우 자동화
-- GitHub Actions와 Headless PM 연동
+- GitHub Actions와 연동
 - 자동화된 테스트 파이프라인 구축
 - 코드 리뷰 프로세스 자동화
 
 ### 3. 팀 협업 확대
-- 추가 에이전트 역할 정의 (DevOps, Security 등)
-- 실제 팀원들과 Headless PM 공유 사용
 - 프로젝트 진행 상황 실시간 공유
+- 베스트 프랙티스 문서화
+- 지식 공유 세션 정기화
 
 ---
 
