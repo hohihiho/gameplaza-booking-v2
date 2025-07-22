@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
     const phoneNumbers = phone.replace(/-/g, '');
 
     // 전화번호 중복 체크
-    const { data: existingUser, error } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('phone', phoneNumbers)
       .neq('email', session.user.email) // 자기 자신 제외

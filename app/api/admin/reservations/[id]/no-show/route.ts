@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(
   req: NextRequest,
@@ -19,8 +19,8 @@ export async function POST(
     }
 
     // 관리자 권한 확인
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -29,8 +29,8 @@ export async function POST(
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -44,8 +44,8 @@ export async function POST(
     const { reason } = body;
 
     // 예약 정보 조회
-    const { data: reservation, error: reservationError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -78,8 +78,8 @@ export async function POST(
       console.log('payment_status 처리 생략');
     }
 
-    const { data: updatedReservation, error: updateError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()

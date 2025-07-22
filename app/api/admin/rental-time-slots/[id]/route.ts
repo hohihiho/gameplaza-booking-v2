@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 시간대 수정
 export async function PUT(
@@ -21,8 +21,8 @@ export async function PUT(
       return NextResponse.json({ error: 'At least one credit option is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
       .update({
         slot_type,
         start_time,
@@ -53,8 +53,8 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    const { error } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('rental_time_slots')
       .delete()
       .eq('id', id)
 

@@ -141,7 +141,10 @@ export default function AdminLayout({
             <nav className="flex-1 p-4 space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                // 통계 분석 메뉴의 경우 analytics로 시작하는 모든 경로에서 활성화
+                const isActive = item.label === '통계 분석' 
+                  ? pathname.startsWith('/admin/analytics')
+                  : pathname === item.href;
                 
                 return (
                   <Link

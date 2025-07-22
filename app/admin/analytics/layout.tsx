@@ -8,7 +8,8 @@ import {
   Calendar,
   DollarSign,
   Users,
-  ChevronLeft
+  ChevronLeft,
+  Gamepad2
 } from 'lucide-react';
 
 export default function AnalyticsLayout({
@@ -22,6 +23,7 @@ export default function AnalyticsLayout({
     { href: '/admin/analytics/reservations', label: '예약 통계', icon: Calendar },
     { href: '/admin/analytics/revenue', label: '매출 분석', icon: DollarSign },
     { href: '/admin/analytics/customers', label: '고객 분석', icon: Users },
+    { href: '/admin/analytics/devices', label: '기종 분석', icon: Gamepad2 },
   ];
 
   // 현재 페이지가 통계 분석 페이지인지 확인

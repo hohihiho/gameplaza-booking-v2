@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export async function POST() {
   try {
@@ -11,8 +11,8 @@ export async function POST() {
     }
 
     // 테이블이 존재하는지 확인
-    const { data: tableExists } = await supabaseAdmin
-      .from('machine_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('machine_rules')
       .select('id')
       .limit(1)
 

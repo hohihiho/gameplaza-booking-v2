@@ -6,8 +6,8 @@ export async function GET() {
     // 모든 pending 상태의 예약을 찾아서 자동 스케줄 생성 테스트
     const { supabaseAdmin } = await import('@/app/lib/supabase');
     
-    const { data: pendingReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id, date, start_time, end_time')
       .eq('status', 'pending')
       .order('date', { ascending: true });
@@ -27,8 +27,8 @@ export async function GET() {
       console.log(`시간: ${reservation.start_time} - ${reservation.end_time}`);
       
       // 예약 승인 처리
-      const { error } = await supabaseAdmin
-        .from('reservations')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservations')
         .update({ 
           status: 'approved',
           approved_at: new Date().toISOString()

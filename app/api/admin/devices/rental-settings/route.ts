@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 대여 설정 업데이트 (생성 또는 수정)
 export async function PUT(request: NextRequest) {
@@ -19,8 +19,8 @@ export async function PUT(request: NextRequest) {
     // max_rental_units만 업데이트하는 경우
     if (is_rentable === undefined && max_rental_units !== undefined) {
       // device_types 테이블에 직접 저장
-      const { data, error } = await supabaseAdmin
-        .from('device_types')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
         .update({ 
           rental_settings: {
             max_rental_units: max_rental_units
@@ -35,8 +35,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // 먼저 device_types의 is_rentable 업데이트
-    const { error: typeError } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('device_types')
       .update({ is_rentable })
       .eq('id', device_type_id)
 
@@ -44,8 +44,8 @@ export async function PUT(request: NextRequest) {
 
     if (is_rentable) {
       // 대여 설정 upsert (있으면 수정, 없으면 생성)
-      const { data, error } = await supabaseAdmin
-        .from('rental_settings')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_settings')
         .upsert({
           device_type_id,
           base_price,

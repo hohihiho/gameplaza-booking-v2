@@ -1,14 +1,23 @@
+/**
+ * Supabase 미들웨어 헬퍼
+ * Next.js 미들웨어에서 Supabase 세션을 관리합니다.
+ */
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getEnv } from '@/lib/config/env'
+import type { Database } from './types'
 
 export async function updateSession(request: NextRequest) {
   const supabaseResponse = NextResponse.next({
     request,
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const env = getEnv()
+  
+  const supabase = createServerClient<Database>(
+    env.supabase.url,
+    env.supabase.anonKey,
     {
       cookies: {
         getAll() {

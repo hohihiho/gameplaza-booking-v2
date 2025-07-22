@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -20,8 +20,8 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     // 데이터베이스에서 관리자 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -30,8 +30,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabase
-      .from('admins')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -83,8 +83,8 @@ export async function POST(request: Request) {
     const supabase = createAdminClient();
 
     // 데이터베이스에서 관리자 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -93,8 +93,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabase
-      .from('admins')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -124,8 +124,8 @@ export async function POST(request: Request) {
       created_by: null
     };
 
-    const { data: event, error } = await supabase
-      .from('schedule_events')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('schedule_events')
       .insert(insertData)
       .select()
       .single();
@@ -156,8 +156,8 @@ export async function PATCH(request: Request) {
     const supabase = createAdminClient();
 
     // 데이터베이스에서 관리자 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -166,8 +166,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabase
-      .from('admins')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -194,8 +194,8 @@ export async function PATCH(request: Request) {
     if (body.affectsReservation !== undefined) updateData.affects_reservation = body.affectsReservation;
     if (body.blockType !== undefined) updateData.block_type = body.blockType;
 
-    const { data: event, error } = await supabase
-      .from('schedule_events')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('schedule_events')
       .update(updateData)
       .eq('id', body.id)
       .select()
@@ -232,8 +232,8 @@ export async function DELETE(request: Request) {
     const supabase = createAdminClient();
 
     // 데이터베이스에서 관리자 권한 확인
-    const { data: userData } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -242,8 +242,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabase
-      .from('admins')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -252,8 +252,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: '관리자 권한이 없습니다' }, { status: 403 });
     }
 
-    const { error } = await supabase
-      .from('schedule_events')
+    const supabase = createClient();
+  const { error$1 } = await supabase.from('schedule_events')
       .delete()
       .eq('id', id);
 

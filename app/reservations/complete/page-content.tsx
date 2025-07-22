@@ -60,8 +60,8 @@ export default function ReservationCompleteContent() {
       console.log('예약 정보 로드 시작 - ID:', reservationId);
       
       // 예약 정보와 관련 데이터를 한 번에 가져오기
-      const { data, error } = await supabase
-        .from('reservations')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
         .select(`
           *,
           devices (

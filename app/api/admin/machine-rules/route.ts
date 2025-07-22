@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const { data: rules, error } = await supabaseAdmin
-      .from('machine_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('machine_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -37,8 +37,8 @@ export async function POST(request: Request) {
 
     const { content, display_order } = await request.json()
 
-    const { data, error } = await supabaseAdmin
-      .from('machine_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('machine_rules')
       .insert([{ 
         content,
         display_order: display_order || 0,
@@ -70,8 +70,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('machine_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('machine_rules')
       .update({
         ...updateData,
         updated_at: new Date().toISOString()
@@ -103,8 +103,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 })
     }
 
-    const { error } = await supabaseAdmin
-      .from('machine_rules')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('machine_rules')
       .delete()
       .eq('id', id)
 

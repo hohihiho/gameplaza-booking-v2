@@ -204,8 +204,8 @@ class TestDataGenerator {
   private async loadDeviceTypes() {
     console.log('📱 기종 정보 로드 중...');
     
-    const { data: deviceTypes, error } = await supabase
-      .from('device_types')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
         name,
@@ -456,8 +456,8 @@ class TestDataGenerator {
     console.log('  기존 테스트 데이터 삭제 중...');
     
     // 먼저 기존 테스트 사용자 ID 조회
-    const { data: existingUsers } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .like('email', 'test%@example.com');
     
@@ -492,8 +492,8 @@ class TestDataGenerator {
         created_at: new Date().toISOString()
       }));
       
-      const { error } = await supabase
-        .from('users')
+      const supabase = createClient();
+  const { error$1 } = await supabase.from('users')
         .insert(userData);
       
       if (error) {
@@ -526,8 +526,8 @@ class TestDataGenerator {
         reservation_number: `TEST-${reservation.id.substring(0, 8)}`
       }));
       
-      const { error } = await supabase
-        .from('reservations')
+      const supabase = createClient();
+  const { error$1 } = await supabase.from('reservations')
         .insert(reservationData);
       
       if (error) {

@@ -14,8 +14,8 @@ async function deleteTestReservations() {
   
   try {
     // 테스트 사용자의 예약 삭제
-    const { error } = await supabase
-      .from('reservations')
+    const supabase = createClient();
+  const { error$1 } = await supabase.from('reservations')
       .delete()
       .eq('date', '2025-07-25')
     

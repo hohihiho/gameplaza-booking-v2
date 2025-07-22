@@ -1,6 +1,6 @@
 import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
 export const authOptions: AuthOptions = {
@@ -24,6 +24,7 @@ export const authOptions: AuthOptions = {
       if (account?.provider === 'google' && user?.email) {
         try {
           // 사용자가 이미 있는지 확인
+          const supabaseAdmin = createAdminClient();
           const { data: existingUser } = await supabaseAdmin
             .from('users')
             .select('id')

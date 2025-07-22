@@ -1,5 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient as createClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth'
+import { ScheduleService } from '@/lib/services/schedule.service'
 
 // 예약 상세 조회
 export async function GET(
@@ -8,33 +11,33 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
     
     // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
-    const { data: reservation, error } = await supabase
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select(`
         *,
-        device_time_slots!inner(
-          date,
-          start_time,
-          end_time,
-          price,
-          slot_type,
-          notes,
+        devices!inner(
+          device_number,
           device_types(
             name,
-            category
+            model_name,
+            version_name,
+            category_id,
+            device_categories(
+              name
+            )
           )
         ),
-        devices(
-          device_number,
-          location
+        users!reservations_user_id_fkey(
+          name,
+          email,
+          phone
         )
       `)
       .eq('id', id)
@@ -61,17 +64,18 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await request.json()
-    const supabase = await createClient()
     
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
+    // 현재 사용자 확인 (NextAuth 사용)
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
+    // 사용자 정보 조회
+
     // 예약 정보 확인
-    const { data: reservation, error: fetchError } = await supabase
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .eq('user_id', user.id)
@@ -91,8 +95,8 @@ export async function PATCH(
       updateData.rejection_reason = body.rejection_reason
     }
 
-    const { error: updateError } = await supabase
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .eq('user_id', user.id)
@@ -120,17 +124,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
     
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
+    // 현재 사용자 확인 (NextAuth 사용)
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
+    // 사용자 정보 조회
+
     // 예약 정보 확인
-    const { data: reservation, error: fetchError } = await supabase
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .eq('user_id', user.id)
@@ -157,8 +162,8 @@ export async function DELETE(
     }
 
     // 예약 취소 처리
-    const { error: updateError } = await supabase
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservations')
       .update({ 
         status: 'cancelled',
         updated_at: new Date().toISOString()
@@ -171,20 +176,53 @@ export async function DELETE(
       return NextResponse.json({ error: '예약 취소에 실패했습니다' }, { status: 500 })
     }
 
-    // 실시간 업데이트를 위한 브로드캐스트
-    await supabase
-      .channel('reservations')
-      .send({
-        type: 'broadcast',
-        event: 'cancelled_reservation',
-        payload: { 
-          reservationId: id,
-          deviceId: reservation.device_id,
-          date: reservation.date,
-          startTime: reservation.start_time,
-          endTime: reservation.end_time
-        }
-      })
+    // 자동 스케줄 삭제 검사
+    try {
+      await ScheduleService.checkAndDeleteAutoSchedules(reservation.date);
+    } catch (scheduleError) {
+      console.error('Auto schedule deletion check error:', scheduleError);
+      // 스케줄 삭제 실패는 무시하고 계속 진행
+    }
+
+    // 조기개장 스케줄 자동 조정
+    try {
+      const adjustResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/schedule/adjust-early-opening`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: reservation.date })
+      });
+      
+      if (adjustResponse.ok) {
+        const adjustResult = await adjustResponse.json();
+        console.log('조기개장 스케줄 조정 결과:', adjustResult);
+      }
+    } catch (adjustError) {
+      console.error('Early opening schedule adjustment error:', adjustError);
+      // 스케줄 조정 실패는 무시하고 계속 진행
+    }
+
+    // 실시간 업데이트를 위한 브로드캐스트 (클라이언트 supabase 사용)
+    try {
+      const supabase = await createClient()
+      await supabase
+        .channel('reservations')
+        .send({
+          type: 'broadcast',
+          event: 'cancelled_reservation',
+          payload: { 
+            reservationId: id,
+            deviceId: reservation.device_id,
+            date: reservation.date,
+            startTime: reservation.start_time,
+            endTime: reservation.end_time
+          }
+        })
+    } catch (broadcastError) {
+      console.error('Broadcast error:', broadcastError)
+      // 브로드캐스트 실패는 무시하고 계속 진행
+    }
 
     return NextResponse.json({ 
       success: true,

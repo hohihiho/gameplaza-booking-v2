@@ -2,7 +2,7 @@
 // 비전공자 설명: 사용자의 개인 예약 데이터를 분석해서 통계를 제공하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient as createClient } from '@/lib/supabase';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
 
     // 사용자 정보 조회 (이메일 기반)
     console.log('사용자 정보 조회 시작:', session.user.email);
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
 
     // 완료된 예약만 조회 (RLS 정책으로 자동 필터링)
     console.log('완료된 예약 데이터 조회 시작');
-    const { data: reservations, error: reservationsError } = await supabase
-      .from('reservations')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
       .select(`
         *,
         devices (
@@ -205,8 +205,8 @@ export async function GET(request: NextRequest) {
       .slice(0, 4);
 
     // 등록된 시간대 조회
-    const { data: timeSlots } = await supabase
-      .from('rental_time_slots')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('rental_time_slots')
       .select('start_time, end_time, slot_type')
       .order('start_time');
 

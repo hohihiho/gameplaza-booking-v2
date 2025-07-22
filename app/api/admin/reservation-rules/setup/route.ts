@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export async function POST() {
   try {
@@ -37,8 +37,8 @@ export async function POST() {
     // `;
 
     // 테이블 생성 실행
-    const { error: createError } = await supabaseAdmin
-      .from('reservation_rules')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservation_rules')
       .select('id')
       .limit(1);
 
@@ -76,8 +76,8 @@ export async function POST() {
         }
       ];
 
-      const { error: insertError } = await supabaseAdmin
-        .from('reservation_rules')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservation_rules')
         .insert(sampleRules);
 
       if (insertError) {

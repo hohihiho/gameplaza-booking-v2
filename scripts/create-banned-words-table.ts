@@ -45,7 +45,8 @@ async function createBannedWordsTable() {
   `;
 
   try {
-    const { error } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+    const supabase = createClient();
+  const { error$1 } = await supabase.rpc('exec_sql', { sql: createTableSQL });
     
     if (error) {
       // RPC가 없을 수 있으므로 직접 시도
@@ -77,8 +78,8 @@ async function createBannedWordsTable() {
       
       console.log('기본 금지어 추가 중...');
       for (const word of defaultBannedWords) {
-        const { error: insertError } = await supabase
-          .from('banned_words')
+        const supabase = createClient();
+  const { error$1 } = await supabase.from('banned_words')
           .insert(word);
         
         if (insertError) {

@@ -126,8 +126,8 @@ export default function SchedulePage() {
         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         // 특별 영업시간 조회
-        const { data: scheduleEvents } = await supabase
-          .from('schedule_events')
+        const supabase = createClient();
+  const { data$1 } = await supabase.from('schedule_events')
           .select('title, start_time, end_time, type')
           .eq('date', dateStr)
           .in('type', ['early_open', 'overnight', 'early_close']);
@@ -497,19 +497,24 @@ export default function SchedulePage() {
     '태고의 달인': 'bg-yellow-200 dark:bg-yellow-800'
   };
   
-  // 캘린더 데이터 생성
+  // 캘린더 데이터 생성 (월~일 형식)
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
+    
+    // 월요일부터 시작하도록 계산
+    const firstDayOfWeek = firstDay.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+    const daysFromMonday = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // 일요일이면 6, 나머지는 -1
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    startDate.setDate(startDate.getDate() - daysFromMonday);
     
     const days = [];
     const current = new Date(startDate);
     
-    while (current <= lastDay || current.getDay() !== 0) {
+    // 월~일 형식으로 완전한 주를 만들 때까지 계속
+    while (current <= lastDay || current.getDay() !== 1) { // 다음주 월요일이 될 때까지
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
@@ -734,9 +739,9 @@ export default function SchedulePage() {
               
               {/* 요일 헤더 */}
               <div className="grid grid-cols-7 gap-2 mb-2">
-                {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+                {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => (
                   <div key={day} className={`text-center text-sm font-medium py-2 ${
-                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600 dark:text-gray-400'
+                    index === 5 ? 'text-blue-500' : index === 6 ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'
                   }`}>
                     {day}
                   </div>

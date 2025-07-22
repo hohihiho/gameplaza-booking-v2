@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 개별 기기 목록 조회
 export async function GET(request: NextRequest) {
@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'deviceTypeId is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .order('device_number', { ascending: true })
@@ -35,8 +35,8 @@ export async function PATCH(request: NextRequest) {
     const updateData: any = { status }
     if (notes !== undefined) updateData.notes = notes
 
-    const { data, error } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { device_type_id, device_number } = body
 
-    const { data, error } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .insert({ device_type_id, device_number, status: 'available' })
       .select()
       .single()

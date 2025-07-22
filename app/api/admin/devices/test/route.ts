@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export async function GET() {
   try {
     // 간단한 테스트 쿼리
-    const { data, error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .select('id, name')
       .limit(5)
 

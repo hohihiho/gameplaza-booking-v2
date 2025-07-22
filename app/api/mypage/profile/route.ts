@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function PATCH(request: Request) {
   try {
@@ -25,8 +25,8 @@ export async function PATCH(request: Request) {
     }
 
     // 현재 사용자 정보 가져오기
-    const { data: currentUser, error: fetchError } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('phone, phone_changed_at')
       .eq('email', session.user.email)
       .single();
@@ -70,8 +70,8 @@ export async function PATCH(request: Request) {
     }
 
     // 프로필 업데이트
-    const { data, error } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .update(updateData)
       .eq('email', session.user.email)
       .select()

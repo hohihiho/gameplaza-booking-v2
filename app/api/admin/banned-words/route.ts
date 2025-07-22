@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 권한 확인
 async function checkAdminAuth() {
@@ -12,8 +12,8 @@ async function checkAdminAuth() {
   }
 
   // Supabase에서 사용자 찾기
-  const { data: userData } = await supabaseAdmin
-    .from('users')
+  const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
     .select('id')
     .eq('email', session.user.email)
     .single();
@@ -23,8 +23,8 @@ async function checkAdminAuth() {
   }
 
   // 관리자 확인
-  const { data: adminData } = await supabaseAdmin
-    .from('admins')
+  const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
     .select('user_id')
     .eq('user_id', userData.id)
     .single();
@@ -44,8 +44,8 @@ export async function GET() {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('banned_words')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('banned_words')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -80,8 +80,8 @@ export async function POST(request: Request) {
     }
 
     const authResult = await checkAdminAuth();
-    const { data, error } = await supabaseAdmin
-      .from('banned_words')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('banned_words')
       .insert({
         word: word.trim().toLowerCase(),
         category,
@@ -131,8 +131,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('banned_words')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('banned_words')
       .update({ is_active, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -167,8 +167,8 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { error } = await supabaseAdmin
-      .from('banned_words')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('banned_words')
       .delete()
       .eq('id', id);
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     const { marketing_agreed } = await request.json();
 
     // 먼저 사용자 확인
-    const { data: user } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     }
 
     // 마케팅 동의 여부 업데이트
-    const { error } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('users')
       .update({
         marketing_agreed: marketing_agreed,
         marketing_agreed_at: marketing_agreed ? new Date().toISOString() : null,

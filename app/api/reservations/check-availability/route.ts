@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. 해당 기기 타입의 시간대 정보 가져오기
-    const { data: timeSlots, error: slotsError } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .order('start_time');
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
     })))
 
     // 2. 해당 날짜의 예약 조회
-    const { data: reservations, error: reservationsError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         device_id,
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. 기기 타입 정보 가져오기 (max_rental_units 확인용)
-    const { data: deviceType, error: typeError } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .select('name, rental_settings')
       .eq('id', deviceTypeId)
       .single();
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     const maxRentalUnits = deviceType?.rental_settings?.max_rental_units || null;
 
     // 4. 기기 정보 가져오기 (available과 in_use 상태만)
-    const { data: devices, error: devicesError } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .in('status', ['available', 'in_use'])

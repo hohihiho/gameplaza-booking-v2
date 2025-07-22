@@ -454,8 +454,8 @@ export default function CheckInPage() {
       }
       
       // 예약 상태 업데이트
-      const { error } = await supabase
-        .from('reservations')
+      const supabase = createClient();
+  const { error$1 } = await supabase.from('reservations')
         .update({
           status: 'approved',
           check_in_at: null,
@@ -472,8 +472,8 @@ export default function CheckInPage() {
 
       // 기기 상태를 사용 가능으로 변경
       if (reservation.device_id) {
-        const { error: deviceError } = await supabase
-          .from('devices')
+        const supabase = createClient();
+  const { error$1 } = await supabase.from('devices')
           .update({ status: 'available' })
           .eq('id', reservation.device_id);
           
@@ -1431,8 +1431,8 @@ export default function CheckInPage() {
                       const adjustedAmount = hourlyRate * hours;
                       
                       // 데이터베이스 업데이트
-                      const { error } = await supabase
-                        .from('reservations')
+                      const supabase = createClient();
+  const { error$1 } = await supabase.from('reservations')
                         .update({
                           actual_start_time: actualStartTime.toISOString(),
                           actual_end_time: actualEndTime.toISOString(),

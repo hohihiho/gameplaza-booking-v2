@@ -1,16 +1,28 @@
+/**
+ * Supabase 서버 클라이언트
+ * 서버 컴포넌트와 API 라우트에서 사용하는 Supabase 클라이언트입니다.
+ */
+
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import type { Database } from '@/types/database'
+import { getEnv } from '@/lib/config/env'
+import type { Database } from './types'
 
+/**
+ * 서버용 Supabase 클라이언트 생성
+ * NextAuth 세션과 통합되어 있습니다.
+ * @returns Supabase 클라이언트 인스턴스
+ */
 export async function createClient() {
   const cookieStore = await cookies()
   const session = await getServerSession(authOptions)
+  const env = getEnv()
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.supabase.url,
+    env.supabase.anonKey,
     {
       cookies: {
         getAll() {
@@ -26,6 +38,11 @@ export async function createClient() {
             // This can be ignored if you have middleware refreshing
             // user sessions.
           }
+        },
+      },
+      global: {
+        headers: {
+          'x-application-name': 'gameplaza-server',
         },
       },
     }
@@ -55,4 +72,13 @@ export async function createClient() {
   }
 
   return supabase
+}
+
+/**
+ * 서버 액션용 Supabase 클라이언트 생성
+ * Server Actions에서 사용하기 위한 헬퍼 함수
+ * @returns Supabase 클라이언트 인스턴스
+ */
+export async function createActionClient() {
+  return createClient()
 }

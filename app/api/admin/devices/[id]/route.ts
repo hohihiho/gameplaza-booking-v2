@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 개별 기기 업데이트
 export async function PATCH(
@@ -29,8 +29,8 @@ export async function PATCH(
     }
 
     // 기기 업데이트
-    const { data, error } = await supabase
-      .from('devices')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('devices')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -55,8 +55,8 @@ export async function DELETE(
     const supabase = supabaseAdmin
 
     // 기기 상태 확인
-    const { data: device, error: fetchError } = await supabase
-      .from('devices')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('devices')
       .select('status')
       .eq('id', id)
       .single()
@@ -72,8 +72,8 @@ export async function DELETE(
     }
 
     // 기기 삭제
-    const { error: deleteError } = await supabase
-      .from('devices')
+    const supabase = createClient();
+  const { error$1 } = await supabase.from('devices')
       .delete()
       .eq('id', id)
 

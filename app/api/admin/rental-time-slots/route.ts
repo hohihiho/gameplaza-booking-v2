@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 시간대 목록 조회
 export async function GET(request: NextRequest) {
@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Device type ID is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .order('slot_type', { ascending: true })
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one credit option is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
       .insert({
         device_type_id,
         slot_type,

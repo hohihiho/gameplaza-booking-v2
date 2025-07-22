@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(
   req: NextRequest,
@@ -25,8 +25,8 @@ export async function POST(
     }
 
     // 관리자 확인
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', userEmail)
       .single();
@@ -35,8 +35,8 @@ export async function POST(
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -54,8 +54,8 @@ export async function POST(
     }
 
     // 예약 정보 조회
-    const { data: reservation, error: reservationError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -70,8 +70,8 @@ export async function POST(
     }
 
     // 시간 조정 이력 저장
-    const { error: adjustmentError } = await supabaseAdmin
-      .from('time_adjustments')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('time_adjustments')
       .insert({
         reservation_id: id,
         adjusted_by: userData.id,
@@ -102,8 +102,8 @@ export async function POST(
       updateData.actual_end_time = actual_end_time;
     }
 
-    const { data: updatedReservation, error: updateError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()

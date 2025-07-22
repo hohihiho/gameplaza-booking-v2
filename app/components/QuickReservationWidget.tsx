@@ -20,6 +20,19 @@ export default function QuickReservationWidget() {
     floor2EventType: 'early_open' | 'all_night' | 'early_close' | null;
   } | null>(null);
 
+  // 24시간 표시 형식 변환 함수
+  const formatTime24Hour = (time: string) => {
+    if (!time) return '';
+    const [hour, minute] = time.split(':');
+    const hourNum = parseInt(hour || '0');
+    
+    // 0~5시를 24~29시로 변환
+    if (hourNum >= 0 && hourNum <= 5) {
+      return `${hourNum + 24}:${minute}`;
+    }
+    return `${hour}:${minute}`;
+  };
+
   useEffect(() => {
     const fetchReservationStatus = async () => {
       try {
@@ -29,8 +42,8 @@ export default function QuickReservationWidget() {
         
         // 특별 영업시간 조회
         try {
-          const { data: scheduleEvents } = await supabase
-            .from('schedule_events')
+          const supabase = createClient();
+  const { data$1 } = await supabase.from('schedule_events')
             .select('title, start_time, end_time, type')
             .eq('date', dateStr)
             .in('type', ['early_open', 'overnight', 'early_close']);
@@ -124,8 +137,8 @@ export default function QuickReservationWidget() {
         }
 
         // 전체 기기 수 조회
-        const { data: devices, error: devicesError } = await supabase
-          .from('devices')
+        const supabase = createClient();
+  const { data$1 } = await supabase.from('devices')
           .select('id, status');
 
         if (devicesError) {
@@ -294,14 +307,14 @@ export default function QuickReservationWidget() {
                     <div className="flex items-center justify-between text-xs xs:text-sm">
                       <span className="text-blue-300 font-medium">1층</span>
                       <span className="text-white font-medium">
-                        {todaySchedule ? `${todaySchedule.floor1Start}-${todaySchedule.floor1End}` : '...'}
+                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)}-${formatTime24Hour(todaySchedule.floor1End)}` : '...'}
                       </span>
                     </div>
                     
                     <div className="flex items-center justify-between text-xs xs:text-sm">
                       <span className="text-purple-300 font-medium">2층</span>
                       <span className="text-white font-medium">
-                        {todaySchedule ? `${todaySchedule.floor2Start}-${todaySchedule.floor2End}` : '...'}
+                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)}-${formatTime24Hour(todaySchedule.floor2End)}` : '...'}
                       </span>
                     </div>
                   </div>
@@ -412,7 +425,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">1층</span>
                         <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${todaySchedule.floor1Start} - ${todaySchedule.floor1End}` : '...'}
+                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)} - ${formatTime24Hour(todaySchedule.floor1End)}` : '...'}
                         </span>
                       </div>
                     </div>
@@ -420,7 +433,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">2층</span>
                         <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${todaySchedule.floor2Start} - ${todaySchedule.floor2End}` : '...'}
+                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)} - ${formatTime24Hour(todaySchedule.floor2End)}` : '...'}
                         </span>
                       </div>
                     </div>

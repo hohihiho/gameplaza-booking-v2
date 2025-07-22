@@ -115,8 +115,8 @@ export default function NewReservationPageRedesigned() {
     try {
       setIsLoadingDevices(true);
       
-      const { data: deviceTypesData, error: typesError } = await supabase
-        .from('device_types')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
         .select(`
           *,
           device_categories (
@@ -181,8 +181,8 @@ export default function NewReservationPageRedesigned() {
       setIsLoadingSlots(true);
       setError(null);
       
-      const { data: slotsData, error: slotsError } = await supabase
-        .from('rental_time_slots')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
         .order('slot_type', { ascending: true })
@@ -346,8 +346,8 @@ export default function NewReservationPageRedesigned() {
       setIsSubmitting(true);
       setError(null);
       
-      const { data: availableDevice, error: deviceError } = await supabase
-        .from('devices')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
         .eq('device_number', reservationData.deviceNumber)
@@ -365,8 +365,8 @@ export default function NewReservationPageRedesigned() {
         throw new Error('로그인이 필요합니다');
       }
 
-      const { data: userData, error: userError } = await supabase
-        .from('users')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
         .single();
@@ -387,8 +387,8 @@ export default function NewReservationPageRedesigned() {
         notes: ''
       };
       
-      const { data: newReservation, error: reservationError } = await supabase
-        .from('reservations')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
         .insert(reservationPayload)
         .select()
         .single();

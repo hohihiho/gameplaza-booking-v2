@@ -27,8 +27,8 @@ async function seedMachines() {
     
     console.log('기기 등록 중...')
     for (const machine of machines) {
-      const { error } = await supabase
-        .from('machines')
+      const supabase = createClient();
+  const { error$1 } = await supabase.from('machines')
         .upsert(machine, { onConflict: 'machine_number' })
         
       if (error) {
@@ -39,8 +39,8 @@ async function seedMachines() {
     }
     
     // 2. 등록된 기기 조회
-    const { data: registeredMachines, error: fetchError } = await supabase
-      .from('machines')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('machines')
       .select('*')
       .order('machine_number')
     
@@ -62,8 +62,8 @@ async function seedMachines() {
     
     console.log('\n대여 가능 기기 등록 중...')
     for (const rental of rentalMachines || []) {
-      const { error } = await supabase
-        .from('rental_machines')
+      const supabase = createClient();
+  const { error$1 } = await supabase.from('rental_machines')
         .upsert(rental, { onConflict: 'machine_id' })
         
       if (error) {

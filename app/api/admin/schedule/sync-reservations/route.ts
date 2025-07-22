@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 import { ScheduleService } from '@/lib/services/schedule.service';
 
 // 스케줄 생성/업데이트 헬퍼 함수
@@ -48,8 +48,8 @@ async function createOrUpdateSchedule(
     }
     
     // 기존 자동 생성 일정 확인
-    const { data: existingSchedule } = await supabaseAdmin
-      .from('schedule_events')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('schedule_events')
       .select('id')
       .eq('date', date)
       .eq('type', type === 'early' ? 'early_open' : 'overnight')
@@ -70,8 +70,8 @@ async function createOrUpdateSchedule(
       console.log(`${date} ${type} 일정 업데이트됨`);
     } else {
       // 수동 일정이 있는지 확인
-      const { data: manualSchedule } = await supabaseAdmin
-        .from('schedule_events')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('schedule_events')
         .select('id')
         .eq('date', date)
         .eq('type', type === 'early' ? 'early_open' : 'overnight')
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
       console.log(`${date} 예약 동기화 시작`);
       
       // 해당 날짜의 승인된 예약 조회
-      const { data: reservations, error } = await supabaseAdmin
-        .from('reservations')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
         .select(`
           id,
           date,
@@ -197,8 +197,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 해당 날짜의 예약 조회
-    const { data: reservations, error } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         date,
@@ -214,8 +214,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 해당 날짜의 스케줄 이벤트 조회
-    const { data: scheduleEvents } = await supabaseAdmin
-      .from('schedule_events')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('schedule_events')
       .select('*')
       .eq('date', date);
 

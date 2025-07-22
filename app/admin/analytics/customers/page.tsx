@@ -2,7 +2,7 @@
 // 비전공자 설명: 고객 행동 패턴과 세그먼트를 분석하는 페이지입니다
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
@@ -16,13 +16,11 @@ import {
   Download,
   RefreshCw,
   Heart,
-  Star,
   BarChart3,
-  Target,
-  Award
+  Target
 } from 'lucide-react';
 
-type DateRange = '7days' | '30days' | '90days' | '12months';
+type DateRange = 'week' | 'month' | 'quarter' | '6months' | '12months' | 'yearly' | 'custom';
 type CustomerSegment = {
   name: string;
   count: number;
@@ -33,75 +31,85 @@ type CustomerSegment = {
 };
 
 export default function CustomerAnalyticsPage() {
-  const [dateRange, setDateRange] = useState<DateRange>('30days');
+  const [dateRange, setDateRange] = useState<DateRange>('month');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [isLoading, setIsLoading] = useState(false);
+  const [customerData, setCustomerData] = useState<any>(null);
 
-  // 고객 통계 요약
-  const customerStats = {
-    totalCustomers: 892,
-    newCustomers: 156,
-    returningCustomers: 234,
-    churnRate: 12.5,
-    avgLifetimeValue: 245000,
-    avgVisitsPerCustomer: 3.8,
-    topCustomerSpent: 850000,
-    nps: 72 // Net Promoter Score
+  // API 데이터 가져오기
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          range: dateRange,
+          ...(dateRange === 'custom' && { year: selectedYear })
+        });
+        
+        const response = await fetch(`/api/admin/analytics/customers?${params}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCustomerData(data);
+        } else {
+          console.error('고객 데이터 조회 실패');
+        }
+      } catch (error) {
+        console.error('API 호출 오류:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomerData();
+  }, [dateRange, selectedYear]);
+
+  // 기본값 설정 (API 데이터가 없을 때)
+  const customerStats = customerData?.summary || {
+    totalCustomers: 0,
+    newCustomers: 0,
+    returningCustomers: 0,
+    growthRate: 0,
+    avgReservationsPerCustomer: 0,
+    topCustomerReservations: 0
   };
 
-  // 고객 세그먼트
+  // 고객 세그먼트 데이터
+  const segments = customerData?.segments || {};
   const customerSegments: CustomerSegment[] = [
     {
       name: 'VIP 고객',
-      count: 89,
-      percentage: 10,
+      count: segments.vip?.count || 0,
+      percentage: segments.vip?.percentage || 0,
       avgSpent: 485000,
-      description: '월 4회 이상 방문',
+      description: '예약 10회 이상',
       trend: 15
     },
     {
       name: '단골 고객',
-      count: 267,
-      percentage: 30,
+      count: segments.regular?.count || 0,
+      percentage: segments.regular?.percentage || 0,
       avgSpent: 245000,
-      description: '월 2-3회 방문',
+      description: '예약 3-9회',
       trend: 8
     },
     {
       name: '일반 고객',
-      count: 356,
-      percentage: 40,
+      count: segments.occasional?.count || 0,
+      percentage: segments.occasional?.percentage || 0,
       avgSpent: 125000,
-      description: '월 1회 방문',
+      description: '예약 2회',
       trend: -2
     },
     {
       name: '신규 고객',
-      count: 180,
-      percentage: 20,
+      count: segments.newCustomer?.count || 0,
+      percentage: segments.newCustomer?.percentage || 0,
       avgSpent: 45000,
-      description: '첫 방문 고객',
+      description: '첫 예약 고객',
       trend: 12
     }
   ];
 
-  // 재방문율 추이
-  const retentionData = [
-    { period: '1주 후', rate: 65 },
-    { period: '2주 후', rate: 48 },
-    { period: '1개월 후', rate: 35 },
-    { period: '2개월 후', rate: 28 },
-    { period: '3개월 후', rate: 22 }
-  ];
-
-  // 고객 활동 시간대
-  const customerActivityHours = [
-    { hour: '10-12', customers: 45, percentage: 5 },
-    { hour: '12-14', customers: 89, percentage: 10 },
-    { hour: '14-16', customers: 178, percentage: 20 },
-    { hour: '16-18', customers: 223, percentage: 25 },
-    { hour: '18-20', customers: 267, percentage: 30 },
-    { hour: '20-22', customers: 90, percentage: 10 }
-  ];
 
   // 선호 기기 분석 (향후 구현 예정)
   // const devicePreference = [
@@ -112,31 +120,30 @@ export default function CustomerAnalyticsPage() {
   //   { device: '기타', customers: 45, percentage: 5 }
   // ];
 
-  // 고객 만족도
-  const satisfactionData = {
-    veryHappy: 45,
-    happy: 35,
-    neutral: 15,
-    unhappy: 3,
-    veryUnhappy: 2
-  };
 
-  // 고객 성장 추이
-  const customerGrowth = Array.from({ length: 12 }, (_, i) => {
-    const month = new Date();
-    month.setMonth(month.getMonth() - (11 - i));
-    return {
-      month: month.toLocaleDateString('ko-KR', { month: 'short' }),
-      total: 500 + Math.floor(Math.random() * 100) + i * 35,
-      new: 80 + Math.floor(Math.random() * 40)
-    };
-  });
+  // API 데이터만 사용
+  const dailyCustomers = customerData?.dailyData || [];
+  const retentionData = customerData?.retentionData || [];
+  const customerActivityHours = customerData?.hourlyActivity || [];
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const params = new URLSearchParams({
+        range: dateRange,
+        ...(dateRange === 'custom' && { year: selectedYear })
+      });
+      
+      const response = await fetch(`/api/admin/analytics/customers?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCustomerData(data);
+      }
+    } catch (error) {
+      console.error('새로고침 오류:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleExport = () => {
@@ -151,7 +158,7 @@ export default function CustomerAnalyticsPage() {
         <div className="flex flex-col md:flex-row gap-4">
           {/* 기간 선택 */}
           <div className="flex-1 flex flex-wrap gap-2">
-            {(['7days', '30days', '90days', '12months'] as const).map((range) => (
+            {(['week', 'month', 'quarter', '6months', '12months', 'yearly', 'custom'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
@@ -161,15 +168,18 @@ export default function CustomerAnalyticsPage() {
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                {range === '7days' && '최근 7일'}
-                {range === '30days' && '최근 30일'}
-                {range === '90days' && '최근 90일'}
-                {range === '12months' && '최근 12개월'}
+                {range === 'week' && '이번주'}
+                {range === 'month' && '이번달'}
+                {range === 'quarter' && '분기별'}
+                {range === '6months' && '반기별'}
+                {range === '12months' && '12개월'}
+                {range === 'yearly' && '년도별'}
+                {range === 'custom' && '기간 선택'}
               </button>
             ))}
           </div>
 
-          {/* 액션 버튼 */}
+          {/* 보기 모드 */}
           <div className="flex gap-2">
             <button
               onClick={handleRefresh}
@@ -188,6 +198,32 @@ export default function CustomerAnalyticsPage() {
             </button>
           </div>
         </div>
+
+        {/* 커스텀 기간 선택 - 년도 선택 */}
+        {dateRange === 'custom' && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="max-w-xs">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                년도 선택
+              </label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                {/* 최근 5년간 년도 표시 */}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <option key={year} value={year}>
+                      {year}년
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 핵심 지표 */}
@@ -199,10 +235,14 @@ export default function CustomerAnalyticsPage() {
         >
           <div className="flex items-center justify-between mb-2">
             <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-green-600 dark:text-green-400">+21.2%</span>
+            <div className={`flex items-center gap-1 text-sm ${
+              customerStats.growthRate > 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {customerStats.growthRate > 0 ? '+' : ''}{customerStats.growthRate}%
+            </div>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {customerStats.totalCustomers}
+            {customerStats.totalCustomers.toLocaleString()}명
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">총 고객 수</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
@@ -221,11 +261,11 @@ export default function CustomerAnalyticsPage() {
             <span className="text-sm text-blue-600 dark:text-blue-400">26.2%</span>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {customerStats.returningCustomers}
+            {customerStats.returningCustomers}명
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">재방문 고객</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            평균 {customerStats.avgVisitsPerCustomer}회 방문
+            평균 {customerStats.avgReservationsPerCustomer}회 예약
           </p>
         </motion.div>
 
@@ -240,11 +280,11 @@ export default function CustomerAnalyticsPage() {
             <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            ₩{customerStats.avgLifetimeValue.toLocaleString()}
+            {customerStats.avgReservationsPerCustomer}건
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">평균 고객 가치</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">평균 예약 수</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            최고 ₩{customerStats.topCustomerSpent.toLocaleString()}
+            최다 {customerStats.topCustomerReservations}건
           </p>
         </motion.div>
 
@@ -255,15 +295,15 @@ export default function CustomerAnalyticsPage() {
           className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-2">
-            <Award className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-green-600 dark:text-green-400">+8점</span>
+            <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <span className="text-sm text-green-600 dark:text-green-400">-2일</span>
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            {customerStats.nps}
+            18일
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">NPS 점수</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">평균 재방문 주기</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            매우 우수
+            지난달 대비 -2일
           </p>
         </motion.div>
       </div>
@@ -342,33 +382,39 @@ export default function CustomerAnalyticsPage() {
           </div>
           
           <div className="h-64 flex items-end justify-between gap-2">
-            {customerGrowth.map((data, index) => {
-              const maxTotal = Math.max(...customerGrowth.map(d => d.total));
-              const totalHeight = (data.total / maxTotal) * 100;
-              const newHeight = (data.new / data.total) * totalHeight;
-              
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center"
-                  title={`${data.month}: 전체 ${data.total}명, 신규 ${data.new}명`}
-                >
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t relative">
-                    <div
-                      className="absolute bottom-0 w-full bg-blue-300 dark:bg-blue-700 rounded-t"
-                      style={{ height: `${totalHeight}%` }}
-                    />
-                    <div
-                      className="absolute bottom-0 w-full bg-blue-600 rounded-t"
-                      style={{ height: `${newHeight}%` }}
-                    />
+            {dailyCustomers.length > 0 ? (
+              dailyCustomers.slice(0, 12).map((data, index) => {
+                const maxTotal = Math.max(...dailyCustomers.map(d => (d.totalCustomers || 0)));
+                const totalHeight = ((data.totalCustomers || 0) / maxTotal) * 100;
+                const newHeight = ((data.newCustomers || 0) / (data.totalCustomers || 1)) * totalHeight;
+                
+                return (
+                  <div
+                    key={index}
+                    className="flex-1 flex flex-col items-center"
+                    title={`${data.date}: 전체 ${data.totalCustomers || 0}명, 신규 ${data.newCustomers || 0}명`}
+                  >
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t relative h-full">
+                      <div
+                        className="absolute bottom-0 w-full bg-blue-300 dark:bg-blue-700 rounded-t"
+                        style={{ height: `${totalHeight}%` }}
+                      />
+                      <div
+                        className="absolute bottom-0 w-full bg-blue-600 rounded-t"
+                        style={{ height: `${newHeight}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {index + 1}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {data.month}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="flex items-center justify-center w-full h-full text-gray-500 dark:text-gray-400">
+                {isLoading ? '데이터 로딩 중...' : '데이터가 없습니다'}
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4 mt-4 text-sm">
@@ -463,73 +509,6 @@ export default function CustomerAnalyticsPage() {
           </div>
         </motion.div>
 
-        {/* 고객 만족도 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold dark:text-white">고객 만족도</h2>
-            <Star className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </div>
-          
-          <div className="flex items-center justify-center mb-4">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-yellow-500 mb-1">4.6</div>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-5 h-5 ${
-                      star <= 4 ? 'fill-yellow-500 text-yellow-500' : 'text-gray-300 dark:text-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">매우 만족</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="h-2 bg-green-500 rounded-full"
-                    style={{ width: `${satisfactionData.veryHappy}%` }}
-                  />
-                </div>
-                <span className="dark:text-white w-10 text-right">{satisfactionData.veryHappy}%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">만족</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="h-2 bg-blue-500 rounded-full"
-                    style={{ width: `${satisfactionData.happy}%` }}
-                  />
-                </div>
-                <span className="dark:text-white w-10 text-right">{satisfactionData.happy}%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">보통</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="h-2 bg-gray-500 rounded-full"
-                    style={{ width: `${satisfactionData.neutral}%` }}
-                  />
-                </div>
-                <span className="dark:text-white w-10 text-right">{satisfactionData.neutral}%</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </div>
   );

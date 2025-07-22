@@ -15,8 +15,8 @@ async function createOvernightReservations() {
   try {
     // 1. 기존 테스트 사용자 조회
     const testEmail = 'test-reservation@gameplaza.com'
-    const { data: userData } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', testEmail)
       .single()
@@ -29,8 +29,8 @@ async function createOvernightReservations() {
     const userId = userData.id
     
     // 2. 대여 가능한 기기 타입과 실제 기기 조회
-    const { data: deviceTypes, error: typesError } = await supabase
-      .from('device_types')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
         name,
@@ -91,8 +91,8 @@ async function createOvernightReservations() {
     console.log(`${reservations.length}개의 밤샘 예약을 생성합니다...`)
     
     // 예약 삽입
-    const { data: createdReservations, error: insertError } = await supabase
-      .from('reservations')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
       .insert(reservations)
       .select(`
         *,

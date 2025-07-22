@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export class ScheduleService {
   /**
@@ -9,6 +9,7 @@ export class ScheduleService {
       console.log(`조기영업 시간 계산 시작 - 날짜: ${date}`);
       
       // rental_time_slot_id가 없는 경우도 처리하기 위해 직접 시간대로 조회
+      const supabaseAdmin = createAdminClient();
       const { data: reservations, error } = await supabaseAdmin
         .from('reservations')
         .select('id, start_time')
@@ -42,6 +43,7 @@ export class ScheduleService {
       
       // rental_time_slot_id가 없는 경우도 처리하기 위해 직접 시간대로 조회
       // 22시 이후 시작하거나 0-5시 사이 시작하는 예약
+      const supabaseAdmin = createAdminClient();
       const { data: reservations, error } = await supabaseAdmin
         .from('reservations')
         .select('id, start_time, end_time')
@@ -180,6 +182,101 @@ export class ScheduleService {
     } catch (error) {
       console.error('자동 스케줄 업데이트 오류:', error);
       // 오류가 발생해도 예약 승인 프로세스는 계속 진행
+    }
+  }
+
+  /**
+   * 자동 생성된 스케줄 삭제 (해당 시간대 예약이 모두 없어졌을 때)
+   */
+  static async checkAndDeleteAutoSchedules(date: string): Promise<void> {
+    try {
+      console.log(`자동 스케줄 삭제 검사 시작 - 날짜: ${date}`);
+      
+      // 해당 날짜의 활성 예약 조회 (pending, approved, checked_in)
+      const { data: activeReservations, error: reservationError } = await supabaseAdmin
+        .from('reservations')
+        .select('id, start_time, end_time')
+        .eq('date', date)
+        .in('status', ['pending', 'approved', 'checked_in']);
+
+      if (reservationError) {
+        console.error('활성 예약 조회 실패:', reservationError);
+        return;
+      }
+
+      const reservations = activeReservations || [];
+      console.log(`활성 예약 개수: ${reservations.length}`);
+
+      // 조기영업 시간대 예약 확인 (06:00-23:59)
+      const earlyReservations = reservations.filter(r => {
+        if (!r.start_time) return false;
+        const startHour = parseInt(r.start_time.split(':')[0]);
+        return startHour >= 6 && startHour <= 23;
+      });
+
+      // 밤샘영업 시간대 예약 확인 (00:00-05:59, 22:00-23:59)
+      const overnightReservations = reservations.filter(r => {
+        if (!r.start_time) return false;
+        const startHour = parseInt(r.start_time.split(':')[0]);
+        return startHour >= 22 || startHour <= 5;
+      });
+
+      console.log(`조기영업 예약: ${earlyReservations.length}개, 밤샘영업 예약: ${overnightReservations.length}개`);
+
+      // 조기영업 스케줄 삭제 검사
+      if (earlyReservations.length === 0) {
+        const { data: earlySchedules } = await supabaseAdmin
+          .from('schedule_events')
+          .select('id')
+          .eq('date', date)
+          .eq('type', 'early_open')
+          .eq('is_auto_generated', true);
+
+        if (earlySchedules && earlySchedules.length > 0) {
+          console.log('조기영업 자동 스케줄 삭제 중...');
+          const { error: deleteError } = await supabaseAdmin
+            .from('schedule_events')
+            .delete()
+            .eq('date', date)
+            .eq('type', 'early_open')
+            .eq('is_auto_generated', true);
+
+          if (deleteError) {
+            console.error('조기영업 스케줄 삭제 실패:', deleteError);
+          } else {
+            console.log(`${date} 조기영업 자동 스케줄 삭제 완료`);
+          }
+        }
+      }
+
+      // 밤샘영업 스케줄 삭제 검사
+      if (overnightReservations.length === 0) {
+        const { data: overnightSchedules } = await supabaseAdmin
+          .from('schedule_events')
+          .select('id')
+          .eq('date', date)
+          .eq('type', 'overnight')
+          .eq('is_auto_generated', true);
+
+        if (overnightSchedules && overnightSchedules.length > 0) {
+          console.log('밤샘영업 자동 스케줄 삭제 중...');
+          const { error: deleteError } = await supabaseAdmin
+            .from('schedule_events')
+            .delete()
+            .eq('date', date)
+            .eq('type', 'overnight')
+            .eq('is_auto_generated', true);
+
+          if (deleteError) {
+            console.error('밤샘영업 스케줄 삭제 실패:', deleteError);
+          } else {
+            console.log(`${date} 밤샘영업 자동 스케줄 삭제 완료`);
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('자동 스케줄 삭제 검사 중 오류:', error);
     }
   }
 

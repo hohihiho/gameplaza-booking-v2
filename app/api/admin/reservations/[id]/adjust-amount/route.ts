@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(
   req: NextRequest,
@@ -19,8 +19,8 @@ export async function POST(
     }
 
     // 관리자 권한 확인
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -29,8 +29,8 @@ export async function POST(
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -53,8 +53,8 @@ export async function POST(
     }
 
     // 예약 정보 조회
-    const { data: reservation, error: reservationError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -64,8 +64,8 @@ export async function POST(
     }
 
     // 금액 조정 이력 저장 (audit trail)
-    const { error: historyError } = await supabaseAdmin
-      .from('amount_adjustments')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('amount_adjustments')
       .insert({
         reservation_id: id,
         original_amount: reservation.total_amount,
@@ -82,8 +82,8 @@ export async function POST(
     }
 
     // 예약 금액 업데이트
-    const { data: updatedReservation, error: updateError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .update({
         adjusted_amount: adjustedAmount,
         adjustment_reason: reason || '관리자 수동 조정',

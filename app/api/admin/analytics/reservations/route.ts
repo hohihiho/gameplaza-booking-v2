@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   try {
@@ -12,8 +12,8 @@ export async function GET(request: Request) {
     }
 
     // 관리자 권한 확인
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,8 +22,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -130,8 +130,8 @@ export async function GET(request: Request) {
     });
 
     // 1. 요약 통계 - 모든 상태를 포함해서 가져옴
-    const { data: allReservations, error: allReservationsError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('status, created_at')
       .gte('date', startDateStr)
       .lte('date', endDateStr);
@@ -154,14 +154,15 @@ export async function GET(request: Request) {
     const approvedReservations = allReservations?.filter(r => r.status === 'approved').length || 0;
     const noShowReservations = allReservations?.filter(r => r.status === 'no_show').length || 0;
     
-    // 전체 예약 수 (대기, 거절 제외)
-    const totalReservations = (allReservations?.length || 0) - pendingReservations - rejectedReservations;
+    // 전체 예약 수 (대기, 거절, 취소 제외) - 승인/체크인/완료/노쇼만 포함
+    const totalReservations = (allReservations?.length || 0) - pendingReservations - rejectedReservations - cancelledReservations;
     
     // 완료율은 전체 예약 대비 완료 비율
     const completionRate = totalReservations > 0 ? (completedReservations / totalReservations * 100) : 0;
     
-    // 취소율은 전체 예약 대비 취소 비율
-    const cancellationRate = totalReservations > 0 ? (cancelledReservations / totalReservations * 100) : 0;
+    // 취소율은 전체 예약(취소 포함) 대비 취소 비율 - 참고용으로만 계산
+    const allReservationsCount = (allReservations?.length || 0) - pendingReservations - rejectedReservations;
+    const cancellationRate = allReservationsCount > 0 ? (cancelledReservations / allReservationsCount * 100) : 0;
 
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const avgReservationsPerDay = totalReservations / days;
@@ -177,14 +178,14 @@ export async function GET(request: Request) {
       const lastMonthStart = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
       const lastMonthEnd = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
       
-      const { data: lastMonthReservations } = await supabaseAdmin
-        .from('reservations')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
         .select('status')
         .gte('date', lastMonthStart.toISOString().split('T')[0])
         .lte('date', lastMonthEnd.toISOString().split('T')[0]);
       
       if (lastMonthReservations && lastMonthReservations.length > 0) {
-        const lastMonthTotal = lastMonthReservations.filter(r => !['pending', 'rejected'].includes(r.status)).length;
+        const lastMonthTotal = lastMonthReservations.filter(r => !['pending', 'rejected', 'cancelled'].includes(r.status)).length;
         const lastMonthCompleted = lastMonthReservations.filter(r => r.status === 'completed').length;
         const lastMonthCompletionRate = lastMonthTotal > 0 ? (lastMonthCompleted / lastMonthTotal * 100) : 0;
         
@@ -194,8 +195,8 @@ export async function GET(request: Request) {
     }
 
     // 2. 시간대별 분포 (취소/거절 제외) - start_time과 end_time 모두 가져옴
-    const { data: hourlyData } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('start_time, end_time')
       .gte('date', startDateStr)
       .lte('date', endDateStr)
@@ -206,8 +207,8 @@ export async function GET(request: Request) {
     let maxCount = 0;
 
     // 3. 기기별 통계 - device_id가 있는 경우와 없는 경우 모두 처리
-    const { data: deviceData, error: deviceError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select(`
         device_id,
         devices(
@@ -255,8 +256,8 @@ export async function GET(request: Request) {
     });
 
     // 4. 재방문율 (같은 이메일로 2회 이상 예약)
-    const { data: userReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('user_id')
       .gte('date', startDateStr)
       .lte('date', endDateStr)
@@ -276,8 +277,8 @@ export async function GET(request: Request) {
     const repeatCustomerRate = userCountMap.size > 0 ? (repeatUsers / userCountMap.size * 100) : 0;
 
     // 5. 예약 리드타임 (예약일로부터 이용일까지)
-    const { data: leadTimeData } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('created_at, date')
       .gte('date', startDateStr)
       .lte('date', endDateStr)
@@ -300,42 +301,57 @@ export async function GET(request: Request) {
     const dailyReservations = [];
     
     if (range === 'week') {
-      // 이번주: 월~일 미리 생성
+      // 이번주: 월~일 순서로 정확히 계산
       const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
-      const weekDates = [];
       
-      // 이번주 월요일부터 일요일까지의 날짜 계산
-      const monday = new Date(startDate);
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
-        weekDates.push(date);
-      }
+      // 이번주 월요일 정확히 계산 (KST 기준)
+      const today = new Date();
+      // KST 기준으로 오늘 날짜 계산
+      const kstToday = new Date(today.getTime() + (9 * 60 * 60 * 1000)); // UTC + 9시간
+      const currentDay = kstToday.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+      const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1; // 일요일이면 6, 나머지는 -1
+      const monday = new Date(kstToday);
+      monday.setDate(kstToday.getDate() - daysFromMonday);
+      monday.setHours(0, 0, 0, 0);
       
-      // 월~일 순서로 빈 데이터 생성
+      
+      // 월~일 순서로 데이터 생성 (정확히 7일)
       for (let i = 0; i < 7; i++) {
-        const currentDate = weekDates[i];
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const currentDate = new Date(monday);
+        currentDate.setDate(monday.getDate() + i);
+        // KST 기준 날짜 문자열 생성
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         
         // 실제 데이터 조회
         let count = 0;
         let cancelled = 0;
         let completed = 0;
         
-        // 해당 날짜의 모든 예약 조회 (영업시간 기준: 0시-5시 + 6시-24시 모두 해당 날짜 영업)
-        const { data: dayData } = await supabaseAdmin
-          .from('reservations')
+        // 해당 날짜의 모든 예약 조회 (단순하게)
+        const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
           .select('status, start_time')
           .eq('date', dateStr);
         
-        // 대기, 거절, 취소된 예약은 제외
-        const validDayData = dayData?.filter(r => !['pending', 'rejected', 'cancelled'].includes(r.status)) || [];
-        count = validDayData.length;
-        cancelled = 0; // 취소는 이미 제외됨
-        completed = validDayData.filter(r => r.status === 'completed').length;
+        // 승인/체크인/완료/노쇼 예약만 카운트 (취소/거절/대기 제외)
+        const validReservations = (dayData || []).filter(r => 
+          ['approved', 'checked_in', 'completed', 'no_show'].includes(r.status)
+        );
+        
+        count = validReservations.length;
+        cancelled = 0; // 취소건은 통계에서 제외
+        completed = validReservations.filter(r => r.status === 'completed').length;
 
+        // 실제 날짜의 요일 계산
+        const actualDayOfWeek = currentDate.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+        const dayName = ['일', '월', '화', '수', '목', '금', '토'][actualDayOfWeek];
+        
+        
         dailyReservations.push({
-          date: `${currentDate.getMonth() + 1}/${currentDate.getDate()}(${dayNames[i]})`,
+          date: `${currentDate.getMonth() + 1}/${currentDate.getDate()}(${dayName})`,
           count,
           cancelled,
           completed
@@ -374,8 +390,8 @@ export async function GET(request: Request) {
       
       // 각 주차별로 데이터 조회
       for (const week of weeks) {
-        const { data: periodData } = await supabaseAdmin
-          .from('reservations')
+        const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
           .select('status')
           .gte('date', week.start.toISOString().split('T')[0])
           .lte('date', week.end.toISOString().split('T')[0]);
@@ -413,8 +429,8 @@ export async function GET(request: Request) {
           const monthStart = new Date(currentYear, month, 1);
           const monthEnd = new Date(currentYear, month + 1, 0);
           
-          const { data: monthData } = await supabaseAdmin
-            .from('reservations')
+          const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
             .select('status')
             .gte('date', monthStart.toISOString().split('T')[0])
             .lte('date', monthEnd.toISOString().split('T')[0]);
@@ -451,8 +467,8 @@ export async function GET(request: Request) {
           const monthStart = new Date(currentYear, month, 1);
           const monthEnd = new Date(currentYear, month + 1, 0);
           
-          const { data: monthData } = await supabaseAdmin
-            .from('reservations')
+          const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
             .select('status')
             .gte('date', monthStart.toISOString().split('T')[0])
             .lte('date', monthEnd.toISOString().split('T')[0]);
@@ -479,8 +495,8 @@ export async function GET(request: Request) {
         const monthStart = new Date(currentYear, i, 1);
         const monthEnd = new Date(currentYear, i + 1, 0);
         
-        const { data: monthData } = await supabaseAdmin
-          .from('reservations')
+        const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
           .select('status')
           .gte('date', monthStart.toISOString().split('T')[0])
           .lte('date', monthEnd.toISOString().split('T')[0]);
@@ -510,8 +526,8 @@ export async function GET(request: Request) {
         
         if (yearEnd > endDate) yearEnd.setTime(endDate.getTime());
         
-        const { data: yearData } = await supabaseAdmin
-          .from('reservations')
+        const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
           .select('status')
           .gte('date', yearStart.toISOString().split('T')[0])
           .lte('date', yearEnd.toISOString().split('T')[0]);
@@ -539,8 +555,8 @@ export async function GET(request: Request) {
         const monthStart = new Date(year, i, 1);
         const monthEnd = new Date(year, i + 1, 0);
         
-        const { data: monthData } = await supabaseAdmin
-          .from('reservations')
+        const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
           .select('status')
           .gte('date', monthStart.toISOString().split('T')[0])
           .lte('date', monthEnd.toISOString().split('T')[0]);
@@ -581,8 +597,8 @@ export async function GET(request: Request) {
             weekEnd.setTime(lastDay.getTime());
           }
           
-          const { data: periodData } = await supabaseAdmin
-            .from('reservations')
+          const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
             .select('status')
             .gte('date', weekStart.toISOString().split('T')[0])
             .lte('date', weekEnd.toISOString().split('T')[0]);
@@ -615,8 +631,8 @@ export async function GET(request: Request) {
           
           if (monthEnd > endDate) monthEnd.setTime(endDate.getTime());
           
-          const { data: monthData } = await supabaseAdmin
-            .from('reservations')
+          const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
             .select('status')
             .gte('date', monthStart.toISOString().split('T')[0])
             .lte('date', monthEnd.toISOString().split('T')[0]);
@@ -638,8 +654,8 @@ export async function GET(request: Request) {
     }
 
     // 7. 시간대별 분포 (실제 등록된 시간대 기준)
-    const { data: registeredTimeSlots } = await supabaseAdmin
-      .from('rental_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('rental_time_slots')
       .select('start_time, end_time')
       .order('start_time');
 
@@ -722,8 +738,8 @@ export async function GET(request: Request) {
 
     // 8. 기기별 분포 - 실제 대여 가능한 기종들도 포함
     // 먼저 대여 가능한 모든 기종 가져오기
-    const { data: rentableTypes, error: rentableError } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .select('id, name')
       .eq('is_rentable', true);
 
@@ -774,8 +790,8 @@ export async function GET(request: Request) {
     deviceDistribution.sort((a, b) => b.count - a.count);
 
     // 9. 요일별 패턴 (pending 제외) - 영업시간 기준 (해당 날짜 영업)
-    const { data: weekdayData } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('date')
       .gte('date', startDateStr)
       .lte('date', endDateStr)

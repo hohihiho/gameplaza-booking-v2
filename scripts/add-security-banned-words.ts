@@ -161,15 +161,15 @@ async function addSecurityBannedWords() {
   for (const bannedWord of securityBannedWords) {
     try {
       // 이미 존재하는지 확인
-      const { data: existing } = await supabase
-        .from('banned_words')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('banned_words')
         .select('id')
         .eq('word', bannedWord.word)
         .single();
       
       if (!existing) {
-        const { error } = await supabase
-          .from('banned_words')
+        const supabase = createClient();
+  const { error$1 } = await supabase.from('banned_words')
           .insert({
             word: bannedWord.word,
             severity: bannedWord.severity,

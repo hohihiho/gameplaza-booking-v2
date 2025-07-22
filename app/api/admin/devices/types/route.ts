@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 기기 타입 목록 조회 (카테고리별 또는 전체)
 export async function GET(request: NextRequest) {
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
     console.log('Creating device type with:', { category_id, name, device_count })
 
     // 기기 타입 생성
-    const { data: deviceType, error: typeError } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .insert({ category_id, name, description, is_rentable })
       .select()
       .single()
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
         display_order: index + 1
       }))
 
-      const { error: modesError } = await supabaseAdmin
-        .from('play_modes')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('play_modes')
         .insert(modesData)
 
       if (modesError) throw modesError
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
         status: 'available' as const
       }))
 
-      const { data: createdDevices, error: devicesError } = await supabaseAdmin
-        .from('devices')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
         .insert(devicesData)
         .select()
 
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
 
     // 대여 가능한 경우 rental_settings 생성
     if (is_rentable) {
-      const { error: rentalError } = await supabaseAdmin
-        .from('rental_settings')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('rental_settings')
         .insert({
           device_type_id: deviceType.id,
           base_price: 40000, // 기본값
@@ -142,8 +142,8 @@ export async function PATCH(request: NextRequest) {
     if (description !== undefined) updateData.description = description
     if (display_order !== undefined) updateData.display_order = display_order
 
-    const { data, error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .update(updateData)
       .eq('id', id)
       .select()

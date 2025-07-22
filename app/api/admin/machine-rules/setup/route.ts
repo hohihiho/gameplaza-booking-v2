@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export async function POST() {
   try {
@@ -41,8 +41,8 @@ export async function POST() {
 
     if (count === 0) {
       // 초기 데이터 삽입
-      const { error } = await supabaseAdmin
-        .from('machine_rules')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('machine_rules')
         .insert(initialRules)
 
       if (error) throw error

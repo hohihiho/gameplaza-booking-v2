@@ -48,6 +48,7 @@ type TimeSlot = {
   is_available: boolean;
   price?: number;
   slot_type?: 'early' | 'overnight' | 'regular';
+  is_youth_time?: boolean;
   credit_options?: any[];
   enable_2p?: boolean;
   price_2p_extra?: number;
@@ -109,8 +110,8 @@ export default function NewReservationPage() {
     setIsLoadingDevices(true);
     try {
       // device_types와 관련 정보 가져오기
-      const { data: deviceTypesData, error: typesError } = await supabase
-        .from('device_types')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
         .select(`
           *,
           device_categories!category_id (
@@ -266,6 +267,7 @@ export default function NewReservationPage() {
     }
     return `${hour}:${minute}`;
   };
+
 
   // 캘린더 날짜 생성
   const generateCalendarDays = () => {
@@ -604,6 +606,12 @@ export default function NewReservationPage() {
                               {slot.slot_type === 'overnight' && (
                                 <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full">
                                   밤샘대여
+                                </span>
+                              )}
+                              {slot.is_youth_time && (
+                                <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  청소년 가능
                                 </span>
                               )}
                             </div>

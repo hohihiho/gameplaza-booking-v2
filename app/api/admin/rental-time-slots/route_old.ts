@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 시간대 목록 조회
 export async function GET(request: NextRequest) {
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 임시로 device_time_slots 테이블 사용
-    const { data, error } = await supabaseAdmin
-      .from('device_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .eq('date', new Date().toISOString().split('T')[0])
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     const basePrice = credit_options[0]?.prices[credit_options[0]?.hours[0]] || 30000
 
     // device_time_slots 테이블에 저장 (임시)
-    const { data, error } = await supabaseAdmin
-      .from('device_time_slots')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_time_slots')
       .insert({
         date: new Date().toISOString().split('T')[0],
         device_type_id,

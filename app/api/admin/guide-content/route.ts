@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Page slug is required' }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('guide_content')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('guide_content')
       .select('content')
       .eq('page_slug', pageSlug)
       .single();
@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     // upsert로 저장 (없으면 생성, 있으면 업데이트)
-    const { data, error } = await supabaseAdmin
-      .from('guide_content')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('guide_content')
       .upsert({
         page_slug: pageSlug,
         content,

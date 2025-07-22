@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 // 기종 생성
 export async function POST(request: Request) {
@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     } = body;
 
     // 같은 카테고리 내 최대 display_order 찾기
-    const { data: maxOrderData } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .select('display_order')
       .eq('category_id', category_id)
       .order('display_order', { ascending: false })
@@ -29,8 +29,8 @@ export async function POST(request: Request) {
       : 1;
 
     // device_types 테이블에 새 기종 추가
-    const { data: deviceType, error: typeError } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .insert({
         category_id,
         name,
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
         status: 'available' as const
       }));
 
-      const { error: devicesError } = await supabaseAdmin
-        .from('devices')
+      const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('devices')
         .insert(devices);
 
       if (devicesError) {

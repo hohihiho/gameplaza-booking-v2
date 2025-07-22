@@ -7,14 +7,20 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev --turbopack -H 0.0.0.0",
     "dev:restart": "./scripts/restart-dev.sh",
     "dev:clean": "./scripts/restart-dev.sh --clean",
-    "build": "next build",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "generate-test-data": "tsx scripts/create-analytics-test-data.ts"
+    "generate-test-data": "tsx scripts/create-analytics-test-data.ts",
+    "generate-real-data": "tsx scripts/create-real-world-analytics-data.ts",
+    "headless:start": "cd /Users/seeheejang/Documents/project/headless-pm && ./smart-start.sh",
+    "headless:stop": "cd /Users/seeheejang/Documents/project/headless-pm && ./smart-stop.sh",
+    "headless:status": "lsof -i :6969 && lsof -i :3001 || echo '서버가 실행되지 않고 있습니다'",
+    "headless:web": "open http://localhost:3001",
+    "headless:api": "curl -s http://localhost:6969/health | jq . || echo 'API 서버에 연결할 수 없습니다'"
   },
   "keywords": [],
   "author": "",
@@ -55,8 +61,8 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@stagewise-plugins/react": "^0.5.2",
-    "@stagewise/toolbar-next": "^0.5.2",
+    "@stagewise-plugins/react": "^0.6.0",
+    "@stagewise/toolbar-next": "^0.6.0",
     "@supabase/mcp-server-supabase": "^0.4.5",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
@@ -66,6 +72,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "glob": "^11.0.3",
     "prettier": "^3.6.1",
     "tsx": "^4.20.3"
   }

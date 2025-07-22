@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getToken } from 'next-auth/jwt';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Supabase에서 사용자 정보 조회
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id, email, nickname')
       .eq('email', session.user.email)
       .single();
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
     // 관리자 권한 확인
     let adminData = null;
     if (userData) {
-      const { data: adminResult } = await supabaseAdmin
-        .from('admins')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
         .select('is_super_admin')
         .eq('user_id', userData.id)
         .single();

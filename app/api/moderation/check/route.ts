@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 import { checkKoreanProfanity } from '@/lib/utils/korean-filter';
 import { checkEnglishProfanity, checkSpamPatterns } from '@/lib/utils/english-filter';
 
@@ -128,8 +128,8 @@ async function checkCustomBannedWords(text: string): Promise<{
   severity?: number;
 }> {
   // 금지어 목록 조회
-  const { data: bannedWords } = await supabaseAdmin
-    .from('banned_words')
+  const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('banned_words')
     .select('word, severity')
     .eq('is_active', true);
 
@@ -238,8 +238,8 @@ export async function POST(request: Request) {
     // 5. 커스텀 금지어 체크 - 닉네임에서는 비속어 카테고리만 체크
     if (context === 'nickname') {
       // 닉네임에서는 비속어만 체크
-      const { data: profanityWords } = await supabaseAdmin
-        .from('banned_words')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('banned_words')
         .select('word, severity')
         .eq('is_active', true)
         .in('category', ['profanity', 'offensive', 'sexual']);
@@ -284,8 +284,8 @@ export async function POST(request: Request) {
       }
       
       // 7. 닉네임 중복 체크
-      const { data: existingUser } = await supabaseAdmin
-        .from('users')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
         .select('id')
         .eq('nickname', text)
         .neq('email', session.user.email) // 자기 자신은 제외

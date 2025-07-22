@@ -5,10 +5,44 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
+
+// 시간대 구분 함수
+const getShiftType = (startTime: string) => {
+  if (!startTime) return null;
+  const [hour] = startTime.split(':');
+  const h = parseInt(hour);
+  
+  if (h >= 6 && h <= 23) {
+    return 'early'; // 조기영업 (06:00-23:59)
+  } else if (h >= 0 && h <= 5) {
+    return 'night'; // 밤샘영업 (00:00-05:59)
+  }
+  return null;
+};
+
+// 시간대 뱃지 스타일
+const getShiftBadgeStyle = (shiftType: string | null) => {
+  switch (shiftType) {
+    case 'early':
+      return {
+        bg: 'bg-orange-100 dark:bg-orange-900/30',
+        text: 'text-orange-700 dark:text-orange-300',
+        label: '조기'
+      };
+    case 'night':
+      return {
+        bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+        text: 'text-indigo-700 dark:text-indigo-300',
+        label: '밤샘'
+      };
+    default:
+      return null;
+  }
+};
 
 export default function ReservationsPage() {
   const router = useRouter();
@@ -25,6 +59,108 @@ export default function ReservationsPage() {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // 모달 상태
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  
+  // 토스트 상태
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // 영업일 기준 날짜 변환 함수
+  const getBusinessDate = (date: string, startTime: string) => {
+    const [year, month, day] = date.split('-').map(Number);
+    const [hour] = startTime.split(':').map(Number);
+    
+    // 0~5시는 전날 영업일로 간주
+    if (hour >= 0 && hour <= 5) {
+      const businessDate = new Date(year, month - 1, day - 1);
+      return businessDate;
+    } else {
+      const businessDate = new Date(year, month - 1, day);
+      return businessDate;
+    }
+  };
+
+  // 데이터 정렬 함수 (기획서 기준: 대기중 → 승인 → 체크인 → 완료/취소)
+  const sortReservationsData = (data: any[]) => {
+    return [...data].sort((a, b) => {
+      // 1. 상태별 우선순위
+      const statusPriority: Record<string, number> = {
+        'pending': 1,    // 대기중
+        'approved': 2,   // 승인됨
+        'checked_in': 3, // 체크인
+        'completed': 4,  // 완료
+        'cancelled': 4,  // 취소 (완료와 동일 순위)
+        'rejected': 4,   // 거절 (완료와 동일 순위)
+        'no_show': 5     // 노쇼
+      };
+
+      const aPriority = statusPriority[a.status] || 999;
+      const bPriority = statusPriority[b.status] || 999;
+
+      // 상태가 다르면 우선순위로 정렬
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // 같은 상태 내에서 정렬
+      if (a.status === 'pending' || a.status === 'approved' || a.status === 'checked_in') {
+        // 대기중/승인됨/체크인: 대여일이 가까운 순
+        
+        // 날짜가 없는 경우 기본값 처리
+        if (!a.date || !b.date) {
+          return a.date ? -1 : (b.date ? 1 : 0);
+        }
+        
+        // 영업일 기준으로 날짜 계산
+        const aBusinessDate = getBusinessDate(a.date, a.start_time || '00:00:00');
+        const bBusinessDate = getBusinessDate(b.date, b.start_time || '00:00:00');
+        
+        // 시간 파싱
+        let aHour = 0, aMinute = 0, bHour = 0, bMinute = 0;
+        if (a.start_time) {
+          const timeParts = a.start_time.split(':');
+          aHour = parseInt(timeParts[0] || '0');
+          aMinute = parseInt(timeParts[1] || '0');
+        }
+        if (b.start_time) {
+          const timeParts = b.start_time.split(':');
+          bHour = parseInt(timeParts[0] || '0');
+          bMinute = parseInt(timeParts[1] || '0');
+        }
+        
+        // 먼저 영업일 비교
+        const businessDateDiff = aBusinessDate.getTime() - bBusinessDate.getTime();
+        if (businessDateDiff !== 0) {
+          return businessDateDiff;
+        }
+        
+        // 같은 영업일이면 시간대별로 구분
+        // 조기영업(06:00-23:59)과 밤샘영업(00:00-05:59) 구분
+        const aIsNightShift = aHour >= 0 && aHour <= 5;
+        const bIsNightShift = bHour >= 0 && bHour <= 5;
+        
+        // 같은 영업일에서 조기영업이 먼저, 밤샘영업이 뒤로
+        if (aIsNightShift !== bIsNightShift) {
+          return aIsNightShift ? 1 : -1; // 조기영업(false)이 먼저, 밤샘영업(true)이 뒤로
+        }
+        
+        // 같은 시간대 내에서는 실제 시간 순서로
+        const aActualMinutes = aHour * 60 + aMinute;
+        const bActualMinutes = bHour * 60 + bMinute;
+        
+        return aActualMinutes - bActualMinutes;
+      } else {
+        // 완료/취소/거절/노쇼: 최신순 (생성일 기준)
+        const aCreated = new Date(a.created_at || a.updated_at);
+        const bCreated = new Date(b.created_at || b.updated_at);
+        return bCreated.getTime() - aCreated.getTime();
+      }
+    });
+  };
 
   const tabs = [
     { id: 'all', label: '전체' },
@@ -155,7 +291,10 @@ export default function ReservationsPage() {
       
       // 만료된 예약 상태 업데이트
       const updatedData = await updateExpiredReservations(data || []);
-      setAllReservations(updatedData);
+      
+      // 정렬 적용
+      const sortedData = sortReservationsData(updatedData);
+      setAllReservations(sortedData);
       
       // 각 탭의 개수 계산
       const counts: Record<string, number> = {
@@ -175,13 +314,18 @@ export default function ReservationsPage() {
   };
 
   const filterReservations = () => {
+    let filtered;
     if (activeTab === 'all') {
-      setReservations(allReservations);
+      filtered = allReservations;
     } else if (activeTab === 'cancelled') {
-      setReservations(allReservations.filter(r => r.status === 'cancelled' || r.status === 'rejected'));
+      filtered = allReservations.filter(r => r.status === 'cancelled' || r.status === 'rejected');
     } else {
-      setReservations(allReservations.filter(r => r.status === activeTab));
+      filtered = allReservations.filter(r => r.status === activeTab);
     }
+    
+    // 필터링 후 정렬 적용
+    const sortedFiltered = sortReservationsData(filtered);
+    setReservations(sortedFiltered);
     setCurrentPage(1); // 필터 변경 시 첫 페이지로
   };
   
@@ -205,23 +349,48 @@ export default function ReservationsPage() {
     router.push(`/reservations?${params.toString()}`);
   };
 
-  const handleCancel = async (reservationId: string) => {
+  const handleCancel = (reservationId: string) => {
     if (!session) {
       alert('로그인이 필요합니다');
       router.push('/login');
       return;
     }
     
-    if (!confirm('정말 예약을 취소하시겠습니까?')) return;
+    setCancelTargetId(reservationId);
+    setShowCancelModal(true);
+  };
 
+  const confirmCancel = async () => {
+    if (!cancelTargetId) return;
+    
+    setIsCancelling(true);
     try {
-      await cancelReservation(reservationId);
-      alert('예약이 취소되었습니다');
+      await cancelReservation(cancelTargetId);
       loadAllReservations();
+      setShowCancelModal(false);
+      setCancelTargetId(null);
+      showToastMessage('예약이 성공적으로 취소되었습니다');
     } catch (error: any) {
       console.error('예약 취소 오류:', error);
-      alert(error.message || '예약 취소에 실패했습니다');
+      showToastMessage(error.message || '예약 취소에 실패했습니다');
+    } finally {
+      setIsCancelling(false);
     }
+  };
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setCancelTargetId(null);
+  };
+
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    
+    // 3초 후 토스트 자동 닫기
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
   };
 
   const getStatusStyle = (status: string) => {
@@ -522,6 +691,19 @@ export default function ReservationsPage() {
                         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                           <Clock className="w-4 h-4 text-gray-400" />
                           <span className="text-sm">{formatTime(reservation.start_time, reservation.end_time)}</span>
+                          {(() => {
+                            const shiftType = getShiftType(reservation.start_time);
+                            const badgeStyle = getShiftBadgeStyle(shiftType);
+                            
+                            if (badgeStyle) {
+                              return (
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
+                                  {badgeStyle.label}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                           <CreditCard className="w-4 h-4 text-gray-400" />
@@ -575,6 +757,133 @@ export default function ReservationsPage() {
           </div>
         )}
       </div>
+      
+      {/* 예약 취소 확인 모달 */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={closeCancelModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 헤더 */}
+              <div className="relative bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-red-600/20" />
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-xl font-bold">예약 취소</h2>
+                  </div>
+                  <button
+                    onClick={closeCancelModal}
+                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 내용 */}
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <div className="mb-4">
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      정말 예약을 취소하시겠습니까?
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      한번 취소된 예약은 되돌릴 수 없습니다.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 버튼 */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeCancelModal}
+                    className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                    disabled={isCancelling}
+                  >
+                    돌아가기
+                  </button>
+                  <button
+                    onClick={confirmCancel}
+                    disabled={isCancelling}
+                    className="flex-1 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-red-400 disabled:to-red-500 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        취소 중...
+                      </>
+                    ) : (
+                      '예약 취소'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* 토스트 알림 */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50"
+          >
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="relative p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {toastMessage}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowToast(false)}
+                    className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {/* 진행 바 */}
+                <motion.div
+                  initial={{ width: "100%" }}
+                  animate={{ width: "0%" }}
+                  transition={{ duration: 3, ease: "linear" }}
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

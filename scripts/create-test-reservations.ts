@@ -14,8 +14,8 @@ async function createTestReservations() {
   
   try {
     // 1. 대여 가능한 기기 타입과 실제 기기 조회
-    const { data: deviceTypes, error: typesError } = await supabase
-      .from('device_types')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
         name,
@@ -38,8 +38,8 @@ async function createTestReservations() {
     const testPhone = '010-9999-9999'
     
     // 먼저 기존 사용자 확인
-    const { data: existingUser } = await supabase
-      .from('users')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
       .select('*')
       .eq('email', testEmail)
       .single()
@@ -51,8 +51,8 @@ async function createTestReservations() {
       console.log('기존 테스트 사용자 사용:', userId)
     } else {
       // 새 사용자 생성 - UUID 직접 생성
-      const { data: newUser, error: userError } = await supabase
-        .from('users')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
         .insert({
           id: crypto.randomUUID(),
           email: testEmail,
@@ -133,8 +133,8 @@ async function createTestReservations() {
     console.log(`${reservations.length}개의 예약을 생성합니다...`)
     
     // 예약 삽입
-    const { data: createdReservations, error: insertError } = await supabase
-      .from('reservations')
+    const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
       .insert(reservations)
       .select(`
         *,

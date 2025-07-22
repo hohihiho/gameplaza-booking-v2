@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 카테고리 목록 조회
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('device_categories')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_categories')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, display_order } = body
 
-    const { data, error } = await supabaseAdmin
-      .from('device_categories')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_categories')
       .insert({ name, display_order })
       .select()
       .single()
@@ -45,8 +45,8 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { id, name } = body
 
-    const { data, error } = await supabaseAdmin
-      .from('device_categories')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_categories')
       .update({ name })
       .eq('id', id)
       .select()
@@ -95,8 +95,8 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json()
     const { id } = body
 
-    const { error } = await supabaseAdmin
-      .from('device_categories')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('device_categories')
       .delete()
       .eq('id', id)
 

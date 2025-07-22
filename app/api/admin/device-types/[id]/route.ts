@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 // 기종 정보 업데이트
 export async function PATCH(
@@ -29,8 +29,8 @@ export async function PATCH(
     
     console.log('[기종 업데이트] 업데이트 데이터:', updateData);
     
-    const { data, error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -59,8 +59,8 @@ export async function DELETE(
     const { id } = await params;
 
     // 연결된 기기가 있는지 확인
-    const { data: devices } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .select('id')
       .eq('device_type_id', id)
       .limit(1);
@@ -72,8 +72,8 @@ export async function DELETE(
     }
 
     // 기종 삭제
-    const { error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('device_types')
       .delete()
       .eq('id', id);
 

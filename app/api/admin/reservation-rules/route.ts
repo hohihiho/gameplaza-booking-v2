@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 규칙 목록 조회
 export async function GET() {
@@ -11,8 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('reservation_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservation_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { content, display_order } = body
 
-    const { data, error } = await supabaseAdmin
-      .from('reservation_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservation_rules')
       .insert({
         content,
         display_order,
@@ -82,8 +82,8 @@ export async function PUT(request: NextRequest) {
 
     console.log('업데이트 데이터:', updateData)
 
-    const { data, error } = await supabaseAdmin
-      .from('reservation_rules')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservation_rules')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -121,8 +121,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 })
     }
 
-    const { error } = await supabaseAdmin
-      .from('reservation_rules')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservation_rules')
       .delete()
       .eq('id', id)
 

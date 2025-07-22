@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/app/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 // 기기 타입 업데이트
 export async function PATCH(
@@ -12,8 +12,8 @@ export async function PATCH(
     const { is_rentable } = body
 
     // 기기 타입 업데이트
-    const { data, error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('device_types')
       .update({ is_rentable })
       .eq('id', id)
       .select()
@@ -35,8 +35,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const { error } = await supabaseAdmin
-      .from('device_types')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('device_types')
       .delete()
       .eq('id', id)
 

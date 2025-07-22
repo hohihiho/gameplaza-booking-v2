@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     // marketing_agreed 컬럼이 있으면 추가 (없을 수도 있음)
     try {
       // 컬럼 존재 여부 확인을 위해 먼저 조회
-      const { data: userCheck } = await supabaseAdmin
-        .from('users')
+      const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
         .select('*')
         .eq('email', session.user.email!)
         .single();
@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     }
 
     // 사용자 정보 업데이트
-    const { data, error } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .update(updateData)
       .eq('email', session.user.email!)
       .select()

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function DELETE() {
   try {
@@ -17,8 +17,8 @@ export async function DELETE() {
     console.log('회원탈퇴 요청:', session.user.email);
 
     // 1. 사용자 정보 조회
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -37,8 +37,8 @@ export async function DELETE() {
 
     // 2. 관련 데이터 삭제 (CASCADE 설정이 없는 경우 수동 삭제)
     // 예약 데이터 삭제
-    const { error: reservationError } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('reservations')
       .delete()
       .eq('user_id', userId);
 
@@ -47,8 +47,8 @@ export async function DELETE() {
     }
 
     // 3. admins 테이블에서 삭제 (관리자인 경우)
-    const { error: adminError } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('admins')
       .delete()
       .eq('user_id', userId);
 
@@ -57,8 +57,8 @@ export async function DELETE() {
     }
 
     // 4. 사용자 정보 삭제
-    const { error: deleteError } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('users')
       .delete()
       .eq('id', userId);
 

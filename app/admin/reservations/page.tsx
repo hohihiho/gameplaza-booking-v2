@@ -38,6 +38,40 @@ const formatTime = (time: string) => {
   return `${hour}:${minute || '00'}`;
 };
 
+// 시간대 구분 함수
+const getShiftType = (startTime: string) => {
+  if (!startTime) return null;
+  const [hour] = startTime.split(':');
+  const h = parseInt(hour);
+  
+  if (h >= 6 && h <= 23) {
+    return 'early'; // 조기영업 (06:00-23:59)
+  } else if (h >= 0 && h <= 5) {
+    return 'night'; // 밤샘영업 (00:00-05:59)
+  }
+  return null;
+};
+
+// 시간대 뱃지 스타일
+const getShiftBadgeStyle = (shiftType: string | null) => {
+  switch (shiftType) {
+    case 'early':
+      return {
+        bg: 'bg-orange-100 dark:bg-orange-900/30',
+        text: 'text-orange-700 dark:text-orange-300',
+        label: '조기'
+      };
+    case 'night':
+      return {
+        bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+        text: 'text-indigo-700 dark:text-indigo-300',
+        label: '밤샘'
+      };
+    default:
+      return null;
+  }
+};
+
 type Reservation = {
   id: string;
   user: {
@@ -72,6 +106,7 @@ export default function ReservationManagementPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -83,19 +118,139 @@ export default function ReservationManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // 한 페이지에 10개씩 표시
 
+  // 영업일 기준 날짜 변환 함수
+  const getBusinessDate = (date: string, startTime: string) => {
+    const [year, month, day] = date.split('-').map(Number);
+    const [hour] = startTime.split(':').map(Number);
+    
+    // 0~5시는 전날 영업일로 간주
+    if (hour >= 0 && hour <= 5) {
+      const businessDate = new Date(year, month - 1, day - 1);
+      return businessDate;
+    } else {
+      const businessDate = new Date(year, month - 1, day);
+      return businessDate;
+    }
+  };
+
+  // 데이터 정렬 함수 (공통 사용)
+  const sortReservationsData = (data: any[]) => {
+    console.log('정렬 전 데이터:', data.map(d => ({ id: d.id, status: d.status, date: d.date, start_time: d.start_time })));
+    
+    const sorted = [...data].sort((a, b) => {
+      // 1. 상태별 우선순위 (기획서 기준: 대기중 → 승인 → 체크인 → 완료/취소)
+      const statusPriority: Record<string, number> = {
+        'pending': 1,    // 대기중
+        'approved': 2,   // 승인됨
+        'checked_in': 3, // 체크인
+        'completed': 4,  // 완료
+        'cancelled': 4,  // 취소 (완료와 동일 순위)
+        'rejected': 4,   // 거절 (완료와 동일 순위)
+        'no_show': 5     // 노쇼
+      };
+
+      const aPriority = statusPriority[a.status] || 999;
+      const bPriority = statusPriority[b.status] || 999;
+
+      // 상태가 다르면 우선순위로 정렬
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // 같은 상태 내에서 정렬
+      if (a.status === 'pending' || a.status === 'approved' || a.status === 'checked_in') {
+        // 대기중/승인됨/체크인: 대여일이 가까운 순
+        
+        // 날짜가 없는 경우 기본값 처리
+        if (!a.date || !b.date) {
+          return a.date ? -1 : (b.date ? 1 : 0);
+        }
+        
+        // 영업일 기준으로 날짜 계산
+        const aBusinessDate = getBusinessDate(a.date, a.start_time || '00:00:00');
+        const bBusinessDate = getBusinessDate(b.date, b.start_time || '00:00:00');
+        
+        // 시간 파싱
+        let aHour = 0, aMinute = 0, bHour = 0, bMinute = 0;
+        if (a.start_time) {
+          const timeParts = a.start_time.split(':');
+          aHour = parseInt(timeParts[0] || '0');
+          aMinute = parseInt(timeParts[1] || '0');
+        }
+        if (b.start_time) {
+          const timeParts = b.start_time.split(':');
+          bHour = parseInt(timeParts[0] || '0');
+          bMinute = parseInt(timeParts[1] || '0');
+        }
+        
+        // 먼저 영업일 비교
+        const businessDateDiff = aBusinessDate.getTime() - bBusinessDate.getTime();
+        if (businessDateDiff !== 0) {
+          return businessDateDiff;
+        }
+        
+        // 같은 영업일이면 시간대별로 구분
+        // 조기영업(06:00-23:59)과 밤샘영업(00:00-05:59) 구분
+        const aIsNightShift = aHour >= 0 && aHour <= 5;
+        const bIsNightShift = bHour >= 0 && bHour <= 5;
+        
+        // 같은 영업일에서 조기영업이 먼저, 밤샘영업이 뒤로
+        if (aIsNightShift !== bIsNightShift) {
+          return aIsNightShift ? 1 : -1; // 조기영업(false)이 먼저, 밤샘영업(true)이 뒤로
+        }
+        
+        // 같은 시간대 내에서는 실제 시간 순서로
+        const aActualMinutes = aHour * 60 + aMinute;
+        const bActualMinutes = bHour * 60 + bMinute;
+        
+        // 논리적 시간 계산 (밤샘시간은 24~29시로 표시)
+        const aLogicalHour = aIsNightShift ? aHour + 24 : aHour;
+        const bLogicalHour = bIsNightShift ? bHour + 24 : bHour;
+        
+        // 같은 시간대면 신청 순서(created_at)로 정렬
+        if (aActualMinutes === bActualMinutes) {
+          const aCreated = new Date(a.created_at);
+          const bCreated = new Date(b.created_at);
+          return aCreated.getTime() - bCreated.getTime(); // 먼저 신청한 순서
+        }
+        
+        const result = aActualMinutes - bActualMinutes;
+        console.log(`정렬 비교 (영업일 기준): ${a.date} ${a.start_time} (영업일: ${aBusinessDate.toDateString()}, 논리시간: ${aLogicalHour}:${aMinute.toString().padStart(2,'0')}) vs ${b.date} ${b.start_time} (영업일: ${bBusinessDate.toDateString()}, 논리시간: ${bLogicalHour}:${bMinute.toString().padStart(2,'0')}) = ${result}`);
+        
+        return result;
+      } else {
+        // 완료/취소/거절/노쇼: 최신순 (생성일 기준)
+        const aCreated = new Date(a.created_at || a.updated_at);
+        const bCreated = new Date(b.created_at || b.updated_at);
+        return bCreated.getTime() - aCreated.getTime();
+      }
+    });
+    
+    console.log('정렬 후 데이터:', sorted.map(d => ({ id: d.id, status: d.status, date: d.date, start_time: d.start_time })));
+    return sorted;
+  };
+
   // Supabase에서 예약 데이터 가져오기
-  const fetchReservations = async () => {
+  const fetchReservations = async (year?: string) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/admin/reservations');
+      // URL 파라미터 구성
+      const params = new URLSearchParams();
+      if (year && year !== 'all') {
+        params.append('year', year);
+      }
+      params.append('limit', '1000'); // 최대 1000건
+      
+      const response = await fetch(`/api/admin/reservations?${params}`);
       
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || '예약 데이터를 불러올 수 없습니다');
       }
       
-      const { data: reservationsData } = await response.json();
+      const responseData = await response.json();
+      const reservationsData = responseData.reservations || responseData.data || [];
       
       console.log('예약 데이터:', reservationsData);
       
@@ -104,59 +259,9 @@ export default function ReservationManagementPage() {
         console.log('첫 번째 예약 데이터 구조:', reservationsData[0]);
       }
 
-      // 데이터 정렬 함수
-      const sortReservations = (data: any[]) => {
-        return data.sort((a, b) => {
-          // 1. 상태별 우선순위
-          const statusPriority: Record<string, number> = {
-            'pending': 1,    // 대기중
-            'approved': 2,   // 승인됨
-            'checked_in': 3, // 체크인
-            'completed': 4,  // 완료
-            'cancelled': 5,  // 취소
-            'rejected': 5,   // 거절
-            'no_show': 6     // 노쇼
-          };
-
-          const aPriority = statusPriority[a.status] || 999;
-          const bPriority = statusPriority[b.status] || 999;
-
-          // 상태가 다르면 우선순위로 정렬
-          if (aPriority !== bPriority) {
-            return aPriority - bPriority;
-          }
-
-          // 같은 상태 내에서 정렬
-          if (a.status === 'pending' || a.status === 'approved' || a.status === 'checked_in') {
-            // 대기중/승인됨/체크인: 대여일이 가까운 순
-            // 날짜를 YYYY-MM-DD 형식으로 파싱
-            const [aYear, aMonth, aDay] = a.date.split('-').map(Number);
-            const [bYear, bMonth, bDay] = b.date.split('-').map(Number);
-            
-            // 시간이 있으면 시간도 고려
-            let aHour = 0, aMinute = 0, bHour = 0, bMinute = 0;
-            if (a.start_time) {
-              [aHour, aMinute] = a.start_time.split(':').map(Number);
-            }
-            if (b.start_time) {
-              [bHour, bMinute] = b.start_time.split(':').map(Number);
-            }
-            
-            const aDate = new Date(aYear, aMonth - 1, aDay, aHour, aMinute);
-            const bDate = new Date(bYear, bMonth - 1, bDay, bHour, bMinute);
-            
-            return aDate.getTime() - bDate.getTime();
-          } else {
-            // 취소/완료/거절/노쇼: 최신순 (생성일 기준)
-            const aCreated = new Date(a.created_at || a.updated_at);
-            const bCreated = new Date(b.created_at || b.updated_at);
-            return bCreated.getTime() - aCreated.getTime();
-          }
-        });
-      };
 
       // 정렬된 데이터
-      const sortedData = sortReservations(reservationsData || []);
+      const sortedData = sortReservationsData(reservationsData || []);
 
       // 데이터 포맷팅
       const formattedData: Reservation[] = sortedData.map((res: any) => ({
@@ -215,16 +320,24 @@ export default function ReservationManagementPage() {
 
   // 초기 로드
   useEffect(() => {
-    fetchReservations();
+    fetchReservations(selectedYear);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  // 연도 변경 시 데이터 다시 로드
+  useEffect(() => {
+    if (selectedYear) {
+      fetchReservations(selectedYear);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear]);
 
   // 필터링 및 검색 처리
   useEffect(() => {
     if (allReservations.length > 0) {
       filterReservations();
     }
-  }, [selectedStatus, searchQuery, selectedDate, allReservations]);
+  }, [selectedStatus, searchQuery, selectedDate, selectedYear, allReservations]);
 
   // 필터링 함수
   const filterReservations = () => {
@@ -248,12 +361,24 @@ export default function ReservationManagementPage() {
       );
     }
     
-    // 날짜 필터링
+    // 연도별 필터링 (특정 날짜가 선택되지 않은 경우)
+    if (!selectedDate && selectedYear !== 'all') {
+      filtered = filtered.filter(r => {
+        if (!r.date) return false;
+        const reservationYear = new Date(r.date).getFullYear().toString();
+        return reservationYear === selectedYear;
+      });
+    }
+    
+    // 특정 날짜 필터링 (연도 필터보다 우선)
     if (selectedDate) {
       filtered = filtered.filter(r => r.date === selectedDate);
     }
     
-    setReservations(filtered);
+    // 필터링 후 정렬 적용
+    const sortedFiltered = sortReservationsData(filtered);
+    
+    setReservations(sortedFiltered);
     setCurrentPage(1); // 필터 변경 시 첫 페이지로
   };
 
@@ -499,24 +624,73 @@ export default function ReservationManagementPage() {
 
           {/* 검색 및 필터 */}
           <div className="py-2 sm:py-3 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="flex flex-col gap-2 sm:gap-3">
+              {/* 첫 번째 줄: 검색 */}
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="이름, 전화번호 검색"
+                  placeholder="이름, 전화번호, 기종명 검색"
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              {/* 두 번째 줄: 기간 필터 */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <div className="flex-1 sm:flex-none">
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">연도 선택</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      if (e.target.value !== 'all') {
+                        setSelectedDate(''); // 연도 선택시 특정 날짜 초기화
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">전체 연도</option>
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}년
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                
+                <div className="flex-1 sm:flex-none">
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">특정 날짜</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      if (e.target.value) {
+                        setSelectedYear('all'); // 특정 날짜 선택시 연도 필터 초기화
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                {/* 필터 초기화 버튼 */}
+                {(selectedYear !== new Date().getFullYear().toString() || selectedDate) && (
+                  <button
+                    onClick={() => {
+                      setSelectedYear(new Date().getFullYear().toString());
+                      setSelectedDate('');
+                    }}
+                    className="self-end px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    초기화
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -641,6 +815,21 @@ export default function ReservationManagementPage() {
                             return `${formatTime(start)} - ${formatTime(end)}`;
                           })()}
                         </span>
+                        {(() => {
+                          const parts = reservation.time_slot.split('-');
+                          const start = parts[0] || '';
+                          const shiftType = getShiftType(start);
+                          const badgeStyle = getShiftBadgeStyle(shiftType);
+                          
+                          if (badgeStyle) {
+                            return (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
+                                {badgeStyle.label}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
 
@@ -877,14 +1066,31 @@ export default function ReservationManagementPage() {
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
                       <span className="text-sm text-gray-600 dark:text-gray-400">시간</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {(() => {
+                            const parts = selectedReservation.time_slot.split('-');
+                            const start = parts[0] || '';
+                            const end = parts[1] || '';
+                            return `${formatTime(start)} - ${formatTime(end)}`;
+                          })()}
+                        </span>
                         {(() => {
                           const parts = selectedReservation.time_slot.split('-');
                           const start = parts[0] || '';
-                          const end = parts[1] || '';
-                          return `${formatTime(start)} - ${formatTime(end)}`;
+                          const shiftType = getShiftType(start);
+                          const badgeStyle = getShiftBadgeStyle(shiftType);
+                          
+                          if (badgeStyle) {
+                            return (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
+                                {badgeStyle.label}
+                              </span>
+                            );
+                          }
+                          return null;
                         })()}
-                      </span>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
                       <span className="text-sm text-gray-600 dark:text-gray-400">인원</span>

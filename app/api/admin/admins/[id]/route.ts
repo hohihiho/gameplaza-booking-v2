@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
 // 권한 확인 헬퍼 함수
 async function checkSuperAdmin(email: string): Promise<boolean> {
   try {
-    const { data: userData } = await supabaseAdmin
-      .from('users')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', email)
       .single();
 
     if (!userData) return false;
 
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .eq('is_super_admin', true)
@@ -49,8 +49,8 @@ export async function DELETE(
     const { id } = await params;
 
     // 관리자 정보 조회
-    const { data: adminToDelete, error: fetchError } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('id', id)
       .single();
@@ -65,8 +65,8 @@ export async function DELETE(
     }
 
     // 관리자 삭제
-    const { error: deleteError } = await supabaseAdmin
-      .from('admins')
+    const supabaseAdmin = createAdminClient();
+  const { error$1 } = await supabaseAdmin.from('admins')
       .delete()
       .eq('id', id);
 

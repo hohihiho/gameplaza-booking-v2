@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient as createClient } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -9,7 +9,8 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     
     // OAuth 코드를 세션으로 교환
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const supabase = createClient();
+  const { error$1 } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
       // 로그인 성공 - 사용자 정보 확인
@@ -17,8 +18,8 @@ export async function GET(request: Request) {
       
       if (user) {
         // users 테이블에 사용자 정보가 있는지 확인
-        const { data: profile } = await supabase
-          .from('users')
+        const supabase = createClient();
+  const { data$1 } = await supabase.from('users')
           .select('*')
           .eq('id', user.id)
           .single()

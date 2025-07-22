@@ -1,46 +1,27 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/app/lib/supabase';
+import { withAuth } from '@/lib/auth';
+import { createAdminClient } from '@/lib/supabase';
 
-export async function GET() {
+export const GET = withAuth(async (req, { user }) => {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const supabaseAdmin = createAdminClient();
 
-    // 관리자 권한 확인
-    const { data: userData } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', session.user.email)
-      .single();
-
-    if (!userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const { data: adminData } = await supabaseAdmin
-      .from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userData.id)
-      .single();
-
-    if (!adminData) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
-
-    // 오늘 날짜 (KST)
+    // 오늘 영업일 날짜 (KST 기준, 06시 이전은 전날 영업일)
     const kstOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
     const now = new Date();
     const kstNow = new Date(now.getTime() + kstOffset);
-    const todayStr = kstNow.toISOString().split('T')[0];
+    
+    // 현재 시간이 06시 이전이면 전날을 영업일로 간주
+    const currentHour = kstNow.getHours();
+    const businessDay = new Date(kstNow);
+    if (currentHour < 6) {
+      businessDay.setDate(businessDay.getDate() - 1);
+    }
+    const todayStr = businessDay.toISOString().split('T')[0];
 
     // 1. 오늘 매출 계산 (실제 이용시간 기준)
-    const { data: todayRevenue } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('adjusted_amount')
       .eq('date', todayStr)
       .eq('status', 'completed')
@@ -48,13 +29,13 @@ export async function GET() {
 
     const revenue = todayRevenue?.reduce((sum, r) => sum + (r.adjusted_amount || 0), 0) || 0;
 
-    // 어제 매출과 비교
-    const yesterday = new Date(kstNow);
+    // 어제 영업일과 비교 (06시 기준 전날)
+    const yesterday = new Date(businessDay);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    const { data: yesterdayRevenue } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('adjusted_amount')
       .eq('date', yesterdayStr)
       .eq('status', 'completed');
@@ -65,24 +46,24 @@ export async function GET() {
       : 0;
 
     // 2. 오늘 예약 현황
-    const { data: todayReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('status')
       .eq('date', todayStr);
 
     const totalReservations = todayReservations?.length || 0;
     
     // 전체 승인 대기 건수 (날짜 무관)
-    const { data: allPendingReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id')
       .eq('status', 'pending');
     
     const pendingReservations = allPendingReservations?.length || 0;
 
     // 어제와 비교
-    const { data: yesterdayReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id')
       .eq('date', yesterdayStr);
 
@@ -92,8 +73,8 @@ export async function GET() {
       : 0;
 
     // 3. 현재 이용중 (체크인된 예약)
-    const { data: currentlyUsing } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id')
       .eq('date', todayStr)
       .eq('status', 'checked_in');
@@ -102,7 +83,6 @@ export async function GET() {
 
     // 체크인 대기중 (승인됐지만 체크인 안된 예약 중 시작 30분 전부터 시작 시간까지)
     // KST 기준 현재 시간
-    const currentHour = kstNow.getHours();
     const currentMinute = kstNow.getMinutes();
     
     // 30분 전의 시간 계산
@@ -115,8 +95,8 @@ export async function GET() {
     const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
     // 시작 시간이 (현재시간 - 30분) 이후인 모든 승인된 예약 조회 (지각 포함)
-    const { data: waitingCheckin } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id, start_time')
       .eq('date', todayStr)
       .eq('status', 'approved')
@@ -125,8 +105,8 @@ export async function GET() {
     const waitingCount = waitingCheckin?.length || 0;
 
     // 4. 대여 가능 기기
-    const { data: allDevices } = await supabaseAdmin
-      .from('devices')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('devices')
       .select('status');
 
     const totalDevices = allDevices?.length || 0;
@@ -134,8 +114,8 @@ export async function GET() {
     const maintenanceDevices = allDevices?.filter(d => d.status === 'maintenance').length || 0;
 
     // 5. 최근 예약 목록 (최근 10개)
-    const { data: recentReservations } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         status,
@@ -155,8 +135,8 @@ export async function GET() {
       .limit(10);
 
     // 6. 결제 대기 현황 (체크인 됐지만 결제 안된 건수)
-    const { data: pendingPayments } = await supabaseAdmin
-      .from('reservations')
+    const supabaseAdmin = createAdminClient();
+  const { data$1 } = await supabaseAdmin.from('reservations')
       .select('id')
       .eq('status', 'checked_in')
       .eq('payment_status', 'pending');
@@ -234,4 +214,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+}, { requireAdmin: true });

@@ -93,8 +93,8 @@ export default function MachinesPage() {
       const yesterdayStr = yesterday.toISOString().split('T')[0];
 
       // 종료된 예약 찾기 (오늘 + 어제 새벽 예약 포함)
-      const { data: reservations, error: fetchError } = await supabase
-        .from('reservations')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('reservations')
         .select('device_id, date, end_time')
         .in('date', [todayStr, yesterdayStr])
         .eq('status', 'approved')
@@ -130,8 +130,8 @@ export default function MachinesPage() {
 
       if (expiredDeviceIds.length > 0) {
         // 해당 기기들의 현재 상태 확인
-        const { data: devices, error: devicesError } = await supabase
-          .from('devices')
+        const supabase = createClient();
+  const { data$1 } = await supabase.from('devices')
           .select('id, status')
           .in('id', expiredDeviceIds)
           .in('status', ['in_use', 'reserved']); // 사용불가나 점검중은 제외
@@ -143,8 +143,8 @@ export default function MachinesPage() {
 
         if (devices && devices.length > 0) {
           // 상태를 available로 업데이트
-          const { error: updateError } = await supabase
-            .from('devices')
+          const supabase = createClient();
+  const { error$1 } = await supabase.from('devices')
             .update({ status: 'available' })
             .in('id', devices.map(d => d.id));
 
@@ -168,16 +168,16 @@ export default function MachinesPage() {
       await updateExpiredRentals();
 
       // 카테고리 정보 가져오기
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('device_categories')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('device_categories')
         .select('*')
         .order('display_order', { ascending: true });
 
       if (categoriesError) throw categoriesError;
 
       // device_types와 devices, play_modes를 함께 가져오기
-      const { data: deviceTypesData, error: typesError } = await supabase
-        .from('device_types')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('device_types')
         .select(`
           *,
           device_categories!category_id (
@@ -263,8 +263,8 @@ export default function MachinesPage() {
   // 기기 현황 안내사항 불러오기
   const loadMachineRules = async () => {
     try {
-      const { data, error } = await supabase
-        .from('machine_rules')
+      const supabase = createClient();
+  const { data$1 } = await supabase.from('machine_rules')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });

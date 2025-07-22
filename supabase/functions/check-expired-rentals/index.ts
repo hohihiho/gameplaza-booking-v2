@@ -19,7 +19,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
     // 만료된 대여 체크 함수 호출
-    const { error } = await supabase.rpc('check_expired_rentals')
+    const supabase = createClient();
+  const { error$1 } = await supabase.rpc('check_expired_rentals')
     
     if (error) {
       throw error
