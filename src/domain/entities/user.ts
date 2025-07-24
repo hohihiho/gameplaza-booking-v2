@@ -1,7 +1,7 @@
 import { Role } from '../value-objects/role'
 import { Permission } from '../value-objects/permission'
 
-export type UserRole = 'user' | 'admin'
+export type UserRole = 'user' | 'admin' | 'superadmin'
 export type UserStatus = 'active' | 'suspended' | 'banned'
 
 export interface UserProps {
@@ -130,7 +130,11 @@ export class User {
   }
 
   isAdmin(): boolean {
-    return this._role === 'admin'
+    return this._role === 'admin' || this._role === 'superadmin'
+  }
+
+  isSuperAdmin(): boolean {
+    return this._role === 'superadmin'
   }
 
   /**
@@ -389,6 +393,9 @@ export class User {
    * 사용자의 기본 권한 목록 반환
    */
   getPermissions(): Permission[] {
+    if (this.isSuperAdmin()) {
+      return Permission.adminPermissions() // 슈퍼관리자는 모든 권한 보유
+    }
     return this.isAdmin() ? Permission.adminPermissions() : Permission.userPermissions()
   }
 

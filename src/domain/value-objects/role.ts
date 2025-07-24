@@ -1,14 +1,14 @@
 /**
  * 사용자 역할 타입
  */
-export type RoleType = 'user' | 'admin'
+export type RoleType = 'user' | 'admin' | 'superadmin'
 
 /**
  * Role 값 객체
  * 사용자의 역할을 나타내는 값 객체
  */
 export class Role {
-  private static readonly VALID_ROLES: RoleType[] = ['user', 'admin']
+  private static readonly VALID_ROLES: RoleType[] = ['user', 'admin', 'superadmin']
 
   private constructor(
     public readonly value: RoleType,
@@ -23,6 +23,8 @@ export class Role {
    */
   static create(role: RoleType): Role {
     switch (role) {
+      case 'superadmin':
+        return new Role('superadmin', '슈퍼관리자', 1000)
       case 'admin':
         return new Role('admin', '관리자', 100)
       case 'user':
@@ -44,6 +46,13 @@ export class Role {
    */
   static user(): Role {
     return Role.create('user')
+  }
+
+  /**
+   * 슈퍼관리자 역할 생성
+   */
+  static superadmin(): Role {
+    return Role.create('superadmin')
   }
 
   /**
@@ -82,6 +91,13 @@ export class Role {
    */
   isUser(): boolean {
     return this.value === 'user'
+  }
+
+  /**
+   * 슈퍼관리자 역할인지 확인
+   */
+  isSuperAdmin(): boolean {
+    return this.value === 'superadmin'
   }
 
   /**

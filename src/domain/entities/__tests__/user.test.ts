@@ -39,6 +39,20 @@ describe('User Entity', () => {
 
       expect(admin.role).toBe('admin')
       expect(admin.isAdmin()).toBe(true)
+      expect(admin.isSuperAdmin()).toBe(false)
+    })
+
+    it('should create a superadmin user', () => {
+      const superadmin = User.create({
+        id: 'superadmin-123',
+        email: 'superadmin@example.com',
+        fullName: 'Super Admin User',
+        role: 'superadmin',
+      })
+
+      expect(superadmin.role).toBe('superadmin')
+      expect(superadmin.isAdmin()).toBe(true) // 슈퍼관리자도 관리자임
+      expect(superadmin.isSuperAdmin()).toBe(true)
     })
   })
 
@@ -307,6 +321,13 @@ describe('User Entity', () => {
 
     describe('hasHigherPrivilegeThan', () => {
       it('권한 레벨을 비교해야 한다', () => {
+        const superadmin = User.create({
+          id: 'superadmin-123',
+          email: 'superadmin@example.com',
+          fullName: 'Super Admin User',
+          role: 'superadmin'
+        })
+        
         const admin = User.create({
           id: 'admin-123',
           email: 'admin@example.com',
@@ -320,8 +341,11 @@ describe('User Entity', () => {
           fullName: 'Test User'
         })
         
+        expect(superadmin.hasHigherPrivilegeThan(admin)).toBe(true)
+        expect(superadmin.hasHigherPrivilegeThan(user)).toBe(true)
         expect(admin.hasHigherPrivilegeThan(user)).toBe(true)
         expect(user.hasHigherPrivilegeThan(admin)).toBe(false)
+        expect(admin.hasHigherPrivilegeThan(superadmin)).toBe(false)
         expect(user.hasHigherPrivilegeThan(user)).toBe(false)
       })
     })

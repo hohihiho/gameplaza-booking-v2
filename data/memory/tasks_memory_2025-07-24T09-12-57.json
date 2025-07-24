@@ -1,0 +1,360 @@
+{
+  "tasks": [
+    {
+      "id": "71caa2ad-35bf-42ef-8bff-9fa4722c8cc2",
+      "name": "인증 도메인 모델 설계 및 구현",
+      "description": "인증 관련 도메인 모델(User, Session, AuthToken) 설계 및 구현",
+      "notes": "JWT 토큰 형식 검증, 세션 만료 처리, 다중 디바이스 지원",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T04:21:00.931Z",
+      "updatedAt": "2025-07-24T04:21:26.761Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/value-objects/auth-token.ts",
+          "type": "CREATE",
+          "description": "JWT 토큰 값 객체"
+        },
+        {
+          "path": "/src/domain/entities/session.ts",
+          "type": "CREATE",
+          "description": "세션 엔티티"
+        },
+        {
+          "path": "/src/domain/entities/user.ts",
+          "type": "TO_MODIFY",
+          "description": "사용자 엔티티 확장"
+        },
+        {
+          "path": "/src/domain/services/auth-domain.service.ts",
+          "type": "CREATE",
+          "description": "인증 도메인 서비스"
+        }
+      ],
+      "implementationGuide": "1. AuthToken 값 객체 생성 (JWT 토큰 래퍼)\n2. Session 엔티티 생성 (디바이스 정보, 활동 추적)\n3. User 엔티티에 인증 관련 메서드 추가\n4. AuthDomainService 구현",
+      "verificationCriteria": "모든 인증 도메인 모델 테스트 통과, JWT 토큰 검증 동작 확인",
+      "analysisResult": "게임플라자 v2 백엔드를 DDD와 Clean Architecture로 처음부터 구현",
+      "summary": "인증 도메인 모델을 성공적으로 구현했습니다. AuthToken 값 객체(JWT 래퍼), Session 엔티티(디바이스 추적), User 엔티티 확장(인증 메서드), AuthDomainService를 모두 구현하고 테스트를 통과했습니다.",
+      "completedAt": "2025-07-24T04:21:26.761Z"
+    },
+    {
+      "id": "e1433000-d1b1-4ecd-832f-624f48bdf162",
+      "name": "Google OAuth 유스케이스 구현",
+      "description": "Google OAuth 로그인/회원가입 유스케이스 구현",
+      "notes": "신규 사용자 자동 가입, 기존 사용자 연동, 토큰 갱신 로직",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "71caa2ad-35bf-42ef-8bff-9fa4722c8cc2"
+        }
+      ],
+      "createdAt": "2025-07-24T04:21:00.931Z",
+      "updatedAt": "2025-07-24T04:25:30.912Z",
+      "relatedFiles": [
+        {
+          "path": "/src/application/use-cases/auth/google-auth.use-case.ts",
+          "type": "CREATE",
+          "description": "Google 인증 유스케이스"
+        },
+        {
+          "path": "/src/application/use-cases/auth/refresh-token.use-case.ts",
+          "type": "CREATE",
+          "description": "토큰 갱신 유스케이스"
+        },
+        {
+          "path": "/src/application/use-cases/auth/logout.use-case.ts",
+          "type": "CREATE",
+          "description": "로그아웃 유스케이스"
+        },
+        {
+          "path": "/src/application/dtos/auth.dto.ts",
+          "type": "CREATE",
+          "description": "인증 DTO"
+        }
+      ],
+      "implementationGuide": "1. GoogleAuthUseCase 구현\n2. RefreshTokenUseCase 구현\n3. LogoutUseCase 구현\n4. GetProfileUseCase 구현\n5. 인증 관련 DTO 정의",
+      "verificationCriteria": "Google OAuth 플로우 전체 테스트, 토큰 갱신 동작 확인",
+      "analysisResult": "게임플라자 v2 백엔드를 DDD와 Clean Architecture로 처음부터 구현",
+      "summary": "Google OAuth 유스케이스를 성공적으로 구현했습니다. GoogleAuthUseCase, RefreshTokenUseCase, LogoutUseCase, GetProfileUseCase와 관련 DTO를 모두 구현하고 테스트를 통과했습니다.",
+      "completedAt": "2025-07-24T04:25:30.911Z"
+    },
+    {
+      "id": "34752c4b-debd-47ae-b373-36290c3aa5f4",
+      "name": "권한 시스템 도메인 구현",
+      "description": "역할 기반 접근 제어(RBAC) 시스템 구현",
+      "notes": "역할별 권한 정의, 리소스별 접근 제어",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "71caa2ad-35bf-42ef-8bff-9fa4722c8cc2"
+        }
+      ],
+      "createdAt": "2025-07-24T04:21:00.931Z",
+      "updatedAt": "2025-07-24T04:26:25.382Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/value-objects/role.ts",
+          "type": "CREATE",
+          "description": "역할 값 객체"
+        },
+        {
+          "path": "/src/domain/value-objects/permission.ts",
+          "type": "CREATE",
+          "description": "권한 값 객체"
+        },
+        {
+          "path": "/src/domain/services/authorization-domain.service.ts",
+          "type": "CREATE",
+          "description": "인가 도메인 서비스"
+        }
+      ],
+      "implementationGuide": "1. Role 값 객체 생성 (admin, user)\n2. Permission 값 객체 생성\n3. User 엔티티에 권한 체크 메서드 추가\n4. AuthorizationService 도메인 서비스 구현",
+      "verificationCriteria": "역할별 권한 테스트, 리소스 접근 제어 동작 확인",
+      "analysisResult": "게임플라자 v2 백엔드를 DDD와 Clean Architecture로 처음부터 구현",
+      "summary": "RBAC 권한 시스템을 성공적으로 구현했습니다. Role과 Permission 값 객체, User 엔티티의 권한 메서드, AuthorizationDomainService를 구현하고 모든 테스트(Role: 18개, Permission: 19개, User 권한: 25개, AuthorizationService: 22개)가 통과했습니다.",
+      "completedAt": "2025-07-24T04:26:25.382Z"
+    },
+    {
+      "id": "bf03d9da-6732-494a-b04b-a5131b34f5bb",
+      "name": "인증 인프라 레이어 구현",
+      "description": "인증 관련 인프라 구현 (Repository, Service)",
+      "notes": "Supabase 통합, Google OAuth 설정, JWT 라이브러리 사용",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "71caa2ad-35bf-42ef-8bff-9fa4722c8cc2"
+        },
+        {
+          "taskId": "e1433000-d1b1-4ecd-832f-624f48bdf162"
+        }
+      ],
+      "createdAt": "2025-07-24T04:21:00.931Z",
+      "updatedAt": "2025-07-24T04:32:24.347Z",
+      "relatedFiles": [
+        {
+          "path": "/src/infrastructure/repositories/user.supabase.repository.ts",
+          "type": "CREATE",
+          "description": "사용자 Supabase 저장소"
+        },
+        {
+          "path": "/src/infrastructure/repositories/session.supabase.repository.ts",
+          "type": "CREATE",
+          "description": "세션 Supabase 저장소"
+        },
+        {
+          "path": "/src/infrastructure/services/google-auth.service.ts",
+          "type": "CREATE",
+          "description": "Google OAuth 서비스"
+        },
+        {
+          "path": "/src/infrastructure/services/jwt-token.service.ts",
+          "type": "CREATE",
+          "description": "JWT 토큰 서비스"
+        }
+      ],
+      "implementationGuide": "1. UserSupabaseRepository 구현\n2. SessionSupabaseRepository 구현\n3. GoogleAuthService 구현 (Google OAuth 클라이언트)\n4. JWTTokenService 구현",
+      "verificationCriteria": "Supabase 연동 테스트, Google OAuth 인증 플로우 동작 확인",
+      "analysisResult": "게임플라자 v2 백엔드를 DDD와 Clean Architecture로 처음부터 구현",
+      "summary": "인증 인프라 레이어를 성공적으로 구현했습니다. UserSupabaseRepository, SessionSupabaseRepository, GoogleAuthService, JWTTokenService를 구현하고 모든 테스트(UserSupabaseRepository: 11개, JWTTokenService: 17개)가 통과했습니다.",
+      "completedAt": "2025-07-24T04:32:24.346Z"
+    },
+    {
+      "id": "407c3329-4a08-4dda-a8cc-3cb42abca409",
+      "name": "기기 관리 도메인 구현",
+      "description": "기기(Device) 관리 도메인 모델 및 유스케이스 구현",
+      "notes": "기기별 예약 가능 설정, 실시간 상태 업데이트",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T04:21:00.931Z",
+      "updatedAt": "2025-07-24T08:13:40.009Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/entities/device.ts",
+          "type": "CREATE",
+          "description": "기기 엔티티"
+        },
+        {
+          "path": "/src/domain/value-objects/device-type.ts",
+          "type": "CREATE",
+          "description": "기기 타입 값 객체"
+        },
+        {
+          "path": "/src/application/use-cases/device/",
+          "type": "CREATE",
+          "description": "기기 관리 유스케이스"
+        }
+      ],
+      "implementationGuide": "1. Device 엔티티 생성\n2. DeviceType 값 객체 생성\n3. 기기 CRUD 유스케이스 구현\n4. 기기 상태 관리 (정상/고장/점검중)",
+      "verificationCriteria": "기기 CRUD 테스트, 상태 변경 동작 확인",
+      "analysisResult": "게임플라자 v2 백엔드를 DDD와 Clean Architecture로 처음부터 구현",
+      "summary": "기기 관리 도메인 구현 완료. DeviceStatus 값 객체 생성, Device 엔티티 개선, 기기 CRUD 유스케이스(생성/수정/삭제/조회/상태변경) 구현, 리포지토리 인터페이스 정의, 테스트 케이스 작성 완료.",
+      "completedAt": "2025-07-24T08:13:40.009Z"
+    },
+    {
+      "id": "83615e4a-1cd4-4c2d-b28f-5a7aaf04f7da",
+      "name": "관리자 - 예약 승인/거절 유스케이스 구현",
+      "description": "관리자가 예약을 승인하거나 거절할 수 있는 유스케이스 구현. 예약 상태 변경, 기기 자동 배정, FCM 알림 발송 포함",
+      "notes": "기기 번호는 순서대로 자동 배정되며, 거절 시 사유를 반드시 입력해야 함",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T06:46:23.544Z",
+      "updatedAt": "2025-07-24T07:01:28.581Z",
+      "relatedFiles": [
+        {
+          "path": "/src/application/use-cases/reservation/approve-reservation.use-case.ts",
+          "type": "CREATE",
+          "description": "예약 승인 유스케이스"
+        },
+        {
+          "path": "/src/application/use-cases/reservation/reject-reservation.use-case.ts",
+          "type": "CREATE",
+          "description": "예약 거절 유스케이스"
+        },
+        {
+          "path": "/src/domain/entities/reservation.ts",
+          "type": "TO_MODIFY",
+          "description": "assignDevice 메서드 추가"
+        },
+        {
+          "path": "/app/api/v2/reservations/[id]/approve/route.ts",
+          "type": "CREATE",
+          "description": "승인 API"
+        },
+        {
+          "path": "/app/api/v2/reservations/[id]/reject/route.ts",
+          "type": "CREATE",
+          "description": "거절 API"
+        }
+      ],
+      "implementationGuide": "1. ApproveReservationUseCase 생성 - 예약 승인 시 기기 번호 자동 배정\n2. RejectReservationUseCase 생성 - 거절 사유 입력 및 알림\n3. 예약 상태 변경 로직 구현\n4. 기기 배정 알고리즘 구현 (순서대로 배정)\n5. 알림 발송 연동",
+      "verificationCriteria": "1. 관리자만 승인/거절 가능\n2. 승인 시 기기 번호 자동 배정\n3. 거절 시 사유 필수 입력\n4. FCM 알림 발송 확인\n5. 예약 상태 정확히 변경",
+      "analysisResult": "게임플라자 예약 시스템의 관리자 백엔드 기능 구현. Clean Architecture/DDD 패턴을 따르며, 관리자 전용 기능들을 체계적으로 구현.",
+      "summary": "관리자 예약 승인/거절 유스케이스 구현 완료. Reservation 엔티티에 기기번호 할당 및 거절사유 필드 추가, 승인/거절 메서드 구현, 유스케이스 및 API 엔드포인트 생성, 테스트 코드 작성 완료",
+      "completedAt": "2025-07-24T07:01:28.580Z"
+    },
+    {
+      "id": "9bc4be54-0823-4e00-9b12-3eb31d48c7f6",
+      "name": "관리자 - 체크인 시스템 유스케이스 구현",
+      "description": "고객 도착 시 체크인 처리 및 현장 결제 관리. 시간 조정 기능 포함",
+      "notes": "체크인 시 기기 상태가 자동으로 'in_use'로 변경되어야 함",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "83615e4a-1cd4-4c2d-b28f-5a7aaf04f7da"
+        }
+      ],
+      "createdAt": "2025-07-24T06:46:23.544Z",
+      "updatedAt": "2025-07-24T07:56:03.096Z",
+      "relatedFiles": [
+        {
+          "path": "/src/application/use-cases/reservation/check-in.use-case.ts",
+          "type": "CREATE",
+          "description": "체크인 유스케이스"
+        },
+        {
+          "path": "/src/application/use-cases/reservation/adjust-time.use-case.ts",
+          "type": "CREATE",
+          "description": "시간 조정 유스케이스"
+        },
+        {
+          "path": "/src/domain/value-objects/time-adjustment.ts",
+          "type": "CREATE",
+          "description": "시간 조정 값 객체"
+        },
+        {
+          "path": "/app/api/v2/reservations/[id]/check-in/route.ts",
+          "type": "CREATE",
+          "description": "체크인 API"
+        },
+        {
+          "path": "/app/api/v2/reservations/[id]/adjust-time/route.ts",
+          "type": "CREATE",
+          "description": "시간 조정 API"
+        }
+      ],
+      "implementationGuide": "1. CheckInReservationUseCase 생성\n2. 체크인 상태 변경 및 기기 상태 업데이트\n3. 현장 결제 처리 연동 (현금/계좌이체)\n4. AdjustReservationTimeUseCase - 실제 이용시간 조정\n5. 조정 사유 기록 및 요금 재계산",
+      "verificationCriteria": "1. 승인된 예약만 체크인 가능\n2. 체크인 시 기기 상태 자동 변경\n3. 시간 조정 시 사유 필수\n4. 요금 자동 재계산\n5. 조정 이력 저장",
+      "analysisResult": "게임플라자 예약 시스템의 관리자 백엔드 기능 구현. Clean Architecture/DDD 패턴을 따르며, 관리자 전용 기능들을 체계적으로 구현.",
+      "summary": "체크인 시스템 구현 완료. CheckInReservationUseCase로 예약 체크인과 기기 상태 변경, AdjustReservationTimeUseCase로 시간 조정 및 요금 재계산 기능 구현. API 엔드포인트와 테스트 케이스 작성 완료.",
+      "completedAt": "2025-07-24T07:56:03.095Z"
+    },
+    {
+      "id": "15e70e34-6b74-48b3-9033-b0b90fed4f91",
+      "name": "관리자 - 기기 카테고리 도메인 구현",
+      "description": "3단계 계층 구조의 기기 관리를 위한 도메인 모델 구현 (카테고리 > 기종 > 개별기기)",
+      "notes": "카테고리와 기종은 별도 엔티티로 관리하여 확장성 확보",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T06:46:23.544Z",
+      "updatedAt": "2025-07-24T08:29:52.822Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/entities/device-category.ts",
+          "type": "CREATE",
+          "description": "기기 카테고리 엔티티"
+        },
+        {
+          "path": "/src/domain/entities/device-type.ts",
+          "type": "CREATE",
+          "description": "기기 종류 엔티티"
+        },
+        {
+          "path": "/src/domain/value-objects/device-play-mode.ts",
+          "type": "CREATE",
+          "description": "플레이 모드 값 객체"
+        },
+        {
+          "path": "/src/domain/aggregates/device-hierarchy.ts",
+          "type": "CREATE",
+          "description": "기기 계층 집합체"
+        }
+      ],
+      "implementationGuide": "1. DeviceCategory 엔티티 생성 (SEGA, KONAMI 등)\n2. DeviceType 엔티티 생성 (마이마이DX, 사운드볼텍스 등)\n3. DevicePlayMode 값 객체 생성 (스탠다드, DX모드 등)\n4. DeviceHierarchy 집합체 생성\n5. 계층 구조 관리 메서드 구현",
+      "verificationCriteria": "1. 3단계 계층 구조 지원\n2. 기종별 플레이 모드 동적 관리\n3. 순서 변경 지원\n4. 보유 대수 자동 관리",
+      "analysisResult": "게임플라자 예약 시스템의 관리자 백엔드 기능 구현. Clean Architecture/DDD 패턴을 따르며, 관리자 전용 기능들을 체계적으로 구현.",
+      "summary": "기기 카테고리 도메인 구현 완료. 3단계 계층 구조(카테고리>타입>기기), DeviceHierarchy 집합체, 플레이 모드 시스템, 완전한 CRUD 유스케이스와 테스트 구현",
+      "completedAt": "2025-07-24T08:29:52.821Z"
+    },
+    {
+      "id": "7f588f27-f221-4ade-8243-6ab8d9973959",
+      "name": "관리자 - 대여 설정 도메인 구현",
+      "description": "대여 가능 기기, 시간대, 가격 설정을 위한 도메인 모델",
+      "notes": "기종별로 다른 대여 시간대와 가격 설정 가능",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "15e70e34-6b74-48b3-9033-b0b90fed4f91"
+        }
+      ],
+      "createdAt": "2025-07-24T06:46:23.544Z",
+      "updatedAt": "2025-07-24T09:03:25.754Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/entities/rental-settings.ts",
+          "type": "CREATE",
+          "description": "대여 설정 엔티티"
+        },
+        {
+          "path": "/src/domain/value-objects/rental-time-slot.ts",
+          "type": "CREATE",
+          "description": "대여 시간대"
+        },
+        {
+          "path": "/src/domain/value-objects/rental-pricing.ts",
+          "type": "CREATE",
+          "description": "대여 가격 설정"
+        },
+        {
+          "path": "/src/domain/value-objects/rental-availability.ts",
+          "type": "CREATE",
+          "description": "대여 가능 설정"
+        }
+      ],
+      "implementationGuide": "1. RentalSettings 엔티티 생성\n2. RentalTimeSlot 값 객체 - 기종별 대여 시간대\n3. RentalPricing 값 객체 - 시간대별/모드별 가격\n4. RentalAvailability 값 객체 - 대여 가능 대수 설정\n5. 밤샘/점검시간 관리 로직",
+      "verificationCriteria": "1. 기종별 개별 시간대 설정\n2. 시간대별 가격 차등 적용\n3. 대여 가능 대수 제한\n4. 밤샘/점검시간 반영",
+      "analysisResult": "게임플라자 예약 시스템의 관리자 백엔드 기능 구현. Clean Architecture/DDD 패턴을 따르며, 관리자 전용 기능들을 체계적으로 구현.",
+      "summary": "대여 설정 관리 도메인 모델 구현 완료. RentalSettings 엔티티와 RentalTimeSlot, RentalPricing, RentalAvailability 값 객체를 성공적으로 구현하고 모든 테스트 통과",
+      "completedAt": "2025-07-24T09:03:25.754Z"
+    }
+  ]
+}

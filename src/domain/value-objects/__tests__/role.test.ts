@@ -18,6 +18,14 @@ describe('Role', () => {
       expect(role.level).toBe(10)
     })
 
+    it('superadmin 역할을 생성해야 한다', () => {
+      const role = Role.create('superadmin')
+      
+      expect(role.value).toBe('superadmin')
+      expect(role.displayName).toBe('슈퍼관리자')
+      expect(role.level).toBe(1000)
+    })
+
     it('잘못된 역할로 생성 시 에러가 발생해야 한다', () => {
       expect(() => Role.create('invalid' as any)).toThrow('Invalid role: invalid')
     })
@@ -33,6 +41,11 @@ describe('Role', () => {
       const role = Role.user()
       expect(role.value).toBe('user')
     })
+
+    it('superadmin() 메서드로 슈퍼관리자 역할을 생성해야 한다', () => {
+      const role = Role.superadmin()
+      expect(role.value).toBe('superadmin')
+    })
   })
 
   describe('fromString', () => {
@@ -42,6 +55,9 @@ describe('Role', () => {
 
       const userRole = Role.fromString('user')
       expect(userRole.value).toBe('user')
+
+      const superadminRole = Role.fromString('superadmin')
+      expect(superadminRole.value).toBe('superadmin')
     })
 
     it('잘못된 문자열로 생성 시 에러가 발생해야 한다', () => {
@@ -53,6 +69,7 @@ describe('Role', () => {
     it('유효한 역할 문자열을 확인해야 한다', () => {
       expect(Role.isValidRole('admin')).toBe(true)
       expect(Role.isValidRole('user')).toBe(true)
+      expect(Role.isValidRole('superadmin')).toBe(true)
       expect(Role.isValidRole('guest')).toBe(false)
     })
   })
@@ -61,9 +78,10 @@ describe('Role', () => {
     it('모든 역할 목록을 반환해야 한다', () => {
       const roles = Role.getAllRoles()
       
-      expect(roles).toHaveLength(2)
+      expect(roles).toHaveLength(3)
       expect(roles[0].value).toBe('user')
       expect(roles[1].value).toBe('admin')
+      expect(roles[2].value).toBe('superadmin')
     })
   })
 
@@ -83,20 +101,35 @@ describe('Role', () => {
       expect(admin.isUser()).toBe(false)
       expect(user.isUser()).toBe(true)
     })
+
+    it('isSuperAdmin()이 올바르게 동작해야 한다', () => {
+      const superadmin = Role.superadmin()
+      const admin = Role.admin()
+      const user = Role.user()
+      
+      expect(superadmin.isSuperAdmin()).toBe(true)
+      expect(admin.isSuperAdmin()).toBe(false)
+      expect(user.isSuperAdmin()).toBe(false)
+    })
   })
 
   describe('privilege comparisons', () => {
+    let superadmin: Role
     let admin: Role
     let user: Role
 
     beforeEach(() => {
+      superadmin = Role.superadmin()
       admin = Role.admin()
       user = Role.user()
     })
 
     it('hasHigherPrivilegeThan()이 올바르게 동작해야 한다', () => {
+      expect(superadmin.hasHigherPrivilegeThan(admin)).toBe(true)
+      expect(superadmin.hasHigherPrivilegeThan(user)).toBe(true)
       expect(admin.hasHigherPrivilegeThan(user)).toBe(true)
       expect(user.hasHigherPrivilegeThan(admin)).toBe(false)
+      expect(admin.hasHigherPrivilegeThan(superadmin)).toBe(false)
       expect(admin.hasHigherPrivilegeThan(admin)).toBe(false)
     })
 
@@ -138,11 +171,13 @@ describe('Role', () => {
     it('toString()이 역할 값을 반환해야 한다', () => {
       expect(Role.admin().toString()).toBe('admin')
       expect(Role.user().toString()).toBe('user')
+      expect(Role.superadmin().toString()).toBe('superadmin')
     })
 
     it('toDisplayString()이 표시 이름을 반환해야 한다', () => {
       expect(Role.admin().toDisplayString()).toBe('관리자')
       expect(Role.user().toDisplayString()).toBe('일반 사용자')
+      expect(Role.superadmin().toDisplayString()).toBe('슈퍼관리자')
     })
   })
 })
