@@ -1,0 +1,144 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "615418c8-90b5-49c5-b86c-91b38647ccd9",
+        "title": "전화번호 선택사항 변경",
+        "description": "DB는 이미 nullable로 설정되어 있으며, 프론트엔드에서 전화번호를 선택사항으로 처리하도록 수정",
+        "status": "pending",
+        "priority": 1,
+        "estimatedHours": 4,
+        "dependencies": [],
+        "steps": [
+          "회원가입 페이지에서 전화번호 필드 검증 로직 수정",
+          "프로필 수정 페이지에서 전화번호 빈 값 허용",
+          "전화번호 입력란에 '(선택)' 표시 추가",
+          "API 엔드포인트에서 전화번호 없는 요청 허용",
+          "관리자 페이지에서 전화번호 없는 사용자 UI 처리"
+        ]
+      },
+      {
+        "id": "aa819cf0-b12e-42ce-b933-42263691f554",
+        "title": "예약번호 시스템 검증",
+        "description": "이미 구현된 YYMMDD-NNN 형식의 예약번호 시스템이 정상 작동하는지 검증",
+        "status": "pending",
+        "priority": 2,
+        "estimatedHours": 4,
+        "dependencies": [],
+        "steps": [
+          "동시성 테스트 - 여러 사용자가 동시에 예약할 때 번호 중복 방지",
+          "날짜 변경 시 순번 리셋 확인",
+          "예약번호로 예약 조회 기능 테스트",
+          "중복 방지 메커니즘 검증"
+        ]
+      },
+      {
+        "id": "a6dcf9f0-a915-4f04-9a32-37d60383b620",
+        "title": "성능 최적화 - 이미지 및 번들",
+        "description": "모바일 환경에서 초기 로딩 속도를 개선하기 위한 최적화",
+        "status": "pending",
+        "priority": 3,
+        "estimatedHours": 8,
+        "dependencies": [],
+        "steps": [
+          "Next/Image 컴포넌트 전면 적용",
+          "이미지 lazy loading 구현",
+          "Blur placeholder 추가",
+          "Dynamic import로 코드 스플리팅",
+          "번들 크기 분석 및 최적화"
+        ]
+      },
+      {
+        "id": "d815955a-8219-4d8f-be9d-f7dd19e533a4",
+        "title": "성능 최적화 - 캐싱 전략",
+        "description": "Service Worker와 React Query를 활용한 캐싱 전략 구현",
+        "status": "pending",
+        "priority": 4,
+        "estimatedHours": 6,
+        "dependencies": [
+          "a6dcf9f0-a915-4f04-9a32-37d60383b620"
+        ],
+        "steps": [
+          "Service Worker 캐싱 전략 확장",
+          "React Query 캐시 시간 최적화",
+          "Static 리소스 prefetch 구현",
+          "API 응답 캐싱 정책 수립"
+        ]
+      },
+      {
+        "id": "0c079f60-d9a7-40cb-ae19-8812a2841095",
+        "title": "PWA 푸시 알림 - FCM 설정",
+        "description": "Firebase Cloud Messaging 초기 설정 및 권한 시스템 구현",
+        "status": "pending",
+        "priority": 5,
+        "estimatedHours": 6,
+        "dependencies": [],
+        "steps": [
+          "Firebase 프로젝트 설정",
+          "FCM SDK 통합",
+          "알림 권한 요청 UI 구현",
+          "FCM 토큰 관리 시스템 구축",
+          "토큰 DB 저장 로직"
+        ]
+      },
+      {
+        "id": "b057b195-16b9-49e9-9b90-705eb357e8b9",
+        "title": "PWA 푸시 알림 - 발송 시스템",
+        "description": "실제 알림 발송 로직 및 템플릿 시스템 구현",
+        "status": "pending",
+        "priority": 6,
+        "estimatedHours": 8,
+        "dependencies": [
+          "0c079f60-d9a7-40cb-ae19-8812a2841095"
+        ],
+        "steps": [
+          "예약 승인/거절 알림 구현",
+          "예약 1시간 전 리마인더",
+          "알림 템플릿 시스템 구축",
+          "알림 이력 관리",
+          "알림 설정 관리 UI"
+        ]
+      },
+      {
+        "id": "8988db8d-0f77-4ff3-a604-5f37728d85ae",
+        "title": "테스트 - 단위 테스트",
+        "description": "핵심 비즈니스 로직에 대한 단위 테스트 작성",
+        "status": "pending",
+        "priority": 7,
+        "estimatedHours": 10,
+        "dependencies": [],
+        "steps": [
+          "KST 시간대 처리 테스트",
+          "24시간 룰 검증 테스트",
+          "예약 충돌 방지 로직 테스트",
+          "요금 계산 로직 테스트",
+          "Jest 설정 및 환경 구축"
+        ]
+      },
+      {
+        "id": "271f3239-c5b7-482c-ba83-487b98926195",
+        "title": "테스트 - E2E 시나리오",
+        "description": "사용자 시나리오 기반의 통합 테스트",
+        "status": "pending",
+        "priority": 8,
+        "estimatedHours": 12,
+        "dependencies": [
+          "8988db8d-0f77-4ff3-a604-5f37728d85ae"
+        ],
+        "steps": [
+          "Playwright 환경 설정",
+          "사용자 예약 전체 플로우 테스트",
+          "관리자 승인 플로우 테스트",
+          "모바일 반응형 테스트",
+          "성능 테스트 시나리오"
+        ]
+      }
+    ],
+    "metadata": {
+      "projectName": "광주 게임플라자 예약 시스템",
+      "lastUpdated": "2025-07-22",
+      "totalEstimatedHours": 58,
+      "completionRate": 0
+    }
+  }
+}

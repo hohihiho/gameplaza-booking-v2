@@ -19,7 +19,7 @@ export async function GET() {
 
     // Supabase에서 사용자 찾기
     const supabaseAdmin = createAdminClient();
-  const { data: userData } = await supabaseAdmin.from('users')
+    const { data: userData, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -34,7 +34,7 @@ export async function GET() {
 
     // 관리자 권한 확인
     
-  const { data: adminData } = await supabaseAdmin.from('admins')
+    const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
       .select('is_super_admin, permissions')
       .eq('user_id', userData.id)
       .single();

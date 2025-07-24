@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase/server.server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { 
   apiHandler, 
   parseRequestBody, 

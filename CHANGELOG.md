@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-07-03
+## [Unreleased]
+
+### Added
+- 프론트엔드 상세 기획서 작성 (1,333줄, A등급)
+- 백엔드 아키텍처 결정 문서화
+- 릴리즈 버전 관리 가이드 작성
+- PWA 오프라인 지원 기능
+- WCAG 2.1 AA 접근성 개선
+
+### Changed
+- 백엔드 전략: Next.js 구조 유지 + 점진적 개선으로 결정
+- GitHub 이슈 재구성 (MVP 18개, Post-MVP 24개)
+- PWA 우선순위 상향 (P2 → P1)
+- 접근성 MVP 승격
+
+### Removed
+- DDD 전환 계획 중단
+- NestJS 재구축 계획 중단
+
+## [1.0.0] - 2025-07-24
+
+첫 정식 버전 릴리즈
+
+### Added
+- 전화번호 선택사항 변경
+- PWA 푸시 알림 시스템
+- 예약번호 조회 기능
+- TDD 테스팅 인프라 (110개 테스트)
+- v2 API 일부 구현
+
+### Changed
+- 전화번호 필수에서 선택으로 변경
+- 이메일 기반 인증 시스템 강화
+
+## [0.10.0] - 2025-07-03
 
 ### Added
 - 예약 내역 및 관리자 예약 관리 페이지에 페이지네이션 추가 (10개씩 표시)

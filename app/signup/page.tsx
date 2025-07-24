@@ -94,7 +94,7 @@ export default function SignupPage() {
     // 페이지 이탈 감지를 위한 이벤트 핸들러
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // 회원가입이 완료되지 않은 상태에서 페이지를 떠나려고 할 때
-      if (session?.user && (!nickname || !phone)) {
+      if (session?.user && !nickname) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -103,7 +103,7 @@ export default function SignupPage() {
     // 라우트 변경 감지
     const handleRouteChange = () => {
       // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
-      if (session?.user && (!nickname || !phone)) {
+      if (session?.user && !nickname) {
         signOut({ redirect: false }).then(() => {
           router.push('/login');
         });
@@ -266,8 +266,14 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nickname || !phone || phone.length < 13) {
-      setError('모든 필드를 올바르게 입력해주세요');
+    if (!nickname) {
+      setError('닉네임을 입력해주세요');
+      return;
+    }
+
+    // 전화번호가 입력되었을 때만 검증
+    if (phone && phone.length > 0 && phone.length < 13) {
+      setError('올바른 전화번호 형식을 입력해주세요');
       return;
     }
 
@@ -301,7 +307,7 @@ export default function SignupPage() {
         },
         body: JSON.stringify({
           nickname,
-          phone,
+          phone: phone || null,  // 전화번호가 없으면 null 전송
           agreeMarketing
         }),
       });
@@ -410,7 +416,7 @@ export default function SignupPage() {
             {/* 전화번호 */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                전화번호
+                전화번호 <span className="text-gray-500 font-normal">(선택)</span>
               </label>
               <input
                 id="phone"
@@ -420,7 +426,6 @@ export default function SignupPage() {
                 className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
                 placeholder="010-1234-5678"
                 maxLength={13}
-                required
               />
               {phoneError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -432,6 +437,9 @@ export default function SignupPage() {
                   전화번호 확인 중...
                 </p>
               )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                • 예약 관련 알림을 받으실 수 있습니다
+              </p>
             </div>
 
             {/* 약관 동의 */}
@@ -535,7 +543,7 @@ export default function SignupPage() {
             {/* 가입 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || !nickname || !phone || phone.length < 13 || !!nicknameError || !!phoneError || isCheckingNickname || isCheckingPhone || !agreeTerms || !agreePrivacy || !agreeAge}
+              disabled={isLoading || !nickname || (phone.length > 0 && phone.length < 13) || !!nicknameError || !!phoneError || isCheckingNickname || isCheckingPhone || !agreeTerms || !agreePrivacy || !agreeAge}
               className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (

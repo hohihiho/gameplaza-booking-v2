@@ -16,7 +16,7 @@ export async function GET() {
 
     // 사용자 프로필 조회
     const supabaseAdmin = createAdminClient();
-  const { data: data, error: error } = await supabaseAdmin.from('users')
+    const { data: profile, error } = await supabaseAdmin.from('users')
       .select('*')
       .eq('email', session.user.email)
       .single();
@@ -46,7 +46,7 @@ export async function GET() {
     let isAdmin = false;
     if (profile?.id) {
       
-  const { data: adminData, error: error } = await supabaseAdmin.from('admins')
+      const { data: adminData } = await supabaseAdmin.from('admins')
         .select('is_super_admin')
         .eq('user_id', profile.id)
         .single();
@@ -54,8 +54,8 @@ export async function GET() {
       isAdmin = !!adminData?.is_super_admin;
     }
 
-    // 프로필이 불완전한 경우
-    if (!profile.nickname || !profile.phone) {
+    // 프로필이 불완전한 경우 (닉네임만 필수)
+    if (!profile.nickname) {
       return NextResponse.json(
         { 
           exists: true,

@@ -477,7 +477,7 @@ export async function GET(request: Request) {
 
     // 기기별 매출 분포
     const deviceRevenueMap = new Map();
-    reservations.forEach(r => {
+    reservations.forEach((r: any) => {
       const deviceName = r.devices?.device_types?.name || '기타';
       const revenue = r.total_amount || 0;
       
@@ -493,7 +493,7 @@ export async function GET(request: Request) {
     });
 
     const deviceRevenue = Array.from(deviceRevenueMap.entries())
-      .map(([name, data]) => ({
+      .map(([name, data]: any) => ({
         name,
         revenue: data.revenue,
         count: data.count,
@@ -558,7 +558,7 @@ export async function GET(request: Request) {
         revenue: hourlyRevenueMap.get(timeSlot) || 0,
         percentage: totalRevenue > 0 ? Number(((hourlyRevenueMap.get(timeSlot) || 0) / totalRevenue * 100).toFixed(1)) : 0
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         const aStart = parseInt(a.hour.split('-')[0]);
         const bStart = parseInt(b.hour.split('-')[0]);
         const aEnd = parseInt(a.hour.split('-')[1]);
@@ -585,7 +585,7 @@ export async function GET(request: Request) {
     });
 
     const paymentMethodRevenue = Array.from(paymentMethodMap.entries())
-      .map(([method, revenue]) => ({
+      .map(([method, revenue]: any) => ({
         method: method === 'cash' ? '현금' : method === 'transfer' ? '계좌이체' : method,
         revenue,
         percentage: Number(((revenue / totalRevenue) * 100).toFixed(1)),
@@ -594,9 +594,9 @@ export async function GET(request: Request) {
       .sort((a, b) => b.revenue - a.revenue);
 
     // 최고 매출일 찾기
-    const bestDay = dailyRevenueData.reduce((best, current) => 
+    const bestDay = dailyRevenueData.reduce((best: any, current: any) => 
       current.revenue > best.revenue ? current : best, 
-      { date: '', revenue: 0 }
+      { date: '', revenue: 0, count: 0, avgPerRental: 0 }
     );
 
     const avgDailyRevenue = dailyRevenueData.length > 0 
@@ -626,10 +626,10 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('매출 분석 API 오류:', error);
-    console.error('매출 분석 API 오류 스택:', error.stack);
+    console.error('매출 분석 API 오류 스택:', (error as Error).stack);
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: (error as Error).message 
     }, { status: 500 });
   }
 }

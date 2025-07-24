@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server.server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 // 대여 가능한 기기 목록 조회

@@ -1,0 +1,382 @@
+openapi: 3.0.0
+info:
+  title: 게임플라자 예약 시스템 API v2
+  description: 클린 아키텍처 기반의 예약 시스템 API
+  version: 2.0.0
+  contact:
+    name: 게임플라자 개발팀
+    email: dev@gameplaza.kr
+
+servers:
+  - url: https://api.gameplaza.kr/v2
+    description: Production server
+  - url: http://localhost:3000/api/v2
+    description: Development server
+
+tags:
+  - name: reservations
+    description: 예약 관리
+  - name: time-slots
+    description: 시간대 관리
+  - name: devices
+    description: 기기 관리
+  - name: users
+    description: 사용자 관리
+
+paths:
+  /reservations:
+    get:
+      tags:
+        - reservations
+      summary: 예약 목록 조회
+      description: 사용자의 예약 목록을 조회합니다
+      parameters:
+        - name: status
+          in: query
+          description: 예약 상태 필터
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled, checked_in, completed, no_show]
+        - name: date
+          in: query
+          description: 예약 날짜 (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: 페이지 번호
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: 페이지당 항목 수
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: 예약 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      tags:
+        - reservations
+      summary: 예약 생성
+      description: 새로운 예약을 생성합니다
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deviceId
+                - date
+                - timeSlot
+              properties:
+                deviceId:
+                  type: string
+                  format: uuid
+                  description: 기기 ID
+                date:
+                  type: string
+                  format: date
+                  description: 예약 날짜 (YYYY-MM-DD)
+                timeSlot:
+                  type: object
+                  required:
+                    - startHour
+                    - endHour
+                  properties:
+                    startHour:
+                      type: integer
+                      minimum: 7
+                      maximum: 29
+                      description: 시작 시간 (7-29시)
+                    endHour:
+                      type: integer
+                      minimum: 8
+                      maximum: 30
+                      description: 종료 시간 (8-30시)
+      responses:
+        '201':
+          description: 예약 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 예약 충돌
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reservations/{id}:
+    get:
+      tags:
+        - reservations
+      summary: 예약 상세 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 예약 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 예약 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '404':
+          description: 예약을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    patch:
+      tags:
+        - reservations
+      summary: 예약 상태 변경
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 예약 ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected, cancelled, checked_in, completed, no_show]
+                  description: 변경할 상태
+      responses:
+        '200':
+          description: 상태 변경 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: 잘못된 상태 전환
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 예약을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reservations/check-availability:
+    post:
+      tags:
+        - reservations
+      summary: 예약 가능 여부 확인
+      description: 특정 기기의 시간대 예약 가능 여부를 확인합니다
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deviceId
+                - date
+                - timeSlot
+              properties:
+                deviceId:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date
+                timeSlot:
+                  type: object
+                  required:
+                    - startHour
+                    - endHour
+                  properties:
+                    startHour:
+                      type: integer
+                    endHour:
+                      type: integer
+      responses:
+        '200':
+          description: 예약 가능 여부
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                  reason:
+                    type: string
+                    description: 예약 불가 사유
+                  conflicts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+
+  /reservations/user/{userId}/active:
+    get:
+      tags:
+        - reservations
+      summary: 사용자 활성 예약 조회
+      description: 특정 사용자의 활성 예약(pending, approved, checked_in) 목록을 조회합니다
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 사용자 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 활성 예약 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+                  count:
+                    type: integer
+                    description: 활성 예약 수
+
+components:
+  schemas:
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 예약 ID
+        userId:
+          type: string
+          format: uuid
+          description: 사용자 ID
+        deviceId:
+          type: string
+          format: uuid
+          description: 기기 ID
+        date:
+          type: string
+          format: date
+          description: 예약 날짜
+        timeSlot:
+          type: object
+          properties:
+            startHour:
+              type: integer
+              description: 시작 시간
+            endHour:
+              type: integer
+              description: 종료 시간
+            displayStartTime:
+              type: string
+              description: 표시용 시작 시간 (예: "14:00")
+            displayEndTime:
+              type: string
+              description: 표시용 종료 시간 (예: "18:00")
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled, checked_in, completed, no_show]
+          description: 예약 상태
+        reservationNumber:
+          type: string
+          pattern: '^GP-\d{8}-\d{4}$'
+          description: 예약 번호 (예: GP-20250723-0001)
+        startDateTime:
+          type: string
+          format: date-time
+          description: 시작 일시 (KST)
+        endDateTime:
+          type: string
+          format: date-time
+          description: 종료 일시 (KST)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 현재 페이지
+        limit:
+          type: integer
+          description: 페이지당 항목 수
+        total:
+          type: integer
+          description: 전체 항목 수
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+    
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+        details:
+          type: object
+          description: 추가 정보
+    
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+security:
+  - bearerAuth: []

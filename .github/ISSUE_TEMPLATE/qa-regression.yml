@@ -1,0 +1,91 @@
+name: 🔄 회귀 테스트 체크리스트
+description: 릴리즈 전 회귀 테스트 체크리스트
+title: "[QA-REG] v"
+labels: ["qa", "regression", "release"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 릴리즈 버전
+      description: 테스트할 버전 번호
+      placeholder: "예: v2.1.0"
+    validations:
+      required: true
+      
+  - type: markdown
+    attributes:
+      value: |
+        ### 핵심 기능 테스트
+        
+  - type: checkboxes
+    id: auth-tests
+    attributes:
+      label: 🔐 인증 시스템
+      options:
+        - label: 구글 로그인 정상 작동
+        - label: 로그아웃 정상 작동
+        - label: 세션 만료 처리
+        - label: 권한별 접근 제어
+        
+  - type: checkboxes
+    id: reservation-tests
+    attributes:
+      label: 📅 예약 시스템
+      options:
+        - label: 예약 생성 기능
+        - label: 예약 조회 기능
+        - label: 예약 수정 기능
+        - label: 예약 취소 기능
+        - label: 실시간 상태 업데이트
+        - label: 시간대 충돌 방지
+        
+  - type: checkboxes
+    id: admin-tests
+    attributes:
+      label: 👨‍💼 관리자 기능
+      options:
+        - label: 대시보드 통계 표시
+        - label: 예약 관리 기능
+        - label: 기기 상태 관리
+        - label: 사용자 관리
+        - label: 로그 조회
+        
+  - type: checkboxes
+    id: mobile-tests
+    attributes:
+      label: 📱 모바일 최적화
+      options:
+        - label: 반응형 디자인 확인
+        - label: 터치 인터페이스 작동
+        - label: 3G 환경 성능 테스트
+        - label: PWA 기능 확인
+        
+  - type: checkboxes
+    id: performance-tests
+    attributes:
+      label: ⚡ 성능 테스트
+      options:
+        - label: 페이지 로딩 시간 (3초 이내)
+        - label: API 응답 시간 (1초 이내)
+        - label: 이미지 최적화 확인
+        - label: 메모리 누수 확인
+        
+  - type: textarea
+    id: failed-tests
+    attributes:
+      label: 실패한 테스트
+      description: 실패한 테스트 항목과 상세 내용
+      placeholder: |
+        - [ ] 테스트명: 실패 이유
+        
+  - type: textarea
+    id: blocking-issues
+    attributes:
+      label: 블로킹 이슈
+      description: 릴리즈를 막는 치명적인 이슈
+      
+  - type: textarea
+    id: notes
+    attributes:
+      label: 추가 노트
+      description: 기타 발견사항이나 개선 제안

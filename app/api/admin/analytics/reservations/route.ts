@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       // 기존 월 선택 방식 (fallback)
       startDate = new Date(startMonthParam + '-01');
       const [endYear, endMonth] = endMonthParam.split('-');
-      endDate = new Date(parseInt(endYear), parseInt(endMonth), 0); // 해당 월의 마지막 날
+      endDate = new Date(parseInt(endYear!), parseInt(endMonth!), 0); // 해당 월의 마지막 날
       endDate.setHours(23, 59, 59, 999);
     } else {
       startDate = new Date();
@@ -136,10 +136,10 @@ export async function GET(request: Request) {
     console.log('All reservations query result:', {
       count: allReservations?.length,
       error: allReservationsError,
-      byStatus: allReservations?.reduce((acc, r) => {
+      byStatus: allReservations?.reduce((acc: Record<string, number>, r) => {
         acc[r.status] = (acc[r.status] || 0) + 1;
         return acc;
-      }, {}),
+      }, {} as Record<string, number>),
       dateRange: { startDateStr, endDateStr }
     });
 
@@ -218,7 +218,7 @@ export async function GET(request: Request) {
     // 이 데이터로 기기별 분포 계산
     const deviceStats = new Map();
     
-    deviceData?.forEach(reservation => {
+    deviceData?.forEach((reservation: any) => {
       if (reservation.devices?.device_types) {
         const deviceType = reservation.devices.device_types;
         const key = deviceType.id;

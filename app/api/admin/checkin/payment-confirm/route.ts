@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data: userData } = await supabaseAdmin.from('users')
+    const { data: userData, error: userError } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-  const { data: adminData } = await supabaseAdmin.from('admins')
+    const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // 먼저 현재 예약 상태 확인
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+    const { data: currentReservation, error: fetchError } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', reservationId)
       .single();
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // 결제 확인 업데이트
     
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+    const { data: updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
       .update({
         payment_status: 'paid',
         payment_method: paymentMethod || 'cash',
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       data: updatedReservation 
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Payment confirmation error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },

@@ -233,3 +233,20 @@ export function validateTimeFormat(time: string): string {
   
   return time;
 }
+
+/**
+ * UUID 형식 검증 헬퍼
+ */
+export function validateUUID(id: string, fieldName: string = 'ID'): string {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  
+  if (!id || !uuidRegex.test(id)) {
+    throw new AppError(
+      ErrorCodes.INVALID_INPUT,
+      `유효하지 않은 ${fieldName}입니다.`,
+      400
+    );
+  }
+  
+  return id;
+}

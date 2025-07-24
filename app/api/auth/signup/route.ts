@@ -19,9 +19,17 @@ export async function POST(request: Request) {
 
     console.log('회원가입 요청:', { nickname, phone, agreeMarketing });
 
-    if (!nickname || !phone) {
+    if (!nickname) {
       return NextResponse.json(
-        { error: '닉네임과 전화번호를 모두 입력해주세요' },
+        { error: '닉네임을 입력해주세요' },
+        { status: 400 }
+      );
+    }
+
+    // 전화번호가 입력된 경우에만 형식 검증
+    if (phone && phone.length > 0 && phone.replace(/-/g, '').length < 10) {
+      return NextResponse.json(
+        { error: '올바른 전화번호 형식을 입력해주세요' },
         { status: 400 }
       );
     }
@@ -29,7 +37,7 @@ export async function POST(request: Request) {
     // 먼저 기본 정보만 업데이트
     const updateData: any = {
       nickname,
-      phone: phone.replace(/-/g, ''), // 하이픈 제거
+      phone: phone ? phone.replace(/-/g, '') : null, // 전화번호가 있으면 하이픈 제거, 없으면 null
       updated_at: new Date().toISOString()
     };
 

@@ -1,0 +1,53 @@
+{
+  "tasks": [
+    {
+      "id": "d14976f0-19b0-46c2-a58d-5791ddf3c90c",
+      "name": "GitHub 이슈 정리 및 프로젝트 보드 업데이트",
+      "description": "현재 80개 이상의 오픈 이슈 중 아키텍처 변경 관련 이슈들을 종료하고, 현재 진행 방향에 맞는 이슈만 남기기. P0 이슈 재검토 및 우선순위 재조정",
+      "notes": "GitHub 이슈 정리 완료:\n- 백엔드 재구축 관련 이슈 10개 이미 종료됨\n- 중복 이슈 3개 종료 (#55, #25, #20)\n- 새 마일스톤 'v1.0 출시 준비' 생성\n- MVP 이슈 18개를 새 마일스톤에 할당\n- 현재 오픈 이슈 51개 → 48개로 감소",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-23T15:36:54.960Z",
+      "updatedAt": "2025-07-23T15:54:39.140Z",
+      "relatedFiles": [
+        {
+          "path": "/docs/ARCHITECTURE_DECISION.md",
+          "type": "REFERENCE",
+          "description": "아키텍처 결정 문서"
+        }
+      ],
+      "implementationGuide": "1. DDD/NestJS 관련 이슈 모두 Close (약 16개)\n2. 오래된 P0 이슈들 재검토 (2025년 6월 생성분)\n3. 현재 Next.js 구조 기반 이슈만 유지\n4. 새로운 마일스톤 생성: 'v1.0 출시 준비'",
+      "verificationCriteria": "1. DDD/NestJS 관련 이슈 모두 종료됨\n2. 활성 P0 이슈가 10개 이하로 정리됨\n3. 새 마일스톤 생성 완료",
+      "analysisResult": "게임플라자 예약 시스템의 현재 상태를 정리하고 다음 단계로 진행하기 위한 작업들",
+      "summary": "GitHub 이슈 정리 작업을 성공적으로 완료했습니다. DDD/NestJS 관련 이슈들이 이미 종료되어 있었고, 중복 이슈 3개를 추가로 정리했으며, 새로운 마일스톤을 생성하여 MVP 이슈들을 체계적으로 관리할 수 있게 되었습니다.",
+      "completedAt": "2025-07-23T15:54:39.139Z"
+    },
+    {
+      "id": "b94ce63f-726a-40cb-91ae-ff07fb89b9c0",
+      "name": "v2 API 명세 자동 생성 (SpecLinter 활용)",
+      "description": "현재 구현된 v2 도메인 모델에서 API 명세를 자동으로 추출하고 문서화",
+      "notes": "v2 API 명세 작성 완료:\n- OpenAPI 3.0 형식으로 예약 API 명세 작성 (reservation-api.yaml)\n- 시간대 관리 API 명세 작성 (time-slot-api.yaml)\n- API 문서 README 작성\n- TypeScript 타입 정의 생성 (types/api/v2/index.ts)\n- 모든 도메인 모델 기반으로 RESTful API 설계",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-23T15:36:54.960Z",
+      "updatedAt": "2025-07-23T16:09:48.385Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain",
+          "type": "REFERENCE",
+          "description": "도메인 모델 소스"
+        },
+        {
+          "path": "/docs/api/v2",
+          "type": "CREATE",
+          "description": "생성될 API 명세 위치"
+        }
+      ],
+      "implementationGuide": "1. SpecLinter extract-spec 명령 실행\n2. /src/domain 에서 명세 추출\n3. OpenAPI 3.0 형식으로 문서 생성\n4. TypeScript 타입 자동 생성",
+      "verificationCriteria": "1. API 명세 문서 생성 완료\n2. SpecLinter 품질 점수 B+ 이상\n3. TypeScript 타입 정의 생성됨",
+      "analysisResult": "게임플라자 예약 시스템의 현재 상태를 정리하고 다음 단계로 진행하기 위한 작업들",
+      "summary": "v2 API 명세 문서화를 성공적으로 완료했습니다. OpenAPI 3.0 형식의 상세한 API 명세서를 작성하고, TypeScript 타입 정의까지 생성하여 개발자들이 바로 사용할 수 있는 수준의 문서를 제공했습니다.",
+      "completedAt": "2025-07-23T16:09:48.384Z"
+    }
+  ]
+}

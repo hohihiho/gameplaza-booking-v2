@@ -133,7 +133,7 @@ export async function GET(request: Request) {
 
     // 고객 통계 조회 - 모든 상태의 예약 포함 (rejected, cancelled 제외)
     
-  const { data: allReservations } = await supabaseAdmin.from('reservations')
+  const { data: allReservations, error: reservationsError } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         created_at,
@@ -180,7 +180,7 @@ export async function GET(request: Request) {
 
     reservations?.forEach(reservation => {
       const userId = reservation.user_id;
-      const userCreatedAt = new Date(reservation.users.created_at);
+      const userCreatedAt = new Date((reservation.users as any).created_at);
       const reservationDate = new Date(reservation.created_at);
 
       // 고객별 예약 수 계산
@@ -192,7 +192,7 @@ export async function GET(request: Request) {
       } else {
         customerMap.set(userId, {
           userId,
-          email: reservation.users.email,
+          email: (reservation.users as any).email,
           userCreatedAt,
           reservationCount: 1,
           isNewCustomer: userCreatedAt >= startDate
@@ -219,17 +219,17 @@ export async function GET(request: Request) {
     prevStartDate.setTime(startDate.getTime() - periodLength);
     prevEndDate.setTime(endDate.getTime() - periodLength);
 
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: prevAllReservations } = await supabaseAdmin.from('reservations')
       .select('user_id, status, users(created_at)')
       .gte('created_at', prevStartDate.toISOString())
       .lte('created_at', prevEndDate.toISOString());
 
-    const prevReservations = (prevAllReservations || []).filter(r => 
+    const prevReservations = (prevAllReservations || []).filter((r: any) => 
       r.status !== 'rejected' && r.status !== 'cancelled'
     );
 
     const prevCustomerMap = new Map();
-    prevReservations?.forEach(reservation => {
+    prevReservations?.forEach((reservation: any) => {
       const userId = reservation.user_id;
       if (prevCustomerMap.has(userId)) {
         prevCustomerMap.set(userId, prevCustomerMap.get(userId) + 1);
@@ -263,7 +263,7 @@ export async function GET(request: Request) {
 
       const dayCustomers = new Set(dayReservations.map(r => r.user_id));
       const dayNewCustomers = dayReservations.filter(r => {
-        const userCreated = new Date(r.users.created_at);
+        const userCreated = new Date((r.users as any).created_at);
         return userCreated >= dayStart && userCreated <= dayEnd;
       }).length;
 
@@ -326,10 +326,10 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('고객 분석 API 오류:', error);
-    console.error('고객 분석 API 오류 스택:', error.stack);
+    console.error('고객 분석 API 오류 스택:', (error as Error).stack);
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: (error as Error).message 
     }, { status: 500 });
   }
 }

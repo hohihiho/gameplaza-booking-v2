@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // 예약 정보 조회
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservation, error: fetchError } = await supabaseAdmin.from('reservations')
       .select('*, users:user_id(name, nickname)')
       .eq('id', reservationId)
       .single();
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // 예약 상태 업데이트
     
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', reservationId)
       .select()
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       
       // device_id를 사용하여 정확한 기기 업데이트
       
-  const { data: devicesData } = await supabaseAdmin.from('devices')
+  const { data: deviceData, error: deviceError } = await supabaseAdmin.from('devices')
         .update({ status: 'in_use' })
         .eq('id', reservation.device_id)
         .select();
@@ -106,16 +106,16 @@ export async function POST(request: NextRequest) {
         device_type_id: reservation.device_type_id
       });
 
-  const { data: devicesData2 } = await supabaseAdmin.from('devices')
+  const { data: deviceData2, error: deviceError2 } = await supabaseAdmin.from('devices')
         .update({ status: 'in_use' })
         .eq('device_number', reservation.assigned_device_number)
         .eq('device_type_id', reservation.device_type_id)
         .select();
         
-      if (deviceError) {
-        console.error('Device update by number+type failed:', deviceError);
+      if (deviceError2) {
+        console.error('Device update by number+type failed:', deviceError2);
       } else {
-        console.log('Device update by number+type success:', deviceData);
+        console.log('Device update by number+type success:', deviceData2);
       }
     } else {
       console.log('device_id와 device_type_id가 모두 없어서 기기 상태 업데이트 건너뜀');

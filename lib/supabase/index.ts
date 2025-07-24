@@ -5,7 +5,7 @@
 
 // 클라이언트 exports
 export { createClient, getClient } from './client'
-// Server exports는 별도로 import해서 사용하세요: import { createClient } from '@/lib/supabase/server.server'
+// Server exports는 별도로 import해서 사용하세요: import { createClient } from '@/lib/supabase/server'
 // export { createClient as createServerClient, createActionClient } from './server'
 export { createAdminClient, getAdminClient } from './admin'
 
@@ -18,4 +18,4 @@ export type { Database, Tables, TablesInsert, TablesUpdate, Enums, User, Reserva
 // getSupabaseClient 함수는 제거되었습니다.
 // 대신 다음을 사용하세요:
 // - Client Component: import { createClient } from '@/lib/supabase'
-// - Server Component/API Route: import { createClient } from '@/lib/supabase/server.server'
+// - Server Component/API Route: import { createClient } from '@/lib/supabase/server'

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server.server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 // 예약 가능한 기기와 시간대 조회

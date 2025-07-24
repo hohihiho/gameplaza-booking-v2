@@ -4,6 +4,8 @@ import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
+import ServiceWorkerRegister from '@/components/service-worker-register'
+import DynamicFeatureFlag from './components/DynamicFeatureFlag'
 // Stagewise 툴바 임시 비활성화
 // import { StagewiseToolbar } from '@stagewise/toolbar-next'
 // import { ReactPlugin } from '@stagewise-plugins/react'
@@ -83,6 +85,10 @@ export default function RootLayout({
             <LayoutWrapper>
               {children}
             </LayoutWrapper>
+            <ServiceWorkerRegister />
+            
+            {/* Feature Flag 토글 - 개발 환경에서만 표시 */}
+            <DynamicFeatureFlag />
 
           </ThemeProvider>
         </Providers>

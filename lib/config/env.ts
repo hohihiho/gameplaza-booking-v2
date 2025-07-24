@@ -41,29 +41,36 @@ interface EnvConfig {
 
 // 환경 변수 유효성 검사 및 파싱
 function validateEnv(): EnvConfig {
-  // 필수 환경 변수 검사
-  const requiredEnvVars = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'NEXTAUTH_URL',
-    'NEXTAUTH_SECRET',
-  ]
-
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`필수 환경 변수가 설정되지 않았습니다: ${envVar}`)
+  // 클라이언트 사이드에서는 빌드 타임에 주입된 환경 변수를 사용
+  const isClientSide = typeof window !== 'undefined'
+  
+  // 하드코딩된 값으로 대체 (Next.js가 빌드 타임에 치환)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rupeyejnfurlcpgneekg.supabase.co'
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1cGV5ZWpuZnVybGNwZ25lZWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NjY0MjgsImV4cCI6MjA2NjQ0MjQyOH0.klSRGXI1hzkAG_mfORuAK5C74vDclX8VFeLEsyv9CAs'
+  
+  // 서버 사이드에서만 필수 검사
+  if (!isClientSide) {
+    const requiredEnvVars = [
+      'NEXTAUTH_URL',
+      'NEXTAUTH_SECRET',
+    ]
+    
+    for (const envVar of requiredEnvVars) {
+      if (!process.env[envVar]) {
+        throw new Error(`필수 환경 변수가 설정되지 않았습니다: ${envVar}`)
+      }
     }
   }
 
   return {
     supabase: {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
       serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     },
     nextAuth: {
-      url: process.env.NEXTAUTH_URL!,
-      secret: process.env.NEXTAUTH_SECRET!,
+      url: process.env.NEXTAUTH_URL || '',
+      secret: process.env.NEXTAUTH_SECRET || '',
     },
     google: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? {
       clientId: process.env.GOOGLE_CLIENT_ID,

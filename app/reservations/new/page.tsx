@@ -8,6 +8,9 @@ import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
+import { useCreateReservation } from '@/lib/hooks/useReservations';
+import { api, isV2ApiEnabled } from '@/lib/api/client';
+import { TimeSlotListSkeleton, DeviceSelectorSkeleton } from '@/app/components/mobile/ReservationSkeleton';
 
 type DeviceType = {
   id: string;
@@ -89,6 +92,10 @@ export default function NewReservationPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // v2 API 훅 사용
+  const { createReservation: createReservationV2, loading: creatingV2, error: errorV2 } = useCreateReservation();
+  const isV2Enabled = isV2ApiEnabled();
 
   // 선택된 기기와 시간대 정보
   const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDeviceType);
@@ -200,37 +207,56 @@ export default function NewReservationPage() {
     setError(null);
 
     try {
+      const deviceId = selectedDeviceInfo.devices.find(d => d.device_number === selectedDevice)?.id;
+      if (!deviceId) {
+        throw new Error('선택한 기기를 찾을 수 없습니다');
+      }
+
       const reservationData = {
         date: selectedDate,
-        device_type_id: selectedDeviceType,
-        device_id: selectedDeviceInfo.devices.find(d => d.device_number === selectedDevice)?.id,
+        device_id: deviceId,
         start_time: selectedTimeSlotInfo.start_time,
         end_time: selectedTimeSlotInfo.end_time,
         player_count: playerCount,
         credit_type: selectedCreditOption,
-        fixed_credits: selectedTimeSlotInfo.credit_options?.find(opt => opt.type === selectedCreditOption)?.fixed_credits || null,
-        user_notes: userNotes,
+        fixed_credits: selectedTimeSlotInfo.credit_options?.find(opt => opt.type === selectedCreditOption)?.fixed_credits || undefined,
+        user_notes: userNotes || undefined,
         slot_type: selectedTimeSlotInfo.slot_type || 'regular',
         total_amount: calculateTotalPrice()
       };
 
-      const response = await fetch('/api/reservations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reservationData),
-      });
+      let result;
+      
+      if (isV2Enabled) {
+        // v2 API 사용
+        const reservation = await createReservationV2(reservationData);
+        result = { reservation };
+      } else {
+        // v1 API 사용 (기존 방식)
+        const response = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...reservationData,
+            device_type_id: selectedDeviceType, // v1에서 필요
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('예약 생성에 실패했습니다');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || '예약 생성에 실패했습니다');
+        }
+
+        result = await response.json();
       }
-
-      const result = await response.json();
       
       if (result.reservation?.id) {
         setLastReservationId(result.reservation.id);
         router.push('/reservations/complete');
+      } else {
+        throw new Error('예약 ID를 받지 못했습니다');
       }
     } catch (error: any) {
       console.error('Reservation error:', error);
@@ -548,11 +574,7 @@ export default function NewReservationPage() {
               </div>
 
               {isLoadingSlots ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
-                  ))}
-                </div>
+                <TimeSlotListSkeleton count={3} />
               ) : (
                 <div className="space-y-3">
                   {timeSlots

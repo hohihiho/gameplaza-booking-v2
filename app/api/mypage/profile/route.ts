@@ -17,9 +17,17 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { nickname, phone } = body;
 
-    if (!nickname || !phone) {
+    if (!nickname) {
       return NextResponse.json(
-        { error: '닉네임과 전화번호를 모두 입력해주세요' },
+        { error: '닉네임을 입력해주세요' },
+        { status: 400 }
+      );
+    }
+
+    // 전화번호가 입력된 경우에만 형식 검증
+    if (phone && phone.length > 0 && phone.replace(/-/g, '').length < 10) {
+      return NextResponse.json(
+        { error: '올바른 전화번호 형식을 입력해주세요' },
         { status: 400 }
       );
     }
@@ -38,8 +46,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const phoneWithoutHyphen = phone.replace(/-/g, '');
-    const isPhoneChanged = currentUser.phone !== phoneWithoutHyphen;
+    const phoneWithoutHyphen = phone ? phone.replace(/-/g, '') : null;
+    const isPhoneChanged = phone !== null && currentUser.phone !== phoneWithoutHyphen;
 
     // 전화번호 변경 제한 확인
     if (isPhoneChanged && currentUser.phone_changed_at) {

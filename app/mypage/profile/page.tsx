@@ -298,8 +298,14 @@ export default function ProfileEditPage() {
       return;
     }
 
-    if (!nickname || !phone) {
-      setError('모든 필드를 입력해주세요');
+    if (!nickname) {
+      setError('닉네임을 입력해주세요');
+      return;
+    }
+
+    // 전화번호가 입력되었을 때만 검증
+    if (phone && phone.length > 0 && phone.length < 13) {
+      setError('올바른 전화번호 형식을 입력해주세요');
       return;
     }
 
@@ -337,7 +343,7 @@ export default function ProfileEditPage() {
         },
         body: JSON.stringify({
           nickname,
-          phone: phone.replace(/-/g, '')
+          phone: phone ? phone.replace(/-/g, '') : null
         }),
       });
 
@@ -443,8 +449,8 @@ export default function ProfileEditPage() {
             {/* 전화번호 */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                전화번호
-                {!canChangePhone && (
+                전화번호 <span className="text-gray-500 font-normal">(선택)</span>
+                {!canChangePhone && phone && (
                   <span className="ml-2 text-xs text-red-500">
                     (변경 불가 - {nextPhoneChangeDate}부터 가능)
                   </span>
@@ -463,7 +469,6 @@ export default function ProfileEditPage() {
                   } rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white`}
                   placeholder="010-1234-5678"
                   maxLength={13}
-                  required
                   disabled={phone !== originalPhone && !canChangePhone}
                 />
                 {!canChangePhone && (
@@ -474,11 +479,18 @@ export default function ProfileEditPage() {
               </div>
               <div className="mt-1 space-y-1">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  • 전화번호는 한 달에 한 번만 변경 가능합니다
+                  • 예약 관련 알림을 받으실 수 있습니다
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  • 변경 시 재인증이 필요합니다
-                </p>
+                {phone && (
+                  <>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      • 전화번호는 한 달에 한 번만 변경 가능합니다
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      • 변경 시 재인증이 필요합니다
+                    </p>
+                  </>
+                )}
                 {showPhoneWarning && (
                   <p className="text-xs text-red-600 dark:text-red-400 font-medium">
                     ⚠️ 전화번호를 변경할 수 없습니다. {nextPhoneChangeDate}부터 변경 가능합니다.

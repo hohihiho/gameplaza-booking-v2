@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
@@ -495,6 +495,18 @@ export default function ReservationsPage() {
 
   return (
     <div>
+      {/* 헤더 - 예약 조회 버튼 추가 */}
+      <div className="mb-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold dark:text-white">내 예약</h1>
+        <button
+          onClick={() => router.push('/reservations/search')}
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm font-medium"
+        >
+          <Search className="w-4 h-4" />
+          예약번호 조회
+        </button>
+      </div>
+
       {/* 상태별 탭 네비게이션 */}
       <div className="mb-6">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">

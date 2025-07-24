@@ -24,7 +24,7 @@ async function checkAdminAuth() {
 
   // 관리자 확인
   
-  const { data: adminData } = await supabaseAdmin.from('admins')
+  const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
     .select('user_id')
     .eq('user_id', userData.id)
     .single();
@@ -45,13 +45,13 @@ export async function GET() {
 
   try {
     const supabaseAdmin = createAdminClient();
-  const { data: bannedWordsData } = await supabaseAdmin.from('banned_words')
+    const { data: bannedWordsData, error } = await supabaseAdmin.from('banned_words')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: bannedWordsData });
   } catch (error) {
     console.error('Banned words GET error:', error);
     return NextResponse.json(
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
     const authResult = await checkAdminAuth();
     const supabaseAdmin = createAdminClient();
-  const { data: bannedWordsData2 } = await supabaseAdmin.from('banned_words')
+    const { data: bannedWordsData2, error } = await supabaseAdmin.from('banned_words')
       .insert({
         word: word.trim().toLowerCase(),
         category,
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: bannedWordsData2 });
   } catch (error) {
     console.error('Banned words POST error:', error);
     return NextResponse.json(
@@ -132,7 +132,7 @@ export async function PATCH(request: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: bannedWordsData3 } = await supabaseAdmin.from('banned_words')
+    const { data: bannedWordsData3, error } = await supabaseAdmin.from('banned_words')
       .update({ is_active, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -140,7 +140,7 @@ export async function PATCH(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: bannedWordsData3 });
   } catch (error) {
     console.error('Banned words PATCH error:', error);
     return NextResponse.json(
@@ -168,7 +168,7 @@ export async function DELETE(request: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('banned_words')
+    const { error } = await supabaseAdmin.from('banned_words')
       .delete()
       .eq('id', id);
 

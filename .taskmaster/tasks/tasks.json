@@ -1,0 +1,121 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "tdd-001",
+        "title": "Setup TDD Testing Infrastructure",
+        "description": "Establish comprehensive testing framework with Jest, React Testing Library, and Cypress for unit, integration, and e2e tests to support TDD-based refactoring",
+        "details": "Install and configure Jest with TypeScript support, React Testing Library for component testing, Cypress for e2e testing, and MSW for API mocking. Setup test scripts in package.json, configure test coverage reporting with 80% threshold, create test utilities and helpers. Implement testing patterns for domain logic, API services, and React components. Setup CI/CD pipeline integration for automated testing.",
+        "testStrategy": "Verify testing framework by creating sample tests for each layer (unit, integration, e2e). Confirm coverage reporting works and meets 80% threshold requirement. Test CI/CD integration with automated test execution.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-002",
+        "title": "Implement Domain Layer Architecture",
+        "description": "Create clean architecture with separated domain layer containing business logic for reservation system, user management, and admin operations",
+        "details": "Create domain entities (User, Reservation, Device, Schedule), value objects (ReservationStatus, TimeSlot, KSTDateTime), and domain services (ReservationService, UserService, DeviceService). Implement business rules: 1-person-1-device rule, 24-hour advance booking rule, KST timezone handling with 0-5am displayed as 24-29h, 6am daily reset logic. Use dependency injection pattern with interfaces for external dependencies. Ensure all business logic is pure functions without external dependencies.",
+        "testStrategy": "Write comprehensive unit tests for all domain entities, services, and business rules. Test edge cases like timezone boundaries, 24-hour rule enforcement, and concurrent reservation scenarios. Achieve 100% test coverage for domain layer.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-003",
+        "title": "Refactor Authentication System",
+        "description": "Modernize Google OAuth authentication system with phone number as optional field and improve security",
+        "details": "Update Supabase auth configuration to make phone number optional. Implement Google OAuth with Next.js 15 App Router patterns. Create authentication context with TypeScript interfaces. Add JWT token validation middleware. Implement user profile completion flow where phone number is optional. Update database schema to reflect optional phone field. Add proper error handling for authentication failures.",
+        "testStrategy": "Test Google OAuth flow with and without phone numbers. Verify JWT validation works correctly. Test authentication state persistence and session management. Mock auth providers for unit testing.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-004",
+        "title": "Build Reservation Business Logic Layer",
+        "description": "Implement core reservation system with 24-hour rule, KST timezone handling, and real-time synchronization using clean architecture principles",
+        "details": "Create ReservationRepository interface and Supabase implementation. Implement reservation creation with 24-hour advance rule validation. Build KST datetime utilities handling 0-5am as 24-29h display. Add real-time subscription using Supabase Realtime for reservation status updates. Implement conflict detection for 1-person-1-device rule. Create reservation state machine (pending -> approved/rejected -> checked-in -> completed). Add automatic cleanup for expired reservations.",
+        "testStrategy": "Test reservation creation with various datetime scenarios including edge cases around midnight. Verify 24-hour rule enforcement. Test real-time updates and conflict resolution. Mock Supabase client for unit tests.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-005",
+        "title": "Implement Device Management System",
+        "description": "Create 3-tier device management system (Category > Device Type > Individual Device) with admin controls and availability tracking",
+        "details": "Design database schema for 3-tier device hierarchy: categories (PC, Console, VR), device_types (RTX4090, PS5, Quest3), individual_devices (PC-001, PS5-001). Create DeviceRepository with CRUD operations. Implement device availability calculation based on reservations and maintenance schedules. Add device status management (available, reserved, maintenance, offline). Create admin interfaces for device management with proper authorization checks.",
+        "testStrategy": "Test device hierarchy relationships and constraints. Verify availability calculations with overlapping reservations. Test admin authorization for device management operations. Create comprehensive device management scenarios.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-006",
+        "title": "Build Admin Management Dashboard",
+        "description": "Create comprehensive admin system for reservation approval, check-in processing, and operational management with real-time updates",
+        "details": "Implement admin dashboard with reservation approval workflow. Create check-in system with QR code generation and scanning. Build payment processing integration interface. Add bulk operations for reservation management. Implement admin role-based access control. Create operational schedule management (business hours, holidays). Add real-time notifications for new reservations requiring approval. Include basic analytics dashboard with reservation statistics.",
+        "testStrategy": "Test admin approval workflows and bulk operations. Verify role-based access controls. Test real-time admin notifications. Mock payment processing for testing check-in flow.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-007",
+        "title": "Implement Reservation Number System",
+        "description": "Create unique reservation number generation system with QR code integration for streamlined check-in process",
+        "details": "Design reservation number format (e.g., GP-YYYYMMDD-XXXX). Implement unique ID generation with collision detection. Create QR code generation using reservation numbers. Add QR code display in user interface and email confirmations. Implement QR code scanning functionality for admin check-in process. Store reservation numbers in database with proper indexing for fast lookup. Add reservation lookup by number feature.",
+        "testStrategy": "Test unique ID generation under high concurrency. Verify QR code generation and scanning accuracy. Test reservation lookup performance with large datasets. Validate number format consistency.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-008",
+        "title": "Implement PWA Push Notifications",
+        "description": "Add Progressive Web App features with push notification system for reservation status updates and reminders",
+        "details": "Configure Next.js PWA with next-pwa plugin. Implement Web Push API with VAPID keys. Create notification service worker for background notifications. Add push subscription management in user settings. Implement notification triggers for reservation status changes, upcoming reservations, and admin announcements. Create fallback email notifications. Add notification permission request flow with user-friendly UI. Configure notification scheduling for reservation reminders.",
+        "testStrategy": "Test PWA installation and offline functionality. Verify push notification delivery across different browsers and devices. Test notification permissions and subscription management. Mock notification scenarios for automated testing.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-009",
+        "title": "Optimize Mobile Performance",
+        "description": "Implement mobile-first optimizations for 3G networks including code splitting, image optimization, and caching strategies",
+        "details": "Implement Next.js code splitting with dynamic imports. Add image optimization with next/image component. Configure aggressive caching strategies for static assets. Implement service worker caching for offline functionality. Add skeleton loading screens for better perceived performance. Optimize bundle size by analyzing and removing unused dependencies. Implement lazy loading for non-critical components. Add performance monitoring with Core Web Vitals. Configure CDN for global asset delivery.",
+        "testStrategy": "Use Lighthouse and WebPageTest to verify mobile performance scores. Test loading times on simulated 3G networks. Measure bundle sizes and loading performance. Verify offline functionality works correctly.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "tdd-010",
+        "title": "Implement Comprehensive API Integration Layer",
+        "description": "Create service layer to integrate domain logic with Supabase backend while maintaining API compatibility with existing UI components",
+        "details": "Create service interfaces (IReservationService, IUserService, IDeviceService) and Supabase implementations. Implement data mapping between domain models and database schemas. Add proper error handling with custom error types. Create API response standardization. Implement caching layer for frequently accessed data. Add request/response logging for debugging. Ensure backward compatibility with existing UI components by maintaining current API signatures. Add connection pooling and retry logic for database operations.",
+        "testStrategy": "Test service layer integration with mocked Supabase client. Verify backward compatibility with existing UI components. Test error handling and retry mechanisms. Validate data mapping accuracy between domain and database models.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-22T18:27:00.489Z",
+      "updated": "2025-07-22T18:27:00.489Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

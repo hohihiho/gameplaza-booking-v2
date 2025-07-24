@@ -1,0 +1,70 @@
+{
+  "tasks": [
+    {
+      "id": "099ce832-e6a3-42c9-bf19-caaf0b4db737",
+      "name": "인증 도메인 모델 설계 및 구현",
+      "description": "사용자 인증을 위한 도메인 엔티티, 값 객체, 도메인 서비스 구현. User 엔티티 확장, AuthToken 값 객체, Session 엔티티 등",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-23T16:58:30.998Z",
+      "updatedAt": "2025-07-23T17:03:32.567Z",
+      "relatedFiles": [
+        {
+          "path": "/src/domain/entities/user.ts",
+          "type": "TO_MODIFY",
+          "description": "User 엔티티에 인증 메서드 추가"
+        },
+        {
+          "path": "/src/domain/value-objects/auth-token.ts",
+          "type": "CREATE",
+          "description": "JWT 토큰 값 객체"
+        },
+        {
+          "path": "/src/domain/entities/session.ts",
+          "type": "CREATE",
+          "description": "세션 엔티티"
+        },
+        {
+          "path": "/src/domain/services/auth-domain.service.ts",
+          "type": "CREATE",
+          "description": "인증 도메인 서비스"
+        }
+      ],
+      "implementationGuide": "1. AuthToken 값 객체 생성 (JWT 토큰 래핑)\n2. Session 엔티티 생성 (세션 관리)\n3. User 엔티티에 인증 관련 메서드 추가\n4. AuthDomainService 구현 (토큰 생성/검증)",
+      "verificationCriteria": "1. JWT 토큰 생성/검증 가능\n2. 세션 관리 로직 작동\n3. 도메인 규칙 준수",
+      "analysisResult": "백엔드를 처음부터 구현하는 프로젝트. DDD 기반 클린 아키텍처로 구성. 예약 신청 API는 완료했고, 이제 인증/인가 시스템부터 구현해야 함.",
+      "summary": "인증 도메인 모델 구현 완료. AuthToken 값 객체, Session 엔티티, User 엔티티 확장, AuthDomainService를 모두 구현하고 테스트까지 완료했습니다.",
+      "completedAt": "2025-07-23T17:03:32.566Z"
+    },
+    {
+      "id": "94392b4b-ad6e-4a48-96cd-2dd04cee4593",
+      "name": "Google OAuth 유스케이스 구현",
+      "description": "Google OAuth 로그인/회원가입을 처리하는 애플리케이션 유스케이스 구현",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "099ce832-e6a3-42c9-bf19-caaf0b4db737"
+        }
+      ],
+      "createdAt": "2025-07-23T16:58:30.998Z",
+      "updatedAt": "2025-07-23T17:11:42.131Z",
+      "relatedFiles": [
+        {
+          "path": "/src/application/use-cases/auth/google-auth.use-case.ts",
+          "type": "CREATE",
+          "description": "Google OAuth 유스케이스"
+        },
+        {
+          "path": "/src/application/dtos/auth.dto.ts",
+          "type": "CREATE",
+          "description": "인증 DTO"
+        }
+      ],
+      "implementationGuide": "1. GoogleAuthUseCase 생성\n2. Google 프로필로 사용자 생성/업데이트 로직\n3. 세션 생성 및 토큰 발급\n4. 기존 계정 연동 처리",
+      "verificationCriteria": "1. Google 프로필로 회원가입 가능\n2. 기존 사용자 로그인 가능\n3. JWT 토큰 발급 확인",
+      "analysisResult": "백엔드를 처음부터 구현하는 프로젝트. DDD 기반 클린 아키텍처로 구성. 예약 신청 API는 완료했고, 이제 인증/인가 시스템부터 구현해야 함.",
+      "summary": "Google OAuth 유스케이스 구현 완료. GoogleAuthUseCase와 관련 유스케이스(RefreshToken, Logout, GetProfile) 모두 구현하고 테스트까지 완료했습니다.",
+      "completedAt": "2025-07-23T17:11:42.129Z"
+    }
+  ]
+}

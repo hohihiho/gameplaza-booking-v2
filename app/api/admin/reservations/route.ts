@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/services/schedule.service'
 import { withAuth } from '@/lib/auth'
+import { sendReservationApprovedNotification, sendReservationCancelledNotification } from '@/lib/server/push-notifications'
 
 // 관리자용 예약 목록 조회
 export const GET = withAuth(
@@ -106,9 +107,23 @@ export const PATCH = withAuth(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // 예약 승인 시 자동 스케줄 업데이트
+    // 예약 승인 시 자동 스케줄 업데이트 및 푸시 알림
     if (status === 'approved') {
       await ScheduleService.handleReservationApproved(id);
+      
+      // 예약 정보 가져오기
+      const { data: reservationData } = await supabaseAdmin.from('reservations')
+        .select('user_id, reservation_number')
+        .eq('id', id)
+        .single();
+        
+      if (reservationData?.user_id && reservationData?.reservation_number) {
+        // 푸시 알림 전송 (비동기로 처리하여 응답 지연 방지)
+        sendReservationApprovedNotification(
+          reservationData.user_id, 
+          reservationData.reservation_number
+        ).catch(err => console.error('푸시 알림 전송 실패:', err));
+      }
     }
     
     // 예약 거절/취소 시 자동 스케줄 삭제 검사 및 조기개장 스케줄 조정
@@ -117,7 +132,7 @@ export const PATCH = withAuth(
         // 예약 정보를 조회해서 날짜 가져오기
         const supabaseAdmin2 = createAdminClient();
         const { data: reservationData } = await supabaseAdmin2.from('reservations')
-          .select('date')
+          .select('date, user_id, reservation_number')
           .eq('id', id)
           .single();
           
@@ -142,6 +157,14 @@ export const PATCH = withAuth(
             console.error('Early opening schedule adjustment error:', adjustError);
             // 스케줄 조정 실패는 무시하고 계속 진행
           }
+        }
+        
+        // 예약 취소 푸시 알림 전송
+        if (status === 'cancelled' && reservationData?.user_id && reservationData?.reservation_number) {
+          sendReservationCancelledNotification(
+            reservationData.user_id,
+            reservationData.reservation_number
+          ).catch(err => console.error('취소 알림 전송 실패:', err));
         }
       } catch (scheduleError) {
         console.error('Auto schedule deletion check error:', scheduleError);

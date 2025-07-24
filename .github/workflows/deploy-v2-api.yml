@@ -1,0 +1,292 @@
+name: Deploy v2 API with Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: 'Deployment type'
+        required: true
+        default: 'canary'
+        type: choice
+        options:
+          - canary
+          - full
+          - rollback
+      canary_percentage:
+        description: 'Canary traffic percentage (0-100)'
+        required: false
+        default: '10'
+        type: string
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/api/v2/**'
+      - 'lib/api/v2/**'
+      - 'middleware.ts'
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type check
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm test -- --testPathPattern="app/api/v2" --coverage
+
+      - name: Run integration tests
+        run: npm test -- --testPathPattern="__tests__/integration" --runInBand
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  performance-test:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run performance tests
+        run: npm test -- --testPathPattern="__tests__/performance" --runInBand
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Check performance thresholds
+        run: |
+          # 성능 테스트 결과 검증
+          if [ -f "performance-results.json" ]; then
+            p95=$(jq '.p95' performance-results.json)
+            if (( $(echo "$p95 > 200" | bc -l) )); then
+              echo "❌ Performance threshold exceeded: p95=$p95ms (limit: 200ms)"
+              exit 1
+            fi
+            echo "✅ Performance check passed: p95=$p95ms"
+          fi
+
+  deploy-canary:
+    name: Deploy Canary
+    runs-on: ubuntu-latest
+    needs: [test, performance-test]
+    if: github.event.inputs.deployment_type != 'rollback'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel (Canary)
+        run: |
+          # 환경 변수 설정
+          export CANARY_PERCENTAGE=${{ github.event.inputs.canary_percentage || '10' }}
+          export FEATURE_FLAG_V2_API=true
+          export CANARY_DEPLOYMENT=true
+          
+          # Vercel 배포
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          
+          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_ENV
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Update Edge Config
+        run: |
+          # Canary 배포 설정 업데이트
+          curl -X PATCH "https://api.vercel.com/v1/edge-config/${{ secrets.EDGE_CONFIG_ID }}/items" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "items": [
+                {
+                  "key": "v2-api-canary",
+                  "value": {
+                    "enabled": true,
+                    "percentage": ${{ github.event.inputs.canary_percentage || "10" }},
+                    "deploymentUrl": "'$DEPLOYMENT_URL'",
+                    "startTime": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+                  }
+                }
+              ]
+            }'
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy-canary
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check API Health
+        run: |
+          # Health check 스크립트 실행
+          chmod +x scripts/health-check.sh
+          ./scripts/health-check.sh "${{ env.DEPLOYMENT_URL }}"
+
+      - name: Monitor Error Rate
+        run: |
+          # 초기 에러율 모니터링 (5분간)
+          echo "Monitoring error rate for 5 minutes..."
+          sleep 300
+          
+          # Vercel Analytics API를 통한 에러율 확인
+          ERROR_RATE=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            "https://api.vercel.com/v6/deployments/${{ env.DEPLOYMENT_URL }}/metrics?metric=errorRate&from=-5m" | \
+            jq '.data.errorRate')
+          
+          if (( $(echo "$ERROR_RATE > 1" | bc -l) )); then
+            echo "❌ Error rate too high: $ERROR_RATE%"
+            exit 1
+          fi
+          echo "✅ Error rate acceptable: $ERROR_RATE%"
+
+  gradual-rollout:
+    name: Gradual Rollout
+    runs-on: ubuntu-latest
+    needs: health-check
+    if: github.event.inputs.deployment_type == 'canary'
+    strategy:
+      matrix:
+        percentage: [25, 50, 75, 100]
+    steps:
+      - name: Increase Canary Traffic
+        run: |
+          echo "Increasing canary traffic to ${{ matrix.percentage }}%"
+          
+          # Edge Config 업데이트
+          curl -X PATCH "https://api.vercel.com/v1/edge-config/${{ secrets.EDGE_CONFIG_ID }}/items" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "items": [
+                {
+                  "key": "v2-api-canary",
+                  "value": {
+                    "enabled": true,
+                    "percentage": ${{ matrix.percentage }},
+                    "deploymentUrl": "'${{ env.DEPLOYMENT_URL }}'",
+                    "lastUpdated": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+                  }
+                }
+              ]
+            }'
+
+      - name: Monitor Metrics
+        run: |
+          # 각 단계별 10분간 모니터링
+          echo "Monitoring at ${{ matrix.percentage }}% for 10 minutes..."
+          sleep 600
+          
+          # 메트릭 체크
+          chmod +x scripts/monitor-metrics.sh
+          ./scripts/monitor-metrics.sh "${{ env.DEPLOYMENT_URL }}" "${{ matrix.percentage }}"
+
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deployment_type == 'rollback' || failure()
+    steps:
+      - name: Disable Canary
+        run: |
+          echo "🔄 Rolling back deployment..."
+          
+          # Canary 비활성화
+          curl -X PATCH "https://api.vercel.com/v1/edge-config/${{ secrets.EDGE_CONFIG_ID }}/items" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "items": [
+                {
+                  "key": "v2-api-canary",
+                  "value": {
+                    "enabled": false,
+                    "percentage": 0,
+                    "rollbackTime": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+                  }
+                }
+              ]
+            }'
+
+      - name: Notify Rollback
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 v2 API 배포 롤백됨',
+              body: `v2 API 배포가 자동으로 롤백되었습니다.\n\n**시간**: ${new Date().toISOString()}\n**원인**: ${context.job === 'rollback' ? '수동 롤백' : '자동 롤백 (테스트 실패)'}\n\n[워크플로우 확인](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            })
+
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-canary, health-check, gradual-rollout]
+    steps:
+      - name: Send Slack Notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="실패"
+          COLOR="danger"
+          if [ "${{ needs.gradual-rollout.result }}" == "success" ]; then
+            STATUS="성공"
+            COLOR="good"
+          fi
+          
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "attachments": [{
+                "color": "'$COLOR'",
+                "title": "v2 API 배포 '$STATUS'",
+                "fields": [
+                  {"title": "배포 타입", "value": "${{ github.event.inputs.deployment_type }}", "short": true},
+                  {"title": "브랜치", "value": "${{ github.ref_name }}", "short": true},
+                  {"title": "커밋", "value": "${{ github.sha }}", "short": false}
+                ]
+              }]
+            }'

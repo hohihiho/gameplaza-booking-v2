@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { User, Bell, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle, XCircle, Sparkles, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsAdmin } from '@/app/hooks/useIsAdmin';
+import NotificationSettings from '@/app/components/notification-settings';
 
 export default function MyPage() {
   const { data: session } = useSession();
@@ -432,36 +433,17 @@ export default function MyPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6 mb-6"
+          className="space-y-6 mb-6"
         >
-          <h2 className="text-lg font-semibold mb-4 dark:text-white flex items-center gap-2">
-            <Bell className="w-5 h-5 text-purple-500" />
-            알림 설정
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white">예약 알림</span>
-              </div>
-              <button
-                onClick={() => setNotifications({ ...notifications, reservation: !notifications.reservation })}
-                className={`relative w-14 h-7 rounded-full transition-all duration-300 ${
-                  notifications.reservation 
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500' 
-                    : 'bg-gray-300 dark:bg-gray-700'
-                }`}
-              >
-                <motion.div 
-                  className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md"
-                  animate={{ x: notifications.reservation ? 32 : 2 }}
-                  transition={{ type: "spring", stiffness: 700, damping: 30 }}
-                />
-              </button>
-            </div>
-            
+          {/* PWA 푸시 알림 */}
+          <NotificationSettings />
+          
+          {/* 마케팅 알림 설정 */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              마케팅 알림
+            </h2>
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">

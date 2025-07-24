@@ -2,7 +2,7 @@
 // 비전공자 설명: 사용자의 개인 예약 데이터를 분석해서 통계를 제공하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { createClient } from '@/lib/supabase/server.server';
+import { createClient } from '@/lib/supabase/server';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {

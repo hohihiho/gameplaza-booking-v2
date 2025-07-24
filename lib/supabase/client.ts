@@ -4,7 +4,6 @@
  */
 
 import { createBrowserClient } from '@supabase/ssr'
-import { getEnv } from '@/lib/config/env'
 import type { Database } from './types'
 
 // 싱글톤 클라이언트 인스턴스
@@ -17,11 +16,13 @@ let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 export function createClient() {
   if (client) return client
   
-  const env = getEnv()
+  // 직접 환경 변수 사용 (Next.js가 빌드 타임에 치환)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   
   client = createBrowserClient<Database>(
-    env.supabase.url,
-    env.supabase.anonKey,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       auth: {
         persistSession: true,

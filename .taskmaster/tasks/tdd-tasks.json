@@ -1,0 +1,164 @@
+{
+  "tdd-tasks": [
+    {
+      "id": "tdd-001",
+      "title": "프로젝트 구조 및 의존성 주입 컨테이너 설정",
+      "description": "DDD 기반 프로젝트 구조 생성 및 의존성 주입 컨테이너 구현 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 0,
+      "estimatedHours": 6,
+      "dependencies": [],
+      "steps": [
+        "TDD: 의존성 주입 컨테이너 테스트 작성",
+        "/src/domain, /src/application, /src/infrastructure 디렉토리 생성",
+        "IoC 컨테이너 구현 (tsyringe 또는 직접 구현)",
+        "도메인 모델 인터페이스 정의",
+        "기존 코드와 병행 운영을 위한 어댑터 패턴 설정"
+      ]
+    },
+    {
+      "id": "tdd-002",
+      "title": "예약 도메인 모델 및 테스트",
+      "description": "예약 관련 엔티티, 값 객체, 도메인 서비스 정의 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 1,
+      "estimatedHours": 8,
+      "dependencies": ["tdd-001"],
+      "steps": [
+        "TDD: Reservation 엔티티 테스트 작성",
+        "TDD: TimeSlot 값 객체 테스트 작성",
+        "TDD: 24시간 룰 비즈니스 규칙 테스트",
+        "도메인 모델 구현",
+        "예약 충돌 검증 로직 구현"
+      ]
+    },
+    {
+      "id": "tdd-003",
+      "title": "시간 처리 도메인 모델 및 테스트",
+      "description": "KST 고정, 24-29시 표시, 영업일 기준 처리 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 1,
+      "estimatedHours": 6,
+      "dependencies": ["tdd-001"],
+      "steps": [
+        "TDD: KSTDateTime 값 객체 테스트",
+        "TDD: 24-29시 변환 로직 테스트",
+        "TDD: 영업일 계산 테스트",
+        "시간 도메인 서비스 구현",
+        "기존 시간 유틸리티와 통합"
+      ]
+    },
+    {
+      "id": "tdd-004",
+      "title": "인증/인가 도메인 모델 및 테스트",
+      "description": "사용자 인증 및 권한 관리 도메인 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 1,
+      "estimatedHours": 6,
+      "dependencies": ["tdd-001"],
+      "steps": [
+        "TDD: User 엔티티 테스트",
+        "TDD: Role 값 객체 테스트",
+        "TDD: 권한 검증 테스트",
+        "인증 도메인 서비스 구현",
+        "Supabase Auth와 어댑터 구현"
+      ]
+    },
+    {
+      "id": "tdd-005",
+      "title": "기기 관리 도메인 모델 및 테스트",
+      "description": "카테고리-기종-개별기기 3단계 구조 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 1,
+      "estimatedHours": 8,
+      "dependencies": ["tdd-001"],
+      "steps": [
+        "TDD: Device 애그리게이트 테스트",
+        "TDD: DeviceType 엔티티 테스트",
+        "TDD: 기기 상태 전환 테스트",
+        "도메인 이벤트 발행 구현",
+        "기기 가용성 검증 로직"
+      ]
+    },
+    {
+      "id": "tdd-006",
+      "title": "예약 생성 유스케이스 구현",
+      "description": "예약 생성 비즈니스 로직을 유스케이스로 분리 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 2,
+      "estimatedHours": 10,
+      "dependencies": ["tdd-002", "tdd-003", "tdd-005"],
+      "steps": [
+        "TDD: CreateReservationUseCase 테스트",
+        "TDD: 예약 가능 여부 검증 테스트",
+        "TDD: 요금 계산 테스트",
+        "유스케이스 구현 (50줄 이내 메서드)",
+        "기존 API와 통합 어댑터 구현"
+      ]
+    },
+    {
+      "id": "tdd-007",
+      "title": "리포지토리 패턴 구현",
+      "description": "데이터 접근 계층 추상화 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 2,
+      "estimatedHours": 8,
+      "dependencies": ["tdd-002", "tdd-003", "tdd-004", "tdd-005"],
+      "steps": [
+        "TDD: 리포지토리 인터페이스 테스트",
+        "TDD: 인메모리 리포지토리 구현",
+        "Supabase 리포지토리 어댑터 구현",
+        "트랜잭션 관리 구현",
+        "캐싱 전략 적용"
+      ]
+    },
+    {
+      "id": "tdd-008",
+      "title": "운영 일정 도메인 모델 및 테스트",
+      "description": "영업시간, 휴무일, 특별 일정 관리 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 3,
+      "estimatedHours": 6,
+      "dependencies": ["tdd-003"],
+      "steps": [
+        "TDD: OperatingSchedule 엔티티 테스트",
+        "TDD: 영업 가능 시간 계산 테스트",
+        "TDD: 자동 일정 생성 테스트",
+        "도메인 서비스 구현",
+        "기존 schedule_events와 통합"
+      ]
+    },
+    {
+      "id": "tdd-009",
+      "title": "통계 도메인 모델 및 테스트",
+      "description": "예약, 매출, 사용률 등 통계 계산 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 3,
+      "estimatedHours": 8,
+      "dependencies": ["tdd-002", "tdd-005"],
+      "steps": [
+        "TDD: 통계 집계 로직 테스트",
+        "TDD: 영업일 기준 계산 테스트",
+        "통계 도메인 서비스 구현",
+        "실시간 집계 vs 배치 집계 전략",
+        "캐싱 및 성능 최적화"
+      ]
+    },
+    {
+      "id": "tdd-010",
+      "title": "API 라우트 점진적 마이그레이션",
+      "description": "기존 API를 새로운 도메인 계층으로 점진적 전환 (UI 변경 없음)",
+      "status": "pending",
+      "priority": 4,
+      "estimatedHours": 12,
+      "dependencies": ["tdd-006", "tdd-007"],
+      "steps": [
+        "TDD: API 통합 테스트 작성",
+        "예약 API 마이그레이션",
+        "인증 API 마이그레이션",
+        "관리자 API 마이그레이션",
+        "기존 API와 호환성 유지"
+      ]
+    }
+  ]
+}

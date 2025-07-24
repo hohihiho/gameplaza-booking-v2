@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/reservation-reminder",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
