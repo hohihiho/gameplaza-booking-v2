@@ -42,6 +42,7 @@ supabase-info.txt
 
 # MCP
 .claude/.env*.local
+tools/speclinter-mcp/
 
 # YoYo AI version control directory
 .yoyo/
