@@ -1,146 +1,143 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/auth/superadmin';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { CreateAdminUseCase } from '@/src/application/use-cases/admin/create-admin.use-case';
+import { ListAdminsUseCase } from '@/src/application/use-cases/admin/list-admins.use-case';
+import { AdminSupabaseRepository } from '@/src/infrastructure/repositories/admin.supabase.repository';
+import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository';
+import {
+  CreateAdminRequestDto,
+  ListAdminsRequestDto,
+  SuperAdminCheckDto
+} from '@/src/application/dtos/admin.dto';
 
-// 권한 확인 헬퍼 함수
-async function checkSuperAdmin(email: string): Promise<boolean> {
+/**
+ * GET /api/admin/admins
+ * 관리자 목록 조회 (슈퍼관리자만 가능)
+ */
+export async function GET(request: NextRequest) {
   try {
-    // 사용자 ID 찾기
-    const supabaseAdmin = createAdminClient();
-  const { data: userData } = await supabaseAdmin.from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (!userData) return false;
-
     // 슈퍼관리자 권한 확인
-    const { data: adminData } = await supabaseAdmin.from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userData.id)
-      .eq('is_super_admin', true)
-      .single();
-
-    return !!adminData;
-  } catch {
-    return false;
-  }
-}
-
-// 관리자 목록 조회
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const superAdminCheck = await requireSuperAdmin(request);
+    if (!superAdminCheck.isSuperAdmin) {
+      return NextResponse.json(
+        { error: superAdminCheck.error },
+        { status: 403 }
+      );
     }
 
-    // 슈퍼관리자 권한 확인
-    const isSuperAdmin = await checkSuperAdmin(session.user.email);
-    
-    if (!isSuperAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Query parameters 파싱
+    const { searchParams } = new URL(request.url);
+    const includeSuperAdmins = searchParams.get('includeSuperAdmins') !== 'false';
+    const includeRegularAdmins = searchParams.get('includeRegularAdmins') !== 'false';
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    // 리포지토리 및 유스케이스 초기화
+    const supabase = createAdminClient();
+    const adminRepository = new AdminSupabaseRepository(supabase);
+    const userRepository = new UserSupabaseRepository(supabase);
+    const listAdminsUseCase = new ListAdminsUseCase(adminRepository, userRepository);
 
     // 관리자 목록 조회
-    const supabaseAdmin = createAdminClient();
-    const { data: admins, error } = await supabaseAdmin.from('admins')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const listRequest: ListAdminsRequestDto = {
+      includeSuperAdmins,
+      includeRegularAdmins,
+      limit,
+      offset
+    };
 
-    if (error) throw error;
+    const superAdminCheckDto: SuperAdminCheckDto = {
+      executorId: superAdminCheck.adminId!,
+      executorUserId: superAdminCheck.userId!
+    };
 
-    // 사용자 이메일 정보 추가
-    const userIds = admins?.map(admin => admin.user_id) || [];
-    
-    const { data: users } = await supabaseAdmin.from('users')
-      .select('id, email')
-      .in('id', userIds);
+    const result = await listAdminsUseCase.execute(listRequest, superAdminCheckDto);
 
-    const adminsWithEmail = admins?.map(admin => ({
-      ...admin,
-      email: users?.find(u => u.id === admin.user_id)?.email || '알 수 없음',
-      role: admin.is_super_admin ? 'super_admin' : 'admin'
-    })) || [];
-
-    return NextResponse.json({ admins: adminsWithEmail });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Get admins error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
-// 관리자 추가
-export async function POST(request: Request) {
+/**
+ * POST /api/admin/admins
+ * 관리자 생성 (슈퍼관리자만 가능)
+ */
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // 슈퍼관리자 권한 확인
-    const isSuperAdmin = await checkSuperAdmin(session.user.email);
-    
-    if (!isSuperAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const superAdminCheck = await requireSuperAdmin(request);
+    if (!superAdminCheck.isSuperAdmin) {
+      return NextResponse.json(
+        { error: superAdminCheck.error },
+        { status: 403 }
+      );
     }
 
-    const { email } = await request.json();
+    // Request body 파싱
+    const body = await request.json();
+    const { userId, permissions, isSuperAdmin } = body;
 
-    if (!email) {
-      return NextResponse.json({ error: '이메일을 입력해주세요' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json(
+        { error: '사용자 ID가 필요합니다' },
+        { status: 400 }
+      );
     }
 
-    // 이메일로 사용자 찾기
-    const supabaseAdmin = createAdminClient();
-    const { data: userData, error: userError } = await supabaseAdmin.from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
+    // 리포지토리 및 유스케이스 초기화
+    const supabase = createAdminClient();
+    const adminRepository = new AdminSupabaseRepository(supabase);
+    const userRepository = new UserSupabaseRepository(supabase);
+    const createAdminUseCase = new CreateAdminUseCase(adminRepository, userRepository);
 
-    if (userError || !userData) {
-      return NextResponse.json({ 
-        error: '해당 이메일로 가입한 사용자를 찾을 수 없습니다' 
-      }, { status: 404 });
-    }
+    // 관리자 생성
+    const createRequest: CreateAdminRequestDto = {
+      userId,
+      permissions: permissions || {
+        reservations: true,
+        users: true,
+        devices: true,
+        cms: true,
+        settings: false
+      },
+      isSuperAdmin: isSuperAdmin || false
+    };
 
-    // 이미 관리자인지 확인
-    
-    const { data: existingAdmin } = await supabaseAdmin.from('admins')
-      .select('id')
-      .eq('user_id', userData.id)
-      .single();
+    const superAdminCheckDto: SuperAdminCheckDto = {
+      executorId: superAdminCheck.adminId!,
+      executorUserId: superAdminCheck.userId!
+    };
 
-    if (existingAdmin) {
-      return NextResponse.json({ 
-        error: '이미 관리자로 등록된 사용자입니다' 
-      }, { status: 400 });
-    }
+    const result = await createAdminUseCase.execute(createRequest, superAdminCheckDto);
 
-    // 관리자 추가
-    
-    const { error: insertError } = await supabaseAdmin.from('admins')
-      .insert({ 
-        user_id: userData.id,
-        is_super_admin: false,
-        permissions: {
-          cms: true,
-          users: true,
-          devices: true,
-          reservations: true
-        }
-      });
-
-    if (insertError) throw insertError;
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(result, { status: 201 });
 
   } catch (error) {
-    console.error('Add admin error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Create admin error:', error);
+    
+    // 에러 메시지에 따른 적절한 상태 코드 반환
+    if (error instanceof Error) {
+      if (error.message.includes('찾을 수 없습니다')) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes('이미')) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
+      if (error.message.includes('권한')) {
+        return NextResponse.json({ error: error.message }, { status: 403 });
+      }
+    }
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
