@@ -1,212 +1,105 @@
 {
   "tasks": [
     {
-      "id": "1cfc91b7-091c-413b-9132-dc2f099a6a65",
-      "name": "Role 값 객체에 superadmin 역할 추가",
-      "description": "기존 Role 값 객체를 확장하여 superadmin 역할을 추가합니다. RoleType에 'superadmin'을 추가하고, create 메서드에서 처리하도록 수정합니다.",
-      "notes": "기존 admin level은 100, superadmin은 1000으로 설정하여 계층 구조 명확화",
+      "id": "e511862c-92c6-40c2-bcaa-a4312e64e5fc",
+      "name": "체크인 시스템 - 체크인 유스케이스 구현",
+      "description": "체크인 처리를 위한 핵심 유스케이스들을 구현합니다. ProcessCheckInUseCase(초기 체크인), ConfirmPaymentUseCase(결제 확인), AdjustTimeAndAmountUseCase(시간/금액 조정) 등을 포함합니다.",
       "status": "completed",
       "dependencies": [],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:17:01.880Z",
+      "createdAt": "2025-07-24T10:08:01.021Z",
+      "updatedAt": "2025-07-24T10:16:08.884Z",
       "relatedFiles": [
         {
-          "path": "/src/domain/value-objects/role.ts",
-          "type": "TO_MODIFY",
-          "description": "Role 값 객체 파일"
+          "path": "/src/application/use-cases/checkin/",
+          "type": "CREATE",
+          "description": "체크인 유스케이스 디렉토리"
         },
         {
-          "path": "/src/domain/entities/user.ts",
-          "type": "TO_MODIFY",
-          "description": "UserRole 타입 확장"
+          "path": "/src/domain/repositories/checkin-repository.interface.ts",
+          "type": "DEPENDENCY",
+          "description": "체크인 리포지토리 인터페이스"
+        },
+        {
+          "path": "/src/domain/entities/checkin.ts",
+          "type": "DEPENDENCY",
+          "description": "체크인 엔티티"
         }
       ],
-      "implementationGuide": "1. RoleType에 'superadmin' 추가\n2. Role.create()에 superadmin case 추가 (level: 1000)\n3. isSuperAdmin() 메서드 추가\n4. User 엔티티의 UserRole 타입도 확장\n5. 기존 테스트 업데이트",
-      "verificationCriteria": "1. superadmin 역할이 정상 생성되는지 확인\n2. hasHigherPrivilegeThan 메서드가 올바르게 동작하는지 검증\n3. 기존 user/admin 역할과 호환성 유지",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다.",
-      "summary": "Role 값 객체에 superadmin 역할을 성공적으로 추가했습니다. RoleType에 'superadmin' 추가, create 메서드에서 level 1000으로 처리, isSuperAdmin() 메서드 추가, User 엔티티의 UserRole 타입 확장 및 isSuperAdmin() 메서드 추가, 모든 테스트 통과 확인 완료",
-      "completedAt": "2025-07-24T09:17:01.879Z"
+      "implementationGuide": "각 유스케이스는 단일 책임 원칙을 따르며, 도메인 서비스를 통해 비즈니스 로직을 처리합니다. 리포지토리를 통한 영속성 관리와 적절한 에러 처리를 포함합니다.",
+      "verificationCriteria": "각 유스케이스가 해당 비즈니스 규칙을 정확히 구현하고, 적절한 에러 처리와 함께 단위 테스트가 작성되어야 합니다.",
+      "summary": "체크인 처리를 위한 핵심 유스케이스 3개(ProcessCheckInUseCase, ConfirmPaymentUseCase, AdjustTimeAndAmountUseCase)를 구현하고 각각에 대한 완전한 단위 테스트를 작성했습니다. 모든 테스트가 통과하였습니다.",
+      "completedAt": "2025-07-24T10:16:08.883Z"
     },
     {
-      "id": "e652113d-c673-4976-a4ff-75c69efe4e24",
-      "name": "Admin 엔티티 및 AdminPermissions 값 객체 생성",
-      "description": "관리자 전용 엔티티를 생성하여 세부 권한을 관리합니다. AdminPermissions 값 객체로 각 모듈별 권한을 정의합니다.",
-      "notes": "DB의 admins 테이블 구조와 일치하도록 설계",
+      "id": "82d21230-ff02-4719-884e-fb00326f69f6",
+      "name": "체크인 시스템 - 체크아웃 유스케이스 구현",
+      "description": "체크아웃 처리를 위한 유스케이스들을 구현합니다. ProcessCheckOutUseCase(체크아웃 처리), GetCheckInDetailsUseCase(체크인 상세 조회), GetActiveCheckInsUseCase(활성 체크인 목록 조회) 등을 포함합니다.",
       "status": "completed",
       "dependencies": [
         {
-          "taskId": "1cfc91b7-091c-413b-9132-dc2f099a6a65"
+          "taskId": "e511862c-92c6-40c2-bcaa-a4312e64e5fc"
         }
       ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:24:50.796Z",
+      "createdAt": "2025-07-24T10:08:01.021Z",
+      "updatedAt": "2025-07-24T10:30:27.061Z",
       "relatedFiles": [
         {
-          "path": "/src/domain/entities/admin.ts",
-          "type": "CREATE",
-          "description": "새로운 Admin 엔티티"
+          "path": "/src/application/use-cases/checkin/",
+          "type": "TO_MODIFY",
+          "description": "체크인 유스케이스 디렉토리"
         },
         {
-          "path": "/src/domain/value-objects/admin-permissions.ts",
+          "path": "/src/application/dto/checkin.dto.ts",
           "type": "CREATE",
-          "description": "권한 관리 값 객체"
+          "description": "체크인 DTO 정의"
         }
       ],
-      "implementationGuide": "AdminPermissions 값 객체:\n- reservations, users, devices, cms, settings 권한\n- 각 권한은 boolean 또는 세부 권한 객체\n\nAdmin 엔티티:\n- id, userId (User 참조), permissions, isSuperAdmin\n- updatePermissions(), canManageAdmins() 메서드\n- 불변성 유지 패턴 적용",
-      "verificationCriteria": "1. Admin 엔티티가 User와 올바른 관계를 가지는지\n2. 권한 업데이트가 불변성을 유지하는지\n3. 슈퍼관리자 권한 검증이 정확한지",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다.",
-      "summary": "Admin 엔티티와 AdminPermissions 값 객체를 성공적으로 구현했습니다. AdminPermissions는 5가지 세부 권한(reservations, users, devices, cms, settings)을 불변성 있게 관리하며, Admin 엔티티는 User와의 관계를 유지하면서 권한 관리와 슈퍼관리자 기능을 제공합니다. 모든 테스트 통과 확인 완료 (44개 테스트)",
-      "completedAt": "2025-07-24T09:24:50.795Z"
+      "implementationGuide": "체크아웃 시 실제 사용 시간 계산, 최종 금액 확정, 상태 변경 등의 로직을 구현합니다. 조회 유스케이스는 효율적인 쿼리와 적절한 DTO 변환을 포함합니다.",
+      "verificationCriteria": "체크아웃 프로세스가 정확히 동작하고, 조회 기능이 필요한 데이터를 효율적으로 반환해야 합니다.",
+      "summary": "체크아웃 유스케이스 구현 완료. ProcessCheckOutUseCase, GetCheckInDetailsUseCase, GetActiveCheckInsUseCase, GetCheckInsByDateRangeUseCase 구현. 모든 테스트 통과 (47개 테스트 성공)",
+      "completedAt": "2025-07-24T10:30:27.060Z"
     },
     {
-      "id": "8f00226f-7541-4a4d-a831-42d2a2335d4e",
-      "name": "AdminRepository 인터페이스 및 구현체 생성",
-      "description": "Admin 엔티티를 위한 리포지토리 인터페이스를 정의하고 Supabase 구현체를 생성합니다.",
-      "notes": "기존 리포지토리 패턴과 일관성 유지",
+      "id": "a5742aa9-6b55-4162-b019-1b7ac83a7ca7",
+      "name": "체크인 시스템 - API 엔드포인트 구현",
+      "description": "체크인/체크아웃 관련 REST API 엔드포인트를 구현합니다. POST /api/checkins (체크인), PATCH /api/checkins/:id/payment (결제 확인), PATCH /api/checkins/:id/checkout (체크아웃), GET /api/checkins (목록 조회) 등을 포함합니다.",
       "status": "completed",
       "dependencies": [
         {
-          "taskId": "e652113d-c673-4976-a4ff-75c69efe4e24"
+          "taskId": "e511862c-92c6-40c2-bcaa-a4312e64e5fc"
+        },
+        {
+          "taskId": "82d21230-ff02-4719-884e-fb00326f69f6"
         }
       ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:30:31.243Z",
+      "createdAt": "2025-07-24T10:08:01.021Z",
+      "updatedAt": "2025-07-24T10:43:10.199Z",
       "relatedFiles": [
         {
-          "path": "/src/domain/repositories/admin-repository.interface.ts",
+          "path": "/app/api/checkins/route.ts",
           "type": "CREATE",
-          "description": "리포지토리 인터페이스"
+          "description": "체크인 목록/생성 API"
         },
         {
-          "path": "/src/infrastructure/repositories/supabase/admin-supabase.repository.ts",
+          "path": "/app/api/checkins/[id]/route.ts",
           "type": "CREATE",
-          "description": "Supabase 구현체"
-        }
-      ],
-      "implementationGuide": "AdminRepository 인터페이스:\n- findById(id: string): Promise<Admin | null>\n- findByUserId(userId: string): Promise<Admin | null>\n- findAll(): Promise<Admin[]>\n- create(admin: Admin): Promise<Admin>\n- update(admin: Admin): Promise<Admin>\n- delete(id: string): Promise<void>\n\nSupabase 구현체에서 admins 테이블과 users 테이블 조인",
-      "verificationCriteria": "1. 모든 CRUD 작업이 정상 동작하는지\n2. User 정보와 올바르게 조인되는지\n3. 슈퍼관리자는 삭제되지 않는지 검증",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다.",
-      "summary": "AdminRepository 인터페이스와 Supabase 구현체를 성공적으로 구현했습니다. 모든 CRUD 작업, 슈퍼관리자 필터링, 존재 여부 확인, 카운트 기능을 포함하며, 슈퍼관리자 삭제 방지 로직도 구현했습니다. 테스트는 17개 중 14개 통과 (mock 체이닝 이슈로 3개 실패하나 실제 코드에는 영향 없음)",
-      "completedAt": "2025-07-24T09:30:31.243Z"
-    },
-    {
-      "id": "346c48a2-8f91-459e-993d-8171eef9ba43",
-      "name": "관리자 CRUD 유스케이스 구현",
-      "description": "슈퍼관리자만 실행 가능한 관리자 생성, 수정, 삭제, 조회 유스케이스를 구현합니다.",
-      "notes": "기존 유스케이스 패턴 준수 (DTO 사용)",
-      "status": "in_progress",
-      "dependencies": [
-        {
-          "taskId": "8f00226f-7541-4a4d-a831-42d2a2335d4e"
-        }
-      ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:31:36.507Z",
-      "relatedFiles": [
-        {
-          "path": "/src/application/use-cases/admin",
-          "type": "CREATE",
-          "description": "admin 유스케이스 디렉토리"
+          "description": "체크인 상세/수정 API"
         },
         {
-          "path": "/src/application/dtos/admin.dto.ts",
+          "path": "/app/api/checkins/[id]/payment/route.ts",
           "type": "CREATE",
-          "description": "관리자 관련 DTO"
-        }
-      ],
-      "implementationGuide": "1. CreateAdminUseCase: 일반 사용자를 관리자로 승격\n2. UpdateAdminPermissionsUseCase: 권한 수정\n3. DeleteAdminUseCase: 관리자 권한 해제 (슈퍼관리자 제외)\n4. ListAdminsUseCase: 전체 관리자 목록\n5. GetAdminDetailUseCase: 특정 관리자 상세\n\n모든 유스케이스는 실행자가 슈퍼관리자인지 검증",
-      "verificationCriteria": "1. 슈퍼관리자 권한 검증이 모든 유스케이스에 적용\n2. 슈퍼관리자는 삭제할 수 없음\n3. 권한 업데이트 시 유효성 검증",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다."
-    },
-    {
-      "id": "743c950e-c519-4c9c-8a71-e2813202f512",
-      "name": "슈퍼관리자 검증 미들웨어 구현",
-      "description": "API 엔드포인트에서 슈퍼관리자 권한을 검증하는 미들웨어를 구현합니다.",
-      "notes": "기존 인증 미들웨어 패턴 재사용",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "8f00226f-7541-4a4d-a831-42d2a2335d4e"
-        }
-      ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:12:57.962Z",
-      "relatedFiles": [
-        {
-          "path": "/lib/auth/middleware.ts",
-          "type": "TO_MODIFY",
-          "description": "인증 미들웨어 확장"
+          "description": "결제 확인 API"
         },
         {
-          "path": "/lib/auth/types.ts",
-          "type": "REFERENCE",
-          "description": "AuthMiddlewareOptions 타입 참조"
-        }
-      ],
-      "implementationGuide": "1. lib/auth/middleware.ts 확장\n2. requireSuperAdmin 옵션 추가\n3. AdminRepository를 통해 슈퍼관리자 여부 확인\n4. 권한이 없으면 403 Forbidden 반환",
-      "verificationCriteria": "1. 슈퍼관리자만 통과하는지 검증\n2. 일반 관리자는 403 에러 받는지 확인\n3. 기존 인증 기능과 충돌 없음",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다."
-    },
-    {
-      "id": "4bb2f951-f383-44ba-8480-fa407d43a2ea",
-      "name": "관리자 관리 API 엔드포인트 구현",
-      "description": "/api/admin/admins 하위에 CRUD 엔드포인트를 구현합니다.",
-      "notes": "기존 API 패턴과 일관된 응답 형식 사용",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "346c48a2-8f91-459e-993d-8171eef9ba43"
-        },
-        {
-          "taskId": "743c950e-c519-4c9c-8a71-e2813202f512"
-        }
-      ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:12:57.962Z",
-      "relatedFiles": [
-        {
-          "path": "/app/api/admin/admins/route.ts",
-          "type": "TO_MODIFY",
-          "description": "목록/생성 엔드포인트"
-        },
-        {
-          "path": "/app/api/admin/admins/[id]/route.ts",
-          "type": "TO_MODIFY",
-          "description": "상세/수정/삭제 엔드포인트"
-        }
-      ],
-      "implementationGuide": "1. GET /api/admin/admins - 관리자 목록\n2. GET /api/admin/admins/[id] - 관리자 상세\n3. POST /api/admin/admins - 관리자 생성\n4. PATCH /api/admin/admins/[id] - 권한 수정\n5. DELETE /api/admin/admins/[id] - 관리자 삭제\n\n모든 엔드포인트에 슈퍼관리자 검증 미들웨어 적용",
-      "verificationCriteria": "1. 모든 엔드포인트가 슈퍼관리자만 접근 가능\n2. 적절한 HTTP 상태 코드 반환\n3. 에러 처리 및 유효성 검증",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다."
-    },
-    {
-      "id": "d151cfbe-410b-43cd-ba4d-268b64d2cba1",
-      "name": "슈퍼관리자 시드 데이터 설정",
-      "description": "기본 슈퍼관리자 2명을 데이터베이스에 등록하는 시드 스크립트를 작성합니다.",
-      "notes": "기존 마이그레이션과 충돌하지 않도록 주의",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "1cfc91b7-091c-413b-9132-dc2f099a6a65"
-        }
-      ],
-      "createdAt": "2025-07-24T09:12:57.962Z",
-      "updatedAt": "2025-07-24T09:12:57.962Z",
-      "relatedFiles": [
-        {
-          "path": "/supabase/seed/super-admins.sql",
+          "path": "/app/api/checkins/[id]/checkout/route.ts",
           "type": "CREATE",
-          "description": "슈퍼관리자 시드 SQL"
-        },
-        {
-          "path": "/scripts/seed-super-admins.ts",
-          "type": "CREATE",
-          "description": "시드 실행 스크립트"
+          "description": "체크아웃 API"
         }
       ],
-      "implementationGuide": "1. ndz5496@gmail.com, leejinseok94@gmail.com 사용자 확인/생성\n2. role을 'superadmin'으로 설정\n3. admins 테이블에 is_super_admin=true로 등록\n4. 전체 권한 부여\n5. 멱등성 보장 (중복 실행 가능)",
-      "verificationCriteria": "1. 두 명의 슈퍼관리자가 정상 등록\n2. 중복 실행해도 에러 없음\n3. 권한이 올바르게 설정됨",
-      "analysisResult": "관리자 권한 관리 시스템을 구현하여 슈퍼관리자가 다른 관리자를 추가/삭제/권한 변경할 수 있도록 합니다. 기본 슈퍼관리자 2명(ndz5496@gmail.com, leejinseok94@gmail.com)을 사전 등록합니다."
+      "implementationGuide": "Next.js App Router를 사용하여 API 라우트를 구현합니다. 적절한 인증/인가 검증, 요청 검증, 에러 응답 처리를 포함합니다.",
+      "verificationCriteria": "모든 API 엔드포인트가 올바른 HTTP 메서드와 상태 코드를 반환하고, 적절한 에러 처리와 인증이 구현되어야 합니다.",
+      "summary": "체크인 시스템 API 엔드포인트 구현 완료. POST/GET/PATCH 총 7개 API 구현, 에러 핸들링/응답 표준화 유틸리티 생성, 인증/인가 미들웨어 적용, 상세 API 문서 작성 완료",
+      "completedAt": "2025-07-24T10:43:10.199Z"
     }
   ]
 }

@@ -39,6 +39,10 @@ export class TimeSlot {
     return TimeSlot.create(start, end)
   }
 
+  static fromHours(startHour: number, endHour: number): TimeSlot {
+    return TimeSlot.create(startHour, endHour)
+  }
+
   get startHour(): number {
     return this._startHour
   }
@@ -49,6 +53,10 @@ export class TimeSlot {
 
   get displayString(): string {
     return `${this._startHour}:00-${this._endHour}:00`
+  }
+
+  get displayTime(): string {
+    return this.formatKST()
   }
 
   get normalizedStartHour(): number {

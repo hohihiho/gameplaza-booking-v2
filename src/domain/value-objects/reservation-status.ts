@@ -22,6 +22,30 @@ export class ReservationStatus {
     return new ReservationStatus('pending')
   }
 
+  static approved(): ReservationStatus {
+    return new ReservationStatus('approved')
+  }
+
+  static rejected(): ReservationStatus {
+    return new ReservationStatus('rejected')
+  }
+
+  static checkedIn(): ReservationStatus {
+    return new ReservationStatus('checked_in')
+  }
+
+  static completed(): ReservationStatus {
+    return new ReservationStatus('completed')
+  }
+
+  static cancelled(): ReservationStatus {
+    return new ReservationStatus('cancelled')
+  }
+
+  static noShow(): ReservationStatus {
+    return new ReservationStatus('no_show')
+  }
+
   get value(): ReservationStatusType {
     return this._status
   }

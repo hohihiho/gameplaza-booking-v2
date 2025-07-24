@@ -50,8 +50,8 @@ export async function middleware(request: NextRequest) {
     }
   }
   
-  // v2 체크인 API 인증 처리
-  if (pathname.startsWith('/api/v2/check-ins/')) {
+  // v2 체크인 API 인증 처리 (check-ins와 checkins 모두 지원)
+  if (pathname.startsWith('/api/v2/check-ins/') || pathname.startsWith('/api/v2/checkins/')) {
     // 모든 체크인 관련 작업은 관리자 권한 필요
     const authMiddlewareInstance = v2AuthMiddleware.middleware({ 
       requireAuth: true,

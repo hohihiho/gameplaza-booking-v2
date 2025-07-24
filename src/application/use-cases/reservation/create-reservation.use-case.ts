@@ -3,6 +3,7 @@ import { ReservationRepository } from '@/src/domain/repositories/reservation-rep
 import { DeviceRepository } from '@/src/domain/repositories/device-repository.interface'
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
+import { ReservationRulesService } from '@/src/domain/services/reservation-rules.service'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 import { TimeSlot } from '@/src/domain/value-objects/time-slot'
 
@@ -117,19 +118,24 @@ export class CreateReservationUseCase {
       timeSlot
     })
 
-    // 12. 24시간 규칙 검증
-    if (!reservation.isValidFor24HourRule()) {
-      throw new Error('예약은 시작 시간 24시간 전까지만 가능합니다')
+    // 12. 사용자의 모든 활성 예약 조회
+    const activeReservations = await this.reservationRepository.findByUserId(
+      command.userId,
+      ['pending', 'approved', 'checked_in']
+    )
+
+    // 13. ReservationRulesService를 사용한 통합 검증
+    const validationResult = ReservationRulesService.validateAll(
+      reservation,
+      activeReservations
+    )
+
+    if (!validationResult.isValid) {
+      throw new Error(validationResult.errors.join(', '))
     }
 
-    // 13. 시간 충돌 검증 (해당 기기의 예약)
+    // 14. 기기별 시간 충돌 검증 (같은 기기의 예약)
     await this.validateNoTimeConflict(reservation)
-
-    // 14. 1인 1기기 규칙 검증 (같은 시간대 다른 기기 예약 불가)
-    await this.validateOnePersonOneDevice(reservation)
-
-    // 15. 동시 예약 개수 제한 검증 (활성 예약 최대 3개)
-    await this.validateReservationLimit(command.userId)
 
     // 16. 예약 저장
     const savedReservation = await this.reservationRepository.save(reservation)
@@ -212,33 +218,6 @@ export class CreateReservationUseCase {
     }
   }
 
-  private async validateOnePersonOneDevice(reservation: Reservation): Promise<void> {
-    const userReservations = await this.reservationRepository.findByUserAndDateRange(
-      reservation.userId,
-      reservation.startDateTime.toDate(),
-      reservation.endDateTime.toDate(),
-      ['pending', 'approved', 'checked_in']
-    )
-
-    const conflicts = userReservations.filter(existing => 
-      reservation.hasUserConflict(existing)
-    )
-
-    if (conflicts.length > 0) {
-      throw new Error('동일 시간대에 이미 다른 기기를 예약하셨습니다')
-    }
-  }
-
-  private async validateReservationLimit(userId: string): Promise<void> {
-    const activeReservations = await this.reservationRepository.findByUserId(
-      userId,
-      ['pending', 'approved', 'checked_in']
-    )
-
-    if (activeReservations.length >= 3) {
-      throw new Error('동시에 예약 가능한 최대 개수(3개)를 초과했습니다')
-    }
-  }
 
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
