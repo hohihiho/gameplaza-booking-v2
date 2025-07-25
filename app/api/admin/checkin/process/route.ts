@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // 요청 데이터 파싱
     const body = await request.json();
-    const { reservationId, additionalNotes } = body;
+    const { reservationId, additionalNotes, paymentAmount } = body;
 
     if (!reservationId) {
       return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
@@ -59,6 +58,11 @@ export async function POST(request: NextRequest) {
       payment_status: 'pending' // 모든 결제는 수동 확인 필요
     };
 
+    // 결제 금액이 입력되면 저장
+    if (paymentAmount !== undefined && paymentAmount !== null) {
+      updateData.total_amount = paymentAmount;
+    }
+
     // 추가 메모가 있으면 저장 (기존 메모 덮어쓰기)
     if (additionalNotes) {
       updateData.admin_notes = additionalNotes;
@@ -78,6 +82,26 @@ export async function POST(request: NextRequest) {
         error: 'Failed to update reservation',
         details: updateError.message 
       }, { status: 500 });
+    }
+
+    // 체크인 엔티티 생성 
+    const checkInData = {
+      reservation_id: reservationId,
+      user_id: reservation.user_id,
+      device_id: reservation.device_id,
+      check_in_time: new Date().toISOString(),
+      status: 'checked_in',
+      check_in_by: userData.id,
+      payment_amount: paymentAmount || reservation.total_amount,
+      notes: additionalNotes
+    };
+
+    const { error: checkInError } = await supabaseAdmin.from('check_ins')
+      .insert(checkInData);
+
+    if (checkInError) {
+      console.error('Check-in creation error:', checkInError);
+      // 체크인 엔티티 생성 실패는 무시하고 진행
     }
 
     // 기기 상태 업데이트

@@ -1,13 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { getToken } from 'next-auth/jwt';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
     // 현재 세션 가져오기
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const token = await getToken({ req: request });
     
     console.log('Current session:', session);
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
     
     // Supabase에서 사용자 정보 조회
     const supabaseAdmin = createAdminClient();
-  const { data: userData, error: error } = await supabaseAdmin.from('users')
+  const { data: userData, error: _userError } = await supabaseAdmin.from('users')
       .select('id, email, nickname')
       .eq('email', session.user.email)
       .single();
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
     let adminData = null;
     if (userData) {
       
-  const { data: userData, error: error } = await supabaseAdmin.from('admins')
+  const { data: adminResult, error: _adminError } = await supabaseAdmin.from('admins')
         .select('is_super_admin')
         .eq('user_id', userData.id)
         .single();
