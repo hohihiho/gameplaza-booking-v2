@@ -73,14 +73,10 @@ export function isValidTimeRange(startTime: string, endTime: string): boolean {
     endTotalMinutes = (endHour - 24) * 60 + endMinute + 24 * 60
   }
   
-  // 종료 시간이 시작 시간보다 이전인 경우
-  if (endTotalMinutes < startTotalMinutes) {
-    // 다음날로 넘어가는 경우만 허용
-    if (endHour < 24 && startHour < 24) {
-      endTotalMinutes += 24 * 60
-    } else {
-      return false // 역방향은 무효
-    }
+  // 종료 시간이 시작 시간보다 이전인 경우 (밤샘 예약)
+  if (endTotalMinutes <= startTotalMinutes) {
+    // 다음날로 넘어가는 경우 처리
+    endTotalMinutes += 24 * 60
   }
   
   // 24시간 초과 검증
@@ -120,7 +116,7 @@ export function calculateDuration(startTime: string, endTime: string): number {
   }
   
   // 종료 시간이 시작 시간보다 이전인 경우 (다음날로 넘어가는 경우)
-  if (endTotalMinutes <= startTotalMinutes && endHour < 24) {
+  if (endTotalMinutes <= startTotalMinutes) {
     endTotalMinutes += 24 * 60
   }
   
