@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServerClient } from '@/lib/server/auth/supabase'
+import { createClient } from '@/lib/supabase/server'
+import { auth } from '@/auth'
 import { CreateReservationUseCase } from '@/src/application/use-cases/reservation/create-reservation.use-case'
 import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
 import { SupabaseDeviceRepository } from '@/src/infrastructure/repositories/supabase-device.repository'
@@ -8,6 +9,7 @@ import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supaba
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { logRequest, logError } from '@/lib/api/logging'
+import { GetReservationsUseCase } from '@/src/application/use-cases/reservation/get-reservations.use-case'
 
 // 요청 스키마 정의 (시간을 시간 단위로 변경)
 const createReservationSchema = z.object({
@@ -32,16 +34,25 @@ export async function POST(request: NextRequest) {
   try {
     logRequest(request, 'POST /api/v2/reservations')
 
-    // 인증 확인
-    const supabase = createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // NextAuth 세션 확인
+    const session = await auth()
+    console.log('POST /api/v2/reservations - NextAuth 세션:', session)
 
-    if (authError || !user) {
+    if (!session?.user?.id) {
+      console.log('POST /api/v2/reservations - NextAuth 세션 없음')
       return NextResponse.json(
         { error: '로그인이 필요합니다' },
         { status: 401 }
       )
     }
+
+    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const userId = session.user.id
 
     // 요청 본문 파싱
     const body = await request.json()
@@ -50,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) {
       const firstError = validationResult.error.errors[0]
       return NextResponse.json(
-        { error: firstError.message },
+        { error: firstError?.message ?? '유효하지 않은 요청입니다' },
         { status: 400 }
       )
     }
@@ -73,7 +84,7 @@ export async function POST(request: NextRequest) {
     )
 
     const result = await useCase.execute({
-      userId: user.id,
+      userId: userId,
       deviceId: data.device_id,
       date: data.date,
       startHour: data.start_hour,
@@ -162,16 +173,25 @@ export async function GET(request: NextRequest) {
   try {
     logRequest(request, 'GET /api/v2/reservations')
 
-    // 인증 확인
-    const supabase = createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // NextAuth 세션 확인 (우선순위)
+    const session = await auth()
+    console.log('GET /api/v2/reservations - NextAuth 세션:', session)
 
-    if (authError || !user) {
+    if (!session?.user?.id) {
+      console.log('GET /api/v2/reservations - NextAuth 세션 없음')
       return NextResponse.json(
         { error: '로그인이 필요합니다' },
         { status: 401 }
       )
     }
+
+    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const userId = session.user.id
 
     // 쿼리 파라미터 파싱
     const searchParams = request.nextUrl.searchParams
@@ -188,35 +208,42 @@ export async function GET(request: NextRequest) {
     if (!validationResult.success) {
       const firstError = validationResult.error.errors[0]
       return NextResponse.json(
-        { error: firstError.message },
+        { error: firstError?.message ?? '유효하지 않은 요청입니다' },
         { status: 400 }
       )
     }
 
     const { status, date, device_id, page, page_size } = validationResult.data
 
-    // 기본 쿼리 생성
+    console.log('GET /api/v2/reservations - userId:', userId)
+    
+    // 먼저 단순 쿼리로 테스트
+    console.log('단순 user_id 쿼리 테스트...')
+    const simpleTest = await supabase
+      .from('reservations')
+      .select('id, reservation_number, user_id, date')
+      .eq('user_id', userId)
+      .limit(3)
+    
+    console.log('단순 쿼리 결과:', simpleTest)
+    
+    // 이제 JOIN 쿼리 (일단 device만)
     let query = supabase
       .from('reservations')
       .select(`
         *,
-        device:devices(
+        devices!device_id(
           id,
           device_number,
-          name,
-          device_type:device_types(
+          device_type_id,
+          device_types!device_type_id(
             id,
             name,
             model_name
           )
-        ),
-        user:users(
-          id,
-          email,
-          full_name
         )
       `, { count: 'exact' })
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     // 필터 적용
@@ -238,8 +265,15 @@ export async function GET(request: NextRequest) {
     query = query.range(from, to)
 
     const { data: reservations, error: queryError, count } = await query
+    
+    console.log('GET /api/v2/reservations - 쿼리 결과:')
+    console.log('- reservations:', reservations)
+    console.log('- queryError:', queryError)
+    console.log('- count:', count)
+    console.log('- reservations length:', reservations?.length)
 
     if (queryError) {
+      console.error('GET /api/v2/reservations - 쿼리 에러:', queryError)
       throw queryError
     }
 
@@ -248,26 +282,47 @@ export async function GET(request: NextRequest) {
     const total_pages = Math.ceil(total_count / page_size)
 
     // 응답 형식화 (v2 snake_case)
-    const formatted_reservations = (reservations || []).map(reservation => ({
-      id: reservation.id,
-      reservation_number: reservation.reservation_number,
-      user_id: reservation.user_id,
-      device_id: reservation.device_id,
-      device_number: reservation.device?.device_number,
-      device_name: reservation.device?.name,
-      device_type: reservation.device?.device_type?.name,
-      date: reservation.date,
-      start_hour: reservation.start_hour,
-      end_hour: reservation.end_hour,
-      time_slot: `${reservation.start_hour}:00 - ${reservation.end_hour}:00`,
-      status: reservation.status,
-      credit_type: reservation.credit_type,
-      player_count: reservation.player_count,
-      total_price: reservation.total_price,
-      user_notes: reservation.user_notes,
-      created_at: reservation.created_at,
-      updated_at: reservation.updated_at
-    }))
+    const formatted_reservations = (reservations || []).map(reservation => {
+      // 시간을 시간(hour) 형태로 변환
+      const startHour = reservation.start_time ? parseInt(reservation.start_time.split(':')[0]) : 0
+      const endHour = reservation.end_time ? parseInt(reservation.end_time.split(':')[0]) : 0
+      
+      // 기기 정보 안전하게 추출
+      const device = reservation.devices
+      const deviceType = device?.device_types
+      
+      return {
+        id: reservation.id,
+        reservation_number: reservation.reservation_number,
+        user_id: reservation.user_id,
+        device_id: reservation.device_id,
+        device_number: device?.device_number,
+        device_name: deviceType?.name,
+        device_type: deviceType?.name,
+        date: reservation.date,
+        start_hour: startHour,
+        end_hour: endHour,
+        start_time: reservation.start_time,
+        end_time: reservation.end_time,
+        time_slot: `${startHour}:00 - ${endHour}:00`,
+        status: reservation.status,
+        credit_type: reservation.credit_type,
+        player_count: reservation.player_count,
+        total_amount: reservation.total_amount || reservation.hourly_rate || 0,
+        user_notes: reservation.user_notes,
+        created_at: reservation.created_at,
+        updated_at: reservation.updated_at,
+        // 기기 정보를 중첩 객체로 제공 (컴포넌트 호환성)
+        device: device ? {
+          id: device.id,
+          device_number: device.device_number,
+          device_type: {
+            name: deviceType?.name || '기기 정보 없음',
+            model_name: deviceType?.model_name
+          }
+        } : null
+      }
+    })
 
     return NextResponse.json({
       reservations: formatted_reservations,
@@ -282,10 +337,14 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
+    console.error('GET /api/v2/reservations - 상세 에러:', error)
     logError(error, 'GET /api/v2/reservations')
 
     return NextResponse.json(
-      { error: '예약 목록 조회 중 오류가 발생했습니다' },
+      { 
+        error: '예약 목록 조회 중 오류가 발생했습니다',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

@@ -36,7 +36,38 @@ export default function ReservationStatsPage() {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/reservations/stats?range=${dateRange}`, {
+      // 날짜 범위를 v2 API 형식으로 변환
+      let queryParams = new URLSearchParams();
+      
+      if (dateRange === '7days') {
+        queryParams.set('periodType', 'custom');
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 7);
+        queryParams.set('startDate', startDate.toISOString().split('T')[0]);
+        queryParams.set('endDate', endDate.toISOString().split('T')[0]);
+      } else if (dateRange === '30days') {
+        queryParams.set('periodType', 'month');
+        const now = new Date();
+        queryParams.set('year', now.getFullYear().toString());
+        queryParams.set('month', (now.getMonth() + 1).toString());
+      } else if (dateRange === '90days') {
+        queryParams.set('periodType', 'custom');
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 90);
+        queryParams.set('startDate', startDate.toISOString().split('T')[0]);
+        queryParams.set('endDate', endDate.toISOString().split('T')[0]);
+      } else if (dateRange === '12months') {
+        queryParams.set('periodType', 'custom');
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        queryParams.set('startDate', startDate.toISOString().split('T')[0]);
+        queryParams.set('endDate', endDate.toISOString().split('T')[0]);
+      }
+      
+      const response = await fetch(`/api/v2/statistics/reservations?${queryParams.toString()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache'
@@ -45,15 +76,19 @@ export default function ReservationStatsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || '통계 데이터를 불러올 수 없습니다';
+        console.error('통계 API 에러:', { status: response.status, errorData });
+        const errorMessage = errorData.message || errorData.error || '통계 데이터를 불러올 수 없습니다';
         const errorDetails = errorData.details ? ` (${errorData.details})` : '';
         throw new Error(errorMessage + errorDetails);
       }
 
       const data = await response.json();
+      console.log('통계 API 응답:', data);
       
-      if (data.success) {
-        setStats(data.stats);
+      // v2 API 응답 형식 처리
+      if (data.statistics) {
+        console.log('통계 데이터 설정:', data.statistics);
+        setStats(data.statistics);
       } else {
         const errorMessage = data.error || '통계 데이터 로드 실패';
         const errorDetails = data.details ? ` (${data.details})` : '';
@@ -73,7 +108,13 @@ export default function ReservationStatsPage() {
   }, [dateRange]);
 
   // 기본값 설정 (로딩 중이거나 데이터가 없을 때)
-  const reservationStats = stats || {
+  const reservationStats = stats ? {
+    totalReservations: stats.totalReservations || 0,
+    completedReservations: stats.completedReservations || 0,
+    avgSessionTime: Math.round((stats.averageReservationDuration || 0) * 10) / 10, // 소수점 1자리까지
+    totalSpent: stats.totalRevenue || 0,
+    favoriteDevice: '데이터 없음'
+  } : {
     totalReservations: 0,
     completedReservations: 0,
     avgSessionTime: 0,
@@ -85,6 +126,10 @@ export default function ReservationStatsPage() {
   const preferredHours = stats?.preferredHours || [];
   const deviceUsage = stats?.deviceUsage || [];
   const weekdayPattern = stats?.weekdayPattern || [];
+
+  // 디버깅용 로그
+  console.log('렌더링 시점 stats:', stats);
+  console.log('렌더링 시점 reservationStats:', reservationStats);
 
   const handleRefresh = () => {
     loadStats();
@@ -101,7 +146,7 @@ export default function ReservationStatsPage() {
       ['구분', '값'],
       ['총 완료 예약수', reservationStats.totalReservations],
       ['평균 이용시간', `${reservationStats.avgSessionTime}시간`],
-      ['총 사용금액', `${reservationStats.totalSpent.toLocaleString()}원`],
+      ['총 사용금액', `${(reservationStats.totalSpent || 0).toLocaleString()}원`],
       ['선호 기기', reservationStats.favoriteDevice]
     ];
     
@@ -233,7 +278,7 @@ export default function ReservationStatsPage() {
             <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <h3 className="text-2xl font-bold dark:text-white mb-1">
-            ₩{reservationStats.totalSpent.toLocaleString()}
+            ₩{(reservationStats.totalSpent || 0).toLocaleString()}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">총 사용금액</p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
@@ -417,11 +462,28 @@ export default function ReservationStatsPage() {
             )}
           </div>
           
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              주로 <span className="font-medium dark:text-white">오후 2-6시</span>에 이용하시는군요!
-            </p>
-          </div>
+          {preferredHours.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {(() => {
+                  // 가장 많이 이용한 시간대 찾기
+                  const topHour = preferredHours.reduce((max, current) => 
+                    current.count > max.count ? current : max, preferredHours[0]
+                  );
+                  
+                  // 시간대를 더 자연스럽게 표현
+                  const hourRange = topHour.hour;
+                  const [startTime, endTime] = hourRange.split('-');
+                  
+                  return (
+                    <>
+                      주로 <span className="font-medium dark:text-white">{hourRange}</span> 시간대를 선호하시는군요!
+                    </>
+                  );
+                })()}
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* 요일별 패턴 */}
@@ -469,7 +531,38 @@ export default function ReservationStatsPage() {
               
               <div className="text-center">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-medium dark:text-white">주말보다 평일</span>에 더 자주 이용하시네요!
+                  {(() => {
+                    // 평일과 주말 이용 횟수 계산
+                    const weekdayTotal = weekdayPattern
+                      .filter(d => d.day !== '토' && d.day !== '일')
+                      .reduce((sum, d) => sum + d.count, 0);
+                    const weekendTotal = weekdayPattern
+                      .filter(d => d.day === '토' || d.day === '일')
+                      .reduce((sum, d) => sum + d.count, 0);
+                    
+                    // 가장 많이 이용한 요일 찾기
+                    const topDay = weekdayPattern.reduce((max, current) => 
+                      current.count > max.count ? current : max, weekdayPattern[0]
+                    );
+                    
+                    if (weekdayTotal > weekendTotal) {
+                      return (
+                        <>
+                          <span className="font-medium dark:text-white">주말보다 평일</span>에 더 자주 이용하시네요!
+                          {topDay.count > 0 && ` 특히 ${topDay.day}요일을 선호하시는군요.`}
+                        </>
+                      );
+                    } else if (weekendTotal > weekdayTotal) {
+                      return (
+                        <>
+                          <span className="font-medium dark:text-white">평일보다 주말</span>에 더 자주 이용하시네요!
+                          {topDay.count > 0 && ` 특히 ${topDay.day}요일을 선호하시는군요.`}
+                        </>
+                      );
+                    } else {
+                      return <>평일과 주말을 <span className="font-medium dark:text-white">균등하게</span> 이용하시네요!</>;
+                    }
+                  })()}
                 </p>
               </div>
             </>

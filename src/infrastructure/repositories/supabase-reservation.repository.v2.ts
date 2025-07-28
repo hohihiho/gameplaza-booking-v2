@@ -28,9 +28,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -54,9 +52,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -81,9 +77,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -108,9 +102,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -134,9 +126,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -163,9 +153,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -193,9 +181,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -223,9 +209,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -263,9 +247,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -295,9 +277,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -326,9 +306,7 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
           device_number,
           device_types (
             id,
-            name,
-            model_name,
-            version_name
+            name
           )
         )
       `)
@@ -356,35 +334,33 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
   }
 
   private toDomain(record: ReservationRow): Reservation {
+    // 시간 문자열을 숫자로 변환 ("15:00:00" -> 15)
+    let startHour = parseInt(record.start_time.split(':')[0])
+    let endHour = parseInt(record.end_time.split(':')[0])
+    
+    // 밤샘 예약의 경우 0~5시를 24~29시로 변환
+    // 시작시간이 0~5시이고 종료시간도 0~5시인 경우 (밤샘)
+    if (startHour >= 0 && startHour <= 5 && endHour >= 0 && endHour <= 5) {
+      startHour = startHour === 0 ? 24 : startHour + 24
+      endHour = endHour + 24
+    }
+    // 시작시간이 22~23시이고 종료시간이 0~5시인 경우 (밤샘)
+    else if (startHour >= 22 && startHour <= 23 && endHour >= 0 && endHour <= 5) {
+      endHour = endHour + 24
+    }
+    
     // 기본 정보로 예약 생성
     const reservation = Reservation.create({
       id: record.id,
       userId: record.user_id,
       deviceId: record.device_id || '',
-      date: KSTDateTime.fromString(record.date),
-      timeSlot: TimeSlot.create(
-        record.start_time,
-        record.end_time
-      ),
+      date: KSTDateTime.fromString(record.date || '2025-01-01'),
+      timeSlot: TimeSlot.create(startHour, endHour),
       status: ReservationStatus.create(record.status as any),
       reservationNumber: record.reservation_number || this.generateReservationNumber(record.date, record.id),
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
     })
-
-    // 추가 정보 설정
-    if (record.player_count) {
-      reservation.setPlayerCount(record.player_count)
-    }
-    if (record.total_amount !== null && record.total_amount !== undefined) {
-      reservation.setTotalAmount(record.total_amount)
-    }
-    if (record.user_notes) {
-      reservation.setUserNotes(record.user_notes)
-    }
-    if (record.credit_type) {
-      reservation.setCreditType(CreditType.create(record.credit_type as any))
-    }
 
     return reservation
   }
@@ -402,14 +378,14 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
       user_id: reservation.userId,
       device_id: reservation.deviceId,
       date: reservation.date.dateString,
-      start_time: reservation.timeSlot.start,
-      end_time: reservation.timeSlot.end,
-      player_count: reservation.playerCount,
-      total_amount: reservation.totalAmount,
+      start_time: `${reservation.timeSlot.startHour.toString().padStart(2, '0')}:00`,
+      end_time: `${reservation.timeSlot.endHour.toString().padStart(2, '0')}:00`,
+      player_count: 1, // 기본값
+      total_amount: null, // 기본값
       status: reservation.status.value,
       reservation_number: reservationNumber,
-      user_notes: reservation.userNotes || null,
-      credit_type: reservation.creditType?.value || 'freeplay',
+      user_notes: null, // 기본값
+      credit_type: 'freeplay', // 기본값
       payment_method: 'cash', // 기본값
       payment_status: 'pending', // 기본값
       created_at: reservation.createdAt.toISOString(),
