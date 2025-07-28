@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, FileText, MessageCircle, Info, Sparkles } from 'lucide-react';
+import { Calendar, FileText, Gamepad2, MessageCircle, MapPin, Info, Clock, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 
@@ -33,30 +33,53 @@ export default function MainActionButtons() {
       iconColor: 'text-accent-600',
     },
     { 
-      id: 'guide',
-      href: '/guide',
-      icon: Info,
-      label: '이용 안내',
-      description: '처음이신가요? 이용방법 확인',
-      gradient: 'from-blue-500 to-blue-600',
-      shadowColor: 'shadow-blue-500/25',
-      iconBg: 'bg-blue-500/20',
-      iconColor: 'text-blue-600',
+      id: 'machines',
+      href: '/machines',
+      icon: Gamepad2,
+      label: '기기 현황',
+      description: '보유 기기를 확인하세요',
+      gradient: 'from-coral-500 to-coral-600',
+      shadowColor: 'shadow-coral-500/25',
+      iconBg: 'bg-coral-500/20',
+      iconColor: 'text-coral-600',
     },
     { 
-      id: 'kakao-inquiry',
-      href: 'https://open.kakao.com/o/sJPbo3Sb',
-      icon: MessageCircle,
-      label: '카톡 문의',
-      description: '실시간 1:1 문의하기',
-      gradient: 'from-yellow-500 to-yellow-600',
-      shadowColor: 'shadow-yellow-500/25',
-      iconBg: 'bg-yellow-500/20',
-      iconColor: 'text-yellow-600',
-      external: true,
+      id: 'schedule',
+      href: '/schedule',
+      icon: Clock,
+      label: '운영 일정',
+      description: '영업 시간과 일정 확인',
+      gradient: 'from-violet-500 to-violet-600',
+      shadowColor: 'shadow-violet-500/25',
+      iconBg: 'bg-violet-500/20',
+      iconColor: 'text-violet-600',
     },
   ];
 
+  const quickActions = [
+    { 
+      href: 'https://open.kakao.com/o/sJPbo3Sb',
+      icon: MessageCircle,
+      label: '카톡 문의',
+      color: 'text-yellow-500',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+      external: true
+    },
+    { 
+      href: '/guide',
+      icon: Info,
+      label: '이용 안내',
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    },
+    { 
+      href: '#location',
+      icon: MapPin,
+      label: '오시는 길',
+      color: 'text-green-500',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+    },
+  ];
 
   const communityLinks = [
     { 
@@ -95,10 +118,10 @@ export default function MainActionButtons() {
   ];
 
   return (
-    <div className="px-4 py-4 md:px-6 md:py-6 relative">
+    <div className="px-4 py-8 md:px-6 md:py-12">
       <div className="max-w-7xl mx-auto">
         {/* 메인 액션 카드들 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {mainActions.map((action, index) => (
             <motion.div
               key={action.id}
@@ -106,15 +129,12 @@ export default function MainActionButtons() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              {action.external ? (
-                <a
-                  href={action.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block relative group ${action.featured ? 'md:col-span-2 lg:col-span-1' : ''}`}
-                >
+              <Link
+                href={action.href}
+                className={`block relative group ${action.featured ? 'md:col-span-2 lg:col-span-1' : ''}`}
+              >
                 <div className={`
-                  relative overflow-hidden rounded-3xl p-4 sm:p-6 h-full
+                  relative overflow-hidden rounded-3xl p-6 h-full
                   bg-white dark:bg-gray-800 backdrop-blur-sm
                   border border-gray-200 dark:border-gray-700
                   shadow-lg hover:shadow-2xl ${action.shadowColor}
@@ -134,44 +154,30 @@ export default function MainActionButtons() {
                     transition={{ duration: 0.2 }}
                     className={`
                       inline-flex items-center justify-center
-                      w-12 h-12 sm:w-16 sm:h-16 rounded-2xl mb-3 sm:mb-4
+                      w-16 h-16 rounded-2xl mb-4
                       ${action.iconBg}
                       transition-transform duration-300
                     `}
                   >
-                    <action.icon className={`w-6 h-6 sm:w-8 sm:h-8 ${action.iconColor} flex-shrink-0`} />
+                    <action.icon className={`w-8 h-8 ${action.iconColor} flex-shrink-0`} />
                   </motion.div>
                   
                   {/* 텍스트 콘텐츠 */}
-                  <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     {action.label}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
                     {action.description}
                   </p>
                   
-                  {/* Featured 표시 - 카드 전체 강조 */}
+                  {/* Featured 뱃지 */}
                   {action.featured && (
-                    <>
-                      {/* 반짝이는 별 아이콘 */}
-                      <div className="absolute top-4 right-4">
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.2, 1],
-                            rotate: [0, 10, -10, 0],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            repeatType: "loop",
-                          }}
-                        >
-                          <Sparkles className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-                        </motion.div>
-                      </div>
-                      {/* 카드 상단에 그라데이션 하이라이트 */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-t-3xl" />
-                    </>
+                    <div className="absolute top-4 right-4">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-xs font-bold rounded-full">
+                        <Sparkles className="w-3 h-3" />
+                        추천
+                      </span>
+                    </div>
                   )}
                   
                   {/* 호버 시 화살표 */}
@@ -185,90 +191,54 @@ export default function MainActionButtons() {
                     </div>
                   </div>
                 </div>
-                </a>
-              ) : (
-                <Link
-                  href={action.href}
-                  className={`block relative group ${action.featured ? 'md:col-span-2 lg:col-span-1' : ''}`}
-                >
-                  <div className={`
-                    relative overflow-hidden rounded-3xl p-4 sm:p-6 h-full
-                    bg-white dark:bg-gray-800 backdrop-blur-sm
-                    border border-gray-200 dark:border-gray-700
-                    shadow-lg hover:shadow-2xl ${action.shadowColor}
-                    transform transition-all duration-300 hover:-translate-y-2
-                    ${action.featured ? 'ring-2 ring-indigo-500/20 dark:ring-indigo-400/20' : ''}
-                  `}>
-                    {/* 배경 그라데이션 */}
-                    <div className={`
-                      absolute inset-0 opacity-0 group-hover:opacity-10
-                      bg-gradient-to-br ${action.gradient}
-                      transition-opacity duration-300
-                    `} />
-                    
-                    {/* 플로팅 아이콘 */}
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.2 }}
-                      className={`
-                        inline-flex items-center justify-center
-                        w-12 h-12 sm:w-16 sm:h-16 rounded-2xl mb-3 sm:mb-4
-                        ${action.iconBg}
-                        transition-transform duration-300
-                      `}
-                    >
-                      <action.icon className={`w-6 h-6 sm:w-8 sm:h-8 ${action.iconColor} flex-shrink-0`} />
-                    </motion.div>
-                    
-                    {/* 텍스트 콘텐츠 */}
-                    <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                      {action.label}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
-                      {action.description}
-                    </p>
-                    
-                    {/* Featured 표시 - 카드 전체 강조 */}
-                    {action.featured && (
-                      <>
-                        {/* 반짝이는 별 아이콘 */}
-                        <div className="absolute top-4 right-4">
-                          <motion.div
-                            animate={{
-                              scale: [1, 1.2, 1],
-                              rotate: [0, 10, -10, 0],
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                              repeatType: "loop",
-                            }}
-                          >
-                            <Sparkles className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-                          </motion.div>
-                        </div>
-                        {/* 카드 상단에 그라데이션 하이라이트 */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-t-3xl" />
-                      </>
-                    )}
-                    
-                    {/* 호버 시 화살표 */}
-                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className={`
-                        w-10 h-10 rounded-full bg-gradient-to-r ${action.gradient}
-                        flex items-center justify-center text-white
-                        transform group-hover:translate-x-1 transition-transform duration-300
-                      `}>
-                        →
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )}
+              </Link>
             </motion.div>
           ))}
         </div>
 
+        {/* 퀵 액션 버튼들 */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="grid grid-cols-3 gap-4 mb-8"
+        >
+          {quickActions.map((action) => (
+            action.external ? (
+              <a
+                key={action.href}
+                href={action.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className={`${action.bgColor} w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform duration-300`}>
+                    <action.icon className={`w-6 h-6 ${action.color}`} />
+                  </div>
+                  <p className="text-sm font-medium text-center text-gray-900 dark:text-white">
+                    {action.label}
+                  </p>
+                </div>
+              </a>
+            ) : (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group"
+              >
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className={`${action.bgColor} w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform duration-300`}>
+                    <action.icon className={`w-6 h-6 ${action.color}`} />
+                  </div>
+                  <p className="text-sm font-medium text-center text-gray-900 dark:text-white">
+                    {action.label}
+                  </p>
+                </div>
+              </Link>
+            )
+          ))}
+        </motion.div>
 
         {/* 오시는 길 카드 */}
         <motion.div
@@ -288,17 +258,16 @@ export default function MainActionButtons() {
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">지도로 찾아오기</p>
             <div className="grid grid-cols-3 gap-3">
             <a
-              href="https://naver.me/5iTOSPd2"
+              href="https://map.naver.com/v5/search/게임플라자 광주광역시 동구 충장로안길 6"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#03C75A] hover:bg-[#02a74b] text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               <span className="text-xl font-black">N</span>
-              <span className="md:hidden">네이버</span>
-              <span className="hidden md:inline">네이버지도</span>
+              네이버지도
             </a>
             <a
-              href="https://kko.kakao.com/yjYsoSIzp5"
+              href="https://map.kakao.com/?q=게임플라자 광주광역시 동구 충장로안길 6"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#FEE500] hover:bg-[#e6cf00] text-black py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -306,11 +275,10 @@ export default function MainActionButtons() {
               <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 3c5.514 0 10 3.476 10 7.747 0 4.272-4.48 7.748-10 7.748-.899 0-1.767-.091-2.59-.259l-3.863 2.516a.5.5 0 01-.814-.41l.137-3.57C2.456 14.893 2 12.366 2 10.747 2 6.476 6.486 3 12 3z"/>
               </svg>
-              <span className="md:hidden">카카오</span>
-              <span className="hidden md:inline">카카오맵</span>
+              카카오맵
             </a>
             <a
-              href="https://maps.app.goo.gl/7Vcvx6qMAjjJc1kB8"
+              href="https://www.google.com/maps/search/게임플라자 광주광역시 동구 충장로안길 6"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#4285F4] hover:bg-[#3574e3] text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
