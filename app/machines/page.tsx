@@ -52,7 +52,7 @@ export default function MachinesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [expandedType, setExpandedType] = useState<string | null>(null);
-  const [supabase] = useState(() => createClient());
+  // const [supabase] = useState(() => createClient());
   const [machineRules, setMachineRules] = useState<any[]>([]);
 
   // Supabase에서 기기 정보 가져오기

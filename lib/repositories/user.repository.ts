@@ -1,10 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database'
 import { BaseRepository } from './base.repository'
 
 type User = Database['public']['Tables']['users']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
-type UserUpdate = Database['public']['Tables']['users']['Update']
 
 export interface UserWithAdmin extends User {
   admins?: {

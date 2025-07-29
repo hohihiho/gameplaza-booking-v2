@@ -1,4 +1,11 @@
-import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, Metric } from 'web-vitals'
+// TODO: web-vitals 패키지 설치 필요
+// import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, Metric } from 'web-vitals'
+
+type Metric = {
+  name: string;
+  value: number;
+  id: string;
+}
 
 // Web Vitals 임계값 (밀리초)
 const THRESHOLDS = {

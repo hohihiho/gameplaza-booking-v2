@@ -7,12 +7,12 @@ import { Calendar, Filter, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReservations } from '@/lib/hooks/useReservations';
 import ReservationList from '@/app/components/ReservationList';
-import { PullToRefresh } from '@/app/components/mobile/PullToRefresh';
+import PullToRefresh from '@/app/components/mobile/PullToRefresh';
 
 export default function MyReservations() {
   const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const { reservations, loading, error, refetch, setStatus, status } = useReservations();
+  const { reservations, loading, error, refetch, setStatus } = useReservations();
   const [showFilters, setShowFilters] = useState(false);
 
   // 상태 필터 옵션

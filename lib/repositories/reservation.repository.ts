@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database'
 import { BaseRepository } from './base.repository'
 
 type Reservation = Database['public']['Tables']['reservations']['Row']

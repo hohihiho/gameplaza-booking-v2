@@ -1,6 +1,6 @@
 import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface';
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface';
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface';
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface';
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface';
 import { ActiveCheckInListDTO, CheckInSummaryDTO, CheckInMapper } from '@/src/application/dto/checkin.dto';
 import { CheckIn } from '@/src/domain/entities/checkin';

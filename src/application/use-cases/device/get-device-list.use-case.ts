@@ -1,5 +1,5 @@
 import { Device, DeviceStatus, DeviceType } from '@/src/domain/entities/device.entity'
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface'
 
 export interface GetDeviceListRequest {
   status?: DeviceStatus

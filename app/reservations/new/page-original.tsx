@@ -81,7 +81,7 @@ export default function NewReservationPage() {
   useEffect(() => {
     const loadReservationRules = async () => {
       try {
-        const supabase = createClient();
+        const supabaseClient = createClient();
         const { data, error } = await supabase.from('reservation_rules')
           .select('*')
           .eq('is_active', true)
@@ -135,7 +135,7 @@ export default function NewReservationPage() {
         setIsLoadingDevices(true);
         
         // Supabase에서 대여 가능한 기기 타입만 가져오기
-        const supabase = createClient();
+        const supabaseClient = createClient();
         const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
           .select(`
             *,
@@ -212,7 +212,7 @@ export default function NewReservationPage() {
         setError(null);
         
         // Supabase에서 해당 기기의 고정 시간대 가져오기
-        const supabase = createClient();
+        const supabaseClient = createClient();
         const { data: slotsData, error: slotsError } = await supabase.from('rental_time_slots')
           .select('*')
           .eq('device_type_id', selectedDevice)
@@ -422,7 +422,7 @@ export default function NewReservationPage() {
       setError(null);
       
       // 선택한 기기 번호와 타입 확인
-      const supabase = createClient();
+      const supabaseClient = createClient();
       const { data: availableDevice, error: deviceError } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', selectedDevice)
@@ -448,7 +448,7 @@ export default function NewReservationPage() {
       }
 
       // users 테이블에서 사용자 ID 찾기
-      const supabase = createClient();
+      const supabaseClient = createClient();
       const { data: userData, error: userError } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
@@ -476,7 +476,7 @@ export default function NewReservationPage() {
       
       console.log('예약 생성 데이터:', reservationData);
       
-      const supabase = createClient();
+      const supabaseClient = createClient();
       const { data: newReservation, error: reservationError } = await supabase.from('reservations')
         .insert(reservationData)
         .select()

@@ -1,7 +1,7 @@
 import { CheckIn } from '@/src/domain/entities/checkin';
 import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface';
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface';
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface';
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface';
 import { DeviceTypeRepository } from '@/src/domain/repositories/device-type.repository.interface';
 
 export interface ProcessCheckInRequest {

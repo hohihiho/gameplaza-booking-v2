@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Calendar,
-  BarChart3,
-  ChevronLeft
+  BarChart3
 } from 'lucide-react';
 
 export default function ReservationsLayout({

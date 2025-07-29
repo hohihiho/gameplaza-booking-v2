@@ -1,5 +1,5 @@
 import { Device, DeviceType, DeviceStatus } from '@/src/domain/entities/device.entity'
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 interface DeviceRow {
@@ -14,7 +14,7 @@ interface DeviceRow {
   updated_at: string
 }
 
-export class DeviceSupabaseRepository implements DeviceRepository {
+export class DeviceSupabaseRepository implements IDeviceRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async findById(id: string): Promise<Device | null> {

@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { IReservationRepository } from '../../domain/repositories/reservation.repository.interface'
+import { ReservationRepository } from '../../domain/repositories/reservation.repository.interface'
 import { Reservation } from '../../domain/entities/reservation'
 import { KSTDateTime } from '../../domain/value-objects/kst-datetime'
 import { TimeSlot } from '../../domain/value-objects/time-slot'
@@ -15,7 +15,7 @@ type ReservationInsert = Database['public']['Tables']['reservations']['Insert']
  * 실제 Supabase 데이터베이스와 연결되는 예약 리포지토리
  * TDD 도메인 모델과 실제 DB 스키마를 매핑
  */
-export class SupabaseReservationRepositoryV2 implements IReservationRepository {
+export class SupabaseReservationRepositoryV2 implements ReservationRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async findById(id: string): Promise<Reservation | null> {

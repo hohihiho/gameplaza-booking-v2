@@ -3,7 +3,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database'
 import { DeviceRepository } from '@/lib/repositories/device.repository'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { 

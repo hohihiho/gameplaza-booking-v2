@@ -1,7 +1,7 @@
 import { CheckIn } from '@/src/domain/entities/checkin'
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
 import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface'
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface'
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 

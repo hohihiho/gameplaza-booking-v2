@@ -38,7 +38,7 @@ export default function QuickReservationWidget() {
       try {
         // 오늘 날짜 (KST 기준)
         const today = new Date();
-        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        // const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         // 영업시간 조회 (공통 API 사용)
         try {

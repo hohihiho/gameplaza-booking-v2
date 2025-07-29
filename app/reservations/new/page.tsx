@@ -6,11 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
-import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
+import { parseKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { useCreateReservation } from '@/lib/hooks/useReservations';
-import { api } from '@/lib/api/client';
-import { TimeSlotListSkeleton, DeviceSelectorSkeleton } from '@/app/components/mobile/ReservationSkeleton';
+import { TimeSlotListSkeleton } from '@/app/components/mobile/ReservationSkeleton';
 import { Calendar } from '@/src/components/ui/Calendar';
 import { DeviceSelector } from '@/src/components/ui/DeviceSelector';
 
@@ -66,7 +65,7 @@ type TimeSlot = {
 export default function NewReservationPage() {
   const router = useRouter();
   const { status } = useSession();
-  const [supabase] = useState(() => createClient());
+  // const [supabase] = useState(() => createClient());
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 현재 단계

@@ -5,9 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Calendar, Clock, Gamepad2, CreditCard, User, Hash,
+  Calendar, Clock, User, Hash,
   ChevronLeft, Loader2, AlertCircle, CheckCircle2, XCircle,
-  X, Sparkles, Copy, Check
+  X, Copy, Check
 } from 'lucide-react';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
@@ -72,7 +72,6 @@ interface ReservationDetailV1 {
   };
 }
 
-type ReservationDetail = ReservationDetailV2 | ReservationDetailV1;
 
 // v1 응답을 v2 형식으로 정규화
 function normalizeReservation(data: any): ReservationDetailV2 {
@@ -346,15 +345,6 @@ export default function ReservationDetailPage() {
     return `${formatTimeKST(`${timeSlot.startHour}:00`)} - ${formatTimeKST(`${timeSlot.endHour}:00`)}`;
   };
 
-  // 크레딧 타입 포맷
-  const getCreditTypeLabel = (type: string) => {
-    switch (type) {
-      case 'fixed': return '고정크레딧';
-      case 'freeplay': return '프리플레이';
-      case 'unlimited': return '무한크레딧';
-      default: return type;
-    }
-  };
 
   // 로딩 상태
   if (status === 'loading' || isLoading) {

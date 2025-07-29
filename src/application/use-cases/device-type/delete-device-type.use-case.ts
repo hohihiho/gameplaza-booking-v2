@@ -1,5 +1,5 @@
 import { DeviceTypeRepository } from '../../../domain/repositories/device-type.repository.interface'
-import { DeviceRepository } from '../../../domain/repositories/device.repository.interface'
+import { IDeviceRepository } from '../../../domain/repositories/device.repository.interface'
 
 export class DeleteDeviceTypeUseCase {
   constructor(

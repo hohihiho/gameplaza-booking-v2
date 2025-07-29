@@ -1,10 +1,8 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database'
 import { BaseRepository } from './base.repository'
 
 type Device = Database['public']['Tables']['devices']['Row']
-type DeviceInsert = Database['public']['Tables']['devices']['Insert']
-type DeviceUpdate = Database['public']['Tables']['devices']['Update']
 
 export interface DeviceWithType extends Device {
   device_types?: {

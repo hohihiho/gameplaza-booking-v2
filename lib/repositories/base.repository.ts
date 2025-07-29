@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database'
 
 export abstract class BaseRepository<T> {
   protected supabase: SupabaseClient<Database>

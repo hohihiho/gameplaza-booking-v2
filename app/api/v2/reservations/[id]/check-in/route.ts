@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
-import { withAuth, ExtendedUser } from '@/lib/auth'
+import { withAuth } from '@/lib/auth'
+import { ExtendedUser } from '@/lib/auth/types'
 import { CheckInReservationUseCase } from '@/src/application/use-cases/reservation/check-in.use-case'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'

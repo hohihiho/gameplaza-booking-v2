@@ -1,5 +1,5 @@
 import { Device } from '@/src/domain/entities/device.entity'
-import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
+import { IDeviceRepository } from '@/src/domain/repositories/device.repository.interface'
 import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'

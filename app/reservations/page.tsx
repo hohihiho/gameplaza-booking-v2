@@ -10,73 +10,15 @@ import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clo
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
-import { useReservationRealtime } from '@/lib/hooks/useReservationRealtime';
 import { useApiError } from '@/lib/hooks/useApiError';
-import { ErrorCode } from '@/lib/api/response';
-import { toast } from 'react-hot-toast';
 
-// v2 API 응답 타입 (snake_case)
-interface ReservationV2 {
-  id: string;
-  reservation_number: string;
-  user_id: string;
-  device_id: string;
-  device_name: string;
-  device_type: string;
-  device_number?: string;
-  date: string;
-  start_hour: number;
-  end_hour: number;
-  credit_type: string;
-  player_count: number;
-  total_amount: number;
-  status: string;
-  user_notes?: string;
-  admin_notes?: string;
-  rejection_reason?: string;
-  created_at: string;
-  updated_at: string;
-}
 
-// v1 API 응답 타입 (camelCase)
-interface ReservationV1 {
-  id: string;
-  reservationNumber: string;
-  userId: string;
-  deviceId: string;
-  deviceName?: string;
-  deviceType?: string;
-  deviceNumber?: string;
-  date: string;
-  startTime?: string;
-  endTime?: string;
-  time_slot?: string;
-  creditType: string;
-  playerCount: number;
-  totalAmount: number;
-  status: string;
-  userNotes?: string;
-  adminNotes?: string;
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
-  devices?: {
-    device_number: string;
-    device_types: {
-      name: string;
-      model_name: string;
-    };
-  };
-}
-
-// 통합 예약 타입
-type ReservationData = ReservationV2 | ReservationV1;
 
 // 시간대 구분 함수
 const getShiftType = (startTime: string | undefined) => {
   if (!startTime) return null;
   const [hour] = startTime.split(':');
-  const h = parseInt(hour);
+  const h = parseInt(hour || '0');
   
   if (h >= 6 && h <= 23) {
     return 'early'; // 조기영업 (06:00-23:59)

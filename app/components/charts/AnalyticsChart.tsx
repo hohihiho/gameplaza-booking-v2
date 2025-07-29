@@ -3,7 +3,6 @@
 'use client';
 
 // recharts는 사용하는 곳에서 동적으로 import
-import type { TooltipProps } from 'recharts';
 import { ResponsiveContainer } from '@/app/components/charts/LazyRecharts';
 import { useTheme } from '@/app/components/ThemeProvider';
 
@@ -34,7 +33,7 @@ interface CustomTooltipProps {
   formatter?: (value: number) => string;
 }
 
-export const CustomTooltip = ({ active, payload, label, formatter }: CustomTooltipProps) => {
+export const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   const { theme } = useTheme();
   
   if (!active || !payload || !payload.length) return null;

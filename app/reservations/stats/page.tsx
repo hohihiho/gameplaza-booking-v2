@@ -5,18 +5,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Calendar,
   Clock,
   Gamepad2,
-  TrendingUp,
-  TrendingDown,
   BarChart3,
   PieChart,
-  Activity,
   Award,
-  Target,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   RefreshCw,
   Download

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotTemplateRepository } from '@/src/domain/repositories/time-slot-template-repository.interface'
-import { TimeSlotScheduleRepository } from '@/src/domain/repositories/time-slot-schedule-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { ScheduleTimeSlotsUseCase, GetTimeSlotSchedulesUseCase } from '@/src/application/use-cases/time-slot'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'

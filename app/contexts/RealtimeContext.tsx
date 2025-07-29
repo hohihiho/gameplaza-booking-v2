@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useCallback, useState, useEffect } from 'react';
-import { useOptimizedRealtime } from '@/hooks/useOptimizedRealtime';
+import { useOptimizedRealtime } from '@/app/hooks/useOptimizedRealtime';
 
 interface RealtimeContextValue {
   reservations: {

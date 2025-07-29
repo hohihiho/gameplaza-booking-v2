@@ -347,7 +347,7 @@ export default function NewReservationPageRedesigned() {
       setError(null);
       
       const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+  const { data: availableDevice, error: deviceError } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
         .eq('device_number', reservationData.deviceNumber)
@@ -366,7 +366,7 @@ export default function NewReservationPageRedesigned() {
       }
 
       const supabase = createClient();
-  const { data$1 } = await supabase.from('users')
+  const { data: userData } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
         .single();
@@ -388,7 +388,7 @@ export default function NewReservationPageRedesigned() {
       };
       
       const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+  const { data: newReservation, error: reservationError } = await supabase.from('reservations')
         .insert(reservationPayload)
         .select()
         .single();

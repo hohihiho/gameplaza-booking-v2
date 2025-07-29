@@ -125,7 +125,7 @@ const ReservationList = memo(function ReservationList({
   onRefresh,
   emptyMessage = '예약 내역이 없습니다'
 }: ReservationListProps) {
-  const router = useRouter();
+  // const router = useRouter();
 
   // 시간 포맷팅 (24시간 이후 표시)
   const formatTime = (time: string) => {

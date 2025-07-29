@@ -3,12 +3,6 @@ import { AuthToken } from '@/src/domain/value-objects/auth-token'
 import { SessionRepository } from '@/src/domain/repositories/session-repository.interface'
 import { SupabaseClient } from '@supabase/supabase-js'
 
-// Session entity를 확장하여 토큰 정보를 포함
-interface SessionWithTokens extends Session {
-  accessToken: AuthToken
-  refreshToken: AuthToken
-  updatedAt: Date
-}
 
 interface SessionRow {
   id: string
