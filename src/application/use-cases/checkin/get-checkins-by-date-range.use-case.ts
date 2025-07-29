@@ -4,6 +4,8 @@ import { CheckInDTO, CheckInMapper, CheckInStatisticsDTO } from '@/src/applicati
 export interface GetCheckInsByDateRangeRequest {
   startDate: Date;
   endDate: Date;
+  deviceId?: string;
+  userId?: string;
   includeStatistics?: boolean;
 }
 
@@ -25,15 +27,24 @@ export class GetCheckInsByDateRangeUseCase {
     }
 
     // 2. 날짜 범위로 체크인 조회
-    const checkIns = await this.checkInRepository.findByDateRange(
+    let checkIns = await this.checkInRepository.findByDateRange(
       request.startDate,
       request.endDate
     );
 
-    // 3. DTO 변환
+    // 3. 추가 필터링 적용
+    if (request.deviceId) {
+      checkIns = checkIns.filter(checkIn => checkIn.deviceId === request.deviceId);
+    }
+
+    if (request.userId) {
+      checkIns = checkIns.filter(checkIn => (checkIn as any).userId === request.userId);
+    }
+
+    // 4. DTO 변환
     const checkInDTOs = checkIns.map(checkIn => CheckInMapper.toDTO(checkIn));
 
-    // 4. 통계 계산 (요청된 경우)
+    // 5. 통계 계산 (요청된 경우)
     let statistics: CheckInStatisticsDTO | undefined;
     
     if (request.includeStatistics) {
@@ -64,7 +75,7 @@ export class GetCheckInsByDateRangeUseCase {
       };
     }
 
-    // 5. 응답 생성
+    // 6. 응답 생성
     return {
       checkIns: checkInDTOs,
       statistics,

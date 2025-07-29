@@ -1,5 +1,5 @@
-import { CheckIn, CheckInStatus } from '@/src/domain/entities/check-in.entity'
-import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
+import { CheckIn, CheckInStatus } from '@/src/domain/entities/checkin'
+import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 import { SupabaseClient } from '@supabase/supabase-js'
 
@@ -13,6 +13,8 @@ interface CheckInRow {
   status: CheckInStatus
   check_in_by: string
   check_out_by: string | null
+  payment_amount: number | null
+  payment_method: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -119,6 +121,8 @@ export class CheckInSupabaseRepository implements CheckInRepository {
         check_out_time: row.check_out_time,
         status: row.status,
         check_out_by: row.check_out_by,
+        payment_amount: row.payment_amount,
+        payment_method: row.payment_method,
         notes: row.notes,
         updated_at: row.updated_at
       })
@@ -140,6 +144,8 @@ export class CheckInSupabaseRepository implements CheckInRepository {
       status: row.status,
       checkInBy: row.check_in_by,
       checkOutBy: row.check_out_by || undefined,
+      paymentAmount: row.payment_amount || undefined,
+      paymentMethod: row.payment_method || undefined,
       notes: row.notes || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
@@ -157,9 +163,83 @@ export class CheckInSupabaseRepository implements CheckInRepository {
       status: checkIn.status,
       check_in_by: checkIn.checkInBy,
       check_out_by: checkIn.checkOutBy || null,
+      payment_amount: checkIn.paymentAmount || null,
+      payment_method: checkIn.paymentMethod || null,
       notes: checkIn.notes || null,
       created_at: checkIn.createdAt.toISOString(),
       updated_at: checkIn.updatedAt.toISOString()
     }
+  }
+
+  async create(checkIn: CheckIn): Promise<CheckIn> {
+    const record = this.toRecord(checkIn)
+    const { data, error } = await this.supabase
+      .from('check_ins')
+      .insert(record)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to create check-in: ${error.message}`)
+    }
+
+    return this.toDomain(data)
+  }
+
+  async findByDeviceId(deviceId: string): Promise<CheckIn[]> {
+    const { data, error } = await this.supabase
+      .from('check_ins')
+      .select('*')
+      .eq('device_id', deviceId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to find check-ins by device: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findActiveCheckIns(): Promise<CheckIn[]> {
+    const { data, error } = await this.supabase
+      .from('check_ins')
+      .select('*')
+      .in('status', ['checked_in', 'in_use'])
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to find active check-ins: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findByStatus(status: string): Promise<CheckIn[]> {
+    const { data, error } = await this.supabase
+      .from('check_ins')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to find check-ins by status: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findPendingPayments(): Promise<CheckIn[]> {
+    const { data, error } = await this.supabase
+      .from('check_ins')
+      .select('*')
+      .eq('status', 'checked_out')
+      .is('payment_amount', null)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to find pending payments: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
   }
 }

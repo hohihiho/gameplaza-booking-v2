@@ -1,27 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
-import { withAuth } from '@/lib/api/auth-middleware'
-import { AuthenticatedRequest } from '@/lib/api/types'
-import { UserRole } from '@/src/domain/value-objects/user-role'
+import { withAuth, ExtendedUser } from '@/lib/auth'
 import { CheckInReservationUseCase } from '@/src/application/use-cases/reservation/check-in.use-case'
-import { UserRepository } from '@/src/infrastructure/repositories/supabase/user.repository'
-import { ReservationRepository } from '@/src/infrastructure/repositories/supabase/reservation.repository'
-import { DeviceRepository } from '@/src/infrastructure/repositories/supabase/device.repository'
-import { PaymentRepository } from '@/src/infrastructure/repositories/supabase/payment.repository'
-import { NotificationRepository } from '@/src/infrastructure/repositories/supabase/notification.repository'
-import { createClient } from '@/utils/supabase/server'
+import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
+import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
+import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
+import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  return withAuth(async (authenticatedReq: AuthenticatedRequest) => {
+  return withAuth(async (req: NextRequest, { user }: { user: ExtendedUser }) => {
     try {
-      const { user } = authenticatedReq
+      // params를 await로 추출
+      const { id } = await params
       
       // 관리자 또는 스태프 권한 확인
-      const userRole = new UserRole(user.role as any)
-      if (!userRole.canManageReservations()) {
+      if (!user.role || (user.role !== 'admin' && user.role !== 'staff')) {
         return createResponse(
           new ErrorResponse('권한이 없습니다', 'FORBIDDEN'),
           403
@@ -30,17 +29,18 @@ export async function POST(
 
       // 요청 데이터 파싱
       const body = await req.json()
-      const { paymentMethod } = body
+      const { paymentMethod, paymentAmount } = body
 
       // Supabase 클라이언트 생성
-      const supabase = await createClient()
+      const supabase = createServiceRoleClient()
       
       // 리포지토리 초기화
-      const userRepository = new UserRepository(supabase)
-      const reservationRepository = new ReservationRepository(supabase)
-      const deviceRepository = new DeviceRepository(supabase)
-      const paymentRepository = new PaymentRepository(supabase)
-      const notificationRepository = new NotificationRepository(supabase)
+      const userRepository = new UserSupabaseRepository(supabase)
+      const reservationRepository = new SupabaseReservationRepository(supabase)
+      const deviceRepository = new DeviceSupabaseRepository(supabase)
+      const paymentRepository = new PaymentSupabaseRepository(supabase)
+      const notificationRepository = new NotificationSupabaseRepository(supabase)
+      const checkInRepository = new CheckInSupabaseRepository(supabase)
 
       // Use Case 실행
       const useCase = new CheckInReservationUseCase(
@@ -48,13 +48,15 @@ export async function POST(
         reservationRepository,
         deviceRepository,
         paymentRepository,
-        notificationRepository
+        notificationRepository,
+        checkInRepository
       )
 
       const result = await useCase.execute({
         userId: user.id,
-        reservationId: params.id,
-        paymentMethod
+        reservationId: id,
+        paymentMethod,
+        paymentAmount
       })
 
       return createResponse({
@@ -68,7 +70,7 @@ export async function POST(
             timeSlot: {
               startHour: result.reservation.timeSlot.startHour,
               endHour: result.reservation.timeSlot.endHour,
-              displayText: result.reservation.timeSlot.displayText
+              displayText: result.reservation.timeSlot.displayTime
             },
             status: result.reservation.status.value,
             reservationNumber: result.reservation.reservationNumber,
@@ -78,11 +80,18 @@ export async function POST(
             createdAt: result.reservation.createdAt,
             updatedAt: result.reservation.updatedAt
           },
+          checkIn: {
+            id: result.checkIn.id,
+            checkInTime: result.checkIn.checkInTime.toISOString(),
+            status: result.checkIn.status,
+            paymentAmount: result.checkIn.paymentAmount,
+            paymentMethod: result.checkIn.paymentMethod
+          },
           payment: result.payment ? {
             id: result.payment.id,
             amount: result.payment.amount,
             method: result.payment.method,
-            status: result.payment.status.value
+            status: result.payment.status
           } : undefined,
           assignedDevice: result.assignedDevice,
           message: result.message

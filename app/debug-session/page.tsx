@@ -7,11 +7,13 @@ import { useRouter } from 'next/navigation';
 export default function DebugSessionPage() {
   const { data: session, status, update } = useSession();
   const [refreshData, setRefreshData] = useState<any>(null);
+  const [adminCheckData, setAdminCheckData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     fetchRefreshData();
+    fetchAdminCheck();
   }, []);
 
   const fetchRefreshData = async () => {
@@ -21,6 +23,16 @@ export default function DebugSessionPage() {
       setRefreshData(data);
     } catch (error) {
       console.error('Error fetching refresh data:', error);
+    }
+  };
+
+  const fetchAdminCheck = async () => {
+    try {
+      const response = await fetch('/api/auth/check-admin');
+      const data = await response.json();
+      setAdminCheckData(data);
+    } catch (error) {
+      console.error('Error fetching admin check:', error);
     }
   };
 
@@ -35,6 +47,7 @@ export default function DebugSessionPage() {
       
       // API 데이터 새로고침
       await fetchRefreshData();
+      await fetchAdminCheck();
       
       // 페이지 새로고침
       setTimeout(() => {
@@ -90,6 +103,14 @@ export default function DebugSessionPage() {
             <h2 className="text-lg font-semibold mb-4 dark:text-white">API 응답 (/api/auth/refresh)</h2>
             <pre className="p-4 bg-gray-100 dark:bg-gray-800 rounded overflow-auto text-xs">
               {JSON.stringify(refreshData, null, 2)}
+            </pre>
+          </div>
+
+          {/* 관리자 체크 결과 */}
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
+            <h2 className="text-lg font-semibold mb-4 dark:text-white">관리자 체크 결과 (/api/auth/check-admin)</h2>
+            <pre className="p-4 bg-gray-100 dark:bg-gray-800 rounded overflow-auto text-xs">
+              {JSON.stringify(adminCheckData, null, 2)}
             </pre>
           </div>
 

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { 
   FileText,
   Save,
@@ -460,17 +461,22 @@ export default function ContentManagementPage() {
         return (
           <div className={baseClass} style={{ textAlign: block.style.align as React.CSSProperties['textAlign'] }}>
             {block.content.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img 
-                src={block.content.src}
-                alt={block.content.alt || ''}
-                style={{
-                  width: block.style.width,
-                  borderRadius: block.style.borderRadius,
-                  maxWidth: '100%'
-                }}
-                className="inline-block"
-              />
+              <div className="relative inline-block" style={{ width: block.style.width || 'auto', maxWidth: '100%' }}>
+                <Image 
+                  src={block.content.src}
+                  alt={block.content.alt || ''}
+                  width={800}
+                  height={600}
+                  style={{
+                    borderRadius: block.style.borderRadius,
+                    objectFit: 'contain'
+                  }}
+                  className="w-full h-auto"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority={false}
+                  loading="lazy"
+                />
+              </div>
             ) : (
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center">
                 <ImageIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />

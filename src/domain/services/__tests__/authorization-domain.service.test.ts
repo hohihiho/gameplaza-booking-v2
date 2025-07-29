@@ -4,14 +4,14 @@ import { Permission } from '../../value-objects/permission'
 import { Role } from '../../value-objects/role'
 
 describe('AuthorizationDomainService', () => {
-  let authService: AuthorizationDomainService
-  let regularUser: User
-  let adminUser: User
-  let suspendedUser: User
-  let bannedUser: User
+  let authService: AuthorizationDomainService;
+  let regularUser: User;
+  let adminUser: User;
+  let suspendedUser: User;
+  let bannedUser: User;
 
   beforeEach(() => {
-    authService = new AuthorizationDomainService()
+    authService = new AuthorizationDomainService();
 
     regularUser = User.create({
       id: 'user-123',

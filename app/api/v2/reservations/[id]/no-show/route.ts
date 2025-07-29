@@ -3,8 +3,8 @@ import { HandleNoShowUseCase } from '@/src/application/use-cases/check-in/handle
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 노쇼 처리 API
@@ -12,9 +12,12 @@ import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middl
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -42,28 +45,13 @@ export async function POST(
     const body = await request.json()
     const { reason } = body
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
+    // 5. 유스케이스 실행
     const useCase = new HandleNoShowUseCase(
       reservationRepository,
       checkInRepository,
@@ -71,15 +59,14 @@ export async function POST(
     )
 
     const result = await useCase.execute({
-      reservationId: params.id,
+      reservationId: id,
       adminId: user.id,
       reason
     })
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json({
-      reservationId: result.reservationId,
-      status: result.status,
+      reservation: result.reservation,
       reason
     }, { status: 200 })
 

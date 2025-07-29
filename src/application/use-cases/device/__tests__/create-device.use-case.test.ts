@@ -39,7 +39,7 @@ describe('CreateDeviceUseCase', () => {
       const normalUser = User.create({
         id: 'user-123',
         email: 'user@example.com',
-        name: 'Normal User',
+        fullName: 'Normal User',
         phone: '010-1234-5678',
         role: 'user'
       })
@@ -58,7 +58,7 @@ describe('CreateDeviceUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -78,7 +78,7 @@ describe('CreateDeviceUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -107,7 +107,7 @@ describe('CreateDeviceUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -142,7 +142,7 @@ describe('CreateDeviceUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })

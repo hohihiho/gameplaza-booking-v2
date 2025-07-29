@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import { ButtonHTMLAttributes, ReactNode, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import TouchRipple from './TouchRipple';
@@ -16,7 +16,7 @@ interface LoadingButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   haptic?: 'light' | 'medium' | 'heavy';
 }
 
-export default function LoadingButton({
+const LoadingButton = memo(function LoadingButton({
   children,
   isLoading = false,
   loadingText,
@@ -90,4 +90,6 @@ export default function LoadingButton({
       </motion.button>
     </TouchRipple>
   );
-}
+});
+
+export default LoadingButton;

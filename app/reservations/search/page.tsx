@@ -115,6 +115,12 @@ export default function ReservationSearchPage() {
     };
 
     const config = statusConfig[status] || statusConfig.pending;
+    
+    // config가 undefined인 경우 기본값 사용
+    if (!config) {
+      return <span className="text-gray-500">알 수 없음</span>;
+    }
+    
     const Icon = config.icon;
 
     return (

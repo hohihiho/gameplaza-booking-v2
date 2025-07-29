@@ -3,8 +3,9 @@ import { createApiHandler } from '@/lib/api/handler'
 import { RejectReservationUseCase } from '@/src/application/use-cases/reservation/reject-reservation.use-case'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseNotificationRepository } from '@/src/infrastructure/repositories/supabase-notification.repository'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getAuthenticatedUser, isAdmin } from '@/src/infrastructure/middleware/auth.middleware'
 
 interface RejectRequestBody {
   reason: string
@@ -15,10 +16,18 @@ export const POST = createApiHandler(
     const reservationId = params.id
     
     // 인증 확인
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const user = getAuthenticatedUser(request)
+    if (!user) {
       return NextResponse.json(
-        { error: '인증이 필요합니다' },
+        { message: '인증이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
+    // 관리자 권한 확인
+    if (!isAdmin(request)) {
+      return NextResponse.json(
+        { message: '관리자 권한이 필요합니다' },
         { status: 401 }
       )
     }
@@ -29,28 +38,18 @@ export const POST = createApiHandler(
       
       if (!body.reason || body.reason.trim().length === 0) {
         return NextResponse.json(
-          { error: '거절 사유는 필수입니다' },
+          { error: '거절 사유를 입력해주세요' },
           { status: 400 }
         )
       }
 
       // Supabase 클라이언트 생성
-      const supabase = createServerSupabaseClient()
-      
-      // 현재 사용자 정보 가져오기
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !user) {
-        return NextResponse.json(
-          { error: '인증 정보가 유효하지 않습니다' },
-          { status: 401 }
-        )
-      }
+      const supabase = createServiceRoleClient()
 
       // 리포지토리 생성
       const userRepository = new UserSupabaseRepository(supabase)
       const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
-      const notificationRepository = new SupabaseNotificationRepository(supabase)
+      const notificationRepository = new NotificationSupabaseRepository(supabase)
 
       // 유스케이스 실행
       const useCase = new RejectReservationUseCase(
@@ -66,19 +65,16 @@ export const POST = createApiHandler(
       })
 
       return NextResponse.json({
-        success: true,
-        reservation: {
-          id: result.reservation.id,
-          reservationNumber: result.reservation.reservationNumber,
-          status: result.reservation.status.value,
-          rejectionReason: result.reservation.rejectionReason,
-          date: result.reservation.date.dateString,
-          timeSlot: {
-            startHour: result.reservation.timeSlot.startHour,
-            endHour: result.reservation.timeSlot.endHour
-          }
-        },
-        message: result.message
+        id: result.reservation.id,
+        reservationNumber: result.reservation.reservationNumber,
+        status: result.reservation.status.value,
+        admin_notes: result.reservation.rejectionReason,
+        rejectionReason: result.reservation.rejectionReason,
+        date: result.reservation.date.dateString,
+        timeSlot: {
+          startHour: result.reservation.timeSlot.startHour,
+          endHour: result.reservation.timeSlot.endHour
+        }
       })
     } catch (error) {
       if (error instanceof Error) {

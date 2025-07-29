@@ -17,7 +17,12 @@ export interface UserProps {
   lastLoginAt?: Date | null
   loginAttempts?: number
   suspendedUntil?: Date | null
+  suspendedReason?: string | null
   bannedReason?: string | null
+  marketingAgreed?: boolean
+  termsAgreedAt?: Date | null
+  privacyAgreedAt?: Date | null
+  marketingAgreedAt?: Date | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -36,7 +41,12 @@ export class User {
     private _lastLoginAt: Date | null,
     private _loginAttempts: number,
     private _suspendedUntil: Date | null,
+    private _suspendedReason: string | null,
     private _bannedReason: string | null,
+    private _marketingAgreed: boolean,
+    private _termsAgreedAt: Date | null,
+    private _privacyAgreedAt: Date | null,
+    private _marketingAgreedAt: Date | null,
     public readonly createdAt: Date,
     private _updatedAt: Date
   ) {}
@@ -55,7 +65,12 @@ export class User {
       props.lastLoginAt ?? null,
       props.loginAttempts ?? 0,
       props.suspendedUntil ?? null,
+      props.suspendedReason ?? null,
       props.bannedReason ?? null,
+      props.marketingAgreed ?? false,
+      props.termsAgreedAt ?? null,
+      props.privacyAgreedAt ?? null,
+      props.marketingAgreedAt ?? null,
       props.createdAt ?? new Date(),
       props.updatedAt ?? new Date()
     )
@@ -121,8 +136,28 @@ export class User {
     return this._suspendedUntil
   }
 
+  get suspendedReason(): string | null {
+    return this._suspendedReason
+  }
+
   get bannedReason(): string | null {
     return this._bannedReason
+  }
+
+  get marketingAgreed(): boolean {
+    return this._marketingAgreed
+  }
+
+  get termsAgreedAt(): Date | null {
+    return this._termsAgreedAt
+  }
+
+  get privacyAgreedAt(): Date | null {
+    return this._privacyAgreedAt
+  }
+
+  get marketingAgreedAt(): Date | null {
+    return this._marketingAgreedAt
   }
 
   get updatedAt(): Date {
@@ -212,7 +247,12 @@ export class User {
       this._lastLoginAt,
       this._loginAttempts,
       this._suspendedUntil,
+      this._suspendedReason,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -235,7 +275,12 @@ export class User {
       new Date(),
       0, // 로그인 시도 횟수 초기화
       this._suspendedUntil,
+      this._suspendedReason,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -261,7 +306,12 @@ export class User {
       this._lastLoginAt,
       newAttempts,
       shouldSuspend ? new Date(Date.now() + 30 * 60 * 1000) : this._suspendedUntil, // 30분 정지
+      shouldSuspend ? '로그인 시도 초과' : this._suspendedReason,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -270,7 +320,7 @@ export class User {
   /**
    * 계정 정지
    */
-  suspend(until: Date): User {
+  suspend(until: Date, reason?: string): User {
     return new User(
       this.id,
       this.email,
@@ -284,7 +334,12 @@ export class User {
       this._lastLoginAt,
       this._loginAttempts,
       until,
+      reason ?? null,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -307,7 +362,12 @@ export class User {
       this._lastLoginAt,
       this._loginAttempts,
       null,
+      null,
       reason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -331,6 +391,11 @@ export class User {
       0, // 로그인 시도 횟수 초기화
       null,
       null,
+      null,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -353,7 +418,12 @@ export class User {
       this._lastLoginAt,
       this._loginAttempts,
       this._suspendedUntil,
+      this._suspendedReason,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )
@@ -376,7 +446,12 @@ export class User {
       this._lastLoginAt,
       this._loginAttempts,
       this._suspendedUntil,
+      this._suspendedReason,
       this._bannedReason,
+      this._marketingAgreed,
+      this._termsAgreedAt,
+      this._privacyAgreedAt,
+      this._marketingAgreedAt,
       this.createdAt,
       new Date()
     )

@@ -22,7 +22,7 @@ export async function PUT(
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: timeSlotsData } = await supabaseAdmin.from('rental_time_slots')
+    const { data, error } = await supabaseAdmin.from('rental_time_slots')
       .update({
         slot_type,
         start_time,

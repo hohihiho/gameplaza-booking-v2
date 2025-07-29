@@ -87,7 +87,6 @@ describe('GetAvailableTimeSlotsUseCase', () => {
       expect(result.slots[0]).toMatchObject({
         timeSlot: {
           id: mockTemplate.id,
-          name: mockTemplate.name,
           startHour: 10,
           endHour: 14,
           duration: 4

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // 오늘의 승인된/체크인된/완료된 예약 조회 (모든 시간대)
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservations, error } = await supabaseAdmin.from('reservations')
       .select(`
         *,
         users:user_id (

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 이메일 목록
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: guidecontentData } = await supabaseAdmin.from('guide_content')
+  const { data, error } = await supabaseAdmin.from('guide_content')
       .select('content')
       .eq('page_slug', pageSlug)
       .single();
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // upsert로 저장 (없으면 생성, 있으면 업데이트)
     const supabaseAdmin = createAdminClient();
-  const { data: guidecontentData2 } = await supabaseAdmin.from('guide_content')
+  const { data, error } = await supabaseAdmin.from('guide_content')
       .upsert({
         page_slug: pageSlug,
         content,

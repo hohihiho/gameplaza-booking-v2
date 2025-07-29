@@ -1,5 +1,5 @@
 import { AuthToken } from '@/src/domain/value-objects/auth-token'
-import { AuthDomainService, ITokenService } from '@/src/domain/services/auth-domain.service'
+import { AuthDomainService } from '@/src/domain/services/auth-domain.service'
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { SessionRepository } from '@/src/domain/repositories/session-repository.interface'
 import { 
@@ -13,7 +13,6 @@ import {
  */
 export class RefreshTokenUseCase {
   constructor(
-    private readonly tokenService: ITokenService,
     private readonly authDomainService: AuthDomainService,
     private readonly userRepository: UserRepository,
     private readonly sessionRepository: SessionRepository
@@ -33,6 +32,9 @@ export class RefreshTokenUseCase {
     try {
       payload = await this.authDomainService.verifyToken(refreshToken)
     } catch (error) {
+      if (error instanceof Error && error.message.includes('expired')) {
+        throw new Error('토큰이 만료되었습니다')
+      }
       throw new Error('유효하지 않은 리프레시 토큰입니다')
     }
 
@@ -40,6 +42,10 @@ export class RefreshTokenUseCase {
     const session = await this.sessionRepository.findById(payload.sessionId)
     if (!session) {
       throw new Error('세션을 찾을 수 없습니다')
+    }
+
+    if (!session.isActive) {
+      throw new Error('세션이 비활성화되었습니다')
     }
 
     if (!this.authDomainService.validateSession(session)) {
@@ -53,6 +59,9 @@ export class RefreshTokenUseCase {
     }
 
     if (!user.canLogin()) {
+      if (user.status === 'suspended') {
+        throw new Error('계정이 정지되었습니다')
+      }
       throw new Error('로그인할 수 없는 사용자입니다')
     }
 

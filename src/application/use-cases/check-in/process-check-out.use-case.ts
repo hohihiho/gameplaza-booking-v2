@@ -1,8 +1,8 @@
-import { CheckIn } from '@/src/domain/entities/check-in.entity'
+import { CheckIn } from '@/src/domain/entities/checkin'
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
-import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
+import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface'
 import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
-import { UserRepository } from '@/src/domain/repositories/user.repository.interface'
+import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 
 export interface ProcessCheckOutRequest {
@@ -41,7 +41,7 @@ export class ProcessCheckOutUseCase {
     }
 
     // 3. 체크인 상태 확인
-    if (!checkIn.isCheckedIn()) {
+    if (!checkIn.status.isInUse()) {
       throw new Error('체크인 상태가 아닙니다')
     }
 
@@ -52,8 +52,12 @@ export class ProcessCheckOutUseCase {
     }
 
     // 5. 체크아웃 처리
-    const now = KSTDateTime.now()
-    const checkedOutCheckIn = checkIn.checkOut(request.adminId, now, request.notes)
+    const checkedOutCheckIn = checkIn.checkOut()
+    
+    // 메모 추가 (있는 경우)
+    if (request.notes) {
+      checkedOutCheckIn.updateNotes(request.notes)
+    }
 
     // 6. 체크인 정보 업데이트
     await this.checkInRepository.update(checkedOutCheckIn)
@@ -65,12 +69,12 @@ export class ProcessCheckOutUseCase {
     // 8. 기기 상태를 사용 가능으로 변경
     const device = await this.deviceRepository.findById(reservation.deviceId)
     if (device) {
-      const availableDevice = device.changeStatus('active')
+      const availableDevice = device.changeStatus('available')
       await this.deviceRepository.update(availableDevice)
     }
 
     // 9. 사용 시간 계산
-    const usageMinutes = checkedOutCheckIn.getUsageMinutes() || 0
+    const usageMinutes = checkedOutCheckIn.actualDuration || 0
 
     return {
       checkIn: checkedOutCheckIn,

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-    const { data: userData, error: userError } = await supabaseAdmin.from('users')
+    const { data: userData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
+    const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
       .eq('user_id', userData.id)
       .single();
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Payment confirmation error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: (error as Error).message },
       { status: 500 }
     );
   }

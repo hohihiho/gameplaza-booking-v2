@@ -1,7 +1,7 @@
 import { TimeSlotTemplate, CreditType } from '../../../domain/entities/time-slot-template'
 import { TimeSlotDomainService } from '../../../domain/services/time-slot-domain.service'
-import { ReservationRepository } from '../../../domain/repositories/reservation-repository.interface'
-import { DeviceRepository } from '../../../domain/repositories/device-repository.interface'
+import { ReservationRepository } from '../../../domain/repositories/reservation.repository.interface'
+import { DeviceRepository } from '../../../domain/repositories/device.repository.interface'
 
 export interface GetAvailableTimeSlotsQuery {
   date: string // YYYY-MM-DD
@@ -155,6 +155,12 @@ export class GetAvailableTimeSlotsUseCase {
 
   private parseDate(dateString: string): Date {
     const [year, month, day] = dateString.split('-').map(Number)
+    
+    // month와 day가 undefined인 경우 처리
+    if (!month || !day) {
+      throw new Error('유효하지 않은 날짜 형식입니다')
+    }
+    
     return new Date(year, month - 1, day)
   }
 }

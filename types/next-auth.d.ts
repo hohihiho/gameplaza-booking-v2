@@ -1,29 +1,28 @@
-import { DefaultSession } from 'next-auth';
+import { DefaultSession, DefaultUser } from 'next-auth';
 
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      email: string;
-      name: string;
+      email?: string | null;
+      name?: string | null;
       nickname?: string;
       phone?: string;
       image?: string | null;
-      role: 'user' | 'admin';
+      role?: 'user' | 'admin';
       isAdmin: boolean;
       isSuperAdmin?: boolean;
-    } & DefaultSession['user'];
+    }
   }
 
-  interface User {
+  interface User extends DefaultUser {
     id: string;
-    email: string;
-    name: string;
+    email?: string | null;
+    name?: string | null;
     nickname?: string;
     phone?: string;
-    image?: string | null;
-    role: 'user' | 'admin';
-    isAdmin: boolean;
+    role?: 'user' | 'admin';
+    isAdmin?: boolean;
     isSuperAdmin?: boolean;
   }
 }
@@ -33,5 +32,6 @@ declare module 'next-auth/jwt' {
     id?: string;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
+    sub?: string;
   }
 }

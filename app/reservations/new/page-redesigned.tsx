@@ -116,7 +116,7 @@ export default function NewReservationPageRedesigned() {
       setIsLoadingDevices(true);
       
       const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+      const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
           device_categories (
@@ -182,7 +182,7 @@ export default function NewReservationPageRedesigned() {
       setError(null);
       
       const supabase = createClient();
-  const { data$1 } = await supabase.from('rental_time_slots')
+      const { data: slotsData, error: slotsError } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
         .order('slot_type', { ascending: true })

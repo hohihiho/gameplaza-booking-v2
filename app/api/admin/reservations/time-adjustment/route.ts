@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 요청입니다' }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { reservationId, startTime, endTime, reason } = body;
+    const { reservationId, endTime, reason } = body;
 
     if (!reservationId || !endTime) {
       return NextResponse.json({ error: '필수 정보가 누락되었습니다' }, { status: 400 });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // 현재 예약 정보 가져오기
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservation, error: reservationError } = await supabaseAdmin.from('reservations')
       .select(`
         *,
         rental_time_slots (
@@ -150,14 +150,14 @@ export async function GET(request: NextRequest) {
     }
 
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 요청입니다' }, { status: 401 });
     }
 
     // 시간 조정 이력 조회
     const supabaseAdmin = createAdminClient();
-  const { data: timeadjustmentsData } = await supabaseAdmin.from('time_adjustments')
+  const { data: adjustments, error } = await supabaseAdmin.from('time_adjustments')
       .select(`
         *,
         users!adjusted_by (
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 조회 결과에 adjusted_by_user 필드 추가
-    const formattedAdjustments = adjustments?.map(adj => ({
+    const formattedAdjustments = adjustments?.map((adj: any) => ({
       ...adj,
       adjusted_by_user: adj.users || null
     })) || [];

@@ -49,7 +49,7 @@ export default function AdminLayout({
       }
 
       try {
-        const response = await fetch('/api/admin/auth/check');
+        const response = await fetch('/api/auth/check-admin');
         const data = await response.json();
         
         if (!response.ok || !data.isAdmin) {

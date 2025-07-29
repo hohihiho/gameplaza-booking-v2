@@ -109,6 +109,11 @@ class CanaryDeploymentManager {
     // 현재 메트릭 확인
     const metrics = await this.getDeploymentMetrics(currentConfig.deploymentUrl);
     
+    // metrics null 체크
+    if (!metrics) {
+      throw new Error('Failed to retrieve deployment metrics');
+    }
+    
     // 안전성 검사
     if (metrics.errorRate > 1) {
       console.warn('⚠️  Warning: High error rate detected:', metrics.errorRate);

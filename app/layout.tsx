@@ -4,12 +4,9 @@ import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
-import ServiceWorkerRegister from '@/components/service-worker-register'
-import DynamicFeatureFlag from './components/DynamicFeatureFlag'
-// Stagewise 툴바 임시 비활성화
-// import { StagewiseToolbar } from '@stagewise/toolbar-next'
-// import { ReactPlugin } from '@stagewise-plugins/react'
-// ToastContainer는 LayoutWrapper 내부로 이동
+import ServiceWorkerRegister from './components/service-worker-register'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
+// import DynamicFavicon from './components/DynamicFavicon'
 
 const orbitron = Orbitron({ 
   subsets: ['latin'],
@@ -18,8 +15,8 @@ const orbitron = Orbitron({
 })
 
 export const metadata: Metadata = {
-  title: '게임플라자 광주점',
-  description: '게임플라자 광주점 예약 시스템',
+  title: '광주 게임플라자',
+  description: '광주 게임플라자 예약 시스템',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -30,14 +27,14 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: '게임플라자 광주점',
+    title: '광주 게임플라자',
     description: '광주 게임플라자 리듬게임 기기 예약 시스템',
     type: 'website',
     locale: 'ko_KR',
   },
   twitter: {
     card: 'summary',
-    title: '게임플라자 광주점',
+    title: '광주 게임플라자',
     description: '광주 게임플라자 리듬게임 기기 예약 시스템',
   },
   icons: {
@@ -73,23 +70,37 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
+        {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          본문으로 바로가기
+        </a>
+        
+        {/* ARIA 라이브 리전 - 스크린 리더 알림용 */}
+        <div 
+          id="live-region-polite" 
+          role="status" 
+          aria-live="polite" 
+          aria-atomic="true" 
+          className="sr-only"
+        ></div>
+        <div 
+          id="live-region-assertive" 
+          role="alert" 
+          aria-live="assertive" 
+          aria-atomic="true" 
+          className="sr-only"
+        ></div>
+        
         <Providers>
           <ThemeProvider>
-            {/* Stagewise 툴바 - 임시 비활성화 */}
-            {/* <StagewiseToolbar 
-              config={{
-                plugins: [ReactPlugin]
-              }}
-            /> */}
-            
             <LayoutWrapper>
               {children}
             </LayoutWrapper>
             <ServiceWorkerRegister />
-            
-            {/* Feature Flag 토글 - 개발 환경에서만 표시 */}
-            <DynamicFeatureFlag />
-
+            <PWAInstallPrompt />
           </ThemeProvider>
         </Providers>
       </body>

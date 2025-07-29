@@ -122,7 +122,7 @@ export class SupabaseUserRepositoryV2 implements IUserRepository {
     return User.create({
       id: record.id,
       email: Email.create(record.email),
-      name: record.name,
+      fullName: record.name,
       phone: record.phone ? PhoneNumber.create(record.phone) : undefined,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
@@ -133,7 +133,7 @@ export class SupabaseUserRepositoryV2 implements IUserRepository {
     return {
       id: user.id,
       email: user.email.value,
-      name: user.name,
+      name: user.fullName,
       phone: user.phone?.value || null,
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString(),

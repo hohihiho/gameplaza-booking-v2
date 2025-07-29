@@ -18,7 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 
-// 차트 라이브러리
+// 차트 라이브러리 - 동적 로딩
 import { 
   BarChart, 
   Bar, 
@@ -31,7 +31,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip
-} from 'recharts';
+} from '@/app/components/charts/LazyRecharts';
 import { 
   ChartWrapper, 
   CustomTooltip, 
@@ -322,9 +322,9 @@ export default function ReservationAnalyticsPage() {
                   <XAxis 
                     dataKey="date" 
                     tick={getAxisStyle(theme)}
-                    tickFormatter={(value) => {
+                    tickFormatter={(value: string) => {
                       if (dateRange === 'week' && value.includes('(')) {
-                        return value.split('(')[1].replace(')', '');
+                        return value.split('(')[1]?.replace(')', '') || value;
                       }
                       if ((dateRange === '12months' || dateRange === 'custom') && value.includes('월')) {
                         return value.replace('월', '');
@@ -378,7 +378,7 @@ export default function ReservationAnalyticsPage() {
                   <XAxis 
                     dataKey="hour" 
                     tick={getAxisStyle(theme)}
-                    tickFormatter={(value) => `${value}시`}
+                    tickFormatter={(value: number) => `${value}시`}
                   />
                   <YAxis 
                     tick={getAxisStyle(theme)}

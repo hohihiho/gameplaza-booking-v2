@@ -1,6 +1,6 @@
 import { Reservation } from '@/src/domain/entities/reservation'
-import { ReservationRepository } from '@/src/domain/repositories/reservation-repository.interface'
-import { DeviceRepository } from '@/src/domain/repositories/device-repository.interface'
+import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
+import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { ReservationRulesService } from '@/src/domain/services/reservation-rules.service'
@@ -57,6 +57,12 @@ export class CreateReservationUseCase {
 
     // 4. 예약 날짜 생성
     const [year, month, day] = command.date.split('-').map(Number)
+    
+    // month와 day가 undefined인 경우 처리
+    if (!month || !day) {
+      throw new Error('유효하지 않은 날짜 형식입니다')
+    }
+    
     const reservationDate = new Date(year, month - 1, day)
     const kstDate = KSTDateTime.create(reservationDate)
 

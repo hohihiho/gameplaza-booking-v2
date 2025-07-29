@@ -2,7 +2,7 @@
 // 비전공자 설명: 관리자가 카테고리, 기종, 개별 기기를 관리하는 페이지입니다
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   DollarSign,
@@ -351,8 +351,8 @@ function TypeEditForm({
   );
 }
 
-// 기기 카드 컴포넌트
-function DeviceCard({ 
+// 기기 카드 컴포넌트 - memo로 최적화
+const DeviceCard = memo(function DeviceCard({ 
   device, 
   onStatusChange, 
   onEdit, 
@@ -459,7 +459,7 @@ function DeviceCard({
       )}
     </div>
   );
-}
+});
 
 export default function DevicesPage() {
   const router = useRouter();

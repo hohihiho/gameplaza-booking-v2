@@ -4,7 +4,7 @@ export interface DeviceProps {
   id: string
   deviceTypeId: string
   deviceNumber: string
-  status?: DeviceStatus
+  status?: DeviceStatus | string  // 문자열도 받을 수 있도록 수정
   notes?: string | null
   location?: string | null
   serialNumber?: string | null
@@ -32,11 +32,21 @@ export class Device {
   static create(props: DeviceProps): Device {
     const now = new Date()
     
+    // status가 문자열인 경우 DeviceStatus 객체로 변환
+    let status: DeviceStatus
+    if (typeof props.status === 'string') {
+      status = DeviceStatus.from(props.status as DeviceStatusType)
+    } else if (props.status instanceof DeviceStatus) {
+      status = props.status
+    } else {
+      status = DeviceStatus.available()
+    }
+    
     return new Device(
       props.id,
       props.deviceTypeId,
       props.deviceNumber,
-      props.status || DeviceStatus.available(),
+      status,
       props.notes || null,
       props.location || null,
       props.serialNumber || null,
@@ -84,6 +94,27 @@ export class Device {
    */
   canBeReserved(): boolean {
     return this._status.isAvailable()
+  }
+
+  /**
+   * 기기가 사용 가능한 상태인지 확인
+   */
+  isAvailable(): boolean {
+    return this._status.isAvailable()
+  }
+
+  /**
+   * 기기가 예약된 상태인지 확인
+   */
+  isReserved(): boolean {
+    return this._status.value === 'reserved'
+  }
+
+  /**
+   * 기기가 운영 가능한 상태인지 확인 (사용 가능하거나 예약됨)
+   */
+  isOperational(): boolean {
+    return ['available', 'reserved', 'in_use'].includes(this._status.value)
   }
 
   /**

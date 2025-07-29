@@ -43,6 +43,13 @@ async function fixAllDuplicates() {
         // 뒤에서부터 제거 (인덱스 변경 방지)
         for (let j = adminDeclarations.length - 1; j >= 1; j--) {
           const decl = adminDeclarations[j];
+          
+          // decl null 체크
+          if (!decl) {
+            console.warn(`Declaration at index ${j} is undefined, skipping...`);
+            continue;
+          }
+          
           funcBody = funcBody.substring(0, decl.index) + 
                      funcBody.substring(decl.index + decl.match.length);
         }
@@ -63,6 +70,13 @@ async function fixAllDuplicates() {
       if (supabaseDeclarations.length > 1) {
         for (let j = supabaseDeclarations.length - 1; j >= 1; j--) {
           const decl = supabaseDeclarations[j];
+          
+          // decl null 체크
+          if (!decl) {
+            console.warn(`Declaration at index ${j} is undefined, skipping...`);
+            continue;
+          }
+          
           funcBody = funcBody.substring(0, decl.index) + 
                      funcBody.substring(decl.index + decl.match.length);
         }

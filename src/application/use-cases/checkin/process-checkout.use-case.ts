@@ -1,6 +1,6 @@
 import { CheckIn } from '@/src/domain/entities/checkin';
 import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface';
-import { ReservationRepository } from '@/src/domain/repositories/reservation-repository.interface';
+import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface';
 
 export interface ProcessCheckOutRequest {
   checkInId: string;

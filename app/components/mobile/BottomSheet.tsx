@@ -52,7 +52,7 @@ export default function BottomSheet({
   }, [isOpen, currentSnapIndex, sheetHeight, snapPoints, controls]);
 
   // 드래그 종료 시 스냅 포인트 찾기
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const shouldClose = info.velocity.y > 20 || (info.velocity.y >= 0 && info.offset.y > 100);
     
     if (shouldClose) {

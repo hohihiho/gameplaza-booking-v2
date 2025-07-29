@@ -44,9 +44,17 @@ function validateEnv(): EnvConfig {
   // 클라이언트 사이드에서는 빌드 타임에 주입된 환경 변수를 사용
   const isClientSide = typeof window !== 'undefined'
   
-  // 하드코딩된 값으로 대체 (Next.js가 빌드 타임에 치환)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rupeyejnfurlcpgneekg.supabase.co'
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1cGV5ZWpuZnVybGNwZ25lZWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NjY0MjgsImV4cCI6MjA2NjQ0MjQyOH0.klSRGXI1hzkAG_mfORuAK5C74vDclX8VFeLEsyv9CAs'
+  // 환경 변수 검증 및 가져오기
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  // 필수 환경 변수 검증
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (!isClientSide) {
+      console.error('Missing required Supabase environment variables')
+    }
+    throw new Error('필수 Supabase 환경 변수가 설정되지 않았습니다.')
+  }
   
   // 서버 사이드에서만 필수 검사
   if (!isClientSide) {

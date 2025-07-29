@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase'
 export async function GET() {
   try {
     const supabaseAdmin = createAdminClient();
-  const { data: devicecategoriesData } = await supabaseAdmin.from('device_categories')
+  const { data, error } = await supabaseAdmin.from('device_categories')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const { name, display_order } = body
 
     const supabaseAdmin = createAdminClient();
-  const { data: devicecategoriesData2 } = await supabaseAdmin.from('device_categories')
+  const { data, error } = await supabaseAdmin.from('device_categories')
       .insert({ name, display_order })
       .select()
       .single()
@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest) {
     const { id, name } = body
 
     const supabaseAdmin = createAdminClient();
-  const { data: devicecategoriesData3 } = await supabaseAdmin.from('device_categories')
+  const { data, error } = await supabaseAdmin.from('device_categories')
       .update({ name })
       .eq('id', id)
       .select()
@@ -68,6 +68,7 @@ export async function PUT(request: NextRequest) {
     const { categories } = body // [{id, display_order}, ...]
 
     // 트랜잭션처럼 처리
+    const supabaseAdmin = createAdminClient();
     const updates = categories.map((cat: any) => 
       supabaseAdmin
         .from('device_categories')

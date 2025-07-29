@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     // 같은 카테고리 내 최대 display_order 찾기
     const supabaseAdmin = createAdminClient();
-  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
+  const { data: maxOrderData } = await supabaseAdmin.from('device_types')
       .select('display_order')
       .eq('category_id', category_id)
       .order('display_order', { ascending: false })
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     // device_types 테이블에 새 기종 추가
     
-  const { data: deviceTypesData2 } = await supabaseAdmin.from('device_types')
+  const { data: deviceType, error: typeError } = await supabaseAdmin.from('device_types')
       .insert({
         category_id,
         name,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         status: 'available' as const
       }));
 
-  const { error } = await supabaseAdmin.from('devices')
+  const { error: devicesError } = await supabaseAdmin.from('devices')
         .insert(devices);
 
       if (devicesError) {

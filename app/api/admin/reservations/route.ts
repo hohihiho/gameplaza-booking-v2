@@ -6,7 +6,7 @@ import { sendReservationApprovedNotification, sendReservationCancelledNotificati
 
 // 관리자용 예약 목록 조회
 export const GET = withAuth(
-  async (request: NextRequest, { user }) => {
+  async (request: NextRequest, { user: _user }) => {
     try {
     const supabaseAdmin = createAdminClient();
     const { searchParams } = new URL(request.url);
@@ -76,7 +76,7 @@ export const GET = withAuth(
 
 // 예약 상태 업데이트
 export const PATCH = withAuth(
-  async (request: NextRequest, { user }) => {
+  async (request: NextRequest, { user: _user }) => {
     try {
     const body = await request.json();
     const { id, status, notes } = body;

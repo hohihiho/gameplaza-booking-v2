@@ -1,6 +1,6 @@
 import { User, UserRole, UserStatus } from '@/src/domain/entities/user'
 import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
-import { createClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 interface UserRow {
   id: string
@@ -15,7 +15,12 @@ interface UserRow {
   last_login_at: string | null
   login_attempts: number
   suspended_until: string | null
+  suspended_reason: string | null
   banned_reason: string | null
+  marketing_agreed: boolean
+  terms_agreed_at: string | null
+  privacy_agreed_at: string | null
+  marketing_agreed_at: string | null
   created_at: string
   updated_at: string
 }
@@ -25,7 +30,7 @@ interface UserRow {
  */
 export class UserSupabaseRepository implements UserRepository {
   constructor(
-    private readonly supabase: ReturnType<typeof createClient>
+    private readonly supabase: SupabaseClient<any, 'public', any>
   ) {}
 
   /**
@@ -245,7 +250,12 @@ export class UserSupabaseRepository implements UserRepository {
       lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : null,
       loginAttempts: row.login_attempts,
       suspendedUntil: row.suspended_until ? new Date(row.suspended_until) : null,
+      suspendedReason: row.suspended_reason,
       bannedReason: row.banned_reason,
+      marketingAgreed: row.marketing_agreed,
+      termsAgreedAt: row.terms_agreed_at ? new Date(row.terms_agreed_at) : null,
+      privacyAgreedAt: row.privacy_agreed_at ? new Date(row.privacy_agreed_at) : null,
+      marketingAgreedAt: row.marketing_agreed_at ? new Date(row.marketing_agreed_at) : null,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     })
@@ -268,7 +278,12 @@ export class UserSupabaseRepository implements UserRepository {
       last_login_at: user.lastLoginAt?.toISOString() || null,
       login_attempts: user.loginAttempts,
       suspended_until: user.suspendedUntil?.toISOString() || null,
+      suspended_reason: user.suspendedReason,
       banned_reason: user.bannedReason,
+      marketing_agreed: user.marketingAgreed,
+      terms_agreed_at: user.termsAgreedAt?.toISOString() || null,
+      privacy_agreed_at: user.privacyAgreedAt?.toISOString() || null,
+      marketing_agreed_at: user.marketingAgreedAt?.toISOString() || null,
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString()
     }

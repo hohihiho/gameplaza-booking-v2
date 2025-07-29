@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { CancelReservationUseCase } from '@/src/application/use-cases/reservation/cancel-reservation.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 
 /**
@@ -11,9 +11,12 @@ import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middl
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -35,34 +38,19 @@ export async function POST(
       // 본문이 없는 경우 무시
     }
 
-    // 3. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 4. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 3. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 5. 유스케이스 실행
+    // 4. 유스케이스 실행
     const useCase = new CancelReservationUseCase(
-      reservationRepository,
-      userRepository
+      reservationRepository as any,
+      userRepository as any
     )
 
     const result = await useCase.execute({
-      reservationId: params.id,
+      reservationId: id,
       userId: user.id,
       reason
     })

@@ -61,39 +61,3 @@ export async function getSessionUser() {
   }
 }
 
-/**
- * 전화번호 유효성을 검사합니다.
- */
-export function validatePhoneNumber(phone: string): boolean {
-  if (!phone) return false
-  
-  // 하이픈 제거
-  const cleaned = phone.replace(/-/g, '')
-  
-  // 한국 휴대폰 번호 패턴 (010, 011, 016, 017, 018, 019)
-  const phoneRegex = /^01[0-9]{8,9}$/
-  
-  return phoneRegex.test(cleaned)
-}
-
-/**
- * 전화번호를 포맷팅합니다.
- */
-export function formatPhoneNumber(phone: string): string {
-  if (!phone) return ''
-  
-  // 하이픈 제거
-  const cleaned = phone.replace(/-/g, '')
-  
-  // 10자리 또는 11자리가 아니면 그대로 반환
-  if (cleaned.length !== 10 && cleaned.length !== 11) {
-    return phone
-  }
-  
-  // 3-3-4 또는 3-4-4 형식으로 포맷팅
-  if (cleaned.length === 10) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
-  } else {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`
-  }
-}

@@ -7,6 +7,7 @@ const IMAGE_CACHE = 'gameplaza-images-v2';
 // 핵심 리소스 (설치 시 캐시)
 const urlsToCache = [
   '/',
+  '/offline',
   '/offline.html',
   '/manifest.json',
 ];
@@ -118,8 +119,14 @@ self.addEventListener('fetch', (event) => {
               if (response) {
                 return response;
               }
-              // 오프라인 페이지 반환
-              return caches.match('/offline.html');
+              // 오프라인 페이지 반환 (Next.js 페이지 우선)
+              return caches.match('/offline').then((offlineResponse) => {
+                if (offlineResponse) {
+                  return offlineResponse;
+                }
+                // 폴백으로 HTML 페이지 반환
+                return caches.match('/offline.html');
+              });
             });
         })
     );

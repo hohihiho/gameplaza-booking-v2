@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 권한 확인 API
 export async function GET() {
   try {
     // NextAuth 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ 

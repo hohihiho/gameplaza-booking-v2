@@ -52,7 +52,7 @@ describe('ApproveReservationUseCase', () => {
       const normalUser = User.create({
         id: 'user-123',
         email: 'user@example.com',
-        name: 'Normal User',
+        fullName: 'Normal User',
         phone: '010-1234-5678',
         role: 'user'
       })
@@ -70,7 +70,7 @@ describe('ApproveReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -98,7 +98,7 @@ describe('ApproveReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -129,7 +129,7 @@ describe('ApproveReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -138,7 +138,7 @@ describe('ApproveReservationUseCase', () => {
       const reservationUser = User.create({
         id: 'user-789',
         email: 'user@example.com',
-        name: 'Reservation User',
+        fullName: 'Reservation User',
         phone: '010-9876-5432',
         role: 'user'
       })
@@ -148,7 +148,7 @@ describe('ApproveReservationUseCase', () => {
       const pendingReservation = Reservation.create({
         id: 'reservation-456',
         userId: 'user-789',
-        deviceId: 'device-type-1',
+        deviceId: 'device-type-1',  // 기기 타입 ID (원래대로)
         date: KSTDateTime.fromString('2025-07-10 00:00:00'),
         timeSlot: TimeSlot.create(14, 16),
         status: ReservationStatus.pending(),
@@ -170,9 +170,19 @@ describe('ApproveReservationUseCase', () => {
       })
       mockDeviceRepository.findByTypeId.mockResolvedValue([device1, device2])
 
+      // 첫 번째 기기에 대한 다른 승인된 예약 생성
+      const approvedReservation = Reservation.create({
+        id: 'reservation-999',
+        userId: 'user-999',
+        deviceId: 'device-1',
+        date: KSTDateTime.fromString('2025-07-10 00:00:00'),
+        timeSlot: TimeSlot.create(14, 16),
+        assignedDeviceNumber: '#1'
+      }).approve()
+
       // 첫 번째 기기는 이미 예약이 있고, 두 번째 기기는 사용 가능
       mockReservationRepository.findByDeviceAndTimeSlot
-        .mockResolvedValueOnce([pendingReservation]) // device1은 이미 예약이 있음
+        .mockResolvedValueOnce([approvedReservation]) // device1은 이미 승인된 예약이 있음
         .mockResolvedValueOnce([]) // device2는 사용 가능
 
       // When

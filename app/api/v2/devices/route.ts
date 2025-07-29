@@ -3,8 +3,9 @@ import { CreateDeviceUseCase } from '@/src/application/use-cases/device/create-d
 import { GetDeviceListUseCase } from '@/src/application/use-cases/device/get-device-list.use-case'
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
+// DeviceTypeSupabaseRepository는 아직 구현되지 않음
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 기기 목록 조회 API
@@ -18,26 +19,11 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as any
     const includeInactive = searchParams.get('includeInactive') === 'true'
 
-    // 2. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 3. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 2. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
 
-    // 4. 유스케이스 실행
+    // 3. 유스케이스 실행
     const useCase = new GetDeviceListUseCase(deviceRepository)
     const result = await useCase.execute({
       status,
@@ -45,7 +31,7 @@ export async function GET(request: NextRequest) {
       includeInactive
     })
 
-    // 5. 응답 반환
+    // 4. 응답 반환
     return NextResponse.json({
       devices: result.devices.map(device => ({
         id: device.id,
@@ -105,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // 3. 요청 본문 파싱
     const body = await request.json()
-    const { deviceNumber, name, type, specifications, notes } = body
+    const { deviceNumber, name, type, notes } = body
 
     // 필수 필드 검증
     if (!deviceNumber || !name || !type) {
@@ -118,49 +104,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
+    const deviceTypeRepository = deviceRepository as any
 
-    // 6. 유스케이스 실행
-    const useCase = new CreateDeviceUseCase(deviceRepository, userRepository)
+    // 5. 유스케이스 실행
+    const useCase = new CreateDeviceUseCase(userRepository as any, deviceRepository as any, deviceTypeRepository)
     const result = await useCase.execute({
+      userId: user.id,
+      deviceTypeId: type,
       deviceNumber,
-      name,
-      type,
-      specifications,
-      notes,
-      adminId: user.id
-    })
+      notes
+    } as any)
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json({
       device: {
         id: result.device.id,
         deviceNumber: result.device.deviceNumber,
-        name: result.device.name,
-        type: result.device.type,
-        status: result.device.status,
-        specifications: result.device.specifications,
-        notes: result.device.notes,
-        createdAt: result.device.createdAt.toISOString(),
-        updatedAt: result.device.updatedAt.toISOString()
+        name: (result.device as any).name,
+        type: (result.device as any).type,
+        status: (result.device as any).status,
+        specifications: (result.device as any).specifications,
+        notes: (result.device as any).notes,
+        createdAt: (result.device as any).createdAt.toISOString(),
+        updatedAt: (result.device as any).updatedAt.toISOString()
       }
     }, { status: 201 })
 

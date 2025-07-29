@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotTemplateRepository } from '@/src/domain/repositories/time-slot-template-repository.interface'
-import { TimeSlotScheduleRepository } from '@/src/domain/repositories/time-slot-schedule-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { UpdateTimeSlotTemplateUseCase, DeleteTimeSlotTemplateUseCase } from '@/src/application/use-cases/time-slot'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
@@ -26,16 +24,19 @@ const updateTimeSlotSchema = z.object({
 })
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 // GET /api/v2/time-slots/[id] - 시간대 템플릿 상세 조회
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 인증 확인
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const templateRepository = new SupabaseTimeSlotTemplateRepository(supabase)
     
     // 템플릿 조회
-    const template = await templateRepository.findById(params.id)
+    const template = await templateRepository.findById(id)
     
     if (!template) {
       return NextResponse.json(
@@ -96,8 +97,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT /api/v2/time-slots/[id] - 시간대 템플릿 수정 (관리자 전용)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 인증 및 권한 확인
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -133,7 +137,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // 템플릿 수정
     const result = await updateTemplateUseCase.execute({
-      templateId: params.id,
+      templateId: id,
       ...validatedData
     })
 
@@ -198,10 +202,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/v2/time-slots/[id] - 시간대 템플릿 삭제 (관리자 전용)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 인증 및 권한 확인
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -233,7 +240,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // 템플릿 삭제
     await deleteTemplateUseCase.execute({
-      templateId: params.id
+      templateId: id
     })
 
     return new NextResponse(null, { status: 204 })

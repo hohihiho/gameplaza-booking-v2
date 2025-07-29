@@ -43,6 +43,13 @@ async function fixDuplicateErrors() {
         // 각 error 선언 뒤의 컨텍스트를 파악하여 적절한 이름 부여
         for (let j = 1; j < errorDeclarations.length; j++) {
           const declaration = errorDeclarations[j];
+          
+          // declaration null 체크
+          if (!declaration) {
+            console.warn(`Declaration at index ${j} is undefined, skipping...`);
+            continue;
+          }
+          
           const beforeDeclaration = funcBody.substring(0, declaration.index);
           const afterDeclaration = funcBody.substring(declaration.index + 100); // 뒤 100자 확인
           

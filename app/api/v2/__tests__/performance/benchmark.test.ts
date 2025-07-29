@@ -22,6 +22,30 @@ jest.mock('@/lib/auth', () => ({
   getCurrentUser: jest.fn()
 }))
 
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(() => Promise.resolve({
+    auth: {
+      getUser: jest.fn(() => Promise.resolve({
+        data: {
+          user: {
+            id: 'test-user-id',
+            email: 'test@example.com',
+            user_metadata: { full_name: '테스트 사용자' }
+          }
+        },
+        error: null
+      }))
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      update: jest.fn(() => Promise.resolve({ data: null, error: null }))
+    }))
+  }))
+}))
+
 const { createAdminClient } = require('@/lib/supabase')
 const { getCurrentUser } = require('@/lib/auth')
 
@@ -33,7 +57,7 @@ describe('v2 API Performance Benchmarks', () => {
   const testUser = {
     id: 'test-user-id',
     email: 'test@example.com',
-    user_metadata: { full_name: '테스트 사용자' }
+    user_metadata: { full_fullName: '테스트 사용자' }
   }
 
   beforeEach(() => {
@@ -41,6 +65,124 @@ describe('v2 API Performance Benchmarks', () => {
     mockSupabase = createMockSupabaseClient()
     createAdminClient.mockReturnValue(mockSupabase)
     getCurrentUser.mockResolvedValue(testUser)
+    
+    // Supabase client mock 설정
+    const { createClient } = require('@/lib/supabase/server')
+    createClient.mockResolvedValue({
+      auth: {
+        getUser: jest.fn(() => Promise.resolve({
+          data: {
+            user: {
+              id: 'test-user-id',
+              email: 'test@example.com',
+              user_metadata: { full_name: '테스트 사용자' }
+            }
+          },
+          error: null
+        }))
+      },
+      from: jest.fn((table) => {
+        if (table === 'users') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn(() => Promise.resolve({
+              data: {
+                id: 'test-user-id',
+                email: 'test@example.com',
+                full_name: '테스트 사용자',
+                birth_date: '1990-01-01',
+                phone: '010-1234-5678',
+                status: 'active',
+                role: 'user'
+              },
+              error: null
+            }))
+          }
+        }
+        if (table === 'devices') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn(() => Promise.resolve({
+              data: {
+                id: 'device-123',
+                device_number: '1',
+                name: 'PC-001',
+                type_id: 'type-123',
+                status: 'available'
+              },
+              error: null
+            }))
+          }
+        }
+        if (table === 'time_slot_templates') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            gte: jest.fn().mockReturnThis(),
+            lte: jest.fn().mockReturnThis(),
+            order: jest.fn(() => Promise.resolve({
+              data: [{
+                id: 'template-123',
+                name: '일반 시간',
+                type: 'regular',
+                start_hour: 14,
+                end_hour: 18,
+                credit_options: [{
+                  type: 'freeplay',
+                  hours: [1, 2, 3, 4],
+                  prices: { 1: 3000, 2: 5000, 3: 7000, 4: 9000 }
+                }],
+                enable_2p: true,
+                price_2p_extra: 1000,
+                is_youth_time: false,
+                priority: 1,
+                is_active: true
+              }],
+              error: null
+            }))
+          }
+        }
+        if (table === 'reservations') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            gte: jest.fn().mockReturnThis(),
+            lte: jest.fn().mockReturnThis(),
+            in: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            range: jest.fn(() => Promise.resolve({
+              data: Array(10).fill(null).map((_, i) => ({
+                id: `reservation-${i}`,
+                user_id: 'test-user-id',
+                device_id: 'device-123',
+                date: '2025-12-01',
+                start_hour: 14,
+                end_hour: 18,
+                status: 'approved',
+                reservation_number: `GP-20251201-000${i}`,
+                created_at: new Date().toISOString()
+              })),
+              error: null,
+              count: 100
+            })),
+            insert: jest.fn(() => Promise.resolve({
+              data: {
+                id: 'new-reservation',
+                reservation_number: 'GP-20251201-0001'
+              },
+              error: null
+            }))
+          }
+        }
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+        }
+      })
+    })
     
     // 빠른 Mock 응답 설정
     mockSupabase.from.mockImplementation(() => ({

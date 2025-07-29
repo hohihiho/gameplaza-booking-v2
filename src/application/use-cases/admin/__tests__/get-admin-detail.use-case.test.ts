@@ -27,14 +27,14 @@ describe('GetAdminDetailUseCase', () => {
     }
   })
 
-  const mockUser = new User({
+  const mockUser = User.create({
     id: 'user-regular-1',
     email: 'admin@example.com',
     fullName: '관리자',
     phoneNumber: '010-1234-5678',
     profileImageUrl: 'https://example.com/profile.jpg',
     role: 'admin',
-    isActive: true,
+    status: 'active',
     lastLoginAt: new Date('2025-01-01T09:00:00'),
     createdAt: new Date('2024-12-01T09:00:00'),
     updatedAt: new Date('2025-01-01T10:00:00')
@@ -123,14 +123,14 @@ describe('GetAdminDetailUseCase', () => {
         userId: 'user-super-2'
       })
 
-      const targetUser = new User({
+      const targetUser = User.create({
         id: 'user-super-2',
         email: 'super2@example.com',
         fullName: '슈퍼관리자2',
         phoneNumber: '010-9999-9999',
         profileImageUrl: null,
         role: 'superadmin',
-        isActive: true,
+        status: 'active',
         lastLoginAt: null,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -229,14 +229,14 @@ describe('GetAdminDetailUseCase', () => {
         adminId: 'admin-super-1'
       }
 
-      const executorUser = new User({
+      const executorUser = User.create({
         id: 'user-super-1',
         email: 'super1@example.com',
         fullName: '슈퍼관리자1',
         phoneNumber: '010-1111-1111',
         profileImageUrl: null,
         role: 'superadmin',
-        isActive: true,
+        status: 'active',
         lastLoginAt: null,
         createdAt: new Date(),
         updatedAt: new Date()

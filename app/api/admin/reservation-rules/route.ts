@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from "@/auth"
 import { createAdminClient } from '@/lib/supabase'
 
 // 규칙 목록 조회
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: reservationrulesData } = await supabaseAdmin.from('reservation_rules')
+    const { data, error } = await supabaseAdmin.from('reservation_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -28,7 +27,7 @@ export async function GET() {
 // 규칙 추가
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { content, display_order } = body
 
     const supabaseAdmin = createAdminClient();
-  const { data: reservationrulesData2 } = await supabaseAdmin.from('reservation_rules')
+    const { data, error } = await supabaseAdmin.from('reservation_rules')
       .insert({
         content,
         display_order,
@@ -58,7 +57,7 @@ export async function POST(request: NextRequest) {
 // 규칙 수정
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
@@ -83,7 +82,7 @@ export async function PUT(request: NextRequest) {
     console.log('업데이트 데이터:', updateData)
 
     const supabaseAdmin = createAdminClient();
-  const { data: reservationrulesData3 } = await supabaseAdmin.from('reservation_rules')
+    const { data, error } = await supabaseAdmin.from('reservation_rules')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -109,7 +108,7 @@ export async function PUT(request: NextRequest) {
 // 규칙 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }

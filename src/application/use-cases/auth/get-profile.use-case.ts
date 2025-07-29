@@ -31,7 +31,14 @@ export class GetProfileUseCase {
       profileImageUrl: user.profileImageUrl,
       role: user.role,
       status: user.status,
+      googleId: user.googleId,
       googleConnected: !!user.googleId,
+      marketingAgreed: user.marketingAgreed,
+      termsAgreedAt: user.termsAgreedAt?.toISOString() || null,
+      privacyAgreedAt: user.privacyAgreedAt?.toISOString() || null,
+      marketingAgreedAt: user.marketingAgreedAt?.toISOString() || null,
+      suspendedUntil: user.suspendedUntil?.toISOString() || null,
+      suspendedReason: user.suspendedReason,
       createdAt: user.createdAt.toISOString(),
       lastLoginAt: user.lastLoginAt?.toISOString() || null
     }

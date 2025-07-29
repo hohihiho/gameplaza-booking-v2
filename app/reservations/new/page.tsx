@@ -9,8 +9,10 @@ import { createClient } from '@/lib/supabase';
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { useCreateReservation } from '@/lib/hooks/useReservations';
-import { api, isV2ApiEnabled } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { TimeSlotListSkeleton, DeviceSelectorSkeleton } from '@/app/components/mobile/ReservationSkeleton';
+import { Calendar } from '@/src/components/ui/Calendar';
+import { DeviceSelector } from '@/src/components/ui/DeviceSelector';
 
 type DeviceType = {
   id: string;
@@ -95,7 +97,6 @@ export default function NewReservationPage() {
   
   // v2 API 훅 사용
   const { createReservation: createReservationV2, loading: creatingV2, error: errorV2 } = useCreateReservation();
-  const isV2Enabled = isV2ApiEnabled();
 
   // 선택된 기기와 시간대 정보
   const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDeviceType);
@@ -118,7 +119,7 @@ export default function NewReservationPage() {
     try {
       // device_types와 관련 정보 가져오기
       const supabase = createClient();
-  const { data$1 } = await supabase.from('device_types')
+      const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
           device_categories!category_id (
@@ -179,19 +180,51 @@ export default function NewReservationPage() {
     setIsLoadingSlots(true);
     setError(null);
     try {
-      const response = await fetch('/api/reservations/check-availability', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // 임시로 기본 시간 슬롯 생성 (API 개발 완료 전까지)
+      const mockTimeSlots = [
+        {
+          id: '1',
           date: selectedDate,
-          device_type_id: selectedDeviceType
-        })
-      });
+          start_time: '10:00',
+          end_time: '12:00',
+          device_type_id: selectedDeviceType,
+          max_devices: 4,
+          available_devices: [1, 2, 3, 4],
+          is_available: true,
+          price: 8000,
+          slot_type: 'regular',
+          is_youth_time: true,
+          credit_options: [
+            { type: 'fixed', price: 8000, fixed_credits: 20 },
+            { type: 'unlimited', price: 12000 }
+          ],
+          enable_2p: true,
+          price_2p_extra: 2000,
+          device_reservation_status: []
+        },
+        {
+          id: '2',
+          date: selectedDate,
+          start_time: '14:00',
+          end_time: '16:00',
+          device_type_id: selectedDeviceType,
+          max_devices: 4,
+          available_devices: [1, 2, 3, 4],
+          is_available: true,
+          price: 8000,
+          slot_type: 'regular',
+          is_youth_time: false,
+          credit_options: [
+            { type: 'fixed', price: 8000, fixed_credits: 20 },
+            { type: 'unlimited', price: 12000 }
+          ],
+          enable_2p: true,
+          price_2p_extra: 2000,
+          device_reservation_status: []
+        }
+      ];
 
-      if (!response.ok) throw new Error('시간대 정보를 불러올 수 없습니다');
-
-      const data = await response.json();
-      setTimeSlots(data.slots || []);
+      setTimeSlots(mockTimeSlots);
     } catch (error) {
       console.error('Error fetching time slots:', error);
       setError('시간대 정보를 불러올 수 없습니다');
@@ -225,32 +258,9 @@ export default function NewReservationPage() {
         total_amount: calculateTotalPrice()
       };
 
-      let result;
-      
-      if (isV2Enabled) {
-        // v2 API 사용
-        const reservation = await createReservationV2(reservationData);
-        result = { reservation };
-      } else {
-        // v1 API 사용 (기존 방식)
-        const response = await fetch('/api/reservations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...reservationData,
-            device_type_id: selectedDeviceType, // v1에서 필요
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || '예약 생성에 실패했습니다');
-        }
-
-        result = await response.json();
-      }
+      // v2 API 사용
+      const reservation = await createReservationV2(reservationData);
+      const result = { reservation };
       
       if (result.reservation?.id) {
         setLastReservationId(result.reservation.id);
@@ -295,33 +305,6 @@ export default function NewReservationPage() {
   };
 
 
-  // 캘린더 날짜 생성
-  const generateCalendarDays = () => {
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // 오늘부터 30일간의 날짜 생성
-    const dates = [];
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date);
-    }
-    
-    // 첫 번째 날짜의 요일 확인 (0 = 일요일)
-    const firstDayOfWeek = dates[0].getDay();
-    
-    // 첫 주의 빈 날짜 채우기 (일요일부터 시작)
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(null);
-    }
-    
-    // 실제 날짜들 추가
-    days.push(...dates);
-    
-    return days;
-  };
 
   if (status === 'loading') {
     return (
@@ -385,75 +368,30 @@ export default function NewReservationPage() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">언제 대여하실 건가요?</h2>
                 <p className="text-gray-600 dark:text-gray-400">대여 가능한 날짜를 선택해주세요</p>
                 <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                  ※ 당일 예약은 불가능합니다. 대여 24시간 전부터 예약 가능합니다.
+                  ※ 당일 예약은 불가능합니다. 대여 24시간 전부터 최대 3주 후까지 예약 가능합니다.
                 </p>
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
-                {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                  <div key={day} className={`text-center text-sm font-medium py-2 ${
-                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-700 dark:text-gray-300'
-                  }`}>
-                    {day}
-                  </div>
-                ))}
-                
-                {generateCalendarDays().map((date, index) => {
-                  if (!date) {
-                    return <div key={`empty-${index}`} className="aspect-square" />;
-                  }
-                  
-                  const dateStr = formatKSTDate(date);
-                  const isSelected = selectedDate === dateStr;
-                  const isToday = new Date().toDateString() === date.toDateString();
-                  const dayOfWeek = date.getDay();
-                  
-                  // 오늘과 그 이전 날짜는 선택 불가
-                  const now = new Date();
-                  now.setHours(0, 0, 0, 0);
-                  const dateOnly = new Date(date);
-                  dateOnly.setHours(0, 0, 0, 0);
-                  const isDisabled = dateOnly <= now;
-                  
-                  return (
-                    <motion.button
-                      key={dateStr}
-                      whileHover={!isDisabled ? { scale: 1.05 } : {}}
-                      whileTap={!isDisabled ? { scale: 0.95 } : {}}
-                      onClick={() => {
-                        if (!isDisabled) {
-                          setSelectedDate(dateStr);
-                          handleStepChange(2);
-                        }
-                      }}
-                      disabled={isDisabled}
-                      className={`aspect-square flex items-center justify-center rounded-xl border-2 transition-all ${
-                        isDisabled
-                          ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'
-                          : isSelected
-                            ? 'border-indigo-600 bg-indigo-600 text-white'
-                            : isToday
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <span className={`text-sm font-medium ${
-                        isDisabled
-                          ? 'text-gray-400 dark:text-gray-600'
-                          : isSelected 
-                            ? 'text-white' 
-                            : dayOfWeek === 0 
-                              ? 'text-red-500' 
-                              : dayOfWeek === 6 
-                                ? 'text-blue-500' 
-                                : 'text-gray-700 dark:text-gray-300'
-                      }`}>
-                        {date.getDate()}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
+              <Calendar
+                selectedDate={selectedDate}
+                onDateSelect={(date) => {
+                  setSelectedDate(date);
+                  handleStepChange(2);
+                }}
+                minDate={(() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  tomorrow.setHours(0, 0, 0, 0);
+                  return tomorrow;
+                })()}
+                maxDate={(() => {
+                  const maxDate = new Date();
+                  maxDate.setDate(maxDate.getDate() + 21); // 3주(21일) 후까지
+                  maxDate.setHours(23, 59, 59, 999);
+                  return maxDate;
+                })()}
+                className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700"
+              />
             </motion.div>
           )}
 
@@ -484,65 +422,17 @@ export default function NewReservationPage() {
                 </div>
               </div>
 
-              {isLoadingDevices ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
-                  ))}
-                </div>
-              ) : deviceTypes.length === 0 ? (
-                <div className="text-center py-20">
-                  <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">대여 가능한 기기가 없습니다</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">다른 날짜를 선택해주세요</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {deviceTypes.map((device) => (
-                    <motion.button
-                      key={device.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setSelectedDeviceType(device.id);
-                        handleStepChange(3);
-                      }}
-                      className={`p-6 rounded-2xl border-2 transition-all text-left ${
-                        selectedDeviceType === device.id
-                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg text-gray-900 dark:text-white">{device.name}</h3>
-                          {device.model_name && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{device.model_name}</p>
-                          )}
-                          {device.version_name && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500">{device.version_name}</p>
-                          )}
-                          <div className="flex items-center gap-2 mt-3">
-                            <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
-                              {device.category}
-                            </span>
-                            {device.active_device_count > 0 ? (
-                              <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
-                                {device.active_device_count}대 가능
-                              </span>
-                            ) : (
-                              <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full">
-                                예약 불가
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <Gamepad2 className="w-8 h-8 text-gray-400 flex-shrink-0" />
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+              <DeviceSelector
+                deviceTypes={deviceTypes}
+                selectedDeviceId={selectedDeviceType}
+                onDeviceSelect={(deviceId) => {
+                  setSelectedDeviceType(deviceId);
+                  handleStepChange(3);
+                }}
+                isLoading={isLoadingDevices}
+                emptyMessage="대여 가능한 기기가 없습니다"
+                columns={{ mobile: 1, tablet: 2, desktop: 2 }}
+              />
             </motion.div>
           )}
 

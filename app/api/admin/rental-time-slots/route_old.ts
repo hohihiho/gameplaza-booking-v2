@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // 임시로 device_time_slots 테이블 사용
     const supabaseAdmin = createAdminClient();
-  const { data: devicetimeslotsData } = await supabaseAdmin.from('device_time_slots')
+  const { data, error } = await supabaseAdmin.from('device_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .eq('date', new Date().toISOString().split('T')[0])
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error
 
     // 응답 데이터 변환
-    const formattedData = (data || []).map(slot => {
+    const formattedData = (data || []).map((slot: any) => {
       let parsedNotes: any = {}
       try {
         parsedNotes = slot.notes ? JSON.parse(slot.notes) : {}
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // device_time_slots 테이블에 저장 (임시)
     const supabaseAdmin = createAdminClient();
-  const { data: devicetimeslotsData2 } = await supabaseAdmin.from('device_time_slots')
+  const { data, error } = await supabaseAdmin.from('device_time_slots')
       .insert({
         date: new Date().toISOString().split('T')[0],
         device_type_id,

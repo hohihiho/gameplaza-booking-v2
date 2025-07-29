@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, memo } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 
 interface SwipeAction {
@@ -16,14 +16,16 @@ interface SwipeableCardProps {
   rightAction?: SwipeAction;
   threshold?: number;
   className?: string;
+  ariaLabel?: string;
 }
 
-export default function SwipeableCard({
+const SwipeableCard = memo(function SwipeableCard({
   children,
   leftAction,
   rightAction,
   threshold = 100,
-  className = ''
+  className = '',
+  ariaLabel
 }: SwipeableCardProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const x = useMotionValue(0);
@@ -36,7 +38,7 @@ export default function SwipeableCard({
   const leftOpacity = useTransform(leftProgress, [0, 0.5, 1], [0, 0.5, 1]);
   const rightOpacity = useTransform(rightProgress, [0, 0.5, 1], [0, 0.5, 1]);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const shouldTriggerLeft = info.offset.x >= threshold && leftAction;
     const shouldTriggerRight = info.offset.x <= -threshold && rightAction;
 
@@ -63,12 +65,17 @@ export default function SwipeableCard({
   };
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div 
+      className={`relative overflow-hidden ${className}`}
+      role="region"
+      aria-label={ariaLabel || "스와이프 가능한 카드"}
+    >
       {/* 왼쪽 액션 배경 */}
       {leftAction && (
         <motion.div
           style={{ opacity: leftOpacity }}
           className={`absolute inset-0 flex items-center justify-start px-6 ${leftAction.color}`}
+          aria-hidden="true"
         >
           <div className="flex items-center gap-3">
             {leftAction.icon}
@@ -82,6 +89,7 @@ export default function SwipeableCard({
         <motion.div
           style={{ opacity: rightOpacity }}
           className={`absolute inset-0 flex items-center justify-end px-6 ${rightAction.color}`}
+          aria-hidden="true"
         >
           <div className="flex items-center gap-3">
             <span className="text-white font-medium">{rightAction.label}</span>
@@ -99,10 +107,23 @@ export default function SwipeableCard({
         style={{ x }}
         animate={{ x: isAnimating ? x.get() : 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="relative bg-white dark:bg-gray-900"
+        className="relative bg-white dark:bg-gray-900 swipeable"
+        tabIndex={0}
+        role="button"
+        aria-describedby={
+          leftAction && rightAction 
+            ? `좌우로 스와이프하여 ${leftAction.label} 또는 ${rightAction.label} 실행`
+            : leftAction 
+            ? `오른쪽으로 스와이프하여 ${leftAction.label} 실행`
+            : rightAction 
+            ? `왼쪽으로 스와이프하여 ${rightAction.label} 실행`
+            : undefined
+        }
       >
         {children}
       </motion.div>
     </div>
   );
-}
+});
+
+export default SwipeableCard;

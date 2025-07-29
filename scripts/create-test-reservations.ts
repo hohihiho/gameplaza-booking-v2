@@ -102,6 +102,12 @@ async function createTestReservations() {
       
       const slot = timeSlots[slotIndex]
       
+      // slot null 체크
+      if (!slot) {
+        console.warn(`Slot at index ${slotIndex} is undefined, skipping...`);
+        continue;
+      }
+      
       // 시간에 따른 임의의 요금 계산
       const startHour = parseInt(slot.start.split(':')[0])
       const endHour = parseInt(slot.end.split(':')[0])

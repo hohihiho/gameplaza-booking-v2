@@ -1,35 +1,137 @@
 import { CreateReservationUseCase } from '../create-reservation.use-case'
-import { InMemoryReservationRepository } from '@/src/infrastructure/repositories/in-memory-reservation.repository'
-import { InMemoryDeviceRepository } from '@/src/infrastructure/repositories/in-memory-device.repository'
-import { InMemoryUserRepository } from '@/src/infrastructure/repositories/in-memory-user.repository'
-import { InMemoryTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/in-memory-time-slot-template.repository'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { User } from '@/src/domain/entities/user'
 import { Device } from '@/src/domain/entities/device'
 import { TimeSlotTemplate } from '@/src/domain/entities/time-slot-template'
 import { TimeSlot } from '@/src/domain/value-objects/time-slot'
-import { CreditOption } from '@/src/domain/value-objects/credit-option'
 import { Reservation } from '@/src/domain/entities/reservation'
 
 describe('CreateReservationUseCase', () => {
   let useCase: CreateReservationUseCase
-  let reservationRepository: InMemoryReservationRepository
-  let deviceRepository: InMemoryDeviceRepository
-  let userRepository: InMemoryUserRepository
-  let timeSlotTemplateRepository: InMemoryTimeSlotTemplateRepository
+  let mockReservationRepository: any
+  let mockDeviceRepository: any
+  let mockUserRepository: any
+  let mockTimeSlotTemplateRepository: any
+  let mockTimeSlotScheduleRepository: any
   let timeSlotDomainService: TimeSlotDomainService
 
+  // Test data storage
+  const users = new Map<string, User>()
+  const devices = new Map<string, Device>()
+  const timeSlotTemplates = new Map<string, TimeSlotTemplate>()
+  const reservations = new Map<string, Reservation>()
+
   beforeEach(() => {
-    reservationRepository = new InMemoryReservationRepository()
-    deviceRepository = new InMemoryDeviceRepository()
-    userRepository = new InMemoryUserRepository()
-    timeSlotTemplateRepository = new InMemoryTimeSlotTemplateRepository()
-    timeSlotDomainService = new TimeSlotDomainService(timeSlotTemplateRepository)
+    // Clear test data
+    users.clear()
+    devices.clear()
+    timeSlotTemplates.clear()
+    reservations.clear()
+
+    // Setup mock repositories
+    mockReservationRepository = {
+      save: jest.fn().mockImplementation(async (reservation: Reservation) => {
+        reservations.set(reservation.id, reservation)
+        return reservation
+      }),
+      findById: jest.fn().mockImplementation(async (id: string) => {
+        return reservations.get(id) || null
+      }),
+      findByUserId: jest.fn().mockImplementation(async (userId: string, statuses?: string[]) => {
+        let userReservations = Array.from(reservations.values()).filter(r => r.userId === userId)
+        if (statuses) {
+          userReservations = userReservations.filter(r => statuses.includes(r.status.value))
+        }
+        return userReservations
+      }),
+      findByDeviceAndDateRange: jest.fn().mockImplementation(async (deviceId: string, startDate: Date, endDate: Date) => {
+        return Array.from(reservations.values()).filter(r => 
+          r.deviceId === deviceId &&
+          r.startDateTime.toDate() < endDate &&
+          r.endDateTime.toDate() > startDate
+        )
+      }),
+      findByUserAndTimeRange: jest.fn().mockImplementation(async (userId: string, startDate: Date, endDate: Date) => {
+        return Array.from(reservations.values()).filter(r => 
+          r.userId === userId &&
+          r.startDateTime.toDate() < endDate &&
+          r.endDateTime.toDate() > startDate
+        )
+      }),
+      findActiveByUserId: jest.fn().mockImplementation(async (userId: string) => {
+        return Array.from(reservations.values()).filter(r => 
+          r.userId === userId && 
+          ['pending', 'approved'].includes(r.status.value)
+        )
+      }),
+      update: jest.fn().mockImplementation(async (reservation: Reservation) => {
+        reservations.set(reservation.id, reservation)
+        return reservation
+      }),
+      generateReservationNumber: jest.fn().mockResolvedValue('GP-20251201-0001')
+    }
+
+    mockDeviceRepository = {
+      findById: jest.fn().mockImplementation(async (id: string) => {
+        return devices.get(id) || null
+      }),
+      save: jest.fn().mockImplementation(async (device: Device) => {
+        devices.set(device.id, device)
+        return device
+      }),
+      update: jest.fn().mockImplementation(async (device: Device) => {
+        devices.set(device.id, device)
+        return device
+      })
+    }
+
+    mockUserRepository = {
+      findById: jest.fn().mockImplementation(async (id: string) => {
+        return users.get(id) || null
+      }),
+      save: jest.fn().mockImplementation(async (user: User) => {
+        users.set(user.id, user)
+        return user
+      })
+    }
+
+    mockTimeSlotTemplateRepository = {
+      findById: jest.fn().mockImplementation(async (id: string) => {
+        return timeSlotTemplates.get(id) || null
+      }),
+      save: jest.fn().mockImplementation(async (template: TimeSlotTemplate) => {
+        timeSlotTemplates.set(template.id, template)
+        return template
+      }),
+      findAll: jest.fn().mockImplementation(async (filter?: any) => {
+        let templates = Array.from(timeSlotTemplates.values())
+        if (filter?.isActive !== undefined) {
+          templates = templates.filter(t => t.isActive === filter.isActive)
+        }
+        return templates
+      }),
+      findByName: jest.fn().mockImplementation(async (name: string) => {
+        return Array.from(timeSlotTemplates.values()).find(t => t.name === name) || null
+      }),
+      findConflicting: jest.fn().mockResolvedValue([]),
+      delete: jest.fn()
+    }
+
+    mockTimeSlotScheduleRepository = {
+      findByDateAndDeviceType: jest.fn().mockResolvedValue(null),
+      findByTemplateId: jest.fn().mockResolvedValue([]),
+      save: jest.fn()
+    }
+
+    timeSlotDomainService = new TimeSlotDomainService(
+      mockTimeSlotTemplateRepository,
+      mockTimeSlotScheduleRepository
+    )
 
     useCase = new CreateReservationUseCase(
-      reservationRepository,
-      deviceRepository,
-      userRepository,
+      mockReservationRepository,
+      mockDeviceRepository,
+      mockUserRepository,
       timeSlotDomainService
     )
 
@@ -42,10 +144,10 @@ describe('CreateReservationUseCase', () => {
     const user = User.create({
       id: 'user-1',
       email: 'test@example.com',
-      name: '테스트 사용자',
+      fullName: '테스트 사용자',
       birthDate: new Date(1990, 0, 1)
     })
-    userRepository.save(user)
+    users.set(user.id, user)
 
     // 기기 생성
     const device = Device.create({
@@ -55,51 +157,61 @@ describe('CreateReservationUseCase', () => {
       typeId: 'type-1',
       status: 'available'
     })
-    deviceRepository.save(device)
+    devices.set(device.id, device)
 
     // 시간대 템플릿 생성 (오후 시간대)
     const afternoonTemplate = TimeSlotTemplate.create({
       id: 'template-1',
       name: '오후 일반',
-      dayType: 'weekday',
-      deviceTypeId: 'type-1',
+      type: 'early',
       timeSlot: TimeSlot.create(14, 18), // 14:00-18:00
       creditOptions: [
-        CreditOption.create('fixed', 4000),
-        CreditOption.create('freeplay', 5000),
-        CreditOption.create('unlimited', 6000)
+        {
+          type: 'fixed',
+          hours: [1, 2, 3, 4],
+          prices: { 1: 3000, 2: 5000, 3: 7000, 4: 9000 },
+          fixedCredits: 1
+        },
+        {
+          type: 'freeplay',
+          hours: [1, 2, 3, 4],
+          prices: { 1: 3000, 2: 5000, 3: 7000, 4: 9000 }
+        }
       ],
       enable2P: true,
-      surcharge2P: 1000,
+      price2PExtra: 1000,
       isYouthTime: false,
-      maxDuration: 12
+      priority: 1,
+      isActive: true
     })
-    timeSlotTemplateRepository.save(afternoonTemplate)
+    timeSlotTemplates.set(afternoonTemplate.id, afternoonTemplate)
 
     // 청소년 시간대 템플릿
     const youthTemplate = TimeSlotTemplate.create({
       id: 'template-2',
       name: '청소년 시간',
-      dayType: 'weekday',
-      deviceTypeId: 'type-1',
+      type: 'early',
       timeSlot: TimeSlot.create(9, 16), // 09:00-16:00
-      creditOptions: [
-        CreditOption.create('fixed', 3000),
-        CreditOption.create('freeplay', 4000)
-      ],
+      creditOptions: [{
+        type: 'fixed',
+        hours: [1, 2, 3, 4, 5, 6, 7],
+        prices: { 1: 3000, 2: 5000, 3: 7000, 4: 9000, 5: 11000, 6: 13000, 7: 15000 },
+        fixedCredits: 1
+      }],
       enable2P: false,
-      surcharge2P: 0,
+      price2PExtra: 0,
       isYouthTime: true,
-      maxDuration: 7
+      priority: 2,
+      isActive: true
     })
-    timeSlotTemplateRepository.save(youthTemplate)
+    timeSlotTemplates.set(youthTemplate.id, youthTemplate)
   }
 
   describe('예약 생성 성공 케이스', () => {
     it('유효한 예약을 성공적으로 생성해야 한다', async () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const dateString = tomorrow.toISOString().split('T')[0]
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 2) // 2일 후로 설정
+      const dateString = futureDate.toISOString().split('T')[0]
 
       const result = await useCase.execute({
         userId: 'user-1',
@@ -113,13 +225,13 @@ describe('CreateReservationUseCase', () => {
 
       expect(result.reservation).toBeDefined()
       expect(result.reservationNumber).toMatch(/^GP-\d{8}-\d{4}$/)
-      expect(result.totalPrice).toBe(5000)
+      expect(result.totalPrice).toBe(9000) // 4시간 * freeplay 가격
     })
 
     it('2인 플레이 예약 시 추가 요금이 적용되어야 한다', async () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const dateString = tomorrow.toISOString().split('T')[0]
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 2) // 2일 후로 설정
+      const dateString = futureDate.toISOString().split('T')[0]
 
       const result = await useCase.execute({
         userId: 'user-1',
@@ -131,7 +243,7 @@ describe('CreateReservationUseCase', () => {
         playerCount: 2
       })
 
-      expect(result.totalPrice).toBe(6000) // 5000 + 1000(2인 추가 요금)
+      expect(result.totalPrice).toBe(10000) // 9000 + 1000(2인 추가 요금)
     })
   })
 
@@ -152,11 +264,11 @@ describe('CreateReservationUseCase', () => {
       const bannedUser = User.create({
         id: 'user-banned',
         email: 'banned@example.com',
-        name: '차단된 사용자',
+        fullName: '차단된 사용자',
         birthDate: new Date(1990, 0, 1)
       })
-      bannedUser.ban('규칙 위반')
-      await userRepository.save(bannedUser)
+      const bannedUserAfter = bannedUser.ban('규칙 위반')
+      users.set(bannedUser.id, bannedUserAfter)
 
       await expect(useCase.execute({
         userId: 'user-banned',
@@ -184,9 +296,9 @@ describe('CreateReservationUseCase', () => {
     })
 
     it('이용 불가능한 기기는 예약할 수 없어야 한다', async () => {
-      const device = await deviceRepository.findById('device-1')
-      device!.changeStatus('maintenance')
-      await deviceRepository.update(device!)
+      const device = devices.get('device-1')!
+      const updatedDevice = device.changeStatus('maintenance')
+      devices.set(device.id, updatedDevice)
 
       await expect(useCase.execute({
         userId: 'user-1',
@@ -251,15 +363,15 @@ describe('CreateReservationUseCase', () => {
         endHour: 18,
         creditType: 'freeplay',
         playerCount: 1
-      })).rejects.toThrow('예약은 시작 시간 24시간 전까지만 가능합니다')
+      })).rejects.toThrow('과거 날짜에는 예약할 수 없습니다')
     })
   })
 
   describe('시간 충돌 검증', () => {
     it('같은 기기의 시간이 겹치는 예약은 불가능해야 한다', async () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const dateString = tomorrow.toISOString().split('T')[0]
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 2) // 2일 후로 설정
+      const dateString = futureDate.toISOString().split('T')[0]
 
       // 첫 번째 예약 생성
       await useCase.execute({
@@ -272,6 +384,15 @@ describe('CreateReservationUseCase', () => {
         playerCount: 1
       })
 
+      // 두 번째 사용자 추가
+      const user2 = User.create({
+        id: 'user-2',
+        email: 'test2@example.com',
+        fullName: '테스트 사용자2',
+        birthDate: new Date(1990, 0, 1)
+      })
+      users.set(user2.id, user2)
+
       // 겹치는 시간대 예약 시도
       await expect(useCase.execute({
         userId: 'user-2',
@@ -281,15 +402,15 @@ describe('CreateReservationUseCase', () => {
         endHour: 20,
         creditType: 'freeplay',
         playerCount: 1
-      })).rejects.toThrow('해당 시간대는 이미 예약되어 있습니다')
+      })).rejects.toThrow('선택한 시간대는 예약이 불가능합니다')
     })
   })
 
   describe('1인 1기기 규칙 검증', () => {
     it('같은 시간대에 다른 기기를 예약할 수 없어야 한다', async () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const dateString = tomorrow.toISOString().split('T')[0]
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 2) // 2일 후로 설정
+      const dateString = futureDate.toISOString().split('T')[0]
 
       // 다른 기기 추가
       const device2 = Device.create({
@@ -299,7 +420,7 @@ describe('CreateReservationUseCase', () => {
         typeId: 'type-1',
         status: 'available'
       })
-      await deviceRepository.save(device2)
+      devices.set(device2.id, device2)
 
       // 첫 번째 예약 생성
       await useCase.execute({
@@ -321,45 +442,63 @@ describe('CreateReservationUseCase', () => {
         endHour: 18,
         creditType: 'freeplay',
         playerCount: 1
-      })).rejects.toThrow('동일 시간대에 이미 다른 기기를 예약하셨습니다')
+      })).rejects.toThrow('이미 해당 시간대에 예약이 있습니다')
     })
   })
 
   describe('예약 개수 제한 검증', () => {
-    it('활성 예약이 3개를 초과하면 예약할 수 없어야 한다', async () => {
+    it('활성 예약이 1개를 초과하면 예약할 수 없어야 한다', async () => {
       const dates = []
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 2; i <= 4; i++) { // 2일 후부터 시작
         const date = new Date()
         date.setDate(date.getDate() + i)
         dates.push(date.toISOString().split('T')[0])
       }
 
-      // 3개의 예약 생성
-      for (const date of dates) {
-        await useCase.execute({
-          userId: 'user-1',
-          deviceId: 'device-1',
-          date,
-          startHour: 14,
-          endHour: 18,
-          creditType: 'freeplay',
-          playerCount: 1
-        })
-      }
-
-      // 4번째 예약 시도
-      const date4 = new Date()
-      date4.setDate(date4.getDate() + 4)
-
-      await expect(useCase.execute({
+      // 첫 번째 예약 생성하고 승인 상태로 변경
+      const firstDate = new Date()
+      firstDate.setDate(firstDate.getDate() + 2)
+      const firstReservation = await useCase.execute({
         userId: 'user-1',
         deviceId: 'device-1',
-        date: date4.toISOString().split('T')[0],
+        date: firstDate.toISOString().split('T')[0],
         startHour: 14,
         endHour: 18,
         creditType: 'freeplay',
         playerCount: 1
-      })).rejects.toThrow('동시에 예약 가능한 최대 개수(3개)를 초과했습니다')
+      })
+      
+      // 예약을 승인 상태로 변경
+      const savedReservation = reservations.get(firstReservation.reservation.id)!
+      const approvedReservation = savedReservation.approve()
+      reservations.set(savedReservation.id, approvedReservation)
+      
+      // 예약이 활성 상태인지 확인
+      expect(approvedReservation.isActive()).toBe(true)
+
+      // 추가 기기 생성
+      const device2 = Device.create({
+        id: 'device-2',
+        deviceNumber: 2,
+        name: 'PC-002',
+        typeId: 'type-1',
+        status: 'available'
+      })
+      devices.set(device2.id, device2)
+
+      // 두 번째 예약 시도 (다른 날짜, 다른 기기)
+      const secondDate = new Date()
+      secondDate.setDate(secondDate.getDate() + 3)
+
+      await expect(useCase.execute({
+        userId: 'user-1',
+        deviceId: 'device-2',
+        date: secondDate.toISOString().split('T')[0],
+        startHour: 14,
+        endHour: 18,
+        creditType: 'freeplay',
+        playerCount: 1
+      })).rejects.toThrow('1인당 동시 예약 가능 건수는 1건입니다')
     })
   })
 
@@ -368,15 +507,19 @@ describe('CreateReservationUseCase', () => {
       const adultUser = User.create({
         id: 'user-adult',
         email: 'adult@example.com',
-        name: '성인 사용자',
+        fullName: '성인 사용자',
         birthDate: new Date(1980, 0, 1) // 45세
       })
-      await userRepository.save(adultUser)
+      users.set(adultUser.id, adultUser)
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 2)
+      const dateString = futureDate.toISOString().split('T')[0]
 
       await expect(useCase.execute({
         userId: 'user-adult',
         deviceId: 'device-1',
-        date: '2025-12-01',
+        date: dateString,
         startHour: 9,
         endHour: 16,
         creditType: 'fixed',

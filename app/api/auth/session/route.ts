@@ -1,7 +1,7 @@
-import { getServerSession } from "next-auth"
+import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  const session = await getServerSession()
+  const session = await auth()
   return NextResponse.json(session)
 }

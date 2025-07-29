@@ -82,7 +82,7 @@ export default function WelcomePage() {
     {
       icon: Shield,
       title: '최상의 기체 상태',
-      description: '정기적인 점검과 즉각적인 보수로 항상 최고의 컨디션 유지'
+      description: '정기적인 점검과 보수로 항상 최고의 컨디션 유지'
     }
   ];
 

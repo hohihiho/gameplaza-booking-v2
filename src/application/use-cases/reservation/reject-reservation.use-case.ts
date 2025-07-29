@@ -64,7 +64,7 @@ export class RejectReservationUseCase {
         type: 'reservation_rejected',
         title: '예약이 거절되었습니다',
         content: `예약번호 ${reservation.reservationNumber}이(가) 거절되었습니다.\n사유: ${request.reason}`,
-        channels: [NotificationChannel.push(), NotificationChannel.inApp()],
+        channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
         metadata: {
           reservationId: reservation.id,
           rejectionReason: request.reason

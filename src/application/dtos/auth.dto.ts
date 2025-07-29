@@ -108,7 +108,14 @@ export interface UserProfileDto {
   profileImageUrl?: string | null
   role: 'user' | 'admin'
   status: 'active' | 'suspended' | 'banned'
+  googleId?: string | null
   googleConnected: boolean
+  marketingAgreed?: boolean
+  termsAgreedAt?: string | null
+  privacyAgreedAt?: string | null
+  marketingAgreedAt?: string | null
+  suspendedUntil?: string | null
+  suspendedReason?: string | null
   createdAt: string
   lastLoginAt?: string | null
 }

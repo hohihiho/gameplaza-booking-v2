@@ -1,6 +1,6 @@
 'use client';
 
-import { InputHTMLAttributes, useState, forwardRef } from 'react';
+import { InputHTMLAttributes, useState, forwardRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -13,7 +13,7 @@ interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   showPasswordToggle?: boolean;
 }
 
-const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({
+const FormInput = memo(forwardRef<HTMLInputElement, FormInputProps>(({
   label,
   error,
   success,
@@ -170,7 +170,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({
       </AnimatePresence>
     </div>
   );
-});
+}));
 
 FormInput.displayName = 'FormInput';
 

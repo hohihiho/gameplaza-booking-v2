@@ -178,7 +178,7 @@ function calculateAdjustedAmount(reservation: Reservation) {
 ## 🔄 향후 개선사항
 
 1. **자동 시간 조정**
-   - QR 체크인 시 자동 시작
+   - 체크인 시 자동 시작
    - 센서 기반 종료 감지
 
 2. **고객 앱 연동**

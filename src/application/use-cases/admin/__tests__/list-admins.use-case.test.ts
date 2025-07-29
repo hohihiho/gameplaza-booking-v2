@@ -45,50 +45,50 @@ describe('ListAdminsUseCase', () => {
   })
 
   const mockUsers = [
-    new User({
+    User.create({
       id: 'user-super-1',
       email: 'super1@example.com',
       fullName: '슈퍼관리자1',
       phoneNumber: '010-1111-1111',
       profileImageUrl: null,
       role: 'superadmin',
-      isActive: true,
+      status: 'active',
       lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date()
     }),
-    new User({
+    User.create({
       id: 'user-regular-1',
       email: 'admin1@example.com',
       fullName: '관리자1',
       phoneNumber: '010-2222-2222',
       profileImageUrl: null,
       role: 'admin',
-      isActive: true,
+      status: 'active',
       lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date()
     }),
-    new User({
+    User.create({
       id: 'user-regular-2',
       email: 'admin2@example.com',
       fullName: '관리자2',
       phoneNumber: '010-3333-3333',
       profileImageUrl: null,
       role: 'admin',
-      isActive: true,
+      status: 'active',
       lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date()
     }),
-    new User({
+    User.create({
       id: 'user-super-2',
       email: 'super2@example.com',
       fullName: '슈퍼관리자2',
       phoneNumber: '010-4444-4444',
       profileImageUrl: null,
       role: 'superadmin',
-      isActive: true,
+      status: 'active',
       lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date()

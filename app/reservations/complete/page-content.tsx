@@ -61,7 +61,7 @@ export default function ReservationCompleteContent() {
       
       // 예약 정보와 관련 데이터를 한 번에 가져오기
       const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+      const { data, error } = await supabase.from('reservations')
         .select(`
           *,
           devices (

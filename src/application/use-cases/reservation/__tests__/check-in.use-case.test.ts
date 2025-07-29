@@ -4,6 +4,7 @@ import { IReservationRepository } from '../../../../domain/repositories/reservat
 import { IDeviceRepository } from '../../../../domain/repositories/device.repository.interface'
 import { IPaymentRepository } from '../../../../domain/repositories/payment.repository.interface'
 import { INotificationRepository } from '../../../../domain/repositories/notification.repository.interface'
+import { CheckInRepository } from '../../../../domain/repositories/check-in.repository.interface'
 import { User } from '../../../../domain/entities/user'
 import { Reservation } from '../../../../domain/entities/reservation'
 import { Device } from '../../../../domain/entities/device'
@@ -20,6 +21,7 @@ describe('CheckInReservationUseCase', () => {
   let mockDeviceRepository: jest.Mocked<IDeviceRepository>
   let mockPaymentRepository: jest.Mocked<IPaymentRepository>
   let mockNotificationRepository: jest.Mocked<INotificationRepository>
+  let mockCheckInRepository: jest.Mocked<CheckInRepository>
 
   beforeEach(() => {
     mockUserRepository = {
@@ -47,12 +49,17 @@ describe('CheckInReservationUseCase', () => {
       save: jest.fn()
     } as any
 
+    mockCheckInRepository = {
+      save: jest.fn()
+    } as any
+
     useCase = new CheckInReservationUseCase(
       mockUserRepository,
       mockReservationRepository,
       mockDeviceRepository,
       mockPaymentRepository,
-      mockNotificationRepository
+      mockNotificationRepository,
+      mockCheckInRepository
     )
   })
 
@@ -62,7 +69,7 @@ describe('CheckInReservationUseCase', () => {
       const normalUser = User.create({
         id: 'user-123',
         email: 'user@example.com',
-        name: 'Normal User',
+        fullName: 'Normal User',
         phone: '010-1234-5678',
         role: 'user'
       })
@@ -80,7 +87,7 @@ describe('CheckInReservationUseCase', () => {
       const staff = User.create({
         id: 'staff-123',
         email: 'staff@example.com',
-        name: 'Staff User',
+        fullName: 'Staff User',
         phone: '010-1234-5678',
         role: 'staff'
       })
@@ -108,7 +115,7 @@ describe('CheckInReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -136,7 +143,7 @@ describe('CheckInReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -179,7 +186,7 @@ describe('CheckInReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -188,7 +195,7 @@ describe('CheckInReservationUseCase', () => {
       const customer = User.create({
         id: 'user-789',
         email: 'customer@example.com',
-        name: 'Customer',
+        fullName: 'Customer',
         phone: '010-9876-5432',
         role: 'user'
       })
@@ -236,7 +243,7 @@ describe('CheckInReservationUseCase', () => {
       expect(result.reservation.actualStartTime).toBeTruthy()
       expect(result.payment).toBeTruthy()
       expect(result.payment?.method).toBe('cash')
-      expect(result.payment?.status.value).toBe('pending')
+      expect(result.payment?.status).toBe('pending')
 
       expect(mockDeviceRepository.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -261,7 +268,7 @@ describe('CheckInReservationUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -270,7 +277,7 @@ describe('CheckInReservationUseCase', () => {
       const customer = User.create({
         id: 'user-789',
         email: 'customer@example.com',
-        name: 'Customer',
+        fullName: 'Customer',
         phone: '010-9876-5432',
         role: 'user'
       })

@@ -75,7 +75,7 @@ export class ApproveReservationUseCase {
         type: 'reservation_approved',
         title: '예약이 승인되었습니다',
         content: `예약번호 ${reservation.reservationNumber}이(가) 승인되었습니다. 기기번호: ${availableDeviceNumber}`,
-        channels: [NotificationChannel.push(), NotificationChannel.inApp()],
+        channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
         metadata: {
           reservationId: reservation.id,
           assignedDeviceNumber: availableDeviceNumber
@@ -115,7 +115,7 @@ export class ApproveReservationUseCase {
 
       // 활성 예약이 없으면 사용 가능
       const hasConflict = conflictingReservations.some(r => 
-        r.isActive() && r.id !== devices.id
+        r.isActive()
       )
 
       if (!hasConflict) {

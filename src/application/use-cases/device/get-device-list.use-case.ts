@@ -39,7 +39,11 @@ export class GetDeviceListUseCase {
     }
 
     // 4. 기기 번호 순으로 정렬
-    devices.sort((a, b) => a.deviceNumber.localeCompare(b.deviceNumber))
+    devices.sort((a, b) => {
+      const aNum = String(a.deviceNumber || '');
+      const bNum = String(b.deviceNumber || '');
+      return aNum.localeCompare(bNum);
+    })
 
     return {
       devices,

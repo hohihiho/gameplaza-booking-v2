@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 권한 확인 함수
 async function checkAdminAuth() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.email) {
     return { error: 'Unauthorized', status: 401 };
@@ -90,7 +90,7 @@ export async function PUT(
 
 // 계좌 삭제
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

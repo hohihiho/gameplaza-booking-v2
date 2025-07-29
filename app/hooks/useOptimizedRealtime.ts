@@ -87,13 +87,15 @@ export function useOptimizedRealtime({
     
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
     
     // 재연결 시도
     reconnectTimerRef.current = setTimeout(() => {
-      setupChannel();
+      // setupChannel을 직접 호출하지 않고 상태 변경으로 트리거
+      setState(prev => ({ ...prev, isReconnecting: true }));
     }, 3000); // 3초 후 재연결
-  }, []);
+  }, [supabase]);
 
   // 채널 설정
   const setupChannel = useCallback(() => {
@@ -154,10 +156,44 @@ export function useOptimizedRealtime({
     }
   }, [channelName, table, event, schema, filter, handleUpdate, onConnect, onDisconnect, onError, reconnect]);
 
-  // 초기 설정
+  // 초기 설정 및 채널 관리
   useEffect(() => {
-    setupChannel();
+    let mounted = true;
+    
+    const setup = async () => {
+      if (mounted) {
+        setupChannel();
+      }
+    };
+    
+    setup();
 
+    return () => {
+      mounted = false;
+      
+      // 타이머 정리
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      
+      // 채널 정리
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      // 남아있는 업데이트 큐 정리
+      updateQueueRef.current = [];
+    };
+  }, [setupChannel, supabase]);
+  
+  // 가시성 및 네트워크 상태 감지 (별도 effect)
+  useEffect(() => {
     // 페이지 가시성 변경 감지 (백그라운드/포그라운드 전환)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !state.isConnected) {
@@ -182,25 +218,11 @@ export function useOptimizedRealtime({
     window.addEventListener('offline', handleOffline);
 
     return () => {
-      // 타이머 정리
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
-      
-      // 채널 정리
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-      
-      // 이벤트 리스너 정리
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [state.isConnected, reconnect, onDisconnect]);
 
   // 수동 새로고침 함수
   const refresh = useCallback(() => {

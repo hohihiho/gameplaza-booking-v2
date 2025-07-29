@@ -81,6 +81,11 @@ export class DeviceStatus {
    * 상태 전환 가능 여부 확인
    */
   canTransitionTo(newStatus: DeviceStatusType): boolean {
+    // 같은 상태로의 전환은 불허 (의미 없는 전환)
+    if (this._value === newStatus) {
+      return false
+    }
+
     // 고장 상태에서는 점검 중으로만 전환 가능
     if (this._value === 'broken') {
       return newStatus === 'maintenance'
@@ -101,9 +106,9 @@ export class DeviceStatus {
       return newStatus === 'in_use' || newStatus === 'available'
     }
 
-    // 사용 가능에서는 모든 상태로 전환 가능
+    // 사용 가능에서는 예약됨, 사용중, 점검중, 고장으로 전환 가능
     if (this._value === 'available') {
-      return true
+      return ['reserved', 'in_use', 'maintenance', 'broken'].includes(newStatus)
     }
 
     return false

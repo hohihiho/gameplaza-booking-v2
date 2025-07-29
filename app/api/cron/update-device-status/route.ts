@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // 1. 종료된 예약의 기기 상태 업데이트 함수 호출
     const { data: _updateResult, error: updateError } = await supabase

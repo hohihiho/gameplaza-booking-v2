@@ -1,0 +1,365 @@
+name: 🧪 Test CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  COVERAGE_THRESHOLD: 80
+
+jobs:
+  # Job 1: 단위 테스트 및 커버리지
+  unit-tests:
+    name: 🔬 Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🧪 Run unit tests with coverage
+        run: npm run test:coverage
+        env:
+          CI: true
+          
+      - name: 📊 Check coverage threshold
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Current coverage: $COVERAGE%"
+          echo "Target coverage: ${{ env.COVERAGE_THRESHOLD }}%"
+          
+          if (( $(echo "$COVERAGE < ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold"
+          fi
+          
+      - name: 📈 Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: unit-tests-coverage
+          fail_ci_if_error: false
+          
+      - name: 📄 Generate coverage badge
+        run: |
+          npm install -g coverage-badges-cli
+          coverage-badges-cli --output ./badges/coverage.svg
+          
+      - name: 💾 Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            badges/
+          retention-days: 30
+
+  # Job 2: 타입 체크 및 린트
+  code-quality:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🔧 TypeScript type check
+        run: npm run type-check
+        
+      - name: 🧹 ESLint check
+        run: npm run lint
+        
+      - name: 🎨 Prettier check
+        run: npx prettier --check .
+
+  # Job 3: E2E 테스트 (브라우저별)
+  e2e-tests:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🎭 Install Playwright
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        
+      - name: 🏗️ Build application
+        run: npm run build
+        
+      - name: 🚀 Start application
+        run: npm start &
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          
+      - name: ⏳ Wait for application
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+          
+      - name: 🧪 Run E2E tests
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          
+      - name: 📊 Upload E2E artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: e2e-artifacts-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 30
+
+  # Job 4: 모바일 테스트
+  mobile-tests:
+    name: 📱 Mobile Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: ['iPhone 12', 'Galaxy S21', 'iPad Pro']
+        
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🎭 Install Playwright
+        run: npx playwright install --with-deps chromium
+        
+      - name: 🏗️ Build application
+        run: npm run build
+        
+      - name: 🚀 Start application
+        run: npm start &
+        env:
+          NODE_ENV: test
+          
+      - name: ⏳ Wait for application
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+          
+      - name: 📱 Run mobile tests
+        run: npx playwright test --project="${{ matrix.device }}" --grep="mobile"
+        
+      - name: 📊 Upload mobile test artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: mobile-test-artifacts-${{ matrix.device }}
+          path: test-results/
+          retention-days: 30
+
+  # Job 5: 성능 테스트
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 📊 Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+        
+      - name: 🏗️ Build application
+        run: npm run build
+        
+      - name: 🚀 Start application
+        run: npm start &
+        env:
+          NODE_ENV: production
+          
+      - name: ⏳ Wait for application
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+          
+      - name: 📊 Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          
+      - name: 📈 Upload Lighthouse artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 30
+
+  # Job 6: 보안 및 취약점 스캔
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🔍 Run npm audit
+        run: npm audit --audit-level=moderate
+        
+      - name: 🛡️ Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+          
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  # Job 7: 통합 리포트 생성
+  test-report:
+    name: 📋 Generate Test Report
+    needs: [unit-tests, code-quality, e2e-tests, mobile-tests, performance-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: 📊 Generate unified test report
+        run: |
+          mkdir -p test-reports
+          echo "# 🧪 Test Execution Report" > test-reports/summary.md
+          echo "" >> test-reports/summary.md
+          echo "Generated at: $(date)" >> test-reports/summary.md
+          echo "" >> test-reports/summary.md
+          
+          # Job 상태 체크
+          echo "## Job Results" >> test-reports/summary.md
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> test-reports/summary.md
+          echo "- Code Quality: ${{ needs.code-quality.result }}" >> test-reports/summary.md
+          echo "- E2E Tests: ${{ needs.e2e-tests.result }}" >> test-reports/summary.md
+          echo "- Mobile Tests: ${{ needs.mobile-tests.result }}" >> test-reports/summary.md
+          echo "- Performance Tests: ${{ needs.performance-tests.result }}" >> test-reports/summary.md
+          echo "" >> test-reports/summary.md
+          
+          # 커버리지 정보 (있는 경우)
+          if [ -f coverage-report/coverage-summary.json ]; then
+            COVERAGE=$(cat coverage-report/coverage-summary.json | jq '.total.lines.pct')
+            echo "## Coverage" >> test-reports/summary.md
+            echo "- Lines: $COVERAGE%" >> test-reports/summary.md
+            echo "" >> test-reports/summary.md
+          fi
+          
+          # 아티팩트 링크
+          echo "## Artifacts" >> test-reports/summary.md
+          find . -name "*.json" -o -name "*.html" -o -name "*.xml" | head -10 | while read file; do
+            echo "- [$file]($file)" >> test-reports/summary.md
+          done
+          
+      - name: 📊 Upload test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-execution-report
+          path: test-reports/
+          retention-days: 90
+          
+      - name: 💬 Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('test-reports/summary.md')) {
+              const summary = fs.readFileSync('test-reports/summary.md', 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+              });
+            }
+
+  # Job 8: 실패 시 알림
+  notify-failure:
+    name: 🚨 Notify on Failure
+    needs: [unit-tests, code-quality, e2e-tests, mobile-tests, performance-tests]
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: 🚨 Send failure notification
+        run: |
+          echo "🚨 Test pipeline failed!"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Workflow: ${{ github.workflow }}"
+          
+          # Slack 또는 Discord 웹훅으로 알림 전송 (옵션)
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"🚨 Test failed on '"${{ github.ref_name }}"'"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}

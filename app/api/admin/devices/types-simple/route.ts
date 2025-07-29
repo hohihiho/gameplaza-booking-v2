@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // 가장 간단한 쿼리
     const supabaseAdmin = createAdminClient();
-  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
+  const { data, error } = await supabaseAdmin.from('device_types')
       .select('*')
       .order('name')
 

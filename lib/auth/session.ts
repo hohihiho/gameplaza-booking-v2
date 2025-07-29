@@ -1,5 +1,5 @@
 import { getServerSession as getNextAuthSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+
 import { cache } from 'react';
 import { ExtendedSession } from './types';
 

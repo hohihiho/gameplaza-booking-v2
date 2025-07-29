@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>인증 테스트</title>
+</head>
+<body>
+    <h1>예약 API 인증 테스트</h1>
+    <button onclick="testAuth()">인증 테스트</button>
+    <button onclick="testReservations()">예약 목록 테스트</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAuth() {
+            try {
+                const response = await fetch('/api/auth/session', {
+                    credentials: 'include'
+                });
+                const session = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(session, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        async function testReservations() {
+            try {
+                const response = await fetch('/api/v2/reservations', {
+                    credentials: 'include'
+                });
+                const data = await response.text();
+                document.getElementById('result').innerHTML = '<h3>Status: ' + response.status + '</h3><pre>' + data + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

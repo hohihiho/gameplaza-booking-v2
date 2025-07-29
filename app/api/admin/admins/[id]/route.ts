@@ -19,9 +19,12 @@ import {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 슈퍼관리자 권한 확인
     const superAdminCheck = await requireSuperAdmin(request);
     if (!superAdminCheck.isSuperAdmin) {
@@ -39,7 +42,7 @@ export async function GET(
 
     // 관리자 상세 조회
     const getDetailRequest: GetAdminDetailRequestDto = {
-      adminId: params.id
+      adminId: id
     };
 
     const superAdminCheckDto: SuperAdminCheckDto = {
@@ -71,9 +74,12 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 슈퍼관리자 권한 확인
     const superAdminCheck = await requireSuperAdmin(request);
     if (!superAdminCheck.isSuperAdmin) {
@@ -102,7 +108,7 @@ export async function PATCH(
 
     // 권한 수정
     const updateRequest: UpdateAdminPermissionsRequestDto = {
-      adminId: params.id,
+      adminId: id,
       permissions
     };
 
@@ -140,9 +146,12 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 슈퍼관리자 권한 확인
     const superAdminCheck = await requireSuperAdmin(request);
     if (!superAdminCheck.isSuperAdmin) {
@@ -159,7 +168,7 @@ export async function DELETE(
 
     // 관리자 삭제
     const deleteRequest: DeleteAdminRequestDto = {
-      adminId: params.id
+      adminId: id
     };
 
     const superAdminCheckDto: SuperAdminCheckDto = {

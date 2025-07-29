@@ -5,51 +5,39 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 기기 상세 조회 API
  * GET /api/v2/devices/{id}
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 2. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // params를 await로 추출
+    const { id } = await params
+    
+    // 1. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
 
-    // 3. 유스케이스 실행
+    // 2. 유스케이스 실행
     const useCase = new GetDeviceDetailUseCase(
       deviceRepository,
       checkInRepository,
-      reservationRepository
+      reservationRepository as any
     )
 
     const result = await useCase.execute({
-      deviceId: params.id
+      deviceId: id
     })
 
-    // 4. 응답 반환
+    // 3. 응답 반환
     return NextResponse.json({
       device: {
         id: result.device.id,
@@ -99,9 +87,12 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -129,48 +120,33 @@ export async function PUT(
     const body = await request.json()
     const { name, specifications, notes } = body
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
-    const useCase = new UpdateDeviceUseCase(deviceRepository, userRepository)
+    // 5. 유스케이스 실행
+    const useCase = new UpdateDeviceUseCase(deviceRepository as any, userRepository as any)
     const result = await useCase.execute({
-      deviceId: params.id,
+      deviceId: id,
       name,
       specifications,
       notes,
       adminId: user.id
-    })
+    } as any)
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json({
       device: {
         id: result.device.id,
         deviceNumber: result.device.deviceNumber,
-        name: result.device.name,
-        type: result.device.type,
-        status: result.device.status,
-        specifications: result.device.specifications,
-        notes: result.device.notes,
-        createdAt: result.device.createdAt.toISOString(),
-        updatedAt: result.device.updatedAt.toISOString()
+        name: (result.device as any).name,
+        type: (result.device as any).type,
+        status: (result.device as any).status,
+        specifications: (result.device as any).specifications,
+        notes: (result.device as any).notes,
+        createdAt: (result.device as any).createdAt.toISOString(),
+        updatedAt: (result.device as any).updatedAt.toISOString()
       }
     }, { status: 200 })
 

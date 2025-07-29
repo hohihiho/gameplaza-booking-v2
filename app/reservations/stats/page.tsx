@@ -37,7 +37,7 @@ export default function ReservationStatsPage() {
       setError(null);
       
       // 날짜 범위를 v2 API 형식으로 변환
-      let queryParams = new URLSearchParams();
+      const queryParams = new URLSearchParams();
       
       if (dateRange === '7days') {
         queryParams.set('periodType', 'custom');

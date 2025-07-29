@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotTemplateRepository } from '@/src/domain/repositories/time-slot-template-repository.interface'
-import { TimeSlotScheduleRepository } from '@/src/domain/repositories/time-slot-schedule-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { CreateTimeSlotTemplateUseCase, GetTimeSlotTemplatesUseCase } from '@/src/application/use-cases/time-slot'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
@@ -28,19 +26,22 @@ const createTimeSlotSchema = z.object({
   isActive: z.boolean().optional()
 })
 
-const querySchema = z.object({
-  type: z.enum(['early', 'overnight']).optional(),
-  active: z.string().transform(val => val === 'true').optional(),
-  youthOnly: z.string().transform(val => val === 'true').optional(),
-  sortByPriority: z.string().transform(val => val === 'true').optional()
-})
-
 // GET /api/v2/time-slots - 시간대 템플릿 목록 조회
 export async function GET(request: NextRequest) {
   try {
     // 인증 확인
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabase = await createClient()
+    let user = null
+    let authError = null
+    
+    try {
+      const authResult = await supabase.auth.getUser()
+      user = authResult.data?.user
+      authError = authResult.error
+    } catch (error) {
+      console.error('인증 확인 중 오류:', error)
+      authError = error
+    }
     
     if (authError || !user) {
       return NextResponse.json(
@@ -122,7 +123,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 인증 및 권한 확인
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

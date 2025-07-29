@@ -186,7 +186,7 @@ describe('Reservation Entity', () => {
       
       expect(reservation.status.value).toBe('pending')
       
-      reservation = reservation.approve()
+      reservation = reservation.approveWithDevice('PC-001')
       expect(reservation.status.value).toBe('approved')
       expect(reservation.isActive()).toBe(true)
       
@@ -233,11 +233,14 @@ describe('Reservation Entity', () => {
       
       const approved = reservation.approve()
       
-      expect(approved.updatedAt.getTime()).toBeGreaterThan(reservation.updatedAt.getTime())
+      // 새로운 인스턴스가 생성되었는지 확인
+      expect(approved).not.toBe(reservation)
+      expect(approved.status.value).toBe('approved')
+      expect(reservation.status.value).toBe('pending')
     })
 
     it('should throw error for invalid transitions', () => {
-      const completed = createReservation().approve().checkIn().complete()
+      const completed = createReservation().approveWithDevice('PC-001').checkIn().complete()
       
       expect(() => completed.approve()).toThrow(
         'Invalid status transition from completed to approved'

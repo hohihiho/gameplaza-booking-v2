@@ -1,22 +1,21 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from "@/auth"
 import { createAdminClient } from '@/lib/supabase'
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
 
     // 테이블이 존재하는지 확인
     const supabaseAdmin = createAdminClient();
-  const { data: reservationrulesData } = await supabaseAdmin.from('reservation_rules')
+  const { error: tableCheckError } = await supabaseAdmin.from('reservation_rules')
       .select('id')
       .limit(1)
 
-    if (!tableExists) {
+    if (tableCheckError && tableCheckError.code === '42P01') {
       // 테이블이 없으면 기본 메시지 반환
       return NextResponse.json({ 
         error: 'reservation_rules 테이블이 존재하지 않습니다. Supabase 대시보드에서 마이그레이션을 실행해주세요.',

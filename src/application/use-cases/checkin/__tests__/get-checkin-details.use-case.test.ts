@@ -121,8 +121,8 @@ describe('GetCheckInDetailsUseCase', () => {
       fullName: '홍길동',
       email: 'hong@example.com',
       phone: '010-1234-5678',
-      role: Role.user(),
-      status: 'active' as any
+      role: 'user',
+      status: 'active'
     });
 
     it('체크인 상세 정보를 성공적으로 조회한다', async () => {

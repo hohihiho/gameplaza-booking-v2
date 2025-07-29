@@ -26,7 +26,7 @@ export default function TermsPage() {
               <span className="text-sm text-white font-medium">서비스 이용약관</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">서비스 이용약관</h1>
-            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">게임플라자 광주점 서비스 이용약관</p>
+            <p className="text-lg text-white max-w-2xl mx-auto drop-shadow-md">광주 게임플라자 서비스 이용약관</p>
           </motion.div>
         </div>
       </section>
@@ -47,7 +47,7 @@ export default function TermsPage() {
               제1조 (목적)
             </h2>
             <p className="text-gray-700 dark:text-gray-300 mb-8">
-              이 약관은 게임플라자 광주점(이하 "회사")이 제공하는 게임기 예약 서비스(이하 "서비스")의 이용조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.
+              이 약관은 광주 게임플라자(이하 "회사")가 제공하는 게임기 예약 서비스(이하 "서비스")의 이용조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.
             </p>
 
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">

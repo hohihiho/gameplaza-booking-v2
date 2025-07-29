@@ -2,11 +2,13 @@ import { Reservation } from '../../../domain/entities/reservation'
 import { User } from '../../../domain/entities/user'
 import { Device } from '../../../domain/entities/device'
 import { Payment } from '../../../domain/entities/payment'
+import { CheckIn } from '../../../domain/entities/checkin'
 import { IReservationRepository } from '../../../domain/repositories/reservation.repository.interface'
 import { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import { IDeviceRepository } from '../../../domain/repositories/device.repository.interface'
 import { IPaymentRepository } from '../../../domain/repositories/payment.repository.interface'
 import { INotificationRepository } from '../../../domain/repositories/notification.repository.interface'
+import { CheckInRepository } from '../../../domain/repositories/check-in.repository.interface'
 import { Notification } from '../../../domain/entities/notification'
 import { NotificationChannel } from '../../../domain/value-objects/notification-channel'
 import { KSTDateTime } from '../../../domain/value-objects/kst-datetime'
@@ -14,11 +16,13 @@ import { KSTDateTime } from '../../../domain/value-objects/kst-datetime'
 export interface CheckInReservationRequest {
   userId: string
   reservationId: string
-  paymentMethod?: 'cash' | 'bank_transfer' // 현장 결제 방식 선택
+  paymentMethod?: 'cash' | 'card' | 'transfer' // 현장 결제 방식 선택
+  paymentAmount?: number // 결제 금액 (미리 계산된 경우)
 }
 
 export interface CheckInReservationResponse {
   reservation: Reservation
+  checkIn: CheckIn
   payment?: Payment
   assignedDevice: string
   message: string
@@ -30,7 +34,8 @@ export class CheckInReservationUseCase {
     private readonly reservationRepository: IReservationRepository,
     private readonly deviceRepository: IDeviceRepository,
     private readonly paymentRepository: IPaymentRepository,
-    private readonly notificationRepository: INotificationRepository
+    private readonly notificationRepository: INotificationRepository,
+    private readonly checkInRepository: CheckInRepository
   ) {}
 
   async execute(request: CheckInReservationRequest): Promise<CheckInReservationResponse> {
@@ -74,7 +79,7 @@ export class CheckInReservationUseCase {
       throw new Error('배정된 기기를 찾을 수 없습니다')
     }
 
-    if (device.status !== 'available' && device.status !== 'reserved') {
+    if (!device.isAvailable() && !device.isReserved()) {
       throw new Error('기기가 사용 가능한 상태가 아닙니다')
     }
 
@@ -87,19 +92,21 @@ export class CheckInReservationUseCase {
 
     // 7. 결제 정보 확인 및 처리
     let payment: Payment | undefined
+    let paymentAmount: number
     const existingPayments = await this.paymentRepository.findByReservationId(reservation.id)
     
     if (existingPayments.length === 0) {
       // 결제가 없으면 현장 결제 생성
       if (!request.paymentMethod) {
-        throw new Error('결제 방식을 선택해주세요 (현금 또는 계좌이체)')
+        throw new Error('결제 방식을 선택해주세요 (현금, 카드 또는 계좌이체)')
       }
 
+      paymentAmount = request.paymentAmount || this.calculateAmount(reservation)
       payment = Payment.create({
         id: this.generateId(),
         userId: reservation.userId,
         reservationId: reservation.id,
-        amount: this.calculateAmount(reservation),
+        amount: paymentAmount,
         method: request.paymentMethod,
         status: 'pending'
       })
@@ -107,9 +114,24 @@ export class CheckInReservationUseCase {
       await this.paymentRepository.save(payment)
     } else {
       payment = existingPayments[0]
+      paymentAmount = payment?.amount ?? 0
     }
 
-    // 8. 고객에게 체크인 알림 발송
+    // 8. 체크인 엔티티 생성 및 저장
+    const checkIn = CheckIn.create({
+      reservationId: reservation.id,
+      userId: reservation.userId,
+      deviceId: device.id,
+      checkInTime: KSTDateTime.now(),
+      status: 'checked_in',
+      checkInBy: user.id,
+      paymentAmount: paymentAmount,
+      paymentMethod: request.paymentMethod || payment?.method || 'cash'
+    })
+    
+    await this.checkInRepository.save(checkIn)
+
+    // 9. 고객에게 체크인 알림 발송
     const customer = await this.userRepository.findById(reservation.userId)
     if (customer) {
       const notification = Notification.create({
@@ -118,7 +140,7 @@ export class CheckInReservationUseCase {
         type: 'check_in_completed',
         title: '체크인이 완료되었습니다',
         content: `예약번호 ${reservation.reservationNumber}의 체크인이 완료되었습니다. 배정된 기기: ${reservation.assignedDeviceNumber}`,
-        channels: [NotificationChannel.push(), NotificationChannel.inApp()],
+        channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
         metadata: {
           reservationId: reservation.id,
           deviceNumber: reservation.assignedDeviceNumber
@@ -130,6 +152,7 @@ export class CheckInReservationUseCase {
 
     return {
       reservation: checkedInReservation,
+      checkIn,
       payment,
       assignedDevice: reservation.assignedDeviceNumber,
       message: `체크인이 완료되었습니다. 기기번호: ${reservation.assignedDeviceNumber}`

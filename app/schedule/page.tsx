@@ -122,75 +122,18 @@ export default function SchedulePage() {
   useEffect(() => {
     const fetchTodaySchedule = async () => {
       try {
-        const today = new Date();
-        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const response = await fetch('/api/public/schedule/today');
+        if (!response.ok) throw new Error('Failed to fetch schedule');
         
-        // 특별 영업시간 조회
-        const supabase = createClient();
-  const { data$1 } = await supabase.from('schedule_events')
-          .select('title, start_time, end_time, type')
-          .eq('date', dateStr)
-          .in('type', ['early_open', 'overnight', 'early_close']);
-          
-        if (scheduleEvents && scheduleEvents.length > 0) {
-          // 제목에서 층 정보 파악 (예: "2층 조기마감")
-          const floor1Events = scheduleEvents.filter((e: any) => e.title?.includes('1층'));
-          const floor2Events = scheduleEvents.filter((e: any) => e.title?.includes('2층') || !e.title?.includes('층')); // 층 표시 없으면 2층으로 가정
-          
-          // 각 층별로 타입에 따라 이벤트 선택
-          const floor1Event = floor1Events.find((e: any) => e.type === 'early_open') || 
-                             floor1Events.find((e: any) => e.type === 'early_close' || e.type === 'overnight');
-          
-          const floor2EventOpen = floor2Events.find((e: any) => e.type === 'early_open');
-          const floor2EventClose = floor2Events.find((e: any) => e.type === 'early_close' || e.type === 'overnight');
-          
-          // 기본 영업시간 설정
-          const dayOfWeek = today.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const defaultFloor1Start = isWeekend ? '11:00' : '12:00';
-          const defaultFloor1End = '22:00';
-          const defaultFloor2Start = isWeekend ? '11:00' : '12:00';
-          const defaultFloor2End = isWeekend ? '22:00' : '24:00';
-          
-          // 특별 일정이 있으면 반영, 없으면 기본값 사용 (시간에서 초 제거)
-          // 조기영업은 시작시간만, 나머지는 종료시간만 변경
-          const floor1Start = floor1Event?.type === 'early_open' 
-            ? floor1Event?.start_time?.substring(0, 5) || defaultFloor1Start
-            : defaultFloor1Start;
-          const floor1End = floor1Event?.type === 'early_close' || floor1Event?.type === 'overnight'
-            ? floor1Event?.end_time?.substring(0, 5) || defaultFloor1End
-            : defaultFloor1End;
-          
-          // 2층은 조기영업과 마감시간 변경을 별도로 처리
-          const floor2Start = floor2EventOpen
-            ? floor2EventOpen?.start_time?.substring(0, 5) || defaultFloor2Start
-            : defaultFloor2Start;
-          const floor2End = floor2EventClose
-            ? floor2EventClose?.end_time?.substring(0, 5) || defaultFloor2End
-            : defaultFloor2End;
-          
-          setTodaySchedule({
-            floor1Start,
-            floor1End,
-            floor2Start,
-            floor2End,
-            floor1EventType: floor1Event?.type || null,
-            floor2EventType: floor2EventOpen?.type || floor2EventClose?.type || null
-          });
-        } else {
-          // 특별 일정이 없으면 기본 영업시간 사용
-          const dayOfWeek = today.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          
-          setTodaySchedule({
-            floor1Start: isWeekend ? '11:00' : '12:00',
-            floor1End: '22:00',
-            floor2Start: isWeekend ? '11:00' : '12:00',
-            floor2End: isWeekend ? '22:00' : '24:00',
-            floor1EventType: null,
-            floor2EventType: null
-          });
-        }
+        const data = await response.json();
+        setTodaySchedule({
+          floor1Start: data.floor1Start,
+          floor1End: data.floor1End,
+          floor2Start: data.floor2Start,
+          floor2End: data.floor2End,
+          floor1EventType: data.floor1EventType,
+          floor2EventType: data.floor2EventType
+        });
       } catch (err) {
         console.error('오늘 영업시간 조회 오류:', err);
         // 오류 발생시 기본 영업시간 사용

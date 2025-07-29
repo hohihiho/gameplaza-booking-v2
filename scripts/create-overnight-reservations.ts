@@ -62,6 +62,12 @@ async function createOvernightReservations() {
       const device = deviceType.devices[deviceType.devices.length - 1] // 마지막 번호 기기 선택
       const slot = overnightSlots[i]
       
+      // slot null 체크
+      if (!slot) {
+        console.warn(`Slot at index ${i} is undefined, skipping...`);
+        continue;
+      }
+      
       // 시간에 따른 임의의 요금 계산
       const startHour = parseInt(slot.start.split(':')[0])
       const endHour = parseInt(slot.end.split(':')[0])

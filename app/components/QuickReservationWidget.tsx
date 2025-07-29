@@ -40,88 +40,22 @@ export default function QuickReservationWidget() {
         const today = new Date();
         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
-        // 특별 영업시간 조회
+        // 영업시간 조회 (공통 API 사용)
         try {
-          const supabase = createClient();
-  const { data$1 } = await supabase.from('schedule_events')
-            .select('title, start_time, end_time, type')
-            .eq('date', dateStr)
-            .in('type', ['early_open', 'overnight', 'early_close']);
-            
-          console.log('오늘 날짜:', dateStr);
-          console.log('조회된 특별 일정:', scheduleEvents);
-          scheduleEvents?.forEach(event => {
-            console.log(`- ${event.title}: ${event.type} ${event.start_time || ''} ~ ${event.end_time || ''}`);
-          });
+          const response = await fetch('/api/public/schedule/today');
+          if (!response.ok) throw new Error('Failed to fetch schedule');
           
-          if (scheduleEvents && scheduleEvents.length > 0) {
-            // 제목에서 층 정보 파악 (예: "2층 조기마감")
-            const floor1Events = scheduleEvents.filter(e => e.title?.includes('1층'));
-            const floor2Events = scheduleEvents.filter(e => e.title?.includes('2층') || !e.title?.includes('층')); // 층 표시 없으면 2층으로 가정
-            
-            // 각 층별로 타입에 따라 이벤트 선택
-            const floor1Event = floor1Events.find(e => e.type === 'early_open') || 
-                               floor1Events.find(e => e.type === 'early_close' || e.type === 'overnight');
-            
-            const floor2EventOpen = floor2Events.find(e => e.type === 'early_open');
-            const floor2EventClose = floor2Events.find(e => e.type === 'early_close' || e.type === 'overnight');
-            
-            console.log('1층 이벤트:', floor1Event);
-            console.log('2층 조기영업:', floor2EventOpen);
-            console.log('2층 마감시간 변경:', floor2EventClose);
-            
-            // 기본 영업시간 설정
-            const dayOfWeek = today.getDay();
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            const defaultFloor1Start = isWeekend ? '11:00' : '12:00';
-            const defaultFloor1End = '22:00';
-            const defaultFloor2Start = isWeekend ? '11:00' : '12:00';
-            const defaultFloor2End = isWeekend ? '22:00' : '24:00';
-            
-            // 특별 일정이 있으면 반영, 없으면 기본값 사용 (시간에서 초 제거)
-            // 조기영업은 시작시간만, 나머지는 종료시간만 변경
-            const floor1Start = floor1Event?.type === 'early_open' 
-              ? floor1Event?.start_time?.substring(0, 5) || defaultFloor1Start
-              : defaultFloor1Start;
-            const floor1End = floor1Event?.type === 'early_close' || floor1Event?.type === 'overnight'
-              ? floor1Event?.end_time?.substring(0, 5) || defaultFloor1End
-              : defaultFloor1End;
-            
-            // 2층은 조기영업과 마감시간 변경을 별도로 처리
-            const floor2Start = floor2EventOpen
-              ? floor2EventOpen?.start_time?.substring(0, 5) || defaultFloor2Start
-              : defaultFloor2Start;
-            const floor2End = floor2EventClose
-              ? floor2EventClose?.end_time?.substring(0, 5) || defaultFloor2End
-              : defaultFloor2End;
-            
-            const schedule = {
-              floor1Start,
-              floor1End,
-              floor2Start,
-              floor2End,
-              floor1EventType: floor1Event?.type || null,
-              floor2EventType: floor2EventOpen?.type || floor2EventClose?.type || null
-            };
-            
-            console.log('최종 영업시간:', schedule);
-            setTodaySchedule(schedule);
-          } else {
-            // 특별 일정이 없으면 기본 영업시간 사용
-            const dayOfWeek = today.getDay();
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            
-            setTodaySchedule({
-              floor1Start: isWeekend ? '11:00' : '12:00',
-              floor1End: '22:00',
-              floor2Start: isWeekend ? '11:00' : '12:00',
-              floor2End: isWeekend ? '22:00' : '24:00',
-              floor1EventType: null,
-              floor2EventType: null
-            });
-          }
+          const scheduleData = await response.json();
+          setTodaySchedule({
+            floor1Start: scheduleData.floor1Start,
+            floor1End: scheduleData.floor1End,
+            floor2Start: scheduleData.floor2Start,
+            floor2End: scheduleData.floor2End,
+            floor1EventType: scheduleData.floor1EventType,
+            floor2EventType: scheduleData.floor2EventType
+          });
         } catch (err) {
-          console.error('특별 영업시간 조회 오류:', err);
+          console.error('영업시간 조회 오류:', err);
           // 오류 발생시 기본 영업시간 사용
           const dayOfWeek = today.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -137,8 +71,7 @@ export default function QuickReservationWidget() {
         }
 
         // 전체 기기 수 조회
-        const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+        const { data: devices, error: devicesError } = await supabase.from('devices')
           .select('id, status');
 
         if (devicesError) {
@@ -238,12 +171,12 @@ export default function QuickReservationWidget() {
                     <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 bg-clip-text text-transparent drop-shadow-2xl">
                       게임플라자
                     </span>
-                    {/* 강화된 글로우 효과 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent blur-md opacity-80 -z-10">
+                    {/* 강화된 글로우 효과 - 접근성을 위해 aria-hidden 추가 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent blur-md opacity-80 -z-10" aria-hidden="true">
                       게임플라자
                     </div>
-                    {/* 추가 하이라이트 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent blur-lg opacity-40 -z-20">
+                    {/* 추가 하이라이트 - 접근성을 위해 aria-hidden 추가 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent blur-lg opacity-40 -z-20" aria-hidden="true">
                       게임플라자
                     </div>
                   </span>
@@ -260,7 +193,7 @@ export default function QuickReservationWidget() {
                 {/* 이용 가능 기기 */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
                   <div className="flex items-center gap-1.5 xs:gap-2 mb-2 sm:mb-3">
-                    <Zap className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-yellow-300" />
+                    <Zap className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-yellow-300" aria-hidden="true" />
                     <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">현재 이용 가능</span>
                     <div className="flex items-center gap-1 ml-auto">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -294,7 +227,7 @@ export default function QuickReservationWidget() {
                 {/* 운영시간 */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
                   <div className="flex items-center gap-1.5 xs:gap-2 mb-2">
-                    <Clock className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-white" />
+                    <Clock className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-white" aria-hidden="true" />
                     <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">오늘 영업시간</span>
                     <div className="flex items-center gap-1 ml-auto">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />

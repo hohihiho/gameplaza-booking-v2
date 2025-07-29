@@ -1,0 +1,28 @@
+{
+  "tasks": [
+    {
+      "id": "17219efd-dafe-4e4e-9164-b35b3bccdfb7",
+      "name": "API Route 1: /app/api/auth/profile/route.ts 마이그레이션",
+      "description": "NextAuth v5 호환성을 위해 getServerSession을 auth() 함수로 변경하고 import 구문을 수정합니다. GET과 PUT 메서드 모두 수정 필요.",
+      "notes": "현재 컴파일 에러가 발생하는 우선순위 파일. GET, PUT 메서드 모두 수정 필요",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-25T18:20:13.018Z",
+      "updatedAt": "2025-07-25T18:21:14.482Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/auth/profile/route.ts",
+          "type": "TO_MODIFY",
+          "description": "NextAuth v5 마이그레이션 대상 파일",
+          "lineStart": 1,
+          "lineEnd": 136
+        }
+      ],
+      "implementationGuide": "1. import 구문 변경: import { getServerSession } from 'next-auth' → import { auth } from '@/auth'\n2. import { authOptions } from '@/lib/auth' 제거\n3. getServerSession(authOptions) → auth() 변경 (2곳)\n4. 세션 구조는 동일하게 유지하여 기존 로직 보존",
+      "verificationCriteria": "컴파일 에러 해결, GET/PUT API 정상 동작, 사용자 프로필 조회/수정 기능 유지",
+      "analysisResult": "NextAuth v4에서 v5로의 마이그레이션: getServerSession과 authOptions 제거로 인한 컴파일 에러를 해결하고, auth() 함수를 사용하여 JWT 세션 처리 문제를 수정합니다.",
+      "summary": "NextAuth v5 마이그레이션 완료: /app/api/auth/profile/route.ts 파일에서 getServerSession을 auth() 함수로 성공적으로 변경했습니다. 컴파일 에러가 해결되었고, API가 정상적으로 작동하여 인증되지 않은 요청에 대해 401 응답을 올바르게 반환합니다. GET과 PUT 메서드 모두 마이그레이션이 완료되었으며, 기존 사용자 프로필 조회/수정 로직이 그대로 보존되었습니다.",
+      "completedAt": "2025-07-25T18:21:14.481Z"
+    }
+  ]
+}

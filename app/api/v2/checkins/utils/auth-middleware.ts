@@ -28,15 +28,17 @@ export function requireAdmin(request: NextRequest): AuthUser | ReturnType<typeof
   const authResult = requireAuth(request)
   
   // 에러 응답인 경우 그대로 반환
-  if ('error' in authResult) {
+  if (!authResult || 'error' in authResult) {
     return authResult
   }
   
-  if (authResult.role !== 'admin') {
+  // 타입 가드로 AuthUser 타입 확인
+  const user = authResult as AuthUser
+  if (user.role !== 'admin') {
     return createApiError(403, '관리자 권한이 필요합니다')
   }
   
-  return authResult
+  return user
 }
 
 /**
@@ -49,18 +51,20 @@ export function requireRole(
   const authResult = requireAuth(request)
   
   // 에러 응답인 경우 그대로 반환
-  if ('error' in authResult) {
+  if (!authResult || 'error' in authResult) {
     return authResult
   }
   
-  if (!allowedRoles.includes(authResult.role)) {
+  // 타입 가드로 AuthUser 타입 확인
+  const user = authResult as AuthUser
+  if (!allowedRoles.includes(user.role)) {
     return createApiError(
       403, 
       `다음 권한 중 하나가 필요합니다: ${allowedRoles.join(', ')}`
     )
   }
   
-  return authResult
+  return user
 }
 
 /**
@@ -74,19 +78,22 @@ export function requireOwnership(
   const authResult = requireAuth(request)
   
   // 에러 응답인 경우 그대로 반환
-  if ('error' in authResult) {
+  if (!authResult || 'error' in authResult) {
     return authResult
   }
   
+  // 타입 가드로 AuthUser 타입 확인
+  const user = authResult as AuthUser
+  
   // 관리자는 모든 리소스에 접근 가능
-  if (authResult.role === 'admin') {
-    return authResult
+  if (user.role === 'admin') {
+    return user
   }
   
   // 일반 사용자는 본인 리소스만 접근 가능
-  if (authResult.id !== resourceOwnerId) {
+  if (user.id !== resourceOwnerId) {
     return createApiError(403, '해당 리소스에 대한 접근 권한이 없습니다')
   }
   
-  return authResult
+  return user
 }

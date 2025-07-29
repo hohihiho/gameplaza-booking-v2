@@ -1,0 +1,127 @@
+{
+  "tasks": [
+    {
+      "id": "86ef0777-ffeb-4a9d-a48d-c4ea8a203551",
+      "name": "v1 API 엔드포인트 제거 (컴포넌트 수정 후)",
+      "description": "/app/api/ 디렉토리의 v1 엔드포인트들을 모두 제거하고 관련 코드 정리. 단, 컴포넌트 API 호출을 먼저 v2로 수정한 후에 진행",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-25T10:06:25.573Z",
+      "updatedAt": "2025-07-25T11:03:29.313Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/",
+          "type": "TO_MODIFY",
+          "description": "v1 API 디렉토리"
+        }
+      ],
+      "implementationGuide": "1. /app/api/ 하위의 모든 v1 엔드포인트 파일 삭제\n2. 관련 테스트 파일 제거\n3. import 문 정리",
+      "verificationCriteria": "v1 API 엔드포인트가 모두 제거되고 빌드 에러가 없음",
+      "analysisResult": "v2 API로 완전 전환하여 코드베이스를 단순화하고 일관성 있는 API 사용",
+      "summary": "v1 API 엔드포인트 성공적으로 제거 - reservations, device-types, time-slots 등 주요 v1 엔드포인트 삭제 완료",
+      "completedAt": "2025-07-25T11:03:29.297Z"
+    },
+    {
+      "id": "dbd5ef00-6d8f-4dc3-9fdc-a09277d0ea68",
+      "name": "API 클라이언트 v2 전용으로 수정",
+      "description": "lib/api/client.ts를 v2 전용으로 변경하고 feature flag 제거",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-25T10:06:25.573Z",
+      "updatedAt": "2025-07-25T10:07:36.109Z",
+      "relatedFiles": [
+        {
+          "path": "/lib/api/client.ts",
+          "type": "TO_MODIFY",
+          "description": "API 클라이언트"
+        }
+      ],
+      "implementationGuide": "1. isV2ApiEnabled 함수 제거\n2. ApiClient의 기본값을 v2로 고정\n3. 동적 API 객체를 v2로 고정\n4. v1 관련 코드 제거",
+      "verificationCriteria": "API 클라이언트가 v2만 사용하도록 수정됨",
+      "analysisResult": "v2 API로 완전 전환하여 코드베이스를 단순화하고 일관성 있는 API 사용",
+      "summary": "API 클라이언트를 v2 전용으로 성공적으로 수정 - feature flag 제거, v2 고정, 코드 단순화 완료",
+      "completedAt": "2025-07-25T10:07:36.108Z"
+    },
+    {
+      "id": "2e802df3-8174-4cd3-a439-9d82cc8848ff",
+      "name": "Feature Flag 토글 컴포넌트 제거",
+      "description": "FeatureFlagToggle 컴포넌트와 관련 코드 제거",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-25T10:06:25.573Z",
+      "updatedAt": "2025-07-25T10:39:36.866Z",
+      "relatedFiles": [
+        {
+          "path": "/app/components/FeatureFlagToggle.tsx",
+          "type": "TO_MODIFY",
+          "description": "Feature flag 토글 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. FeatureFlagToggle.tsx 파일 삭제\n2. 컴포넌트를 사용하는 곳 제거\n3. localStorage 관련 코드 제거",
+      "verificationCriteria": "Feature flag 관련 UI와 로직이 모두 제거됨",
+      "analysisResult": "v2 API로 완전 전환하여 코드베이스를 단순화하고 일관성 있는 API 사용",
+      "summary": "Feature Flag 토글 컴포넌트 완전 제거 - FeatureFlagToggle.tsx, DynamicFeatureFlag.tsx 삭제 및 layout.tsx에서 import 제거",
+      "completedAt": "2025-07-25T10:39:36.866Z"
+    },
+    {
+      "id": "dd1e9022-e743-4bbe-b83c-2f8040df7ac6",
+      "name": "환경 변수 정리",
+      "description": "NEXT_PUBLIC_USE_V2_API 환경 변수 제거 및 관련 설정 정리",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "dbd5ef00-6d8f-4dc3-9fdc-a09277d0ea68"
+        }
+      ],
+      "createdAt": "2025-07-25T10:06:25.573Z",
+      "updatedAt": "2025-07-25T11:01:53.097Z",
+      "relatedFiles": [
+        {
+          "path": "/.env",
+          "type": "TO_MODIFY",
+          "description": "환경 변수 파일"
+        },
+        {
+          "path": "/.env.example",
+          "type": "TO_MODIFY",
+          "description": "환경 변수 예시 파일"
+        }
+      ],
+      "implementationGuide": "1. .env 파일에서 NEXT_PUBLIC_USE_V2_API 제거\n2. 환경 변수 참조 코드 제거\n3. 문서 업데이트",
+      "verificationCriteria": "v2 관련 환경 변수가 제거되고 앱이 정상 작동",
+      "analysisResult": "v2 API로 완전 전환하여 코드베이스를 단순화하고 일관성 있는 API 사용",
+      "summary": "NEXT_PUBLIC_USE_V2_API 환경 변수 제거 완료 - .env.example에서 제거, 코드에서 참조하는 곳 없음 확인",
+      "completedAt": "2025-07-25T11:01:53.095Z"
+    },
+    {
+      "id": "2a7a7f7a-2e4c-4ed3-89f1-405f352f476e",
+      "name": "컴포넌트 API 호출 v2로 통일",
+      "description": "모든 컴포넌트에서 v2 API를 직접 사용하도록 수정",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "dbd5ef00-6d8f-4dc3-9fdc-a09277d0ea68"
+        }
+      ],
+      "createdAt": "2025-07-25T10:06:25.573Z",
+      "updatedAt": "2025-07-25T10:59:41.221Z",
+      "relatedFiles": [
+        {
+          "path": "/app/components/",
+          "type": "TO_MODIFY",
+          "description": "컴포넌트 디렉토리"
+        },
+        {
+          "path": "/app/reservations/",
+          "type": "TO_MODIFY",
+          "description": "예약 관련 페이지"
+        }
+      ],
+      "implementationGuide": "1. /api/ 경로를 /api/v2/로 변경\n2. 인증 헤더를 Bearer 토큰으로 통일\n3. 응답 형식을 v2에 맞게 수정",
+      "verificationCriteria": "모든 API 호출이 v2를 사용하고 정상 작동",
+      "analysisResult": "v2 API로 완전 전환하여 코드베이스를 단순화하고 일관성 있는 API 사용",
+      "summary": "주요 컴포넌트들의 API 호출을 v2로 통일 완료 - lib/api/reservations.ts와 예약 페이지들 수정",
+      "completedAt": "2025-07-25T10:59:41.221Z"
+    }
+  ]
+}

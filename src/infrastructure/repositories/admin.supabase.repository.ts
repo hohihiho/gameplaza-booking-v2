@@ -1,7 +1,7 @@
 import { Admin } from '@/src/domain/entities/admin'
 import { AdminPermissions } from '@/src/domain/value-objects/admin-permissions'
 import { AdminRepository } from '@/src/domain/repositories/admin-repository.interface'
-import { createClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 interface AdminRow {
   id: string
@@ -26,7 +26,7 @@ interface AdminWithUserRow extends AdminRow {
  */
 export class AdminSupabaseRepository implements AdminRepository {
   constructor(
-    private readonly supabase: ReturnType<typeof createClient>
+    private readonly supabase: SupabaseClient<any, 'public', any>
   ) {}
 
   /**

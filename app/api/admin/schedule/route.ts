@@ -1,8 +1,6 @@
 import { createAdminClient } from '@/lib/supabase';
+import { auth } from "@/auth"
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-
 // GET: 일정 목록 조회
 export async function GET(request: Request) {
   try {
@@ -11,7 +9,7 @@ export async function GET(request: Request) {
     const month = searchParams.get('month');
     
     // NextAuth 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
@@ -73,7 +71,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // NextAuth 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
@@ -143,7 +141,7 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     
     // NextAuth 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
@@ -216,7 +214,7 @@ export async function DELETE(request: Request) {
     }
     
     // NextAuth 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }

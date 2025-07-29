@@ -263,7 +263,12 @@ describe('AdminSupabaseRepository', () => {
         }
       }
 
+      // Mock 전체 체이닝을 다시 설정 (.update().eq().select().single())
+      mockSupabase.update.mockReturnValueOnce(mockSupabase)
+      mockSupabase.eq.mockReturnValueOnce(mockSupabase)
+      mockSupabase.select.mockReturnValueOnce(mockSupabase)
       mockSupabase.single.mockResolvedValueOnce({ data: mockData, error: null })
+      
       // Reset mocks for users table update
       mockSupabase.from.mockReturnValueOnce(mockSupabase)
       mockSupabase.update.mockReturnValueOnce(mockSupabase)
@@ -297,7 +302,9 @@ describe('AdminSupabaseRepository', () => {
         }
       }
 
-      // findById mock
+      // findById mock (.select().eq().single())
+      mockSupabase.select.mockReturnValueOnce(mockSupabase)
+      mockSupabase.eq.mockReturnValueOnce(mockSupabase)
       mockSupabase.single.mockResolvedValueOnce({ data: mockAdmin, error: null })
       // delete mock
       mockSupabase.from.mockReturnValueOnce(mockSupabase)
@@ -329,6 +336,9 @@ describe('AdminSupabaseRepository', () => {
         }
       }
 
+      // findById mock (.select().eq().single())
+      mockSupabase.select.mockReturnValueOnce(mockSupabase)
+      mockSupabase.eq.mockReturnValueOnce(mockSupabase)
       mockSupabase.single.mockResolvedValueOnce({ data: mockSuperAdmin, error: null })
 
       await expect(repository.delete('admin-123')).rejects.toThrow('Cannot delete super admin')

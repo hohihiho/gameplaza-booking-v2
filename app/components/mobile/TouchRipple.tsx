@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, ReactNode, MouseEvent, TouchEvent } from 'react';
+import { useState, useRef, ReactNode, MouseEvent, TouchEvent, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Ripple {
@@ -18,7 +18,7 @@ interface TouchRippleProps {
   disabled?: boolean;
 }
 
-export default function TouchRipple({
+const TouchRipple = memo(function TouchRipple({
   children,
   color = 'rgba(0, 0, 0, 0.1)',
   duration = 0.6,
@@ -97,4 +97,6 @@ export default function TouchRipple({
       </AnimatePresence>
     </div>
   );
-}
+});
+
+export default TouchRipple;

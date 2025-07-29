@@ -10,6 +10,9 @@ export interface SessionProps {
   expiresAt: Date
   lastActivityAt?: Date
   isActive?: boolean
+  accessToken?: AuthToken
+  refreshToken?: AuthToken
+  updatedAt?: Date
 }
 
 export interface DeviceInfo {
@@ -32,7 +35,10 @@ export class Session {
     public readonly createdAt: Date,
     private _expiresAt: Date,
     private _lastActivityAt: Date,
-    private _isActive: boolean
+    private _isActive: boolean,
+    private _accessToken?: AuthToken,
+    private _refreshToken?: AuthToken,
+    private _updatedAt?: Date
   ) {}
 
   /**
@@ -50,7 +56,10 @@ export class Session {
       props.createdAt || now,
       props.expiresAt,
       props.lastActivityAt || now,
-      props.isActive !== false
+      props.isActive !== false,
+      props.accessToken,
+      props.refreshToken,
+      props.updatedAt || now
     )
   }
 
@@ -72,7 +81,43 @@ export class Session {
       deviceInfo,
       ipAddress,
       userAgent,
-      expiresAt: token.expiresAt
+      expiresAt: token.expiresAt,
+      accessToken: token,
+      refreshToken: token
+    })
+  }
+
+  /**
+   * 액세스/리프레시 토큰과 함께 세션 생성
+   */
+  static createWithTokens(
+    userId: string,
+    accessToken: AuthToken,
+    refreshToken: AuthToken,
+    options?: {
+      id?: string,
+      deviceInfo?: DeviceInfo,
+      ipAddress?: string,
+      userAgent?: string,
+      isActive?: boolean,
+      lastActivityAt?: Date,
+      createdAt?: Date,
+      updatedAt?: Date
+    }
+  ): Session {
+    return Session.create({
+      id: options?.id || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      userId,
+      deviceInfo: options?.deviceInfo,
+      ipAddress: options?.ipAddress,
+      userAgent: options?.userAgent,
+      expiresAt: refreshToken.expiresAt,
+      isActive: options?.isActive,
+      lastActivityAt: options?.lastActivityAt,
+      createdAt: options?.createdAt,
+      accessToken,
+      refreshToken,
+      updatedAt: options?.updatedAt
     })
   }
 
@@ -98,6 +143,18 @@ export class Session {
 
   get isActive(): boolean {
     return this._isActive
+  }
+
+  get accessToken(): AuthToken | undefined {
+    return this._accessToken
+  }
+
+  get refreshToken(): AuthToken | undefined {
+    return this._refreshToken
+  }
+
+  get updatedAt(): Date {
+    return this._updatedAt || this.createdAt
   }
 
   /**
@@ -135,7 +192,10 @@ export class Session {
       this.createdAt,
       this._expiresAt,
       now,
-      this._isActive
+      this._isActive,
+      this._accessToken,
+      this._refreshToken,
+      now
     )
   }
 
@@ -154,7 +214,10 @@ export class Session {
       this.createdAt,
       newExpiresAt,
       this._lastActivityAt,
-      this._isActive
+      this._isActive,
+      this._accessToken,
+      this._refreshToken,
+      new Date()
     )
   }
 
@@ -171,7 +234,10 @@ export class Session {
       this.createdAt,
       this._expiresAt,
       this._lastActivityAt,
-      false
+      false,
+      this._accessToken,
+      this._refreshToken,
+      new Date()
     )
   }
 
@@ -192,7 +258,10 @@ export class Session {
       this.createdAt,
       this._expiresAt,
       this._lastActivityAt,
-      this._isActive
+      this._isActive,
+      this._accessToken,
+      this._refreshToken,
+      new Date()
     )
   }
 

@@ -23,6 +23,7 @@ import {
   Eye,
   X
 } from 'lucide-react';
+import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime';
 
 // 24시간 이상 시간 포맷팅
 const formatTime = (time: string) => {
@@ -246,7 +247,10 @@ export default function ReservationManagementPage() {
       }
       params.append('limit', '1000'); // 최대 1000건
       
-      const response = await fetch(`/api/admin/reservations?${params}`);
+      // v2 API 사용 (v1은 deprecated)
+      const apiUrl = `/api/v2/admin/reservations?${params}`;
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         const error = await response.json();
@@ -254,7 +258,8 @@ export default function ReservationManagementPage() {
       }
       
       const responseData = await response.json();
-      const reservationsData = responseData.reservations || responseData.data || [];
+      // v2 API 응답 형식
+      const reservationsData = responseData.data?.reservations || [];
       
       console.log('예약 데이터:', reservationsData);
       
@@ -267,39 +272,43 @@ export default function ReservationManagementPage() {
       // 정렬된 데이터
       const sortedData = sortReservationsData(reservationsData || []);
 
-      // 데이터 포맷팅
-      const formattedData: Reservation[] = sortedData.map((res: any) => ({
-        id: res.id,
-        user: {
-          id: res.users?.id || res.user_id,
-          name: res.users?.nickname || res.users?.name || '알 수 없음',
-          phone: res.users?.phone || '',
-          email: res.users?.email || ''
-        },
-        device: {
-          type_name: res.devices?.device_types?.name || res.device_type_name || '알 수 없음',
-          device_number: res.devices?.device_number || res.device_number || 0,
-          model_name: res.devices?.device_types?.model_name,
-          version_name: res.devices?.device_types?.version_name
-        },
-        date: res.date || '',
-        time_slot: res.start_time && res.end_time ? 
-          `${res.start_time}-${res.end_time}` : '',
-        player_count: res.player_count || 1,
-        credit_option: (() => {
-          if (res.credit_type === 'fixed') return '고정크레딧';
-          if (res.credit_type === 'freeplay') return '프리플레이';
-          if (res.credit_type === 'unlimited') return '무한크레딧';
-          return res.credit_type || '알 수 없음';
-        })(),
-        total_price: res.total_amount || 0,
-        status: res.status,
-        notes: res.user_notes,
-        admin_notes: res.admin_notes,
-        created_at: res.created_at,
-        reviewed_at: res.approved_at || res.updated_at,
-        reviewed_by: res.approved_by || (res.status !== 'pending' ? '관리자' : undefined)
-      }));
+      // 데이터 포맷팅 (v2 API 형식)
+      const formattedData: Reservation[] = sortedData.map((res: any) => {
+        // v2 API 형식 (snake_case)
+        return {
+            id: res.id,
+            user: {
+              id: res.user_id,
+              name: res.user_name || '알 수 없음',
+              phone: res.user_phone || '',
+              email: res.user_email || ''
+            },
+            device: {
+              type_name: res.device_type_name || '알 수 없음',
+              device_number: res.device_number || res.assigned_device_number || 0,
+              model_name: res.device_model_name,
+              version_name: res.device_version_name
+            },
+            date: res.date || '',
+            time_slot: res.start_time && res.end_time ? 
+              `${res.start_time}-${res.end_time}` : '',
+            player_count: res.player_count || 1,
+            credit_option: (() => {
+              if (res.credit_type === 'fixed') return '고정크레딧';
+              if (res.credit_type === 'freeplay') return '프리플레이';
+              if (res.credit_type === 'unlimited') return '무한크레딧';
+              return res.credit_type || '알 수 없음';
+            })(),
+            total_price: res.total_amount || 0,
+            status: res.status,
+            notes: res.user_notes,
+            admin_notes: res.admin_notes,
+            created_at: res.created_at,
+            reviewed_at: res.approved_at || res.updated_at,
+            reviewed_by: res.approved_by || (res.status !== 'pending' ? '관리자' : undefined)
+          };
+        // v1 API 지원 제거됨
+      });
 
       setAllReservations(formattedData);
       
@@ -335,6 +344,40 @@ export default function ReservationManagementPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
+
+  // 실시간 동기화 설정
+  useAdminReservationRealtime({
+    onUpdate: (payload) => {
+      // 예약 상태가 업데이트되면 목록 새로고침
+      if (payload.new) {
+        setAllReservations(prev => 
+          prev.map(res => res.id === payload.new.id ? {
+            ...res,
+            status: payload.new.status,
+            admin_notes: payload.new.admin_notes,
+            approved_at: payload.new.approved_at,
+            updated_at: payload.new.updated_at,
+            payment_status: payload.new.payment_status,
+            check_in_at: payload.new.check_in_at
+          } : res)
+        );
+      }
+    },
+    onInsert: (payload) => {
+      // 새 예약이 추가되면 데이터 다시 로드
+      if (payload.new) {
+        fetchReservations(selectedYear);
+      }
+    },
+    onDelete: (payload) => {
+      // 예약이 삭제되면 목록에서 제거
+      if (payload.old) {
+        setAllReservations(prev => 
+          prev.filter(res => res.id !== payload.old.id)
+        );
+      }
+    }
+  });
 
   // 필터링 및 검색 처리
   useEffect(() => {
@@ -473,7 +516,10 @@ export default function ReservationManagementPage() {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/admin/reservations', {
+      // v2 API 사용
+      const apiUrl = '/api/v2/admin/reservations';
+      
+      const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -530,7 +576,10 @@ export default function ReservationManagementPage() {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/admin/reservations', {
+      // v2 API 사용
+      const apiUrl = '/api/v2/admin/reservations';
+      
+      const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -539,7 +588,8 @@ export default function ReservationManagementPage() {
           id: rejectingReservationId,
           status: 'rejected',
           reviewedBy: '관리자',
-          notes: `취소 사유: ${rejectReason}`
+          notes: `취소 사유: ${rejectReason}`,
+          rejection_reason: rejectReason
         }),
       });
 

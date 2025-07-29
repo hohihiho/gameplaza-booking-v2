@@ -4,7 +4,6 @@ import { UserRepository } from '@/src/domain/repositories/user-repository.interf
 import { SessionRepository } from '@/src/domain/repositories/session-repository.interface'
 import { User } from '@/src/domain/entities/user'
 import { Session } from '@/src/domain/entities/session'
-import { AuthToken } from '@/src/domain/value-objects/auth-token'
 import { GoogleProfileDto, AuthRequestDto } from '../../../dtos/auth.dto'
 
 // Mock implementations
@@ -25,12 +24,12 @@ class MockGoogleAuthService implements IGoogleAuthService {
 }
 
 class MockTokenService implements ITokenService {
-  async generateToken(payload: any, options?: any): Promise<string> {
+  async generateToken(_payload: any, _options?: any): Promise<string> {
     // JWT 형식의 mock 토큰 반환 (header.payload.signature)
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
   }
   
-  async verifyToken(token: string): Promise<any> {
+  async verifyToken(_token: string): Promise<any> {
     return {
       sub: 'user-123',
       email: 'test@example.com',

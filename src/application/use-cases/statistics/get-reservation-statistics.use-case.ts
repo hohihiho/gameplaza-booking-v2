@@ -29,7 +29,7 @@ export interface GetReservationStatisticsResponse {
 
 /**
  * 예약 통계 조회 유스케이스
- * 관리자만 접근 가능
+ * 사용자는 본인 통계, 관리자는 전체 통계 조회 가능
  */
 export class GetReservationStatisticsUseCase {
   constructor(
@@ -44,18 +44,22 @@ export class GetReservationStatisticsUseCase {
       throw new Error('사용자를 찾을 수 없습니다')
     }
 
-    if (user.role !== 'admin') {
-      throw new Error('관리자만 통계를 조회할 수 있습니다')
-    }
+    // 관리자가 아닌 경우 자신의 통계만 조회 가능 (현재는 개인 통계이므로 허용)
+    // 추후 전체 통계 조회 시에는 관리자 권한 필요
 
     // 2. 통계 기간 설정
     const period = this.createPeriod(request)
 
-    // 3. 예약 데이터 조회
-    const reservations = await this.reservationRepository.findByDateRange(
+    // 3. 예약 데이터 조회 (사용자 본인의 예약만)
+    const allReservations = await this.reservationRepository.findByDateRange(
       period.startDate,
       period.endDate
     )
+    
+    // 관리자가 아닌 경우 본인 예약만 필터링
+    const reservations = user.role === 'admin' 
+      ? allReservations 
+      : allReservations.filter(reservation => reservation.userId === request.userId)
 
     // 4. 통계 데이터 계산
     const statisticsData = this.calculateStatistics(reservations)

@@ -55,7 +55,7 @@ export class CreateReservationV2UseCase {
       throw new Error('기기를 찾을 수 없습니다')
     }
 
-    if (!device.isActive()) {
+    if (!device.isOperational()) {
       throw new Error('해당 기기는 현재 사용할 수 없습니다')
     }
 
@@ -85,10 +85,10 @@ export class CreateReservationV2UseCase {
       throw new Error('과거 시간대는 예약할 수 없습니다')
     }
 
-    // 6-3. 최대 예약 기간 검증 (예: 2주 후까지만 예약 가능)
-    const maxReservationDate = now.addDays(14)
+    // 6-3. 최대 예약 기간 검증 (예: 3주 후까지만 예약 가능)
+    const maxReservationDate = now.addDays(21)
     if (reservation.startDateTime.isAfter(maxReservationDate)) {
-      throw new Error('예약은 최대 2주 후까지만 가능합니다')
+      throw new Error('예약은 최대 3주 후까지만 가능합니다')
     }
 
     // 7. 시간 충돌 검증 (해당 기기)

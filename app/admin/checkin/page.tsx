@@ -90,6 +90,7 @@ export default function CheckInPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [checkInAmount, setCheckInAmount] = useState('');
   const [supabase] = useState(() => createClient());
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showTimeAdjustModal, setShowTimeAdjustModal] = useState(false);
@@ -248,7 +249,9 @@ export default function CheckInPage() {
     
     return () => {
       clearTimeout(debounceTimer);
-      subscription.unsubscribe();
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
     };
   }, [fetchTodayReservations, supabase]);
 
@@ -341,7 +344,8 @@ export default function CheckInPage() {
         },
         body: JSON.stringify({
           reservationId: selectedReservation.id,
-          additionalNotes
+          additionalNotes,
+          paymentAmount: Number(checkInAmount || selectedReservation.total_price)
         })
       });
 
@@ -370,6 +374,7 @@ export default function CheckInPage() {
       
       setSelectedReservation(null);
       setAdditionalNotes('');
+      setCheckInAmount('');
       
       toast.success('체크인 완료', '체크인이 성공적으로 처리되었습니다.');
       
@@ -993,6 +998,7 @@ export default function CheckInPage() {
               if (e.target === e.currentTarget) {
                 setSelectedReservation(null);
                 setAdditionalNotes('');
+                setCheckInAmount('');
               }
             }}
             style={{ 
@@ -1016,6 +1022,7 @@ export default function CheckInPage() {
                   onClick={() => {
                     setSelectedReservation(null);
                     setAdditionalNotes('');
+                    setCheckInAmount('');
                   }}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
@@ -1079,6 +1086,28 @@ export default function CheckInPage() {
               )}
 
 
+              {/* 결제 금액 입력 */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  실제 결제 금액
+                </h3>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">₩</span>
+                  <input
+                    type="number"
+                    value={checkInAmount || selectedReservation.total_price}
+                    onChange={(e) => setCheckInAmount(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="결제 금액을 입력하세요"
+                  />
+                </div>
+                {checkInAmount && Number(checkInAmount) !== selectedReservation.total_price && (
+                  <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                    예약 금액과 {Number(checkInAmount) > selectedReservation.total_price ? '더 많은' : '더 적은'} 금액입니다.
+                  </p>
+                )}
+              </div>
+
               {/* 추가 메모 */}
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1101,6 +1130,7 @@ export default function CheckInPage() {
                   onClick={() => {
                     setSelectedReservation(null);
                     setAdditionalNotes('');
+                    setCheckInAmount('');
                   }}
                   className="flex-1 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
                 >

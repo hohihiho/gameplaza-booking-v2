@@ -8,7 +8,7 @@ interface GoogleMapProps {
 
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
     initMap: () => void;
   }
 }
@@ -36,14 +36,14 @@ export default function GoogleMap({ address }: GoogleMapProps) {
       const marker = new window.google.maps.Marker({
         position: { lat: 35.148460388183594, lng: 126.91423797607422 },
         map: map,
-        title: '게임플라자 광주점',
+        title: '광주 게임플라자',
       });
 
       // 정보창 생성
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 10px;">
-            <h3 style="margin: 0 0 5px 0; font-weight: bold;">게임플라자 광주점</h3>
+            <h3 style="margin: 0 0 5px 0; font-weight: bold;">광주 게임플라자</h3>
             <p style="margin: 0; color: #666;">${address}</p>
           </div>
         `,

@@ -2,8 +2,10 @@ import { ProcessCheckInUseCase } from '../process-checkin.use-case';
 import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface';
 import { ReservationRepository } from '@/src/domain/repositories/reservation-repository.interface';
 import { DeviceRepository } from '@/src/domain/repositories/device-repository.interface';
+import { DeviceTypeRepository } from '@/src/domain/repositories/device-type.repository.interface';
 import { Reservation } from '@/src/domain/entities/reservation';
 import { Device } from '@/src/domain/entities/device';
+import { DeviceType } from '@/src/domain/entities/device-type';
 import { CheckIn } from '@/src/domain/entities/checkin';
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime';
 import { TimeSlot } from '@/src/domain/value-objects/time-slot';
@@ -17,6 +19,7 @@ describe('ProcessCheckInUseCase', () => {
   let checkInRepository: jest.Mocked<CheckInRepository>;
   let reservationRepository: jest.Mocked<ReservationRepository>;
   let deviceRepository: jest.Mocked<DeviceRepository>;
+  let deviceTypeRepository: jest.Mocked<DeviceTypeRepository>;
 
   beforeEach(() => {
     checkInRepository = {
@@ -54,10 +57,26 @@ describe('ProcessCheckInUseCase', () => {
       delete: jest.fn()
     } as any;
 
+    deviceTypeRepository = {
+      findById: jest.fn(),
+      findByName: jest.fn(),
+      findByCategoryId: jest.fn(),
+      findAll: jest.fn(),
+      findActive: jest.fn(),
+      findActiveByCategoryId: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      existsByNameInCategory: jest.fn(),
+      getMaxDisplayOrderInCategory: jest.fn(),
+      countByCategoryId: jest.fn()
+    } as any;
+
     useCase = new ProcessCheckInUseCase(
       checkInRepository,
       reservationRepository,
-      deviceRepository
+      deviceRepository,
+      deviceTypeRepository
     );
   });
 
@@ -68,16 +87,16 @@ describe('ProcessCheckInUseCase', () => {
     };
 
     const now = new Date();
-    // 30분 후 예약으로 설정 (1시간 전부터 체크인 가능하므로)
+    // 현재 시간의 예약으로 설정 (체크인 가능한 시간)
+    const currentHour = now.getHours();
     const futureDate = new Date(now);
-    futureDate.setMinutes(futureDate.getMinutes() + 30);
 
     const mockReservation = Reservation.create({
       id: 'reservation-123',
       userId: 'user-123',
       deviceId: 'device-456',
       date: KSTDateTime.create(futureDate),
-      timeSlot: TimeSlot.create(10, 12),
+      timeSlot: TimeSlot.create(currentHour, currentHour + 2),
       status: ReservationStatus.create('approved'),
       reservationNumber: 'GP-20250124-1234',
       assignedDeviceNumber: 'PC-01'
@@ -92,13 +111,23 @@ describe('ProcessCheckInUseCase', () => {
     });
 
     it('성공적으로 체크인을 처리한다', async () => {
+      const mockDeviceType = DeviceType.create({
+        id: 'type-123',
+        categoryId: 'category-1',
+        name: '표준 PC',
+        defaultHourlyRate: 10000,
+        minReservationHours: 1,
+        maxReservationHours: 12,
+        displayOrder: 0
+      });
+
       const mockCheckIn = new CheckIn({
         id: 'checkin-789',
         reservationId: request.reservationId,
         deviceId: request.deviceId,
         checkInTime: new Date(),
         paymentStatus: PaymentStatusType.PENDING,
-        paymentAmount: 30000,
+        paymentAmount: 20000, // 2시간 * 10000원
         status: CheckInStatusType.CHECKED_IN,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -106,6 +135,7 @@ describe('ProcessCheckInUseCase', () => {
 
       reservationRepository.findById.mockResolvedValue(mockReservation);
       deviceRepository.findById.mockResolvedValue(mockDevice);
+      deviceTypeRepository.findById.mockResolvedValue(mockDeviceType);
       checkInRepository.findByReservationId.mockResolvedValue(null);
       checkInRepository.findActiveByDeviceId.mockResolvedValue(null);
       checkInRepository.create.mockResolvedValue(mockCheckIn);
@@ -114,9 +144,10 @@ describe('ProcessCheckInUseCase', () => {
       const result = await useCase.execute(request);
 
       expect(result.checkIn).toBeDefined();
-      expect(result.message).toBe('체크인이 완료되었습니다. 결제를 진행해주세요.');
+      expect(result.message).toBe('체크인이 완료되었습니다. 결제 금액: 20,000원');
       expect(checkInRepository.create).toHaveBeenCalled();
       expect(reservationRepository.update).toHaveBeenCalled();
+      expect(deviceTypeRepository.findById).toHaveBeenCalledWith('type-123');
     });
 
     it('예약을 찾을 수 없으면 에러를 던진다', async () => {

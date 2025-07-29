@@ -1,33 +1,19 @@
-// API 클라이언트 - v1과 v2 지원
+// API 클라이언트 - v2 전용
 import { logger } from '@/lib/utils/logger';
-
-// Feature flag - 환경변수 또는 로컬스토리지로 제어 가능
-export const isV2ApiEnabled = () => {
-  if (typeof window !== 'undefined') {
-    // 클라이언트 사이드에서는 로컬스토리지 확인
-    const v2Enabled = localStorage.getItem('use_v2_api');
-    if (v2Enabled !== null) {
-      return v2Enabled === 'true';
-    }
-  }
-  // 서버사이드 또는 로컬스토리지 값이 없을 때는 환경변수 확인
-  return process.env.NEXT_PUBLIC_USE_V2_API === 'true';
-};
+import { ApiError, ErrorCode, ErrorResponse } from '@/lib/api/response';
+import { errorInterceptorManager } from '@/lib/api/error-interceptor';
 
 // API 응답 타입
 export interface ApiResponse<T = any> {
   data?: T;
-  error?: string;
+  error?: string | ApiError;
   message?: string;
   status: number;
+  success?: boolean;
 }
 
-// v2 API 에러 타입
-export interface V2ApiError {
-  code: string;
-  message: string;
-  details?: Record<string, any>;
-}
+// v2 API 에러 타입 (ApiError로 통합)
+export interface V2ApiError extends ApiError {}
 
 // 예약 타입 (v2)
 export interface V2Reservation {
@@ -60,11 +46,9 @@ export interface V2Reservation {
 // API 클라이언트 클래스
 class ApiClient {
   private baseUrl: string;
-  private version: 'v1' | 'v2';
 
-  constructor(version: 'v1' | 'v2' = 'v1') {
-    this.version = version;
-    this.baseUrl = version === 'v2' ? '/api/v2' : '/api';
+  constructor() {
+    this.baseUrl = '/api/v2';
   }
 
   // 공통 fetch 래퍼 - 에러 처리와 로깅 포함
@@ -74,7 +58,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    logger.info(`API ${this.version} Request:`, {
+    logger.info(`API v2 Request:`, {
       url,
       method: options.method || 'GET',
       body: options.body ? JSON.parse(options.body as string) : undefined
@@ -99,19 +83,45 @@ class ApiClient {
         throw new Error('서버 응답을 파싱할 수 없습니다');
       }
 
-      logger.info(`API ${this.version} Response:`, {
+      logger.info(`API v2 Response:`, {
         status: response.status,
         data
       });
 
       if (!response.ok) {
         // v2 API 에러 형식 처리
-        if (this.version === 'v2' && data?.error) {
-          const error = data.error as V2ApiError;
-          throw new Error(error.message || '요청 처리 중 오류가 발생했습니다');
+        if (data?.error) {
+          const error = data.error as ApiError;
+          throw error; // ApiError 객체를 그대로 throw
         }
-        // v1 API 에러 형식 처리
-        throw new Error(data?.error || data?.message || '요청 처리 중 오류가 발생했습니다');
+        
+        // 기본 에러
+        const errorMessage = data?.message || '요청 처리 중 오류가 발생했습니다';
+          
+        // HTTP 상태 코드에 따른 에러 코드 매핑
+        let errorCode: string = ErrorCode.INTERNAL_ERROR;
+        switch (response.status) {
+          case 400:
+            errorCode = ErrorCode.VALIDATION_ERROR;
+            break;
+          case 401:
+            errorCode = ErrorCode.UNAUTHORIZED;
+            break;
+          case 403:
+            errorCode = ErrorCode.FORBIDDEN;
+            break;
+          case 404:
+            errorCode = ErrorCode.NOT_FOUND;
+            break;
+          case 409:
+            errorCode = ErrorCode.CONFLICT;
+            break;
+          case 429:
+            errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
+            break;
+        }
+        
+        throw new ErrorResponse(errorMessage, errorCode as any);
       }
 
       return {
@@ -119,14 +129,55 @@ class ApiClient {
         status: response.status
       };
     } catch (error) {
-      logger.error(`API ${this.version} Error:`, error);
+      logger.error(`API v2 Error:`, error);
       
-      // 네트워크 에러 등의 처리
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('네트워크 연결을 확인해주세요');
+      let apiError: ApiError;
+      
+      // 이미 ApiError 형식인 경우
+      if (error instanceof ErrorResponse || (error as any)?.code) {
+        apiError = error as ApiError;
+      }
+      // 네트워크 에러 처리
+      else if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        apiError = new ErrorResponse(
+          '네트워크 연결을 확인해주세요',
+          ErrorCode.EXTERNAL_SERVICE_ERROR as any
+        );
+      }
+      // 타임아웃 에러
+      else if (error instanceof Error && error.name === 'AbortError') {
+        apiError = new ErrorResponse(
+          '요청 시간이 초과되었습니다',
+          ErrorCode.EXTERNAL_SERVICE_ERROR as any
+        );
+      }
+      // 기타 에러
+      else if (error instanceof Error) {
+        apiError = new ErrorResponse(
+          error.message || '알 수 없는 오류가 발생했습니다',
+          ErrorCode.INTERNAL_ERROR as any
+        );
+      } else {
+        apiError = new ErrorResponse(
+          '알 수 없는 오류가 발생했습니다',
+          ErrorCode.INTERNAL_ERROR as any
+        );
       }
       
-      throw error;
+      // 글로벌 에러 인터셉터 실행
+      const handled = await errorInterceptorManager.handleError(apiError);
+      
+      // 에러가 처리되지 않은 경우에만 throw
+      if (!handled) {
+        throw apiError;
+      }
+      
+      // 에러가 처리된 경우 빈 응답 반환
+      return {
+        data: null,
+        status: 0,
+        error: apiError
+      };
     }
   }
 
@@ -207,36 +258,49 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // GET 요청 메서드
+  async get<T>(endpoint: string, options?: {
+    params?: Record<string, string | number | boolean>;
+    headers?: Record<string, string>;
+  }): Promise<{ ok: boolean; json: () => Promise<T> }> {
+    let url = `${this.baseUrl}${endpoint}`;
+    
+    // URL 파라미터 추가
+    if (options?.params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        searchParams.append(key, String(value));
+      });
+      url += `?${searchParams.toString()}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    return {
+      ok: response.ok,
+      json: async () => {
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      }
+    };
+  }
 }
 
-// v1 API 클라이언트 (기존 호환성 유지)
-export const apiV1 = new ApiClient('v1');
+// v2 API 클라이언트 (메인 인스턴스)
+export const api = new ApiClient();
 
-// v2 API 클라이언트
-export const apiV2 = new ApiClient('v2');
-
-// 동적 API 클라이언트 (feature flag 기반)
-export const api = {
-  createReservation: async (data: Parameters<ApiClient['createReservation']>[0]) => {
-    const client = isV2ApiEnabled() ? apiV2 : apiV1;
-    return client.createReservation(data);
-  },
-  
-  getReservations: async (params?: Parameters<ApiClient['getReservations']>[0]) => {
-    const client = isV2ApiEnabled() ? apiV2 : apiV1;
-    return client.getReservations(params);
-  },
-  
-  getReservation: async (id: string) => {
-    const client = isV2ApiEnabled() ? apiV2 : apiV1;
-    return client.getReservation(id);
-  },
-  
-  cancelReservation: async (id: string) => {
-    const client = isV2ApiEnabled() ? apiV2 : apiV1;
-    return client.cancelReservation(id);
-  }
-};
+// v2 API 메서드들을 직접 export
+export const createReservation = api.createReservation.bind(api);
+export const getReservations = api.getReservations.bind(api);
+export const getReservation = api.getReservation.bind(api);
+export const cancelReservation = api.cancelReservation.bind(api);
 
 // v1 API 호환성을 위한 기존 함수들 내보내기
 export { getDeviceTypes, getTimeSlots } from './reservations';

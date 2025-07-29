@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GetReservationUseCase } from '@/src/application/use-cases/reservation/get-reservation.use-case'
 import { UpdateReservationUseCase } from '@/src/application/use-cases/reservation/update-reservation.use-case'
+import { CancelReservationUseCase } from '@/src/application/use-cases/reservation/cancel-reservation.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { SupabasePaymentRepository } from '@/src/infrastructure/repositories/supabase-payment.repository'
-import { SupabaseNotificationRepository } from '@/src/infrastructure/repositories/supabase-notification.repository'
-import { SupabaseNotificationService } from '@/src/infrastructure/services/supabase-notification.service'
-import { createClient } from '@supabase/supabase-js'
+import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
+import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { NotificationService } from '@/src/infrastructure/services/notification.service'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { z } from 'zod'
 
@@ -34,9 +35,12 @@ const updateReservationSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -49,28 +53,13 @@ export async function GET(
       )
     }
 
-    // 2. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 3. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 2. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
 
-    // 4. 유스케이스 실행
+    // 3. 유스케이스 실행
     const useCase = new GetReservationUseCase(
       reservationRepository,
       userRepository,
@@ -79,10 +68,10 @@ export async function GET(
 
     const result = await useCase.execute({
       userId: user.id,
-      reservationId: params.id
+      reservationId: id
     })
 
-    // 5. 응답 반환
+    // 4. 응답 반환
     return NextResponse.json({
       reservation: {
         id: result.reservation.id,
@@ -94,21 +83,10 @@ export async function GET(
           endHour: result.reservation.timeSlot.endHour
         },
         status: result.reservation.status.value,
-        note: result.reservation.note,
+        userNotes: result.reservation.note,
         createdAt: result.reservation.createdAt.toISOString(),
         updatedAt: result.reservation.updatedAt.toISOString()
-      },
-      device: result.device ? {
-        id: result.device.id,
-        deviceNumber: result.device.deviceNumber,
-        name: result.device.name,
-        type: result.device.type
-      } : undefined,
-      user: result.user ? {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email
-      } : undefined
+      }
     }, { status: 200 })
 
   } catch (error) {
@@ -152,9 +130,12 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -176,7 +157,7 @@ export async function PATCH(
       return NextResponse.json(
         { 
           error: 'Bad Request',
-          message: firstError.message 
+          message: firstError?.message ?? '유효하지 않은 요청입니다' 
         },
         { status: 400 }
       )
@@ -184,31 +165,16 @@ export async function PATCH(
 
     const data = validationResult.data
 
-    // 3. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 4. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 3. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
-    const paymentRepository = new SupabasePaymentRepository(supabase)
-    const notificationRepository = new SupabaseNotificationRepository(supabase)
-    const notificationService = new SupabaseNotificationService(supabase)
+    const paymentRepository = new PaymentSupabaseRepository(supabase)
+    const notificationRepository = new NotificationSupabaseRepository(supabase)
+    const notificationService = new NotificationService(supabase)
 
-    // 5. 유스케이스 실행
+    // 4. 유스케이스 실행
     const useCase = new UpdateReservationUseCase(
       reservationRepository,
       userRepository,
@@ -220,13 +186,13 @@ export async function PATCH(
 
     const result = await useCase.execute({
       userId: user.id,
-      reservationId: params.id,
+      reservationId: id,
       date: data.date,
       timeSlot: data.timeSlot,
       note: data.note
     })
 
-    // 6. 응답 반환
+    // 5. 응답 반환
     return NextResponse.json({
       reservation: {
         id: result.reservation.id,
@@ -238,7 +204,7 @@ export async function PATCH(
           endHour: result.reservation.timeSlot.endHour
         },
         status: result.reservation.status.value,
-        note: result.reservation.note,
+        userNotes: result.reservation.note,
         createdAt: result.reservation.createdAt.toISOString(),
         updatedAt: result.reservation.updatedAt.toISOString()
       },
@@ -294,13 +260,138 @@ export async function PATCH(
   }
 }
 
+/**
+ * 예약 취소 API
+ * DELETE /api/v2/reservations/{id}
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // params를 await로 추출
+    const { id } = await params
+    
+    // 1. 인증 확인
+    const user = getAuthenticatedUser(request)
+    if (!user) {
+      return NextResponse.json(
+        { 
+          error: 'Unauthorized',
+          message: '인증이 필요합니다' 
+        },
+        { status: 401 }
+      )
+    }
+
+    // 2. 취소 사유 파싱 (선택사항)
+    let reason: string | undefined
+    try {
+      const body = await request.json()
+      if (body.reason && typeof body.reason === 'string') {
+        reason = body.reason.slice(0, 500) // 최대 500자
+      }
+    } catch {
+      // 바디가 없거나 파싱 실패시 무시
+    }
+
+    // 3. 서비스 초기화
+    const supabase = createServiceRoleClient()
+    const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
+    const userRepository = new UserSupabaseRepository(supabase)
+    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
+    const notificationRepository = new NotificationSupabaseRepository(supabase)
+    const notificationService = new NotificationService(supabase)
+
+    // 4. 유스케이스 실행
+    const useCase = new CancelReservationUseCase(
+      reservationRepository,
+      userRepository,
+      deviceRepository,
+      notificationRepository,
+      notificationService
+    )
+
+    const result = await useCase.execute({
+      userId: user.id,
+      reservationId: id,
+      reason
+    })
+
+    // 5. 응답 반환
+    return NextResponse.json({
+      reservation: {
+        id: result.reservation.id,
+        userId: result.reservation.userId,
+        deviceId: result.reservation.deviceId,
+        date: result.reservation.date.dateString,
+        timeSlot: {
+          startHour: result.reservation.timeSlot.startHour,
+          endHour: result.reservation.timeSlot.endHour
+        },
+        status: result.reservation.status.value,
+        userNotes: result.reservation.note,
+        createdAt: result.reservation.createdAt.toISOString(),
+        updatedAt: result.reservation.updatedAt.toISOString()
+      },
+      message: '예약이 취소되었습니다'
+    }, { status: 200 })
+
+  } catch (error) {
+    console.error('Cancel reservation error:', error)
+
+    if (error instanceof Error) {
+      if (error.message.includes('찾을 수 없습니다')) {
+        return NextResponse.json(
+          { 
+            error: 'Not Found',
+            message: error.message 
+          },
+          { status: 404 }
+        )
+      }
+
+      if (error.message.includes('권한이 없습니다')) {
+        return NextResponse.json(
+          { 
+            error: 'Forbidden',
+            message: error.message 
+          },
+          { status: 403 }
+        )
+      }
+
+      if (error.message.includes('취소할 수 없습니다') || 
+          error.message.includes('2시간 전까지만') ||
+          error.message.includes('활성 상태가 아닌') ||
+          error.message.includes('체크인된')) {
+        return NextResponse.json(
+          { 
+            error: 'Bad Request',
+            message: error.message 
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error',
+        message: '서버 오류가 발생했습니다' 
+      },
+      { status: 500 }
+    )
+  }
+}
+
 // OPTIONS 요청 처리 (CORS)
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400'
     }

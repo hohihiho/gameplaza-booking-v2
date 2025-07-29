@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 // 관리자 권한 확인
 async function checkAdminAuth() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.email) {
     return { error: '로그인이 필요합니다', status: 401 };
@@ -24,7 +24,7 @@ async function checkAdminAuth() {
 
   // 관리자 확인
   
-  const { data: adminData, error: adminError } = await supabaseAdmin.from('admins')
+  const { data: adminData } = await supabaseAdmin.from('admins')
     .select('user_id')
     .eq('user_id', userData.id)
     .single();

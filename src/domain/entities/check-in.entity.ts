@@ -13,6 +13,8 @@ export interface CheckInProps {
   status: CheckInStatus
   checkInBy: string // 체크인 처리한 관리자 ID
   checkOutBy?: string // 체크아웃 처리한 관리자 ID
+  paymentAmount?: number // 결제 금액
+  paymentMethod?: string // 결제 방법 (cash, card, transfer 등)
   notes?: string
   createdAt: Date
   updatedAt: Date
@@ -31,6 +33,8 @@ export class CheckIn {
   get status(): CheckInStatus { return this.props.status }
   get checkInBy(): string { return this.props.checkInBy }
   get checkOutBy(): string | undefined { return this.props.checkOutBy }
+  get paymentAmount(): number | undefined { return this.props.paymentAmount }
+  get paymentMethod(): string | undefined { return this.props.paymentMethod }
   get notes(): string | undefined { return this.props.notes }
   get createdAt(): Date { return this.props.createdAt }
   get updatedAt(): Date { return this.props.updatedAt }
@@ -74,6 +78,20 @@ export class CheckIn {
       checkOutBy: adminId,
       status: 'checked_out',
       notes: notes || this.props.notes,
+      updatedAt: new Date()
+    })
+  }
+
+  // 결제 정보 업데이트
+  updatePayment(amount: number, method: string): CheckIn {
+    if (amount < 0) {
+      throw new Error('결제 금액은 0원 이상이어야 합니다')
+    }
+
+    return new CheckIn({
+      ...this.props,
+      paymentAmount: amount,
+      paymentMethod: method,
       updatedAt: new Date()
     })
   }

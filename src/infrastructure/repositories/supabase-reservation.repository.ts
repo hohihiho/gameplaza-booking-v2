@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { IReservationRepository } from '../../domain/repositories/reservation.repository.interface'
+import { IReservationRepository, ReservationFilterOptions, ReservationListResult } from '../../domain/repositories/reservation.repository.interface'
 import { Reservation } from '../../domain/entities/reservation'
 import { KSTDateTime } from '../../domain/value-objects/kst-datetime'
 import { TimeSlot } from '../../domain/value-objects/time-slot'
@@ -34,19 +34,44 @@ export class SupabaseReservationRepository implements IReservationRepository {
     return this.toDomain(data)
   }
 
-  async findByUserId(userId: string): Promise<Reservation[]> {
-    const { data, error } = await this.supabase
+  async findByUserId(userId: string, options?: ReservationFilterOptions): Promise<ReservationListResult> {
+    let query = this.supabase
       .from('reservations')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', userId)
-      .order('date', { ascending: false })
+
+    // 상태 필터
+    if (options?.status && options.status.length > 0) {
+      query = query.in('status', options.status)
+    }
+
+    // 날짜 범위 필터
+    if (options?.dateFrom) {
+      query = query.gte('date', options.dateFrom.toISOString().split('T')[0])
+    }
+    if (options?.dateTo) {
+      query = query.lte('date', options.dateTo.toISOString().split('T')[0])
+    }
+
+    // 페이징
+    const page = options?.page || 1
+    const pageSize = options?.pageSize || 10
+    const offset = (page - 1) * pageSize
+    query = query.range(offset, offset + pageSize - 1)
+
+    query = query.order('date', { ascending: false })
       .order('time_slot', { ascending: false })
+
+    const { data, error, count } = await query
 
     if (error) {
       throw new Error(`Failed to find reservations: ${error.message}`)
     }
 
-    return (data || []).map(record => this.toDomain(record))
+    return {
+      reservations: (data || []).map(record => this.toDomain(record)),
+      totalCount: count || 0
+    }
   }
 
   async findByDeviceId(deviceId: string): Promise<Reservation[]> {
@@ -169,6 +194,110 @@ export class SupabaseReservationRepository implements IReservationRepository {
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
     })
+  }
+
+  async findByDeviceAndTimeRange(
+    deviceId: string,
+    startTime: KSTDateTime,
+    endTime: KSTDateTime
+  ): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .gte('date', startTime.dateString)
+      .lte('date', endTime.dateString)
+
+    if (error) {
+      throw new Error(`Failed to find reservations by device and time range: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
+  }
+
+  async findByUserAndTimeRange(
+    userId: string,
+    startTime: KSTDateTime,
+    endTime: KSTDateTime
+  ): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', startTime.dateString)
+      .lte('date', endTime.dateString)
+
+    if (error) {
+      throw new Error(`Failed to find reservations by user and time range: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
+  }
+
+  async findByDateRange(
+    startDate: KSTDateTime,
+    endDate: KSTDateTime
+  ): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .gte('date', startDate.dateString)
+      .lte('date', endDate.dateString)
+
+    if (error) {
+      throw new Error(`Failed to find reservations by date range: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
+  }
+
+  async findByDeviceAndTimeSlot(
+    deviceId: string,
+    date: KSTDateTime,
+    timeSlot: TimeSlot
+  ): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .eq('date', date.dateString)
+      .eq('time_slot', timeSlot.displayString)
+
+    if (error) {
+      throw new Error(`Failed to find reservations by device and time slot: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
+  }
+
+  async findActiveByDeviceId(deviceId: string): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .in('status', ['pending', 'approved', 'checked_in'])
+
+    if (error) {
+      throw new Error(`Failed to find active reservations by device: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
+  }
+
+  async findFutureByDeviceId(deviceId: string): Promise<Reservation[]> {
+    const today = KSTDateTime.now().dateString
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .gte('date', today)
+      .in('status', ['pending', 'approved'])
+
+    if (error) {
+      throw new Error(`Failed to find future reservations by device: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record))
   }
 
   private toRecord(reservation: Reservation): ReservationRecord {

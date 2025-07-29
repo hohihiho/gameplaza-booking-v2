@@ -1,8 +1,8 @@
 // 노쇼 처리 API 엔드포인트
 // 비전공자 설명: 고객이 예약 시간에 방문하지 않았을 때 예약을 취소하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(
@@ -13,7 +13,7 @@ export async function POST(
     const { id } = await params;
     
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않았습니다' }, { status: 401 });
     }
@@ -44,7 +44,7 @@ export async function POST(
 
     // 예약 정보 조회
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservation, error: reservationError } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -77,7 +77,7 @@ export async function POST(
       console.log('payment_status 처리 생략');
     }
 
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()

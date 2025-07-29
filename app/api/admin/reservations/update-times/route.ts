@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // 7월 15일 11시 이후 예약들 조회
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservations, error: fetchError } = await supabaseAdmin.from('reservations')
       .select('id, start_time, end_time')
       .eq('date', '2025-07-15')
       .gte('start_time', '11:00:00')
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // 9시 시작하는 예약들도 13시 종료로 변경
     
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: earlyReservations } = await supabaseAdmin.from('reservations')
       .select('id')
       .eq('date', '2025-07-15')
       .eq('start_time', '09:00:00');

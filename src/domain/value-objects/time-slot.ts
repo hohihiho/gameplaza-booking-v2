@@ -117,4 +117,28 @@ export class TimeSlot {
   isYouthAllowed(): boolean {
     return this.normalizedStartHour >= 9 && this.normalizedEndHour <= 22
   }
+
+  /**
+   * 모든 가능한 시간 슬롯을 반환
+   */
+  static getAllSlots(): TimeSlot[] {
+    const slots: TimeSlot[] = []
+    
+    // 일반 시간대 (10시-22시)
+    for (let start = 10; start <= 20; start += 2) {
+      const end = start + 2
+      if (end <= 22) {
+        slots.push(TimeSlot.create(start, end))
+      }
+    }
+    
+    // 밤샘 시간대 (22시-24시)
+    slots.push(TimeSlot.create(22, 24))
+    
+    // 새벽 시간대 (24시-26시, 26시-28시)
+    slots.push(TimeSlot.create(24, 26))
+    slots.push(TimeSlot.create(26, 28))
+    
+    return slots
+  }
 }

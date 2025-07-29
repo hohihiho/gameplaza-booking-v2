@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 
 // 메트릭 저장을 위한 메모리 스토어 (실제로는 Redis나 다른 저장소 사용)
 const metricsStore = {

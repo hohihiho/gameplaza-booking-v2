@@ -1,6 +1,6 @@
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
-import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
-import { UserRepository } from '@/src/domain/repositories/user.repository.interface'
+import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface'
+import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 
 export interface HandleNoShowRequest {
@@ -10,8 +10,7 @@ export interface HandleNoShowRequest {
 }
 
 export interface HandleNoShowResponse {
-  reservationId: string
-  status: string
+  reservation: any
 }
 
 /**
@@ -45,7 +44,7 @@ export class HandleNoShowUseCase {
 
     // 4. 체크인 여부 확인
     const checkIn = await this.checkInRepository.findByReservationId(request.reservationId)
-    if (checkIn && checkIn.isCheckedIn()) {
+    if (checkIn && checkIn.isActive()) {
       throw new Error('이미 체크인된 예약은 노쇼 처리할 수 없습니다')
     }
 
@@ -67,8 +66,7 @@ export class HandleNoShowUseCase {
     await this.reservationRepository.update(noShowReservation)
 
     return {
-      reservationId: reservation.id,
-      status: noShowReservation.status.value
+      reservation: noShowReservation
     }
   }
 
@@ -78,16 +76,15 @@ export class HandleNoShowUseCase {
    */
   async processAutoNoShow(): Promise<HandleNoShowResponse[]> {
     const now = KSTDateTime.now()
-    const oneHourAgo = new Date(now.toDate().getTime() - 60 * 60 * 1000)
     
-    // 지난 1시간 동안의 승인된 예약 조회
-    const startDate = KSTDateTime.create(oneHourAgo)
-    const endDate = now
-
-    // 시간 범위에 해당하는 모든 예약 조회
+    // 오늘과 어제의 예약을 모두 조회 (밤샘 예약 포함)
+    const yesterday = now.addDays(-1)
+    const today = now
+    
+    // 어제와 오늘의 모든 예약 조회
     const reservations = await this.reservationRepository.findByDateRange(
-      startDate,
-      endDate
+      yesterday,
+      today
     )
 
     const results: HandleNoShowResponse[] = []
@@ -113,8 +110,7 @@ export class HandleNoShowUseCase {
           await this.reservationRepository.update(noShowReservation)
           
           results.push({
-            reservationId: reservation.id,
-            status: noShowReservation.status.value
+            reservation: noShowReservation
           })
         } catch (error) {
           console.error(`Failed to process no-show for reservation ${reservation.id}:`, error)

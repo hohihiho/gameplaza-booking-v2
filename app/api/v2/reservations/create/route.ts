@@ -3,7 +3,7 @@ import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservat
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { z } from 'zod'
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Bad Request',
-          message: firstError.message 
+          message: firstError?.message ?? '유효하지 않은 요청입니다' 
         },
         { status: 400 }
       )
@@ -54,28 +54,13 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data
 
-    // 3. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 4. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 3. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 5. 유스케이스 실행
+    // 4. 유스케이스 실행
     const useCase = new CreateReservationV2UseCase(
       reservationRepository,
       deviceRepository,
@@ -91,7 +76,7 @@ export async function POST(request: NextRequest) {
       userNotes: data.userNotes
     })
 
-    // 6. 실시간 업데이트를 위한 브로드캐스트
+    // 5. 실시간 업데이트를 위한 브로드캐스트
     try {
       await supabase
         .channel('reservations')
@@ -111,7 +96,7 @@ export async function POST(request: NextRequest) {
       // 브로드캐스트 실패는 무시하고 계속 진행
     }
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json({
       reservation: {
         id: result.reservation.id,

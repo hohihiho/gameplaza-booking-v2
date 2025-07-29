@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { AnalyticsService } from '@/lib/services/analytics.service'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { DeviceRepository } from '@/lib/repositories/device.repository'
 
 export const GET = withAuth(
-  async (req, { user }) => {
+  async (_req, { user: _user }) => {
     try {
     const supabase = createAdminClient()
     const analyticsService = new AnalyticsService(supabase)
@@ -33,13 +33,13 @@ export const GET = withAuth(
 
     // 1. 매출 데이터
     const todayRevenue = await analyticsService.getRevenueAnalytics({
-      startDate: todayStr,
-      endDate: todayStr
+      startDate: todayStr!,
+      endDate: todayStr!
     })
 
     const yesterdayRevenue = await analyticsService.getRevenueAnalytics({
-      startDate: yesterdayStr,
-      endDate: yesterdayStr
+      startDate: yesterdayStr!,
+      endDate: yesterdayStr!
     })
 
     const revenue = todayRevenue.summary.totalRevenue
@@ -50,7 +50,7 @@ export const GET = withAuth(
 
     // 2. 예약 현황
     const todayReservations = await reservationRepo.findByDateAndDevice(
-      todayStr,
+      todayStr!,
       '', // 모든 기기
       ['pending', 'approved', 'checked_in', 'completed', 'cancelled', 'rejected']
     )
@@ -64,7 +64,7 @@ export const GET = withAuth(
     const pendingReservations = allPendingReservations.data?.length || 0
 
     const yesterdayReservations = await reservationRepo.findByDateAndDevice(
-      yesterdayStr,
+      yesterdayStr!,
       '', // 모든 기기
       ['pending', 'approved', 'checked_in', 'completed', 'cancelled', 'rejected']
     )
@@ -79,7 +79,7 @@ export const GET = withAuth(
     const usingCount = currentlyUsing.length
 
     // 체크인 대기중 계산
-    const currentMinute = kstNow.getMinutes()
+    // const currentMinute = kstNow.getMinutes() // 현재 사용하지 않음
     const thirtyMinutesBefore = new Date(kstNow)
     thirtyMinutesBefore.setMinutes(thirtyMinutesBefore.getMinutes() - 30)
     const beforeHour = thirtyMinutesBefore.getHours()
@@ -129,8 +129,8 @@ export const GET = withAuth(
     // 데이터 형식 변환
     const formattedRecentReservations = recentReservations?.map(r => {
       const device = r.devices
-      const deviceType = device?.device_types
-      const user = r.users
+      const deviceType = (device as any)?.device_types
+      const user = (r as any).users
       
       // created_at 시간 차이 계산
       const createdAt = new Date(r.created_at)
@@ -156,7 +156,7 @@ export const GET = withAuth(
 
       return {
         id: r.id,
-        user_name: user?.nickname || user?.name || '알 수 없음',
+        user_name: (user as any)?.nickname || (user as any)?.name || '알 수 없음',
         device_name: deviceName,
         date: r.date,
         time: `${r.start_time.slice(0, 5)}-${r.end_time.slice(0, 5)}`,

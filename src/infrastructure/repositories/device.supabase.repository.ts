@@ -135,4 +135,108 @@ export class DeviceSupabaseRepository implements DeviceRepository {
       updated_at: device.updatedAt.toISOString()
     }
   }
+
+  async findByStatus(status: any): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .eq('status', status)
+
+    if (error) {
+      throw new Error(`Failed to find devices by status: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async findAvailable(): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .eq('status', 'available')
+
+    if (error) {
+      throw new Error(`Failed to find available devices: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async findOperational(): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .in('status', ['available', 'in_use', 'reserved'])
+
+    if (error) {
+      throw new Error(`Failed to find operational devices: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async findByTypeId(typeId: string): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .eq('device_type_id', typeId)
+
+    if (error) {
+      throw new Error(`Failed to find devices by type: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async findByTypeIdAndStatus(typeId: string, status: any): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .eq('device_type_id', typeId)
+      .eq('status', status)
+
+    if (error) {
+      throw new Error(`Failed to find devices by type and status: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async findByLocation(location: string): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('*')
+      .eq('location', location)
+
+    if (error) {
+      throw new Error(`Failed to find devices by location: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row as DeviceRow))
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    return !error && !!data
+  }
+
+  async existsByDeviceNumber(deviceNumber: string, excludeId?: string): Promise<boolean> {
+    let query = this.supabase
+      .from('devices')
+      .select('id')
+      .eq('device_number', deviceNumber)
+
+    if (excludeId) {
+      query = query.neq('id', excludeId)
+    }
+
+    const { data, error } = await query.single()
+
+    return !error && !!data
+  }
 }

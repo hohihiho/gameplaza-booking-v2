@@ -25,7 +25,7 @@ import {
   Tooltip, 
   Area,
   AreaChart
-} from 'recharts';
+} from '@/app/components/charts/LazyRecharts';
 import { 
   ChartWrapper, 
   CustomTooltip, 
@@ -322,9 +322,9 @@ export default function RevenueAnalyticsPage() {
                 <XAxis 
                   dataKey="date" 
                   tick={getAxisStyle(theme)}
-                  tickFormatter={(value) => {
+                  tickFormatter={(value: string) => {
                     if (dateRange === 'week' && value.includes('(')) {
-                      return value.split('(')[1].replace(')', '');
+                      return value.split('(')[1]?.replace(')', '') || value;
                     }
                     return value;
                   }}

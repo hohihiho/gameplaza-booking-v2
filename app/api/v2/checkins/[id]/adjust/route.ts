@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdjustTimeAndAmountUseCase } from '@/src/application/use-cases/checkin/adjust-time-and-amount.use-case'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 시간/금액 조정 API
@@ -22,9 +22,12 @@ import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middl
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -83,37 +86,22 @@ export async function PATCH(
       )
     }
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
+    // 5. 유스케이스 실행
     const useCase = new AdjustTimeAndAmountUseCase(checkInRepository)
     const result = await useCase.execute({
-      checkInId: params.id,
+      checkInId: id,
       adjustedStartTime: adjustedStartTime ? new Date(adjustedStartTime) : undefined,
       adjustedEndTime: adjustedEndTime ? new Date(adjustedEndTime) : undefined,
       adjustedAmount,
       adjustmentReason,
       adminId: user.id
-    })
+    } as any)
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json(result, { status: 200 })
 
   } catch (error) {

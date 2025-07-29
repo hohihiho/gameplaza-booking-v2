@@ -13,7 +13,7 @@ export async function PATCH(
 
     // 기기 타입 업데이트
     const supabaseAdmin = createAdminClient();
-  const { data: deviceTypesData } = await supabaseAdmin.from('device_types')
+  const { data, error } = await supabaseAdmin.from('device_types')
       .update({ is_rentable })
       .eq('id', id)
       .select()

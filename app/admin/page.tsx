@@ -73,13 +73,33 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/admin/dashboard');
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      console.log('Fetching dashboard data...');
+      const response = await fetch('/api/admin/dashboard', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 쿠키 포함
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       
       const dashboardData = await response.json();
+      console.log('Dashboard data received:', dashboardData);
       setData(dashboardData);
     } catch (error) {
       console.error('Dashboard data fetch error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
       setIsLoading(false);
     }

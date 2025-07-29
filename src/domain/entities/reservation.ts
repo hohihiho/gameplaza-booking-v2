@@ -1,6 +1,7 @@
 import { KSTDateTime } from '../value-objects/kst-datetime'
 import { TimeSlot } from '../value-objects/time-slot'
 import { ReservationStatus, ReservationStatusType } from '../value-objects/reservation-status'
+import { ReservationDate } from '../value-objects/reservation-date'
 
 export interface ReservationProps {
   id: string
@@ -15,6 +16,7 @@ export interface ReservationProps {
   checkedInAt?: Date | null
   actualStartTime?: Date | null
   actualEndTime?: Date | null
+  note?: string | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -33,6 +35,7 @@ export class Reservation {
     private _checkedInAt: Date | null,
     private _actualStartTime: Date | null,
     private _actualEndTime: Date | null,
+    private _note: string | null,
     public readonly createdAt: Date,
     private _updatedAt: Date
   ) {}
@@ -54,6 +57,7 @@ export class Reservation {
       props.checkedInAt || null,
       props.actualStartTime || null,
       props.actualEndTime || null,
+      props.note || null,
       props.createdAt || now,
       props.updatedAt || now
     )
@@ -105,20 +109,36 @@ export class Reservation {
     return this._actualEndTime
   }
 
+  get note(): string | null {
+    return this._note
+  }
+
   get startDateTime(): KSTDateTime {
     const [year, month, day] = this._date.dateString.split('-').map(Number)
+    
+    // month와 day가 undefined인 경우 처리
+    if (!month || !day) {
+      throw new Error('유효하지 않은 날짜 형식입니다')
+    }
+    
     const startHour = this._timeSlot.normalizedStartHour
     return KSTDateTime.create(new Date(year, month - 1, day, startHour, 0))
   }
 
   get endDateTime(): KSTDateTime {
     const [year, month, day] = this._date.dateString.split('-').map(Number)
+    
+    // month와 day가 undefined인 경우 처리
+    if (!month || !day) {
+      throw new Error('유효하지 않은 날짜 형식입니다')
+    }
+    
     const endHour = this._timeSlot.normalizedEndHour
     let endDay = day
     
     // 자정을 넘어가는 경우 처리
     if (this._timeSlot.endHour >= 24 && this._timeSlot.startHour < 24) {
-      endDay += 1
+      endDay = endDay !== undefined ? endDay + 1 : 1
     }
     
     return KSTDateTime.create(new Date(year, month - 1, endDay, endHour, 0))
@@ -352,8 +372,8 @@ export class Reservation {
       throw new Error('현재 상태에서는 날짜를 변경할 수 없습니다')
     }
     
-    this.props.date = newDate
-    this.props.updatedAt = KSTDateTime.now()
+    this._date = newDate.toKSTDateTime()
+    this._updatedAt = KSTDateTime.now().toDate()
   }
 
   /**
@@ -364,16 +384,16 @@ export class Reservation {
       throw new Error('현재 상태에서는 시간을 변경할 수 없습니다')
     }
     
-    this.props.timeSlot = newTimeSlot
-    this.props.updatedAt = KSTDateTime.now()
+    this._timeSlot = newTimeSlot
+    this._updatedAt = KSTDateTime.now().toDate()
   }
 
   /**
    * 메모 업데이트
    */
   updateNote(note: string): void {
-    this.props.note = note
-    this.props.updatedAt = KSTDateTime.now()
+    this._note = note
+    this._updatedAt = KSTDateTime.now().toDate()
   }
 
   /**

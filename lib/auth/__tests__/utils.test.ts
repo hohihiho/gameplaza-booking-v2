@@ -2,9 +2,7 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 import { 
   isAuthenticated, 
   hasAdminAccess,
-  getSessionUser,
-  validatePhoneNumber,
-  formatPhoneNumber 
+  getSessionUser
 } from '../utils-new'
 import { createClient } from '@/lib/supabase'
 
@@ -128,7 +126,6 @@ describe('Auth Utils', () => {
       const mockUser = {
         id: 'user-123',
         email: 'test@example.com',
-        phone: '010-1234-5678',
       }
       mockSupabaseClient.auth.getSession.mockResolvedValue({
         data: {
@@ -159,37 +156,4 @@ describe('Auth Utils', () => {
     })
   })
 
-  describe('Phone Number Utils', () => {
-    describe('validatePhoneNumber', () => {
-      it('올바른 전화번호 형식이면 true를 반환해야 함', () => {
-        expect(validatePhoneNumber('010-1234-5678')).toBe(true)
-        expect(validatePhoneNumber('011-123-4567')).toBe(true)
-        expect(validatePhoneNumber('016-1234-5678')).toBe(true)
-        expect(validatePhoneNumber('01012345678')).toBe(true)
-      })
-
-      it('잘못된 전화번호 형식이면 false를 반환해야 함', () => {
-        expect(validatePhoneNumber('123-1234-5678')).toBe(false)
-        expect(validatePhoneNumber('010-12-5678')).toBe(false)
-        expect(validatePhoneNumber('abcd-efgh-ijkl')).toBe(false)
-        expect(validatePhoneNumber('')).toBe(false)
-      })
-    })
-
-    describe('formatPhoneNumber', () => {
-      it('하이픈이 없는 번호를 포맷팅해야 함', () => {
-        expect(formatPhoneNumber('01012345678')).toBe('010-1234-5678')
-        expect(formatPhoneNumber('0111234567')).toBe('011-123-4567')
-      })
-
-      it('이미 포맷팅된 번호는 그대로 반환해야 함', () => {
-        expect(formatPhoneNumber('010-1234-5678')).toBe('010-1234-5678')
-      })
-
-      it('잘못된 형식은 그대로 반환해야 함', () => {
-        expect(formatPhoneNumber('12345')).toBe('12345')
-        expect(formatPhoneNumber('')).toBe('')
-      })
-    })
-  })
 })

@@ -38,7 +38,7 @@ export async function POST() {
 
     // 테이블 생성 실행
     const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('reservation_rules')
+  const { error: createError } = await supabaseAdmin.from('reservation_rules')
       .select('id')
       .limit(1);
 

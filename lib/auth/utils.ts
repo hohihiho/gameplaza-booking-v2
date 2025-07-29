@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
-import { ExtendedSession, ExtendedUser, AuthResponse } from './types';
+import { ExtendedSession, ExtendedUser, AuthResponse, AuthenticatedRequest } from './types';
+
+export type { AuthenticatedRequest };
 
 /**
  * 세션에서 현재 사용자 정보를 가져옵니다.
@@ -10,7 +12,7 @@ import { ExtendedSession, ExtendedUser, AuthResponse } from './types';
  */
 export async function getSession(): Promise<ExtendedSession | null> {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return null;
     }

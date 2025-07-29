@@ -1,8 +1,8 @@
 // 시간 조정 API 엔드포인트
 // 비전공자 설명: 관리자가 실제 이용시간을 조정할 때 호출되는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 // 조정된 금액 계산 함수
@@ -21,8 +21,8 @@ function calculateHours(startTime: string, endTime: string): number {
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);
   
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
+  const startMinutes = (startHour || 0) * 60 + (startMin || 0);
+  const endMinutes = (endHour || 0) * 60 + (endMin || 0);
   
   return (endMinutes - startMinutes) / 60;
 }
@@ -34,7 +34,7 @@ export async function POST(
   try {
     const { id } = await params
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: '인증되지 않았습니다' }, { status: 401 });
     }
@@ -76,7 +76,7 @@ export async function POST(
 
     // 예약 정보 조회
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservation, error: reservationError } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -92,7 +92,7 @@ export async function POST(
 
     // 시간 조정 이력 저장
     
-  const { error } = await supabaseAdmin.from('time_adjustments')
+  const { error: adjustmentError } = await supabaseAdmin.from('time_adjustments')
       .insert({
         reservation_id: id,
         adjusted_by: userData.id,
@@ -123,7 +123,7 @@ export async function POST(
       updateData.actual_end_time = actual_end_time;
     }
 
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: _updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
       .update(updateData)
       .eq('id', id)
       .select()

@@ -27,7 +27,7 @@ describe('UpdateAdminPermissionsUseCase', () => {
     }
   })
 
-  const mockUser = new User({
+  const mockUser = User.create({
     id: 'user-regular-1',
     email: 'admin@example.com',
     fullName: '관리자',
@@ -105,14 +105,9 @@ describe('UpdateAdminPermissionsUseCase', () => {
         permissions: request.permissions,
         isSuperAdmin: false
       })
-      expect(adminRepository.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'admin-regular-1',
-          permissions: expect.objectContaining({
-            _permissions: request.permissions
-          })
-        })
-      )
+      const savedAdmin = adminRepository.update.mock.calls[0][0]
+      expect(savedAdmin.id).toBe('admin-regular-1')
+      expect(savedAdmin.permissions.toJSON()).toEqual(request.permissions)
     })
 
     it('슈퍼관리자의 권한은 변경할 수 없다', async () => {

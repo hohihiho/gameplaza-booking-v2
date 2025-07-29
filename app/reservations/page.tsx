@@ -5,13 +5,75 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
+import { useReservationRealtime } from '@/lib/hooks/useReservationRealtime';
+import { useApiError } from '@/lib/hooks/useApiError';
+import { ErrorCode } from '@/lib/api/response';
+import { toast } from 'react-hot-toast';
+
+// v2 API 응답 타입 (snake_case)
+interface ReservationV2 {
+  id: string;
+  reservation_number: string;
+  user_id: string;
+  device_id: string;
+  device_name: string;
+  device_type: string;
+  device_number?: string;
+  date: string;
+  start_hour: number;
+  end_hour: number;
+  credit_type: string;
+  player_count: number;
+  total_amount: number;
+  status: string;
+  user_notes?: string;
+  admin_notes?: string;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// v1 API 응답 타입 (camelCase)
+interface ReservationV1 {
+  id: string;
+  reservationNumber: string;
+  userId: string;
+  deviceId: string;
+  deviceName?: string;
+  deviceType?: string;
+  deviceNumber?: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  time_slot?: string;
+  creditType: string;
+  playerCount: number;
+  totalAmount: number;
+  status: string;
+  userNotes?: string;
+  adminNotes?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  devices?: {
+    device_number: string;
+    device_types: {
+      name: string;
+      model_name: string;
+    };
+  };
+}
+
+// 통합 예약 타입
+type ReservationData = ReservationV2 | ReservationV1;
 
 // 시간대 구분 함수
-const getShiftType = (startTime: string) => {
+const getShiftType = (startTime: string | undefined) => {
   if (!startTime) return null;
   const [hour] = startTime.split(':');
   const h = parseInt(hour);
@@ -48,6 +110,7 @@ export default function ReservationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const { handleError } = useApiError();
   
   const [activeTab, setActiveTab] = useState('all');
   const [reservations, setReservations] = useState<any[]>([]);
@@ -70,9 +133,20 @@ export default function ReservationsPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   // 영업일 기준 날짜 변환 함수
-  const getBusinessDate = (date: string, startTime: string) => {
+  const getBusinessDate = (date: string, startTime: string | number) => {
     const [year, month, day] = date.split('-').map(Number);
-    const [hour] = startTime.split(':').map(Number);
+    
+    // month와 day가 undefined인 경우 처리
+    if (!month || !day) {
+      return new Date(); // 기본값으로 현재 날짜 반환
+    }
+    
+    let hour: number;
+    if (typeof startTime === 'number') {
+      hour = startTime;
+    } else {
+      [hour] = startTime.split(':').map(Number);
+    }
     
     // 0~5시는 전날 영업일로 간주
     if (hour >= 0 && hour <= 5) {
@@ -115,19 +189,23 @@ export default function ReservationsPage() {
           return a.date ? -1 : (b.date ? 1 : 0);
         }
         
+        // v2 API는 start_hour를 사용, v1은 start_time을 사용
+        const aStartTime = a.start_hour ? `${a.start_hour}:00` : (a.start_time || a.startTime || '00:00:00');
+        const bStartTime = b.start_hour ? `${b.start_hour}:00` : (b.start_time || b.startTime || '00:00:00');
+        
         // 영업일 기준으로 날짜 계산
-        const aBusinessDate = getBusinessDate(a.date, a.start_time || '00:00:00');
-        const bBusinessDate = getBusinessDate(b.date, b.start_time || '00:00:00');
+        const aBusinessDate = getBusinessDate(a.date, aStartTime);
+        const bBusinessDate = getBusinessDate(b.date, bStartTime);
         
         // 시간 파싱
         let aHour = 0, aMinute = 0, bHour = 0, bMinute = 0;
-        if (a.start_time) {
-          const timeParts = a.start_time.split(':');
+        if (aStartTime) {
+          const timeParts = aStartTime.split(':');
           aHour = parseInt(timeParts[0] || '0');
           aMinute = parseInt(timeParts[1] || '0');
         }
-        if (b.start_time) {
-          const timeParts = b.start_time.split(':');
+        if (bStartTime) {
+          const timeParts = bStartTime.split(':');
           bHour = parseInt(timeParts[0] || '0');
           bMinute = parseInt(timeParts[1] || '0');
         }
@@ -155,8 +233,8 @@ export default function ReservationsPage() {
         return aActualMinutes - bActualMinutes;
       } else {
         // 완료/취소/거절/노쇼: 최신순 (생성일 기준)
-        const aCreated = new Date(a.created_at || a.updated_at);
-        const bCreated = new Date(b.created_at || b.updated_at);
+        const aCreated = new Date(a.created_at || a.createdAt || a.updated_at || a.updatedAt);
+        const bCreated = new Date(b.created_at || b.createdAt || b.updated_at || b.updatedAt);
         return bCreated.getTime() - aCreated.getTime();
       }
     });
@@ -220,7 +298,7 @@ export default function ReservationsPage() {
           // 승인된 예약은 완료로
           if (reservation.status === 'approved') {
             try {
-              const response = await fetch(`/api/reservations/${reservation.id}`, {
+              const response = await fetch(`/api/v2/reservations/${reservation.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'completed' })
@@ -240,7 +318,7 @@ export default function ReservationsPage() {
           // 대기중인 예약은 취소로
           else if (reservation.status === 'pending') {
             try {
-              const response = await fetch(`/api/reservations/${reservation.id}`, {
+              const response = await fetch(`/api/v2/reservations/${reservation.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -284,6 +362,15 @@ export default function ReservationsPage() {
       return;
     }
     
+    console.log('세션 정보:', session);
+    console.log('사용자 정보:', session.user);
+    console.log('세션 상태:', status);
+    
+    // 세션이 있는지 브라우저 쿠키도 확인
+    if (typeof window !== 'undefined') {
+      console.log('브라우저 쿠키:', document.cookie);
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -305,9 +392,12 @@ export default function ReservationsPage() {
         cancelled: updatedData?.filter((r: any) => r.status === 'cancelled' || r.status === 'rejected').length || 0,
       };
       setTabCounts(counts);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load reservations:', error);
-      setError('예약 목록을 불러올 수 없습니다');
+      // 에러 메시지 개선
+      const errorMessage = error?.message || error?.toString() || '예약 목록을 불러올 수 없습니다';
+      handleError(error);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -349,6 +439,38 @@ export default function ReservationsPage() {
     router.push(`/reservations?${params.toString()}`);
   };
 
+  // 실시간 동기화 설정 (일시적으로 비활성화)
+  /*
+  useReservationRealtime({
+    userId: session?.user?.id,
+    onUpdate: (payload) => {
+      // 예약 상태가 업데이트되면 목록 새로고침
+      if (payload.new && payload.old) {
+        setAllReservations(prev => 
+          prev.map(res => res.id === payload.new.id ? payload.new : res)
+        );
+        showToastMessage('예약 상태가 업데이트되었습니다');
+      }
+    },
+    onInsert: (payload) => {
+      // 새 예약이 추가되면 목록에 추가
+      if (payload.new) {
+        setAllReservations(prev => [payload.new, ...prev]);
+        showToastMessage('새로운 예약이 추가되었습니다');
+      }
+    },
+    onDelete: (payload) => {
+      // 예약이 삭제되면 목록에서 제거
+      if (payload.old) {
+        setAllReservations(prev => 
+          prev.filter(res => res.id !== payload.old.id)
+        );
+        showToastMessage('예약이 삭제되었습니다');
+      }
+    }
+  });
+  */
+
   const handleCancel = (reservationId: string) => {
     if (!session) {
       alert('로그인이 필요합니다');
@@ -372,7 +494,7 @@ export default function ReservationsPage() {
       showToastMessage('예약이 성공적으로 취소되었습니다');
     } catch (error: any) {
       console.error('예약 취소 오류:', error);
-      showToastMessage(error.message || '예약 취소에 실패했습니다');
+      handleError(error);
     } finally {
       setIsCancelling(false);
     }
@@ -643,9 +765,9 @@ export default function ReservationsPage() {
             <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-lg font-semibold mb-2">예약 내역이 없습니다</p>
             <p className="text-gray-600 dark:text-gray-400 mb-4">새로운 예약을 만들어보세요!</p>
-            <a href="/reservations/new" className="text-indigo-600 hover:underline">
+            <Link href="/reservations/new" className="text-indigo-600 hover:underline">
               예약하러 가기
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -669,19 +791,19 @@ export default function ReservationsPage() {
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
-                            {reservation.devices?.device_types?.name}
-                            {reservation.devices?.device_types?.model_name && (
+                            {reservation.device_name || reservation.deviceName || reservation.devices?.device_types?.name}
+                            {(reservation.device_type || reservation.deviceType || reservation.devices?.device_types?.model_name) && (
                               <>
                                 <br className="md:hidden" />
                                 <span className="font-medium text-gray-600 dark:text-gray-400 md:ml-1">
-                                  {reservation.devices.device_types.model_name}
+                                  {reservation.device_type || reservation.deviceType || reservation.devices?.device_types?.model_name}
                                 </span>
                               </>
                             )}
                           </h3>
-                          {reservation.devices?.device_number && (
+                          {(reservation.device_number || reservation.deviceNumber || reservation.devices?.device_number) && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {reservation.devices.device_number}번 기기
+                              {reservation.device_number || reservation.deviceNumber || reservation.devices?.device_number}번 기기
                             </p>
                           )}
                         </div>
@@ -702,9 +824,20 @@ export default function ReservationsPage() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                           <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{formatTime(reservation.start_time, reservation.end_time)}</span>
+                          <span className="text-sm">
+                            {reservation.time_slot ? 
+                              reservation.time_slot : 
+                              reservation.start_hour && reservation.end_hour ?
+                                `${formatTimeKST(`${reservation.start_hour}:00`)} - ${formatTimeKST(`${reservation.end_hour}:00`)}` :
+                                formatTime(reservation.start_time || reservation.startTime, reservation.end_time || reservation.endTime)
+                            }
+                          </span>
                           {(() => {
-                            const shiftType = getShiftType(reservation.start_time);
+                            // v2 API는 start_hour를 사용
+                            const startTime = reservation.start_hour ? 
+                              `${reservation.start_hour}:00` : 
+                              (reservation.start_time || reservation.startTime);
+                            const shiftType = getShiftType(startTime);
                             const badgeStyle = getShiftBadgeStyle(shiftType);
                             
                             if (badgeStyle) {
@@ -719,30 +852,30 @@ export default function ReservationsPage() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                           <CreditCard className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm font-medium">{reservation.total_amount?.toLocaleString()}원</span>
+                          <span className="text-sm font-medium">{(reservation.total_amount || reservation.totalAmount)?.toLocaleString()}원</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                           <Sparkles className="w-4 h-4 text-gray-400" />
                           <span className="text-sm">
-                            {reservation.credit_type === 'fixed' ? '고정크레딧' : 
-                             reservation.credit_type === 'freeplay' ? '프리플레이' : 
-                             reservation.credit_type === 'unlimited' ? '무한크레딧' : 
-                             reservation.credit_type}
+                            {(reservation.credit_type || reservation.creditType) === 'fixed' ? '고정크레딧' : 
+                             (reservation.credit_type || reservation.creditType) === 'freeplay' ? '프리플레이' : 
+                             (reservation.credit_type || reservation.creditType) === 'unlimited' ? '무한크레딧' : 
+                             (reservation.credit_type || reservation.creditType)}
                           </span>
                         </div>
                       </div>
                       
                       {/* 추가 정보 */}
-                      {(reservation.user_notes || reservation.admin_notes || reservation.rejection_reason) && (
+                      {(reservation.user_notes || reservation.userNotes || reservation.admin_notes || reservation.adminNotes || reservation.rejection_reason || reservation.rejectionReason) && (
                         <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-sm">
-                          {reservation.user_notes && (
-                            <p className="text-gray-700 dark:text-gray-300 mb-1">💬 {reservation.user_notes}</p>
+                          {(reservation.user_notes || reservation.userNotes) && (
+                            <p className="text-gray-700 dark:text-gray-300 mb-1">💬 {reservation.user_notes || reservation.userNotes}</p>
                           )}
-                          {reservation.admin_notes && (
-                            <p className="text-gray-700 dark:text-gray-300 mb-1">📝 관리자: {reservation.admin_notes}</p>
+                          {(reservation.admin_notes || reservation.adminNotes) && (
+                            <p className="text-gray-700 dark:text-gray-300 mb-1">📝 관리자: {reservation.admin_notes || reservation.adminNotes}</p>
                           )}
-                          {reservation.rejection_reason && (
-                            <p className="text-red-600 dark:text-red-400">❌ 취소 사유: {reservation.rejection_reason}</p>
+                          {(reservation.rejection_reason || reservation.rejectionReason) && (
+                            <p className="text-red-600 dark:text-red-400">❌ 취소 사유: {reservation.rejection_reason || reservation.rejectionReason}</p>
                           )}
                         </div>
                       )}
@@ -751,7 +884,7 @@ export default function ReservationsPage() {
                       {(reservation.status === 'pending' || reservation.status === 'approved') && (
                         <div className="mt-4 flex justify-between items-center">
                           <span className="text-xs text-gray-500">
-                            예약번호: {reservation.reservation_number}
+                            예약번호: {reservation.reservation_number || reservation.reservationNumber}
                           </span>
                           <button
                             onClick={() => handleCancel(reservation.id)}

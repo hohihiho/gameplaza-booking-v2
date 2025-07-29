@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        /* 폰트 미리 로드 */
+        .font-preload {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            position: absolute;
+            left: -9999px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .favicon-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+    </style>
+</head>
+<body>
+    <h1>게임플라자 Favicon Generator</h1>
+    <p>Orbitron 폰트가 로드될 때까지 잠시 기다려주세요...</p>
+    <div class="font-preload">G</div>
+    
+    <div class="container">
+        <div class="favicon-box">
+            <h3>Light Mode (32x32)</h3>
+            <canvas id="light32" width="32" height="32"></canvas>
+            <br>
+            <button onclick="download('light32', 'favicon-light-32x32.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Dark Mode (32x32)</h3>
+            <canvas id="dark32" width="32" height="32"></canvas>
+            <br>
+            <button onclick="download('dark32', 'favicon-dark-32x32.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Light Mode (16x16)</h3>
+            <canvas id="light16" width="16" height="16"></canvas>
+            <br>
+            <button onclick="download('light16', 'favicon-light-16x16.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Dark Mode (16x16)</h3>
+            <canvas id="dark16" width="16" height="16"></canvas>
+            <br>
+            <button onclick="download('dark16', 'favicon-dark-16x16.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Light Mode (192x192) - 대빵 큰 버전</h3>
+            <canvas id="light192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="download('light192', 'favicon-light-192x192.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Dark Mode (192x192) - 대빵 큰 버전</h3>
+            <canvas id="dark192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="download('dark192', 'favicon-dark-192x192.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Light Mode (512x512) - 초대형</h3>
+            <canvas id="light512" width="512" height="512" style="max-width: 200px;"></canvas>
+            <br>
+            <button onclick="download('light512', 'favicon-light-512x512.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Dark Mode (512x512) - 초대형</h3>
+            <canvas id="dark512" width="512" height="512" style="max-width: 200px;"></canvas>
+            <br>
+            <button onclick="download('dark512', 'favicon-dark-512x512.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Light Mode (1024x1024) - 울트라</h3>
+            <canvas id="light1024" width="1024" height="1024" style="max-width: 200px;"></canvas>
+            <br>
+            <button onclick="download('light1024', 'favicon-light-1024x1024.png')">다운로드</button>
+        </div>
+        
+        <div class="favicon-box">
+            <h3>Dark Mode (1024x1024) - 울트라</h3>
+            <canvas id="dark1024" width="1024" height="1024" style="max-width: 200px;"></canvas>
+            <br>
+            <button onclick="download('dark1024', 'favicon-dark-1024x1024.png')">다운로드</button>
+        </div>
+    </div>
+
+    <script>
+        // 폰트 로드 대기
+        document.fonts.ready.then(() => {
+            // Orbitron 폰트가 로드되었는지 확인
+            const fontCheck = document.fonts.check('900 20px Orbitron');
+            console.log('Orbitron font loaded:', fontCheck);
+            
+            // 약간의 지연 후 생성 (폰트 완전 로드 보장)
+            setTimeout(() => {
+                generateFavicons();
+            }, 500);
+        });
+
+        function generateFavicons() {
+            // 32x32 Light - 더 세련된 색상
+            drawFavicon('light32', 32, '#EEF2FF', '#6366F1');
+            
+            // 32x32 Dark - 더 깊은 색상
+            drawFavicon('dark32', 32, '#4F46E5', '#FFFFFF');
+            
+            // 16x16 Light
+            drawFavicon('light16', 16, '#EEF2FF', '#6366F1');
+            
+            // 16x16 Dark
+            drawFavicon('dark16', 16, '#4F46E5', '#FFFFFF');
+            
+            // 192x192 Light - 대빵 큰 버전
+            drawFavicon('light192', 192, '#EEF2FF', '#6366F1');
+            
+            // 192x192 Dark - 대빵 큰 버전
+            drawFavicon('dark192', 192, '#4F46E5', '#FFFFFF');
+            
+            // 512x512 Light - 초대형
+            drawFavicon('light512', 512, '#EEF2FF', '#6366F1');
+            
+            // 512x512 Dark - 초대형
+            drawFavicon('dark512', 512, '#4F46E5', '#FFFFFF');
+            
+            // 1024x1024 Light - 울트라
+            drawFavicon('light1024', 1024, '#EEF2FF', '#6366F1');
+            
+            // 1024x1024 Dark - 울트라
+            drawFavicon('dark1024', 1024, '#4F46E5', '#FFFFFF');
+        }
+
+        function drawFavicon(canvasId, size, bgColor, textColor) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // 배경 그리기 (더 작은 둥근 모서리)
+            ctx.fillStyle = bgColor;
+            roundRect(ctx, 0, 0, size, size, size * 0.15); // 15% 둥근 모서리
+            ctx.fill();
+            
+            // 매우 미묘한 그라데이션 오버레이
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            roundRect(ctx, 0, 0, size, size, size * 0.15);
+            ctx.fill();
+            
+            // 텍스트 설정
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 크기에 따른 폰트 크기 조정 (더 크고 각지게)
+            let fontSize;
+            let yOffset;
+            
+            if (size === 1024) {
+                fontSize = 800;
+                yOffset = 60;
+            } else if (size === 512) {
+                fontSize = 400;
+                yOffset = 30;
+            } else if (size === 192) {
+                fontSize = 150;
+                yOffset = 10;
+            } else if (size === 32) {
+                fontSize = 26;
+                yOffset = 2;
+            } else {
+                fontSize = 14;
+                yOffset = 1;
+            }
+            
+            ctx.font = `900 ${fontSize}px Orbitron, monospace`; // 900으로 굵게, monospace 폴백 추가
+            
+            // G 그리기 (정확히 중앙에, 크기별 미세 조정)
+            ctx.fillText('G', size / 2, size / 2 + yOffset);
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function download(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

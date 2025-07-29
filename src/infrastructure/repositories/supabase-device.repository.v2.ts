@@ -167,7 +167,7 @@ export class SupabaseDeviceRepositoryV2 implements IDeviceRepository {
       id: record.id,
       name: deviceName,
       deviceType: deviceType?.name || 'Unknown',
-      status: DeviceStatus.create(record.status as any),
+      status: DeviceStatus.from(record.status as any),
       notes: record.notes || undefined,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)

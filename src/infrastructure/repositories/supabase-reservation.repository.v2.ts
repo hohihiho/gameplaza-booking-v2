@@ -393,6 +393,56 @@ export class SupabaseReservationRepositoryV2 implements IReservationRepository {
     }
   }
 
+  async findByDeviceAndTimeSlot(
+    deviceId: string,
+    date: KSTDateTime,
+    timeSlot: TimeSlot
+  ): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .eq('date', date.dateString)
+      .eq('start_time', timeSlot.startTime)
+      .eq('end_time', timeSlot.endTime)
+
+    if (error) {
+      throw new Error(`Failed to find reservations: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findActiveByDeviceId(deviceId: string): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .in('status', ['pending', 'approved', 'checked_in'])
+
+    if (error) {
+      throw new Error(`Failed to find active reservations: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findFutureByDeviceId(deviceId: string): Promise<Reservation[]> {
+    const today = KSTDateTime.now().dateString
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('device_id', deviceId)
+      .gte('date', today)
+      .in('status', ['pending', 'approved'])
+
+    if (error) {
+      throw new Error(`Failed to find future reservations: ${error.message}`)
+    }
+
+    return (data || []).map(row => this.toDomain(row))
+  }
+
   private generateReservationNumber(date: string, sequence: number | string): string {
     const dateObj = new Date(date)
     const year = dateObj.getFullYear().toString().slice(-2)

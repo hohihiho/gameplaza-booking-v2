@@ -29,7 +29,7 @@ describe('CheckIn Entity', () => {
 
     it('create 메서드로 새 체크인을 생성할 수 있다', () => {
       const futureTime = new Date();
-      futureTime.setHours(futureTime.getHours() + 2);
+      futureTime.setMinutes(futureTime.getMinutes() + 30); // 30분 후 (체크인 가능 시간 내)
 
       const checkIn = CheckIn.create({
         reservationId: 'reservation-456',

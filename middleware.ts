@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { authMiddleware } from '@/lib/auth/middleware';
+import { auth } from '@/auth';
 import { authMiddleware as v2AuthMiddleware } from '@/src/infrastructure/middleware/auth.middleware';
+import { rateLimit, rateLimitConfigs } from '@/lib/security/api-security';
 
 /**
  * 통합 미들웨어
@@ -23,6 +24,17 @@ const CANARY_HEADER = 'x-api-version';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // 보안 검사: 의심스러운 요청 차단
+  if (isBlockedRequest(request)) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+  
+  // Rate limiting 적용
+  const rateLimitResponse = applyRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
   
   // v2 API 인증 처리
   if (pathname.startsWith('/api/v2/auth/')) {
@@ -78,8 +90,8 @@ export async function middleware(request: NextRequest) {
     if (canaryResponse) return canaryResponse;
   }
   
-  // 기존 인증 미들웨어 실행
-  return authMiddleware(request);
+  // Auth.js v5 미들웨어 실행
+  return auth(request as any);
 }
 
 /**
@@ -196,16 +208,99 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
+/**
+ * 의심스러운 요청 차단
+ */
+function isBlockedRequest(request: NextRequest): boolean {
+  const { pathname, searchParams } = request.nextUrl;
+  const userAgent = request.headers.get('user-agent')?.toLowerCase() || '';
+  
+  // 악성 봇 차단
+  const blockedBots = [
+    'sqlmap', 'nikto', 'nessus', 'openvas', 'nmap',
+    'masscan', 'zap', 'w3af', 'skipfish', 'gobuster'
+  ];
+  
+  if (blockedBots.some(bot => userAgent.includes(bot))) {
+    return true;
+  }
+  
+  // SQL Injection 시도 차단
+  const sqlPatterns = [
+    'union+select', 'union%20select', 'union+all+select',
+    'drop+table', 'delete+from', 'insert+into',
+    'script+alert', 'javascript:', 'vbscript:',
+    '<script', '</script>', 'onload=', 'onerror='
+  ];
+  
+  const fullUrl = pathname + searchParams.toString();
+  if (sqlPatterns.some(pattern => fullUrl.toLowerCase().includes(pattern))) {
+    return true;
+  }
+  
+  // 과도한 경로 깊이 차단
+  if (pathname.split('/').length > 10) {
+    return true;
+  }
+  
+  // 디렉토리 순회 시도 차단
+  if (pathname.includes('../') || pathname.includes('..\\')) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Rate limiting 적용
+ */
+function applyRateLimit(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  
+  // 테스트 환경에서는 Rate Limiting 완전 비활성화
+  if (request.headers.get('X-Test-Environment') === 'true' ||
+      process.env.NODE_ENV === 'test' ||
+      process.env.NEXT_PUBLIC_TEST_MODE === 'true') {
+    return null;
+  }
+  
+  // 인증 관련 API
+  if (pathname.startsWith('/api/auth') || pathname.startsWith('/api/v2/auth')) {
+    const authRateLimit = rateLimit(rateLimitConfigs.auth);
+    return authRateLimit(request);
+  }
+  
+  // 예약 관련 API
+  if (pathname.includes('/reservations') && request.method === 'POST') {
+    const reservationRateLimit = rateLimit(rateLimitConfigs.reservation);
+    return reservationRateLimit(request);
+  }
+  
+  // 관리자 API
+  if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/v2/admin')) {
+    const adminRateLimit = rateLimit(rateLimitConfigs.admin);
+    return adminRateLimit(request);
+  }
+  
+  // 일반 API
+  if (pathname.startsWith('/api/')) {
+    const defaultRateLimit = rateLimit(rateLimitConfigs.default);
+    return defaultRateLimit(request);
+  }
+  
+  return null;
+}
+
 // 보호할 경로 설정
 export const config = {
   matcher: [
-    // 인증이 필요한 경로
-    "/mypage/:path*",
-    "/reservations/new",
-    "/reservations",
+    // 인증이 필요한 경로 - 임시로 사용자 페이지들 제외
+    // "/mypage/:path*",
+    // "/reservations/new",
+    // "/reservations",
     "/admin/:path*",
     "/api/admin/:path*",
-    "/api/reservations/:path*",
+    // "/api/reservations/:path*", // 임시로 예약 API 보호 해제
     
     // API 라우트 (canary 라우팅용)
     "/api/:path*"

@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from "@/auth"
 import { createAdminClient } from '@/lib/supabase'
 
 export async function GET() {
   try {
     const supabaseAdmin = createAdminClient();
-  const { data: machinerulesData } = await supabaseAdmin.from('machine_rules')
+  const { data: rules, error } = await supabaseAdmin.from('machine_rules')
       .select('*')
       .order('display_order', { ascending: true })
 
@@ -30,7 +29,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
     const { content, display_order } = await request.json()
 
     const supabaseAdmin = createAdminClient();
-  const { data: machinerulesData2 } = await supabaseAdmin.from('machine_rules')
+  const { data, error } = await supabaseAdmin.from('machine_rules')
       .insert([{ 
         content,
         display_order: display_order || 0,
@@ -58,7 +57,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
@@ -71,7 +70,7 @@ export async function PUT(request: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: machinerulesData3 } = await supabaseAdmin.from('machine_rules')
+  const { data, error } = await supabaseAdmin.from('machine_rules')
       .update({
         ...updateData,
         updated_at: new Date().toISOString()
@@ -91,7 +90,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }

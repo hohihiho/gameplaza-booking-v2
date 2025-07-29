@@ -5,8 +5,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { getEnv } from '@/lib/config/env'
 import type { Database } from './types'
 
@@ -17,7 +16,7 @@ import type { Database } from './types'
  */
 export async function createClient() {
   const cookieStore = await cookies()
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const env = getEnv()
 
   const supabase = createServerClient<Database>(

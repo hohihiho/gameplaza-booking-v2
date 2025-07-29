@@ -3,6 +3,7 @@ import { IUserRepository } from '../../../../domain/repositories/user.repository
 import { IReservationRepository } from '../../../../domain/repositories/reservation.repository.interface'
 import { IPaymentRepository } from '../../../../domain/repositories/payment.repository.interface'
 import { INotificationRepository } from '../../../../domain/repositories/notification.repository.interface'
+import { ITimeAdjustmentRepository } from '../../../../domain/repositories/time-adjustment.repository.interface'
 import { User } from '../../../../domain/entities/user'
 import { Reservation } from '../../../../domain/entities/reservation'
 import { Payment } from '../../../../domain/entities/payment'
@@ -17,6 +18,7 @@ describe('AdjustReservationTimeUseCase', () => {
   let mockReservationRepository: jest.Mocked<IReservationRepository>
   let mockPaymentRepository: jest.Mocked<IPaymentRepository>
   let mockNotificationRepository: jest.Mocked<INotificationRepository>
+  let mockTimeAdjustmentRepository: jest.Mocked<ITimeAdjustmentRepository>
 
   beforeEach(() => {
     mockUserRepository = {
@@ -39,11 +41,16 @@ describe('AdjustReservationTimeUseCase', () => {
       save: jest.fn()
     } as any
 
+    mockTimeAdjustmentRepository = {
+      save: jest.fn()
+    } as any
+
     useCase = new AdjustReservationTimeUseCase(
       mockUserRepository,
       mockReservationRepository,
       mockPaymentRepository,
-      mockNotificationRepository
+      mockNotificationRepository,
+      mockTimeAdjustmentRepository
     )
   })
 
@@ -53,7 +60,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const normalUser = User.create({
         id: 'user-123',
         email: 'user@example.com',
-        name: 'Normal User',
+        fullName: 'Normal User',
         phone: '010-1234-5678',
         role: 'user'
       })
@@ -74,7 +81,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -105,7 +112,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -137,7 +144,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -146,7 +153,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const customer = User.create({
         id: 'user-789',
         email: 'customer@example.com',
-        name: 'Customer',
+        fullName: 'Customer',
         phone: '010-9876-5432',
         role: 'user'
       })
@@ -190,8 +197,8 @@ describe('AdjustReservationTimeUseCase', () => {
       // Then
       expect(result.message).toContain('시간이 조정되었습니다')
       expect(result.message).toContain('고객 요청 연장')
-      expect(result.reservation.actualStartTime?.toISOString()).toBe('2025-07-10T14:00:00.000Z')
-      expect(result.reservation.actualEndTime?.toISOString()).toBe('2025-07-10T17:00:00.000Z')
+      expect(result.reservation.actualStartTime?.toISOString()).toBe('2025-07-10T05:00:00.000Z') // KST 14:00 = UTC 05:00
+      expect(result.reservation.actualEndTime?.toISOString()).toBe('2025-07-10T08:00:00.000Z') // KST 17:00 = UTC 08:00
       expect(result.timeAdjustment.originalDurationMinutes).toBe(120) // 2시간
       expect(result.timeAdjustment.actualDurationMinutes).toBe(180) // 3시간
       expect(result.timeAdjustment.adjustmentMinutes).toBe(60) // 1시간 연장
@@ -218,7 +225,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -227,7 +234,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const customer = User.create({
         id: 'user-789',
         email: 'customer@example.com',
-        name: 'Customer',
+        fullName: 'Customer',
         phone: '010-9876-5432',
         role: 'user'
       })
@@ -287,7 +294,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const admin = User.create({
         id: 'admin-123',
         email: 'admin@example.com',
-        name: 'Admin User',
+        fullName: 'Admin User',
         phone: '010-1234-5678',
         role: 'admin'
       })
@@ -296,7 +303,7 @@ describe('AdjustReservationTimeUseCase', () => {
       const customer = User.create({
         id: 'user-789',
         email: 'customer@example.com',
-        name: 'Customer',
+        fullName: 'Customer',
         phone: '010-9876-5432',
         role: 'user'
       })

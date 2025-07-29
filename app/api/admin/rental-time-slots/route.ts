@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: timeSlotsData } = await supabaseAdmin.from('rental_time_slots')
+    const { data, error } = await supabaseAdmin.from('rental_time_slots')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .order('slot_type', { ascending: true })
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: timeSlotsData2 } = await supabaseAdmin.from('rental_time_slots')
+    const { data, error } = await supabaseAdmin.from('rental_time_slots')
       .insert({
         device_type_id,
         slot_type,

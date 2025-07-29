@@ -4,8 +4,8 @@ import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositori
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 체크인 처리 API
@@ -50,32 +50,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
+    // 5. 유스케이스 실행
     const useCase = new ProcessCheckInUseCase(
-      reservationRepository,
-      checkInRepository,
+      reservationRepository as any,
+      checkInRepository as any,
       deviceRepository,
       userRepository
     )
@@ -86,19 +71,20 @@ export async function POST(request: NextRequest) {
       notes
     })
 
-    // 7. 응답 반환
+    // 6. 응답 반환
+    const checkIn = result.checkIn as any
     return NextResponse.json({
       checkIn: {
-        id: result.checkIn.id,
-        reservationId: result.checkIn.reservationId,
-        userId: result.checkIn.userId,
-        deviceId: result.checkIn.deviceId,
-        checkInTime: result.checkIn.checkInTime.toISOString(),
-        status: result.checkIn.status,
-        checkInBy: result.checkIn.checkInBy,
-        notes: result.checkIn.notes,
-        createdAt: result.checkIn.createdAt.toISOString(),
-        updatedAt: result.checkIn.updatedAt.toISOString()
+        id: checkIn.id,
+        reservationId: checkIn.reservationId,
+        userId: checkIn.userId,
+        deviceId: checkIn.deviceId,
+        checkInTime: checkIn.checkInTime.toISOString(),
+        status: checkIn.status,
+        checkInBy: checkIn.checkInBy,
+        notes: checkIn.notes,
+        createdAt: checkIn.createdAt.toISOString(),
+        updatedAt: checkIn.updatedAt.toISOString()
       }
     }, { status: 200 })
 

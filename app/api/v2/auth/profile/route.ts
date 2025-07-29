@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GetProfileUseCase } from '@/src/application/use-cases/auth/get-profile.use-case'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
-import { authMiddleware, getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 프로필 조회 API
@@ -22,23 +22,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
     // 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createServiceRoleClient()
     const userRepository = new UserSupabaseRepository(supabase)
 
     // 유스케이스 실행
@@ -93,5 +78,4 @@ export async function OPTIONS() {
   })
 }
 
-// 미들웨어 설정
-export const middleware = authMiddleware.middleware({ requireAuth: true })
+// 인증은 GET 함수 내에서 직접 처리

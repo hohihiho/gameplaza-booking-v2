@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    {
+      "id": "a7738f4d-7f86-40e7-bbc4-61a226604272",
+      "name": "admin 라우트 파일들의 Cannot find name 오류 해결",
+      "description": "admin 라우트 파일들에서 발생하는 error, data, reservation 등의 변수 선언 누락 오류를 일괄 수정",
+      "notes": "가장 많이 발생하는 패턴이므로 우선 처리",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T16:17:03.626Z",
+      "updatedAt": "2025-07-24T16:23:37.261Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/admin/**/*.ts",
+          "type": "TO_MODIFY",
+          "description": "admin 라우트 파일들"
+        }
+      ],
+      "implementationGuide": "1. 모든 admin 라우트 파일 검색\n2. supabase 쿼리 결과 destructuring 패턴 수정 (data, error 모두 받기)\n3. 사용되지 않는 변수명 제거\n4. 변수명 오타 수정",
+      "verificationCriteria": "Cannot find name 오류가 모두 해결되고 각 파일이 정상 컴파일됨",
+      "analysisResult": "TypeScript 타입 오류 1837개를 체계적으로 해결하여 프로젝트의 타입 안정성 확보",
+      "summary": "admin 라우트 파일들에서 발생하는 Cannot find name 오류 대부분 해결. supabase 쿼리 결과의 destructuring 패턴을 수정하여 data와 error 모두 받도록 변경. 사용되지 않는 변수명 제거 및 변수명 오타 수정 완료.",
+      "completedAt": "2025-07-24T16:23:37.260Z"
+    }
+  ]
+}

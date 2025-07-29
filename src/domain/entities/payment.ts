@@ -213,4 +213,23 @@ export class Payment extends Entity<PaymentProps> {
     const refundedAmount = this.props.refundedAmount || 0
     return this.props.amount - refundedAmount
   }
+
+  /**
+   * 결제 금액 업데이트 (시간 조정 시 사용)
+   */
+  updateAmount(newAmount: number): Payment {
+    if (newAmount < 0) {
+      throw new Error('결제 금액은 0보다 커야 합니다')
+    }
+
+    if (this.props.status === 'completed' || this.props.status === 'refunded') {
+      throw new Error('완료되거나 환불된 결제의 금액은 변경할 수 없습니다')
+    }
+
+    return new Payment({
+      ...this.props,
+      amount: newAmount,
+      updatedAt: KSTDateTime.now()
+    })
+  }
 }

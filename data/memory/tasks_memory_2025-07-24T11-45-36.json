@@ -1,0 +1,95 @@
+{
+  "tasks": [
+    {
+      "id": "10405a26-cc27-4b33-8149-9dd08f7e9412",
+      "name": "예약 API v2 완성",
+      "description": "예약 생성, 조회, 수정, 취소 API 엔드포인트 구현 및 인증 미들웨어 적용",
+      "notes": "유스케이스는 이미 구현되어 있음",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T11:09:53.780Z",
+      "updatedAt": "2025-07-24T11:38:47.672Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/v2/reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "예약 API"
+        },
+        {
+          "path": "/src/application/use-cases/reservation/",
+          "type": "REFERENCE",
+          "description": "예약 유스케이스"
+        }
+      ],
+      "implementationGuide": "1. POST /api/v2/reservations - 예약 생성\n2. GET /api/v2/reservations - 내 예약 목록\n3. PATCH /api/v2/reservations/[id] - 예약 수정\n4. DELETE /api/v2/reservations/[id] - 예약 취소\n5. 인증 미들웨어 적용",
+      "verificationCriteria": "예약 CRUD 정상 동작, 인증된 사용자만 접근 가능",
+      "analysisResult": "게임플라자 예약 시스템 백엔드 v2 현재 상태 분석 및 남은 작업 정리",
+      "summary": "예약 API v2 완성 - CRUD 엔드포인트 모두 구현 완료. POST(생성), GET(목록/상세), PATCH(수정), DELETE(취소) 모두 인증 미들웨어 적용",
+      "completedAt": "2025-07-24T11:38:47.670Z"
+    },
+    {
+      "id": "5d5c5b82-b677-4931-83ac-94e5550c9730",
+      "name": "Calendar UI 컴포넌트 구현 - 날짜 선택 인터페이스",
+      "description": "예약 시스템에서 사용할 재사용 가능한 캘린더 컴포넌트 구현. 날짜 선택, 모바일 스와이프, 날짜별 마크, 커스텀 비활성화 등 기능 포함",
+      "notes": "모든 구현, 테스트, 문서화 완료",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T11:28:26.429Z",
+      "updatedAt": "2025-07-24T11:28:45.525Z",
+      "relatedFiles": [
+        {
+          "path": "/src/components/ui/Calendar.tsx",
+          "type": "TO_MODIFY",
+          "description": "메인 컴포넌트 파일"
+        },
+        {
+          "path": "/src/components/ui/__tests__/Calendar.test.tsx",
+          "type": "TO_MODIFY",
+          "description": "단위 테스트"
+        },
+        {
+          "path": "/src/components/ui/Calendar.stories.tsx",
+          "type": "TO_MODIFY",
+          "description": "Storybook 스토리"
+        }
+      ],
+      "implementationGuide": "완료됨 - src/components/ui/Calendar.tsx 생성, 테스트 작성, Storybook 문서화 완료",
+      "verificationCriteria": "완료됨 - 모든 테스트 통과, 문서화 완료",
+      "analysisResult": "게임플라자 예약 시스템 UI 컴포넌트 구현",
+      "summary": "Calendar UI 컴포넌트 구현 완료 - 날짜 선택, 모바일 스와이프, 다크모드, 접근성 기능 포함, 테스트 및 문서화 완료",
+      "completedAt": "2025-07-24T11:28:45.524Z"
+    },
+    {
+      "id": "40754215-696b-46b0-bb79-d8df85fd79bf",
+      "name": "Device Selection UI 구현 - 기기 선택 인터페이스",
+      "description": "예약 가능한 기기들을 그리드 형태로 표시하고 선택할 수 있는 UI 컴포넌트 구현. 카테고리 그룹핑, 반응형 레이아웃, 기기 상태 표시 등 기능 포함",
+      "notes": "모든 구현, 테스트, 문서화 완료",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-24T11:28:26.429Z",
+      "updatedAt": "2025-07-24T11:28:55.810Z",
+      "relatedFiles": [
+        {
+          "path": "/src/components/ui/DeviceSelector.tsx",
+          "type": "TO_MODIFY",
+          "description": "메인 컴포넌트 파일"
+        },
+        {
+          "path": "/src/components/ui/__tests__/DeviceSelector.test.tsx",
+          "type": "TO_MODIFY",
+          "description": "단위 테스트"
+        },
+        {
+          "path": "/src/components/ui/DeviceSelector.stories.tsx",
+          "type": "TO_MODIFY",
+          "description": "Storybook 스토리"
+        }
+      ],
+      "implementationGuide": "완료됨 - src/components/ui/DeviceSelector.tsx 생성, 테스트 작성, Storybook 문서화 완료",
+      "verificationCriteria": "완료됨 - 모든 테스트 통과, 예약 페이지에 통합 완료",
+      "analysisResult": "게임플라자 예약 시스템 UI 컴포넌트 구현",
+      "summary": "DeviceSelector UI 컴포넌트 구현 완료 - 그리드 레이아웃, 카테고리 그룹핑, 반응형 디자인, 기기 상태 표시 기능 포함, 테스트 및 문서화 완료",
+      "completedAt": "2025-07-24T11:28:55.809Z"
+    }
+  ]
+}

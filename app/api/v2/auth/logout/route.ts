@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { LogoutUseCase } from '@/src/application/use-cases/auth/logout.use-case'
 import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { LogoutRequestDto } from '@/src/application/dtos/auth.dto'
-import { authMiddleware, getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 
 /**
  * 로그아웃 API
@@ -32,23 +32,8 @@ export async function POST(request: NextRequest) {
       allDevices: body.allDevices || false
     }
 
-    // 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
     // 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createServiceRoleClient()
     const sessionRepository = new SessionSupabaseRepository(supabase)
 
     // 유스케이스 실행
@@ -125,5 +110,4 @@ export async function OPTIONS() {
   })
 }
 
-// 미들웨어 설정
-export const middleware = authMiddleware.middleware({ requireAuth: true })
+// 인증은 POST 함수 내에서 직접 처리

@@ -15,17 +15,12 @@ describe('CreateAdminUseCase', () => {
     userId: 'user-super-1'
   })
 
-  const mockUser = new User({
+  const mockUser = User.create({
     id: 'user-1',
     email: 'test@example.com',
     fullName: '테스트 사용자',
-    phoneNumber: '010-1234-5678',
-    profileImageUrl: null,
-    role: 'user',
-    isActive: true,
-    lastLoginAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    phone: '010-1234-5678',
+    role: 'user'
   })
 
   const superAdminCheck: SuperAdminCheckDto = {

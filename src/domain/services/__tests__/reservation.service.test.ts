@@ -7,6 +7,7 @@ import { Device } from '../../entities/device'
 import { KSTDateTime } from '../../value-objects/kst-datetime'
 import { TimeSlot } from '../../value-objects/time-slot'
 import { ReservationStatus } from '../../value-objects/reservation-status'
+import { DeviceStatus } from '../../value-objects/device-status'
 
 describe('ReservationService', () => {
   let service: ReservationService
@@ -30,7 +31,7 @@ describe('ReservationService', () => {
     id: 'device-1',
     deviceTypeId: 'type-1',
     deviceNumber: 'PC-001',
-    status: 'available'
+    status: DeviceStatus.available()
   })
 
   beforeEach(() => {
@@ -64,10 +65,15 @@ describe('ReservationService', () => {
   })
 
   describe('createReservation', () => {
+    // 24시간 규칙 통과를 위해 미래 날짜 사용
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 2) // 2일 후
+    const dateString = futureDate.toISOString().split('T')[0]
+    
     const dto = {
       userId: 'user-1',
       deviceId: 'device-1',
-      date: '2025-07-25',
+      date: dateString,
       timeSlot: '14:00-16:00'
     }
 
@@ -96,8 +102,10 @@ describe('ReservationService', () => {
 
     it('should throw error if device not available', async () => {
       const unavailableDevice = Device.create({
-        ...mockDevice,
-        status: 'maintenance'
+        id: 'device-1',
+        deviceTypeId: 'type-1',
+        deviceNumber: 'PC-001',
+        status: DeviceStatus.maintenance()
       })
       mockDeviceRepo.findDeviceById.mockResolvedValue(unavailableDevice)
       
@@ -120,7 +128,7 @@ describe('ReservationService', () => {
         id: 'existing-1',
         userId: 'other-user',
         deviceId: 'device-1',
-        date: KSTDateTime.fromString('2025-07-25'),
+        date: KSTDateTime.fromString(dateString),
         timeSlot: TimeSlot.create(14, 16)
       })
       
@@ -135,7 +143,7 @@ describe('ReservationService', () => {
         id: 'existing-1',
         userId: 'user-1',
         deviceId: 'device-2',
-        date: KSTDateTime.fromString('2025-07-25'),
+        date: KSTDateTime.fromString(dateString),
         timeSlot: TimeSlot.create(14, 16),
         status: ReservationStatus.create('approved')
       })
@@ -227,7 +235,7 @@ describe('ReservationService', () => {
       deviceId: 'device-1',
       date: KSTDateTime.fromString('2025-07-25'),
       timeSlot: TimeSlot.create(14, 16)
-    }).approve()
+    }).assignDevice('PC-001').approve()
 
     it('should check in reservation as admin', async () => {
       mockReservationRepo.findById.mockResolvedValue(approvedReservation)

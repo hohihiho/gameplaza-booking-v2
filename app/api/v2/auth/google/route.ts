@@ -5,8 +5,8 @@ import { JWTTokenService } from '@/src/infrastructure/services/jwt-token.service
 import { AuthDomainService } from '@/src/domain/services/auth-domain.service'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { AuthRequestDto } from '@/src/application/dtos/auth.dto'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * Google OAuth 로그인 API
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const authRequest: AuthRequestDto = {
       googleIdToken: body.googleIdToken,
       deviceInfo: body.deviceInfo,
-      ipAddress: request.headers.get('x-forwarded-for') || request.ip || undefined,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
       userAgent: request.headers.get('user-agent') || undefined
     }
 
@@ -40,10 +40,8 @@ export async function POST(request: NextRequest) {
     const googleClientId = process.env.GOOGLE_CLIENT_ID
     const accessTokenSecret = process.env.JWT_ACCESS_SECRET
     const refreshTokenSecret = process.env.JWT_REFRESH_SECRET
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!googleClientId || !accessTokenSecret || !refreshTokenSecret || !supabaseUrl || !supabaseKey) {
+    if (!googleClientId || !accessTokenSecret || !refreshTokenSecret) {
       console.error('Missing required environment variables')
       return NextResponse.json(
         { 
@@ -55,10 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createServiceRoleClient()
     const googleAuthService = new GoogleAuthService(googleClientId)
     const tokenService = new JWTTokenService(accessTokenSecret, refreshTokenSecret)
-    const authDomainService = new AuthDomainService(tokenService)
+    const authDomainService = new AuthDomainService(tokenService as any)
     const userRepository = new UserSupabaseRepository(supabase)
     const sessionRepository = new SessionSupabaseRepository(supabase)
 

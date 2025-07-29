@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   try {
     console.log('기종 분석 API 시작');
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     console.log('세션 확인:', !!session, session?.user?.email);
     
     if (!session?.user?.email) {

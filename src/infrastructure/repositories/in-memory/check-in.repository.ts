@@ -1,4 +1,4 @@
-import { CheckIn, CheckInStatus } from '@/src/domain/entities/check-in.entity'
+import { CheckIn, CheckInStatus } from '@/src/domain/entities/checkin'
 import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 

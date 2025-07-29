@@ -1,6 +1,7 @@
 // 예약 목록 컴포넌트 (v2 API 지원)
 'use client';
 
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Users, CreditCard, ChevronRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -16,7 +17,108 @@ interface ReservationListProps {
   emptyMessage?: string;
 }
 
-export default function ReservationList({
+interface ReservationItemProps {
+  reservation: V2Reservation;
+  index: number;
+  formatTime: (time: string) => string;
+  getCreditTypeLabel: (type: string) => string;
+  getStatusStyle: (status: string) => {
+    bg: string;
+    text: string;
+    label: string;
+  };
+}
+
+// 개별 예약 아이템 컴포넌트 - memo로 최적화
+const ReservationItem = memo(function ReservationItem({
+  reservation,
+  index,
+  formatTime,
+  getCreditTypeLabel,
+  getStatusStyle
+}: ReservationItemProps) {
+  const router = useRouter();
+  const status = getStatusStyle(reservation.status);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => router.push(`/reservations/${reservation.id}`)}
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md transition-all"
+    >
+      {/* 헤더 */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+            {reservation.device?.device_type.name || '기기 정보 없음'}
+          </h3>
+          {reservation.device?.device_type.model_name && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {reservation.device.device_type.model_name}
+            </p>
+          )}
+        </div>
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
+          {status.label}
+        </span>
+      </div>
+
+      {/* 예약 정보 */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 text-sm">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span className="text-gray-700 dark:text-gray-300">
+            {formatKoreanDate(parseKSTDate(reservation.date))}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm">
+          <Clock className="w-4 h-4 text-gray-400" />
+          <span className="text-gray-700 dark:text-gray-300">
+            {formatTime(reservation.start_time)} - {formatTime(reservation.end_time)}
+          </span>
+          {reservation.slot_type === 'overnight' && (
+            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs">
+              밤샘대여
+            </span>
+          )}
+        </div>
+
+        {reservation.device && (
+          <div className="flex items-center gap-3 text-sm">
+            <Users className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-700 dark:text-gray-300">
+              {reservation.device.device_number}번 기기 • {reservation.player_count}인
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 하단 정보 */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-2 text-sm">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <span className="text-gray-600 dark:text-gray-400">
+            {getCreditTypeLabel(reservation.credit_type)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-gray-900 dark:text-white">
+            {(reservation.total_amount || reservation.total_price || 0).toLocaleString()}원
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+const ReservationList = memo(function ReservationList({
   reservations,
   loading = false,
   error,
@@ -127,88 +229,19 @@ export default function ReservationList({
   return (
     <AnimatePresence mode="popLayout">
       <div className="space-y-4">
-        {reservations.map((reservation, index) => {
-          const status = getStatusStyle(reservation.status);
-          
-          return (
-            <motion.div
-              key={reservation.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => router.push(`/reservations/${reservation.id}`)}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:shadow-md transition-all"
-            >
-              {/* 헤더 */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">
-                    {reservation.device?.device_type.name || '기기 정보 없음'}
-                  </h3>
-                  {reservation.device?.device_type.model_name && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {reservation.device.device_type.model_name}
-                    </p>
-                  )}
-                </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
-                  {status.label}
-                </span>
-              </div>
-
-              {/* 예약 정보 */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {formatKoreanDate(parseKSTDate(reservation.date))}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {formatTime(reservation.start_time)} - {formatTime(reservation.end_time)}
-                  </span>
-                  {reservation.slot_type === 'overnight' && (
-                    <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs">
-                      밤샘대여
-                    </span>
-                  )}
-                </div>
-
-                {reservation.device && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {reservation.device.device_number}번 기기 • {reservation.player_count}인
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* 하단 정보 */}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-2 text-sm">
-                  <CreditCard className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {getCreditTypeLabel(reservation.credit_type)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {reservation.total_amount.toLocaleString()}원
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+        {reservations.map((reservation, index) => (
+          <ReservationItem
+            key={reservation.id}
+            reservation={reservation}
+            index={index}
+            formatTime={formatTime}
+            getCreditTypeLabel={getCreditTypeLabel}
+            getStatusStyle={getStatusStyle}
+          />
+        ))}
       </div>
     </AnimatePresence>
   );
-}
+});
+
+export default ReservationList;

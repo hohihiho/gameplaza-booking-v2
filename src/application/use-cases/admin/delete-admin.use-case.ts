@@ -33,12 +33,13 @@ export class DeleteAdminUseCase {
     }
 
     // 3. 삭제 가능 여부 확인
+    if (executor.id === targetAdmin.id) {
+      throw new Error('자기 자신은 삭제할 수 없습니다')
+    }
+    
     if (!executor.canDelete(targetAdmin)) {
       if (targetAdmin.isSuperAdmin) {
         throw new Error('슈퍼관리자는 삭제할 수 없습니다')
-      }
-      if (executor.id === targetAdmin.id) {
-        throw new Error('자기 자신은 삭제할 수 없습니다')
       }
       throw new Error('해당 관리자를 삭제할 권한이 없습니다')
     }

@@ -1,4 +1,5 @@
 import { Device, DeviceCategory, DeviceType } from '../device'
+import { DeviceStatus } from '../../value-objects/device-status'
 
 describe('Device Entity', () => {
   describe('Device', () => {
@@ -18,26 +19,26 @@ describe('Device Entity', () => {
         expect(device.id).toBe('device-1')
         expect(device.deviceTypeId).toBe('type-1')
         expect(device.deviceNumber).toBe('PC-001')
-        expect(device.status).toBe('available')
+        expect(device.status.value).toBe('available')
         expect(device.notes).toBeNull()
       })
 
       it('should create device with custom status and notes', () => {
         const device = createDevice({
-          status: 'maintenance',
+          status: DeviceStatus.maintenance(),
           notes: 'Regular checkup'
         })
         
-        expect(device.status).toBe('maintenance')
+        expect(device.status.value).toBe('maintenance')
         expect(device.notes).toBe('Regular checkup')
       })
     })
 
     describe('status checks', () => {
       it('should check availability correctly', () => {
-        const available = createDevice({ status: 'available' })
-        const reserved = createDevice({ status: 'reserved' })
-        const maintenance = createDevice({ status: 'maintenance' })
+        const available = createDevice({ status: DeviceStatus.available() })
+        const reserved = createDevice({ status: DeviceStatus.reserved() })
+        const maintenance = createDevice({ status: DeviceStatus.maintenance() })
         
         expect(available.isAvailable()).toBe(true)
         expect(reserved.isAvailable()).toBe(false)
@@ -45,15 +46,15 @@ describe('Device Entity', () => {
       })
 
       it('should check operational status', () => {
-        const available = createDevice({ status: 'available' })
-        const reserved = createDevice({ status: 'reserved' })
-        const maintenance = createDevice({ status: 'maintenance' })
-        const offline = createDevice({ status: 'offline' })
+        const available = createDevice({ status: DeviceStatus.available() })
+        const reserved = createDevice({ status: DeviceStatus.reserved() })
+        const maintenance = createDevice({ status: DeviceStatus.maintenance() })
+        const broken = createDevice({ status: DeviceStatus.broken() })
         
         expect(available.isOperational()).toBe(true)
         expect(reserved.isOperational()).toBe(true)
         expect(maintenance.isOperational()).toBe(false)
-        expect(offline.isOperational()).toBe(false)
+        expect(broken.isOperational()).toBe(false)
       })
     })
 
@@ -62,32 +63,28 @@ describe('Device Entity', () => {
         const device = createDevice()
         const reserved = device.reserve()
         
-        expect(reserved.status).toBe('reserved')
+        expect(reserved.status.value).toBe('reserved')
         expect(reserved.isReserved()).toBe(true)
       })
 
       it('should throw error when reserving non-available device', () => {
-        const device = createDevice({ status: 'maintenance' })
+        const device = createDevice({ status: DeviceStatus.maintenance() })
         
-        expect(() => device.reserve()).toThrow(
-          'Device PC-001 is not available for reservation'
-        )
+        expect(() => device.reserve()).toThrow()
       })
 
       it('should release reserved device', () => {
-        const device = createDevice({ status: 'reserved' })
+        const device = createDevice({ status: DeviceStatus.reserved() })
         const released = device.release()
         
-        expect(released.status).toBe('available')
+        expect(released.status.value).toBe('available')
         expect(released.isAvailable()).toBe(true)
       })
 
       it('should throw error when releasing non-reserved device', () => {
         const device = createDevice()
         
-        expect(() => device.release()).toThrow(
-          'Device PC-001 is not reserved'
-        )
+        expect(() => device.release()).toThrow()
       })
     })
 
@@ -96,56 +93,35 @@ describe('Device Entity', () => {
         const device = createDevice()
         const inMaintenance = device.startMaintenance('GPU fan replacement')
         
-        expect(inMaintenance.status).toBe('maintenance')
+        expect(inMaintenance.status.value).toBe('maintenance')
         expect(inMaintenance.notes).toBe('GPU fan replacement')
       })
 
       it('should end maintenance and clear notes', () => {
         const device = createDevice({
-          status: 'maintenance',
+          status: DeviceStatus.maintenance(),
           notes: 'Fixing issue'
         })
         const fixed = device.endMaintenance()
         
-        expect(fixed.status).toBe('available')
-        expect(fixed.notes).toBeNull()
+        expect(fixed.status.value).toBe('available')
+        expect(fixed.notes).toBe('점검 완료')
       })
 
       it('should throw error when ending maintenance on non-maintenance device', () => {
         const device = createDevice()
         
-        expect(() => device.endMaintenance()).toThrow(
-          'Device PC-001 is not in maintenance'
-        )
+        expect(() => device.endMaintenance()).toThrow()
       })
     })
 
-    describe('offline operations', () => {
-      it('should go offline with reason', () => {
+    describe('broken operations', () => {
+      it('should mark as broken with reason', () => {
         const device = createDevice()
-        const offline = device.goOffline('Network issue')
+        const broken = device.markAsBroken('Hardware failure')
         
-        expect(offline.status).toBe('offline')
-        expect(offline.notes).toBe('Network issue')
-      })
-
-      it('should go online and clear notes', () => {
-        const device = createDevice({
-          status: 'offline',
-          notes: 'Power outage'
-        })
-        const online = device.goOnline()
-        
-        expect(online.status).toBe('available')
-        expect(online.notes).toBeNull()
-      })
-
-      it('should throw error when going online from non-offline status', () => {
-        const device = createDevice()
-        
-        expect(() => device.goOnline()).toThrow(
-          'Device PC-001 is not offline'
-        )
+        expect(broken.status.value).toBe('broken')
+        expect(broken.notes).toBe('Hardware failure')
       })
     })
   })

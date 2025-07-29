@@ -5,6 +5,27 @@
  * 모든 날짜/시간 처리는 KST 기준으로 처리합니다.
  */
 
+// 테스트용 시간 오버라이드
+let mockDate: Date | null = null;
+
+/**
+ * 테스트용으로 현재 시간을 모킹합니다.
+ * @param date - 모킹할 날짜 (null이면 실제 시간 사용)
+ */
+export function setMockDate(date: Date | null) {
+  mockDate = date;
+}
+
+/**
+ * 현재 시간을 가져옵니다. (모킹된 시간 또는 실제 시간)
+ */
+export function getNow(): Date {
+  if (process.env.MOCK_DATE) {
+    return new Date(process.env.MOCK_DATE);
+  }
+  return mockDate || new Date();
+}
+
 /**
  * YYYY-MM-DD 형식의 날짜 문자열을 KST 기준 Date 객체로 변환
  * ISO 8601 형식(2025-06-30T10:29:06.342+00)도 처리 가능

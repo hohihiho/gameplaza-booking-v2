@@ -1,0 +1,25 @@
+{
+  "tasks": [
+    {
+      "id": "e7460c77-7093-4f50-b50a-dcbe56d1936e",
+      "name": "NextResponse mock 완전 수정",
+      "description": "jest.setup.js의 NextResponse mock을 완전히 수정하여 모든 static 메서드가 정상 작동하도록 함",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-07-28T08:33:26.547Z",
+      "updatedAt": "2025-07-28T08:36:39.482Z",
+      "relatedFiles": [
+        {
+          "path": "/Users/seeheejang/Documents/project/gameplaza-v2/jest.setup.js",
+          "type": "TO_MODIFY",
+          "description": "NextResponse mock 수정"
+        }
+      ],
+      "implementationGuide": "NextResponse.json(), redirect(), next() 등 모든 static 메서드가 올바르게 작동하도록 mock 구현 개선",
+      "verificationCriteria": "auth.api.simple.test.ts의 CORS 테스트가 통과해야 함",
+      "analysisResult": "모든 테스트가 100% 통과하도록 남은 테스트 실패를 수정합니다.",
+      "summary": "NextResponse mock을 완전히 수정하여 CORS 테스트 통과. Response 생성자에서 headers 속성이 올바르게 설정되도록 개선",
+      "completedAt": "2025-07-28T08:36:39.481Z"
+    }
+  ]
+}

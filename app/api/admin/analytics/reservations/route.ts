@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { createAdminClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -354,8 +354,8 @@ export async function GET(request: Request) {
       ];
       
       for (const quarter of quarters) {
-        const quarterStart = new Date(year, quarter.months[0], 1);
-        const quarterEnd = new Date(year, quarter.months[2] + 1, 0);
+        const quarterStart = new Date(year, quarter.months[0] || 0, 1);
+        const quarterEnd = new Date(year, (quarter.months[2] || 0) + 1, 0);
         
         const { data: quarterData } = await supabaseAdmin.from('reservations')
           .select('status')
@@ -472,11 +472,13 @@ export async function GET(request: Request) {
       { day: '일', count: 0, percentage: 0 }
     ];
 
-    weekdayData?.forEach(r => {
+    weekdayData?.forEach((r: any) => {
       const date = new Date(r.date);
       const dayIndex = date.getDay();
       const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // 월요일을 0으로
-      weekdayPattern[adjustedIndex].count++;
+      if (weekdayPattern[adjustedIndex]) {
+        weekdayPattern[adjustedIndex].count++;
+      }
     });
 
     const totalWeekday = weekdayPattern.reduce((sum, d) => sum + d.count, 0);

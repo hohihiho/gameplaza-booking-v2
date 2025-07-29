@@ -73,6 +73,11 @@ export class AuthMiddleware {
           }
         }
 
+        // payload null 체크
+        if (!payload) {
+          return this.unauthorizedResponse('유효하지 않은 토큰입니다')
+        }
+
         // 세션 확인
         const session = await this.sessionRepository.findById(payload.sessionId)
         if (!session || !session.isActive) {
@@ -204,3 +209,10 @@ export function getAuthenticatedUser(request: NextRequest): AuthenticatedUser | 
 
 // 기본 인스턴스 export
 export const authMiddleware = new AuthMiddleware()
+
+/**
+ * 관리자 권한 확인 유틸리티 함수
+ */
+export function isAdmin(user: AuthenticatedUser | null): boolean {
+  return user?.role === 'admin'
+}

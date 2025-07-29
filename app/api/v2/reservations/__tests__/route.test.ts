@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { POST, GET } from '../route'
-import { createServerClient } from '@/lib/server/auth/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 // Mock dependencies
-jest.mock('@/lib/server/auth/supabase')
+jest.mock('@/lib/supabase/server')
 jest.mock('@/lib/api/logging')
 
 const mockSupabase = {
@@ -22,7 +22,7 @@ const mockSupabase = {
   }))
 }
 
-;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
+;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
 describe('/api/v2/reservations', () => {
   beforeEach(() => {
@@ -145,11 +145,11 @@ describe('/api/v2/reservations', () => {
           device: {
             id: 'device-1',
             device_number: 1,
-            name: 'PC-001',
+            fullName: 'PC-001',
             device_type: {
               id: 'type-1',
-              name: 'GTX 3060',
-              model_name: 'NVIDIA GTX 3060'
+              fullName: 'GTX 3060',
+              model_fullName: 'NVIDIA GTX 3060'
             }
           }
         }
@@ -232,19 +232,14 @@ describe('/api/v2/reservations', () => {
         error: null
       })
 
-      const mockEq = jest.fn().mockReturnValue({
-        order: jest.fn().mockReturnValue({
-          range: jest.fn().mockResolvedValue({
-            data: [],
-            error: null,
-            count: 0
-          })
-        })
-      })
-
       mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: mockEq
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0
         })
       })
 
@@ -252,7 +247,7 @@ describe('/api/v2/reservations', () => {
       await GET(request)
 
       // status 필터가 적용되었는지 확인
-      expect(mockEq).toHaveBeenCalledWith('status', 'approved')
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('status', 'approved')
     })
   })
 })

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from "@/auth"
 import { createAdminClient } from '@/lib/supabase'
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
     }
@@ -35,14 +34,14 @@ export async function POST() {
     ]
 
     // 기존 데이터가 있는지 확인
+    const supabaseAdmin = createAdminClient();
     const { count } = await supabaseAdmin
       .from('machine_rules')
       .select('*', { count: 'exact', head: true })
 
     if (count === 0) {
       // 초기 데이터 삽입
-      const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('machine_rules')
+      const { error } = await supabaseAdmin.from('machine_rules')
         .insert(initialRules)
 
       if (error) throw error

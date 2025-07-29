@@ -2,16 +2,10 @@
 // 비전공자 설명: 여러 페이지에서 재사용할 수 있는 차트 컴포넌트입니다
 'use client';
 
-import {
-  ResponsiveContainer,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  TooltipProps
-} from 'recharts';
-import { useTheme } from '@/hooks/useTheme';
+// recharts는 사용하는 곳에서 동적으로 import
+import type { TooltipProps } from 'recharts';
+import { ResponsiveContainer } from '@/app/components/charts/LazyRecharts';
+import { useTheme } from '@/app/components/ThemeProvider';
 
 // 다크모드 대응 색상
 export const chartColors = {
@@ -33,7 +27,14 @@ export const commonChartProps = {
 };
 
 // 커스텀 툴팁 컴포넌트
-export const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  formatter?: (value: number) => string;
+}
+
+export const CustomTooltip = ({ active, payload, label, formatter }: CustomTooltipProps) => {
   const { theme } = useTheme();
   
   if (!active || !payload || !payload.length) return null;

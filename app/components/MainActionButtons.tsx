@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, FileText, Gamepad2, MessageCircle, MapPin, Info, Clock, Sparkles } from 'lucide-react';
+import { Calendar, FileText, Gamepad2, MessageCircle, Info, Clock } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 
 export default function MainActionButtons() {
   const { data: session } = useSession();
+  
+  // 관리자 체크
+  const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';
 
   const mainActions = [
     { 
@@ -19,7 +22,6 @@ export default function MainActionButtons() {
       shadowColor: 'shadow-indigo-500/25',
       iconBg: 'bg-indigo-500/20',
       iconColor: 'text-indigo-600',
-      featured: true,
     },
     { 
       id: 'reservation-list',
@@ -72,13 +74,6 @@ export default function MainActionButtons() {
       color: 'text-blue-500',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     },
-    { 
-      href: '#location',
-      icon: MapPin,
-      label: '오시는 길',
-      color: 'text-green-500',
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-    },
   ];
 
   const communityLinks = [
@@ -120,6 +115,26 @@ export default function MainActionButtons() {
   return (
     <div className="px-4 py-8 md:px-6 md:py-12">
       <div className="max-w-7xl mx-auto">
+        {/* 관리자 대시보드 링크 */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-6 text-center"
+          >
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-medium shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 transform hover:-translate-y-0.5"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              관리자 대시보드
+            </Link>
+          </motion.div>
+        )}
+        
         {/* 메인 액션 카드들 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {mainActions.map((action, index) => (
@@ -131,7 +146,7 @@ export default function MainActionButtons() {
             >
               <Link
                 href={action.href}
-                className={`block relative group ${action.featured ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                className="block relative group"
               >
                 <div className={`
                   relative overflow-hidden rounded-3xl p-6 h-full
@@ -139,7 +154,6 @@ export default function MainActionButtons() {
                   border border-gray-200 dark:border-gray-700
                   shadow-lg hover:shadow-2xl ${action.shadowColor}
                   transform transition-all duration-300 hover:-translate-y-2
-                  ${action.featured ? 'ring-2 ring-indigo-500/20 dark:ring-indigo-400/20' : ''}
                 `}>
                   {/* 배경 그라데이션 */}
                   <div className={`
@@ -170,15 +184,6 @@ export default function MainActionButtons() {
                     {action.description}
                   </p>
                   
-                  {/* Featured 뱃지 */}
-                  {action.featured && (
-                    <div className="absolute top-4 right-4">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-xs font-bold rounded-full">
-                        <Sparkles className="w-3 h-3" />
-                        추천
-                      </span>
-                    </div>
-                  )}
                   
                   {/* 호버 시 화살표 */}
                   <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -195,50 +200,6 @@ export default function MainActionButtons() {
             </motion.div>
           ))}
         </div>
-
-        {/* 퀵 액션 버튼들 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="grid grid-cols-3 gap-4 mb-8"
-        >
-          {quickActions.map((action) => (
-            action.external ? (
-              <a
-                key={action.href}
-                href={action.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                  <div className={`${action.bgColor} w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon className={`w-6 h-6 ${action.color}`} />
-                  </div>
-                  <p className="text-sm font-medium text-center text-gray-900 dark:text-white">
-                    {action.label}
-                  </p>
-                </div>
-              </a>
-            ) : (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="group"
-              >
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                  <div className={`${action.bgColor} w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon className={`w-6 h-6 ${action.color}`} />
-                  </div>
-                  <p className="text-sm font-medium text-center text-gray-900 dark:text-white">
-                    {action.label}
-                  </p>
-                </div>
-              </Link>
-            )
-          ))}
-        </motion.div>
 
         {/* 오시는 길 카드 */}
         <motion.div
@@ -364,6 +325,69 @@ export default function MainActionButtons() {
                 </a>
               ))}
             </div>
+          </div>
+        </motion.div>
+
+        {/* 고객 지원 섹션 */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="mt-8"
+        >
+          <h3 className="text-center text-gray-600 dark:text-gray-400 text-base font-medium mb-6">
+            도움이 필요하신가요?
+          </h3>
+          <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+            {quickActions.map((action) => (
+              action.external ? (
+                <a
+                  key={action.href}
+                  href={action.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group"
+                >
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 border border-gray-200/70 dark:border-gray-700/70 shadow-sm hover:shadow-lg transition-all duration-300 hover:bg-white dark:hover:bg-gray-800">
+                    <div className="flex items-center gap-4">
+                      <div className={`${action.bgColor} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                        <action.icon className={`w-7 h-7 ${action.color}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
+                          {action.label}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {action.label === '카톡 문의' ? '실시간 상담' : '이용방법 확인'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              ) : (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group"
+                >
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 border border-gray-200/70 dark:border-gray-700/70 shadow-sm hover:shadow-lg transition-all duration-300 hover:bg-white dark:hover:bg-gray-800">
+                    <div className="flex items-center gap-4">
+                      <div className={`${action.bgColor} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                        <action.icon className={`w-7 h-7 ${action.color}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
+                          {action.label}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {action.label === '카톡 문의' ? '실시간 상담' : '이용방법 확인'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )
+            ))}
           </div>
         </motion.div>
       </div>

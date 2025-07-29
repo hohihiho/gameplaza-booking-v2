@@ -35,9 +35,10 @@ async function getSupabaseUser(request: NextRequest) {
 // 보호된 경로 정의
 const protectedPaths = {
   user: [
-    '/mypage',
-    '/reservations/new',
-    '/reservations'
+    // 임시로 모든 사용자 페이지 보호 해제
+    // '/mypage'
+    // '/reservations/new',
+    // '/reservations'
   ],
   admin: [
     '/admin',
@@ -50,7 +51,10 @@ const excludedPaths = [
   '/reservations/complete',
   '/api/auth',
   '/login',
-  '/signup'
+  '/signup',
+  '/api/reservations', // 임시로 예약 API 제외 (하위 경로 포함)
+  '/reservations', // 임시로 예약 페이지 제외
+  '/reservations/new' // 임시로 예약 생성 페이지 제외
 ];
 
 /**

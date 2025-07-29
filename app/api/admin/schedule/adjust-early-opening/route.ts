@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // 해당 날짜의 활성 예약 조회 (pending, approved, checked_in 상태)
     const supabaseAdmin = createAdminClient();
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: activeReservations, error: reservationError } = await supabaseAdmin.from('reservations')
       .select(`
         id,
         date,
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 조기영업 시간대 예약 필터링 (7-12시)
-    const earlyReservations = (activeReservations || []).filter(r => {
+    const earlyReservations = (activeReservations || []).filter((r: any) => {
       const hour = parseInt(r.start_time.split(':')[0]);
       return hour >= 7 && hour < 12;
     });
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // 자동 생성된 조기영업 스케줄 조회
     
-  const { data: scheduleeventsData } = await supabaseAdmin.from('schedule_events')
+  const { data: autoSchedule, error: scheduleError } = await supabaseAdmin.from('schedule_events')
       .select('*')
       .eq('date', date)
       .eq('type', 'early_open')
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // 조기영업 예약이 1개만 남았으면 해당 시간으로 조정
     else if (earlyReservations.length === 1) {
       const singleReservation = earlyReservations[0];
-      const newStartTime = singleReservation.start_time;
+      const newStartTime = singleReservation?.start_time;
       
       if (autoSchedule) {
         // 기존 스케줄의 시작 시간과 다른 경우에만 업데이트
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       } else {
         // 수동 생성 스케줄이 있는지 확인
         
-  const { data: scheduleeventsData2 } = await supabaseAdmin.from('schedule_events')
+  const { data: manualSchedule } = await supabaseAdmin.from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'early_open')
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
     // 조기영업 예약이 여러 개 있으면 가장 빠른 시간으로 조정
     else if (earlyReservations.length > 1) {
-      const earliest = earlyReservations.reduce((prev, curr) => 
+      const earliest = earlyReservations.reduce((prev: any, curr: any) => 
         prev.start_time < curr.start_time ? prev : curr
       );
       const newStartTime = earliest.start_time;
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       } else {
         // 수동 생성 스케줄이 있는지 확인
         
-  const { data: scheduleeventsData3 } = await supabaseAdmin.from('schedule_events')
+  const { data: manualSchedule } = await supabaseAdmin.from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'early_open')
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       action,
       adjustedTime,
       earlyReservationsCount: earlyReservations.length,
-      earlyReservations: earlyReservations.map(r => ({
+      earlyReservations: earlyReservations.map((r: any) => ({
         id: r.id,
         start_time: r.start_time,
         status: r.status

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-  const { data: devicesData } = await supabaseAdmin.from('devices')
+  const { data, error } = await supabaseAdmin.from('devices')
       .select('*')
       .eq('device_type_id', deviceTypeId)
       .order('device_number', { ascending: true })
@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest) {
     if (notes !== undefined) updateData.notes = notes
 
     const supabaseAdmin = createAdminClient();
-  const { data: devicesData2 } = await supabaseAdmin.from('devices')
+  const { data, error } = await supabaseAdmin.from('devices')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const { device_type_id, device_number } = body
 
     const supabaseAdmin = createAdminClient();
-  const { data: devicesData3 } = await supabaseAdmin.from('devices')
+  const { data, error } = await supabaseAdmin.from('devices')
       .insert({ device_type_id, device_number, status: 'available' })
       .select()
       .single()

@@ -8,19 +8,19 @@ export class DeleteDeviceCategoryUseCase {
   ) {}
 
   async execute(categoryId: string): Promise<void> {
-    // tL� t� Ux
+    // 카테고리 존재 확인
     const category = await this.categoryRepository.findById(categoryId)
     if (!category) {
-      throw new Error('t�X� J� tLଅ��')
+      throw new Error('존재하지 않는 카테고리입니다')
     }
 
-    // X �� t� Ux
+    // 하위 기기 타입 확인
     const typeCount = await this.typeRepository.countByCategoryId(categoryId)
     if (typeCount > 0) {
-      throw new Error(`${typeCount}X X 0�t �� tLଔ �`  Ƶ��`)
+      throw new Error(`${typeCount}개의 하위 기기 타입이 존재하여 삭제할 수 없습니다`)
     }
 
-    // �
+    // 삭제
     await this.categoryRepository.delete(categoryId)
   }
 }

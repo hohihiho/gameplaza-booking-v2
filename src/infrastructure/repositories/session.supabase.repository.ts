@@ -1,7 +1,14 @@
 import { Session } from '@/src/domain/entities/session'
 import { AuthToken } from '@/src/domain/value-objects/auth-token'
 import { SessionRepository } from '@/src/domain/repositories/session-repository.interface'
-import { createClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+// Session entity를 확장하여 토큰 정보를 포함
+interface SessionWithTokens extends Session {
+  accessToken: AuthToken
+  refreshToken: AuthToken
+  updatedAt: Date
+}
 
 interface SessionRow {
   id: string
@@ -28,7 +35,7 @@ interface SessionRow {
  */
 export class SessionSupabaseRepository implements SessionRepository {
   constructor(
-    private readonly supabase: ReturnType<typeof createClient>
+    private readonly supabase: SupabaseClient<any, 'public', any>
   ) {}
 
   /**
@@ -280,13 +287,18 @@ export class SessionSupabaseRepository implements SessionRepository {
    * 데이터베이스 row로 변환
    */
   private toRow(session: Session): SessionRow {
+    // 토큰 정보가 없는 경우를 처리
+    const now = new Date()
+    const accessToken = session.accessToken || AuthToken.create('dummy-token', new Date(now.getTime() + 3600000))
+    const refreshToken = session.refreshToken || AuthToken.create('dummy-token', new Date(now.getTime() + 7 * 24 * 3600000))
+    
     return {
       id: session.id,
       user_id: session.userId,
-      access_token: session.accessToken.value,
-      refresh_token: session.refreshToken.value,
-      access_token_expires_at: session.accessToken.expiresAt.toISOString(),
-      refresh_token_expires_at: session.refreshToken.expiresAt.toISOString(),
+      access_token: accessToken.value,
+      refresh_token: refreshToken.value,
+      access_token_expires_at: accessToken.expiresAt.toISOString(),
+      refresh_token_expires_at: refreshToken.expiresAt.toISOString(),
       device_info: session.deviceInfo || null,
       ip_address: session.ipAddress || null,
       user_agent: session.userAgent || null,

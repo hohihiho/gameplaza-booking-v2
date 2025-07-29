@@ -11,14 +11,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
   const [nickname, setNickname] = useState('');
-  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   
   // 약관 동의 상태
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -39,7 +36,6 @@ export default function SignupPage() {
   const { data: session, status } = useSession();
   const supabase = createClient();
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const phoneTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 세션 확인
@@ -118,71 +114,10 @@ export default function SignupPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [session, nickname, phone, router]);
+  }, [session, nickname, router]);
 
 
 
-  const formatPhoneNumber = (value: string) => {
-    // 숫자만 추출
-    const numbers = value.replace(/[^\d]/g, '');
-    
-    // 010-1234-5678 형식으로 포맷팅
-    if (numbers.length <= 3) {
-      return numbers;
-    } else if (numbers.length <= 7) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    } else {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-    }
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhone(formatted);
-    
-    // 기존 타이머 클리어
-    if (phoneTimerRef.current) {
-      clearTimeout(phoneTimerRef.current);
-    }
-    
-    // 전화번호가 완성되면 중복 체크
-    if (formatted.length === 13) {
-      setPhoneError(null);
-      phoneTimerRef.current = setTimeout(() => {
-        checkPhoneDuplicate(formatted);
-      }, 500);
-    } else if (formatted.length > 0) {
-      setPhoneError('올바른 전화번호 형식을 입력해주세요');
-    } else {
-      setPhoneError(null);
-    }
-  };
-
-  // 전화번호 중복 체크
-  const checkPhoneDuplicate = async (phoneNumber: string) => {
-    setIsCheckingPhone(true);
-    setPhoneError(null);
-
-    try {
-      const response = await fetch('/api/auth/phone/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone: phoneNumber }),
-      });
-
-      const data = await response.json();
-
-      if (!data.available) {
-        setPhoneError(data.message || '이미 사용 중인 전화번호입니다');
-      }
-    } catch (error) {
-      console.error('전화번호 중복 체크 오류:', error);
-    } finally {
-      setIsCheckingPhone(false);
-    }
-  };
 
 
   // 닉네임 검증
@@ -271,19 +206,8 @@ export default function SignupPage() {
       return;
     }
 
-    // 전화번호가 입력되었을 때만 검증
-    if (phone && phone.length > 0 && phone.length < 13) {
-      setError('올바른 전화번호 형식을 입력해주세요');
-      return;
-    }
-
     if (nicknameError) {
       setError('유효한 닉네임을 입력해주세요');
-      return;
-    }
-
-    if (phoneError) {
-      setError('유효한 전화번호를 입력해주세요');
       return;
     }
 
@@ -297,7 +221,7 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      console.log('회원가입 시도:', { nickname, phone, agreeMarketing });
+      console.log('회원가입 시도:', { nickname, agreeMarketing });
       
       // API를 통해 회원가입 처리
       const response = await fetch('/api/auth/signup', {
@@ -307,7 +231,6 @@ export default function SignupPage() {
         },
         body: JSON.stringify({
           nickname,
-          phone: phone || null,  // 전화번호가 없으면 null 전송
           agreeMarketing
         }),
       });
@@ -413,34 +336,6 @@ export default function SignupPage() {
               )}
             </div>
 
-            {/* 전화번호 */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                전화번호 <span className="text-gray-500 font-normal">(선택)</span>
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={handlePhoneChange}
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white dark:bg-gray-800 dark:text-white"
-                placeholder="010-1234-5678"
-                maxLength={13}
-              />
-              {phoneError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {phoneError}
-                </p>
-              )}
-              {isCheckingPhone && (
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  전화번호 확인 중...
-                </p>
-              )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                • 예약 관련 알림을 받으실 수 있습니다
-              </p>
-            </div>
 
             {/* 약관 동의 */}
             <div className="space-y-4 border-t pt-6">
@@ -543,7 +438,7 @@ export default function SignupPage() {
             {/* 가입 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || !nickname || (phone.length > 0 && phone.length < 13) || !!nicknameError || !!phoneError || isCheckingNickname || isCheckingPhone || !agreeTerms || !agreePrivacy || !agreeAge}
+              disabled={isLoading || !nickname || !!nicknameError || isCheckingNickname || !agreeTerms || !agreePrivacy || !agreeAge}
               className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (

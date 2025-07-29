@@ -1,0 +1,3263 @@
+
+> gameplaza-v2@1.0.0 test
+> jest test --passWithNoTests
+
+FAIL unit src/application/use-cases/checkin/__tests__/process-checkin.use-case.test.ts
+  ● ProcessCheckInUseCase › execute › 성공적으로 체크인을 처리한다
+
+    체크인 처리 실패: 9시간 18분 후 체크인 가능
+
+      91 |     } catch (error) {
+      92 |       if (error instanceof Error) {
+    > 93 |         throw new Error(`체크인 처리 실패: ${error.message}`);
+         |               ^
+      94 |       }
+      95 |       throw error;
+      96 |     }
+
+      at ProcessCheckInUseCase.execute (src/application/use-cases/checkin/process-checkin.use-case.ts:93:15)
+      at Object.<anonymous> (src/application/use-cases/checkin/__tests__/process-checkin.use-case.test.ts:144:22)
+
+FAIL component app/api/v2/__tests__/integration/admin.test.ts
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 관리자가 예약 승인
+
+    TypeError: Cannot read properties of undefined (reading 'status')
+
+      125 |       expect(response.status).toBe(200)
+      126 |       expect(data.success).toBe(true)
+    > 127 |       expect(data.reservation.status).toBe('approved')
+          |                               ^
+      128 |     })
+      129 |
+      130 |     it('비관리자 접근 차단', async () => {
+
+      at Object.status (app/api/v2/__tests__/integration/admin.test.ts:127:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 비관리자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      144 |       const data = await response.json()
+      145 |       
+    > 146 |       expect(response.status).toBe(401)
+          |                               ^
+      147 |       expect(data.error).toContain('인증')
+      148 |     })
+      149 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:146:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 이미 승인된 예약 재승인 방지
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      178 |       const data = await response.json()
+      179 |       
+    > 180 |       expect(response.status).toBe(401)
+          |                               ^
+      181 |       expect(data.error).toContain('인증')
+      182 |     })
+      183 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:180:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 거절 기능 › 관리자가 예약 거절 및 사유 기록
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      222 |       const data = await response.json()
+      223 |       
+    > 224 |       expect(response.status).toBe(401) // 인증 헤더 없으면 401
+          |                               ^
+      225 |       expect(data.error).toBeDefined()
+      226 |     })
+      227 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:224:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 거절 기능 › 거절 사유 필수 입력
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      243 |       const data = await response.json()
+      244 |       
+    > 245 |       expect(response.status).toBe(401)
+          |                               ^
+      246 |       expect(data.error).toContain('인증')
+      247 |     })
+      248 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:245:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 정상적인 체크인 처리
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      331 |       const data = await response.json()
+      332 |       
+    > 333 |       expect(response.status).toBe(200)
+          |                               ^
+      334 |       expect(data.success).toBe(true)
+      335 |       expect(data.data.reservation.status).toBe('checked_in')
+      336 |       expect(data.data.checkIn).toBeDefined()
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:333:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 승인되지 않은 예약 체크인 방지
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 401
+
+      383 |       const data = await response.json()
+      384 |       
+    > 385 |       expect(response.status).toBe(400)
+          |                               ^
+      386 |       expect(data.error).toContain('승인된 예약만')
+      387 |     })
+      388 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:385:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 예약 시간 30분 전부터 체크인 허용
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      460 |       const data = await response.json()
+      461 |       
+    > 462 |       expect(response.status).toBe(200)
+          |                               ^
+      463 |       expect(data.success).toBe(true)
+      464 |     })
+      465 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:462:31)
+
+  ● v2 API Integration Tests - Admin Functions › 노쇼 처리 › 노쇼 처리 (예약 시간 30분 경과)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 403
+
+      514 |       const data = await response.json()
+      515 |       
+    > 516 |       expect(response.status).toBe(200)
+          |                               ^
+      517 |       expect(data.status).toBe('no_show')
+      518 |     })
+      519 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:516:31)
+
+  ● v2 API Integration Tests - Admin Functions › 노쇼 처리 › 이미 체크인한 예약은 노쇼 처리 불가
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 403
+
+      545 |       const data = await response.json()
+      546 |       
+    > 547 |       expect(response.status).toBe(400)
+          |                               ^
+      548 |       expect(data.error).toContain('체크인')
+      549 |     })
+      550 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:547:31)
+
+FAIL integration tests/integration/api/v2/reservations.test.ts
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-001: 정상적인 예약 생성
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      69 |       const futureDate = new Date();
+      70 |       futureDate.setDate(futureDate.getDate() + 2);
+    > 71 |       const dateString = KSTDateTime.toDateString(futureDate);
+         |                                      ^
+      72 |
+      73 |       const requestBody = {
+      74 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:71:38)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-002: 24시간 규칙 위반 시 거부
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      119 |       const tomorrow = new Date();
+      120 |       tomorrow.setHours(tomorrow.getHours() + 12);
+    > 121 |       const dateString = KSTDateTime.toDateString(tomorrow);
+          |                                      ^
+      122 |
+      123 |       const requestBody = {
+      124 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:121:38)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-003: 시간 충돌 검증
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      154 |       const futureDate = new Date();
+      155 |       futureDate.setDate(futureDate.getDate() + 2);
+    > 156 |       const dateString = KSTDateTime.toDateString(futureDate);
+          |                                      ^
+      157 |
+      158 |       const requestBody = {
+      159 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:156:38)
+
+  ● Reservations API Integration Tests › GET /api/v2/reservations/list › TC-INT-004: 사용자 예약 목록 조회
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      248 |
+      249 |       // Then: 예약 목록 반환
+    > 250 |       expect(response.status).toBe(200);
+          |                               ^
+      251 |       expect(data.reservations).toHaveLength(2);
+      252 |       expect(data.reservations[0].id).toBe('res-1');
+      253 |       expect(data.reservations[0].status).toBe('approved');
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:250:31)
+
+  ● Reservations API Integration Tests › GET /api/v2/reservations/list › TC-INT-005: 필터링 및 페이지네이션
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      270 |
+      271 |       // Then: 필터와 페이지네이션 적용
+    > 272 |       expect(response.status).toBe(200);
+          |                               ^
+      273 |       expect(mockSupabase.from).toHaveBeenCalled();
+      274 |     });
+      275 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:272:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/approve › TC-INT-006: 관리자의 예약 승인
+
+    expect(received).toContain(expected) // indexOf
+
+    Matcher error: received value must not be null nor undefined
+
+    Received has value: undefined
+
+      333 |       // Then: 승인 성공
+      334 |       expect(response.status).toBe(200);
+    > 335 |       expect(data.message).toContain('승인');
+          |                            ^
+      336 |     });
+      337 |
+      338 |     it('TC-INT-007: 일반 사용자 승인 시도 거부', async () => {
+
+      at Object.toContain (tests/integration/api/v2/reservations.test.ts:335:28)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/approve › TC-INT-007: 일반 사용자 승인 시도 거부
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+      368 |
+      369 |       // Then: 권한 없음
+    > 370 |       expect(response.status).toBe(403);
+          |                               ^
+      371 |       expect(data.error).toContain('권한');
+      372 |     });
+      373 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:370:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/cancel › TC-INT-008: 본인 예약 취소
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      420 |
+      421 |       // Then: 취소 성공
+    > 422 |       expect(response.status).toBe(200);
+          |                               ^
+      423 |       expect(data.message).toContain('취소');
+      424 |     });
+      425 |
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:422:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/cancel › TC-INT-009: 타인 예약 취소 시도 거부
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 401
+
+      460 |
+      461 |       // Then: 권한 없음
+    > 462 |       expect(response.status).toBe(403);
+          |                               ^
+      463 |       expect(data.error).toContain('본인');
+      464 |     });
+      465 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:462:31)
+
+FAIL component app/api/v2/__tests__/integration/reservations.test.ts
+  ● Console
+
+    console.error
+      Reservation creation error: Error: 사용자를 찾을 수 없습니다
+          at CreateReservationV2UseCase.execute (/Users/seeheejang/Documents/project/gameplaza-v2/src/application/use-cases/reservation/create-reservation.v2.use-case.ts:45:13)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at POST (/Users/seeheejang/Documents/project/gameplaza-v2/app/api/v2/reservations/create/route.ts:85:20)
+          at Object.<anonymous> (/Users/seeheejang/Documents/project/gameplaza-v2/app/api/v2/__tests__/integration/reservations.test.ts:188:24)
+
+      132 |
+      133 |   } catch (error) {
+    > 134 |     console.error('Reservation creation error:', error)
+          |             ^
+      135 |
+      136 |     // 에러 타입에 따른 응답
+      137 |     if (error instanceof Error) {
+
+      at error (app/api/v2/reservations/create/route.ts:134:13)
+      at Object.<anonymous> (app/api/v2/__tests__/integration/reservations.test.ts:188:24)
+
+    console.log
+      [2025-07-28T14:42:14.191Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      [2025-07-28T14:42:14.197Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?status=pending
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      [2025-07-28T14:42:14.198Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.error
+      Reservation creation error: SyntaxError: Unexpected token 'i', "invalid json {" is not valid JSON
+          at Object.json (/Users/seeheejang/Documents/project/gameplaza-v2/jest.setup.js:309:15)
+          at json (/Users/seeheejang/Documents/project/gameplaza-v2/app/api/v2/reservations/create/route.ts:41:32)
+          at Object.<anonymous> (/Users/seeheejang/Documents/project/gameplaza-v2/app/api/v2/__tests__/integration/reservations.test.ts:508:47)
+          at Promise.finally.completed (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:1559:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:1499:10)
+          at _callCircusTest (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:1009:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:949:3)
+          at _runTestsForDescribeBlock (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:839:13)
+          at _runTestsForDescribeBlock (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+          at _runTestsForDescribeBlock (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+          at run (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:757:3)
+          at runAndTransformResultsToJestFormat (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/jestAdapterInit.js:1920:21)
+          at jestAdapter (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-runner/build/testWorker.js:275:16)
+          at runTest (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-runner/build/testWorker.js:343:7)
+          at Object.worker (/Users/seeheejang/Documents/project/gameplaza-v2/node_modules/@jest/core/node_modules/jest-runner/build/testWorker.js:497:12)
+
+      132 |
+      133 |   } catch (error) {
+    > 134 |     console.error('Reservation creation error:', error)
+          |             ^
+      135 |
+      136 |     // 에러 타입에 따른 응답
+      137 |     if (error instanceof Error) {
+
+      at error (app/api/v2/reservations/create/route.ts:134:13)
+      at Object.<anonymous> (app/api/v2/__tests__/integration/reservations.test.ts:508:24)
+
+    console.log
+      [2025-07-28T14:42:14.338Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 정상적인 예약 생성
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 400
+
+      189 |       const data = await response.json()
+      190 |
+    > 191 |       expect(response.status).toBe(401) // 인증 없이 호출하면 401
+          |                               ^
+      192 |       expect(data.error).toBe('Unauthorized')
+      193 |     })
+      194 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:191:31)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 24시간 룰 위반 시 에러
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "24시간"
+    Received string:    "Bad Request"
+
+      214 |
+      215 |       expect(response.status).toBe(400)
+    > 216 |       expect(data.error).toContain('24시간')
+          |                          ^
+      217 |     })
+      218 |
+      219 |     it('시간대 충돌 감지', async () => {
+
+      at Object.toContain (app/api/v2/__tests__/integration/reservations.test.ts:216:26)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 미인증 사용자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "로그인이 필요합니다"
+    Received: "Unauthorized"
+
+      274 |
+      275 |       expect(response.status).toBe(401)
+    > 276 |       expect(data.error).toBe('로그인이 필요합니다')
+          |                          ^
+      277 |     })
+      278 |
+      279 |     it('필수 필드 검증', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:276:26)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 필수 필드 검증
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "startTime"
+    Received string:    "Bad Request"
+
+      293 |
+      294 |       expect(response.status).toBe(400)
+    > 295 |       expect(data.error).toContain('startTime')
+          |                          ^
+      296 |     })
+      297 |
+      298 |     it('잘못된 날짜 형식 검증', async () => {
+
+      at Object.toContain (app/api/v2/__tests__/integration/reservations.test.ts:295:26)
+
+  ● v2 API Integration Tests - Reservations › GET /api/v2/reservations - 예약 목록 조회 › 페이지네이션 테스트
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+      382 |       expect(response.status).toBe(200)
+      383 |       expect(data.reservations).toHaveLength(2)
+    > 384 |       expect(data.page).toBe(1)
+          |                         ^
+      385 |       expect(data.pageSize).toBe(10)
+      386 |       expect(data.totalPages).toBeDefined()
+      387 |     })
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:384:25)
+
+  ● v2 API Integration Tests - Reservations › GET /api/v2/reservations - 예약 목록 조회 › 미인증 사용자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      403 |       
+      404 |       const response = await getReservations(request)
+    > 405 |       expect(response.status).toBe(401)
+          |                               ^
+      406 |     })
+      407 |   })
+      408 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:405:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 데이터베이스 연결 실패
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 400
+
+      494 |
+      495 |       const response = await createReservation(request)
+    > 496 |       expect(response.status).toBe(500)
+          |                               ^
+      497 |     })
+      498 |
+      499 |     it('잘못된 JSON 요청', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:496:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 잘못된 JSON 요청
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 500
+
+      507 |
+      508 |       const response = await createReservation(request)
+    > 509 |       expect(response.status).toBe(400)
+          |                               ^
+      510 |     })
+      511 |
+      512 |     it('존재하지 않는 기기 ID', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:509:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 존재하지 않는 기기 ID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 400
+
+      539 |
+      540 |       const response = await createReservation(request)
+    > 541 |       expect(response.status).toBe(404)
+          |                               ^
+      542 |     })
+      543 |   })
+      544 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:541:31)
+
+  ● v2 API Integration Tests - Reservations › Mobile-Specific Tests - 모바일 최적화 › 큰 페이로드 처리 (느린 네트워크)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      566 |       const duration = Date.now() - startTime
+      567 |
+    > 568 |       expect(response.status).toBe(200)
+          |                               ^
+      569 |       expect(duration).toBeLessThan(200) // 200ms 이내 응답
+      570 |     })
+      571 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:568:31)
+
+FAIL integration tests/integration/performance-security.test.ts
+  ● 성능 테스트 › 부하 테스트 › TC-PERF-012: CDN 캐시 효율성
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0.8
+    Received:   0.75
+
+      221 |       // Then: 높은 CDN 적중률
+      222 |       const cdnHitRate = cdnHits.count / (cdnHits.count + originHits.count);
+    > 223 |       expect(cdnHitRate).toBeGreaterThan(0.8);
+          |                          ^
+      224 |     });
+      225 |
+      226 |     it('TC-PERF-013: 실시간 동기화 성능', async () => {
+
+      at Object.toBeGreaterThan (tests/integration/performance-security.test.ts:223:26)
+
+PASS unit src/domain/value-objects/__tests__/admin-permissions.test.ts
+FAIL integration tests/integration/admin-system.test.tsx
+  ● Console
+
+    console.warn
+      Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+      59 |     };
+      60 |
+    > 61 |     render(<LoginForm />);
+         |            ^
+      62 |
+      63 |     // When: 올바른 인증 정보 입력
+      64 |     fireEvent.change(screen.getByPlaceholderText('이메일'), {
+
+      at process.env.NODE_ENV.exports.createElement (node_modules/react/cjs/react.development.js:991:19)
+      at Object.__jsx (tests/integration/admin-system.test.tsx:61:12)
+
+  ● 예약 관리 › TC-ADMIN-023: 예약 상세 정보 수정
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+    Here are the accessible roles:
+
+      combobox:
+
+      Name "":
+      [36m<select />[39m
+
+      --------------------------------------------------
+      option:
+
+      Name "PC-01":
+      [36m<option[39m
+        [33mvalue[39m=[32m"PC-01"[39m
+      [36m/>[39m
+
+      Name "PC-02":
+      [36m<option[39m
+        [33mvalue[39m=[32m"PC-02"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body[39m
+      [33mdata-location[39m=[32m"/admin"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<form>[39m
+          [36m<input[39m
+            [33mtype[39m=[32m"time"[39m
+            [33mvalue[39m=[32m"14:00"[39m
+          [36m/>[39m
+          [36m<input[39m
+            [33mtype[39m=[32m"time"[39m
+            [33mvalue[39m=[32m"18:00"[39m
+          [36m/>[39m
+          [36m<select>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"PC-01"[39m
+            [36m>[39m
+              [0mPC-01[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"PC-02"[39m
+            [36m>[39m
+              [0mPC-02[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</form>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      495 |
+      496 |     // When: 시간 변경
+    > 497 |     const timeInputs = screen.getAllByRole('textbox');
+          |                               ^
+      498 |     const endTimeInput = timeInputs.find(input => input.getAttribute('value') === '19:00');
+      499 |     if (endTimeInput) {
+      500 |       fireEvent.change(endTimeInput, {
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+      at Object.getAllByRole (tests/integration/admin-system.test.tsx:497:31)
+
+  ● 설정 및 환경설정 › TC-ADMIN-070: 운영 시간 설정
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "평일":
+      [36m<h4 />[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body[39m
+      [33mdata-location[39m=[32m"/admin"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<div>[39m
+          [36m<div>[39m
+            [36m<h4>[39m
+              [0m평일[0m
+            [36m</h4>[39m
+            [36m<input[39m
+              [33mtype[39m=[32m"time"[39m
+              [33mvalue[39m=[32m"10:00"[39m
+            [36m/>[39m
+            [0m-[0m
+            [36m<input[39m
+              [33mtype[39m=[32m"time"[39m
+              [33mvalue[39m=[32m"22:00"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      1320 |
+      1321 |     // When: 평일 마감 시간 변경
+    > 1322 |     const timeInputs = screen.getAllByRole('textbox');
+           |                               ^
+      1323 |     const closeTimeInput = timeInputs.find(input => input.getAttribute('name')?.includes('close'));
+      1324 |     if (closeTimeInput) {
+      1325 |       fireEvent.change(closeTimeInput, {
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+      at Object.getAllByRole (tests/integration/admin-system.test.tsx:1322:31)
+
+PASS integration tests/integration/api-integration.test.js
+PASS component src/components/ui/__tests__/DeviceSelector.test.tsx
+  ● Console
+
+    console.warn
+      Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+      44 |   it('기기 목록이 올바르게 렌더링되어야 한다', () => {
+      45 |     render(
+    > 46 |       <DeviceSelector
+         |       ^
+      47 |         deviceTypes={mockDeviceTypes}
+      48 |         onDeviceSelect={mockOnDeviceSelect}
+      49 |       />
+
+      at process.env.NODE_ENV.exports.createElement (node_modules/react/cjs/react.development.js:991:19)
+      at Object.__jsx (src/components/ui/__tests__/DeviceSelector.test.tsx:46:7)
+
+PASS component src/components/ui/__tests__/Calendar.test.tsx
+  ● Console
+
+    console.warn
+      Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+      12 |
+      13 |   it('렌더링이 정상적으로 되어야 한다', () => {
+    > 14 |     render(<Calendar />);
+         |            ^
+      15 |     
+      16 |     // 요일 헤더 확인
+      17 |     expect(screen.getByText('일')).toBeInTheDocument();
+
+      at process.env.NODE_ENV.exports.createElement (node_modules/react/cjs/react.development.js:991:19)
+      at Object.__jsx (src/components/ui/__tests__/Calendar.test.tsx:14:12)
+
+PASS integration tests/integration/ai-automation.test.ts
+PASS component app/api/v2/__tests__/performance/benchmark.test.ts
+  ● Console
+
+    console.log
+      [2025-07-28T14:42:14.277Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      Create Reservation API: 17.52ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:230:15)
+
+    console.log
+      [2025-07-28T14:42:14.295Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      Get Reservations API: 0.71ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:243:15)
+
+    console.log
+      [2025-07-28T14:42:14.297Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      Paginated List (100 items): 0.66ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:277:15)
+
+    console.log
+      [2025-07-28T14:42:14.299Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.300Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.300Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.301Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.302Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.302Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.302Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.302Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.303Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.303Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      10 Concurrent Requests: 4.11ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:305:15)
+
+    console.log
+      Average per request: 0.41ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:306:15)
+
+    console.log
+      [2025-07-28T14:42:14.313Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.313Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.326Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.327Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.339Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.344Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.357Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.358Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.365Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.365Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.368Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.368Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.421Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.423Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.444Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.446Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.447Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.447Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.447Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.448Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.448Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.448Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.449Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.449Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.450Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.450Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.450Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.450Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.450Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.451Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.451Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.451Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.451Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.452Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.453Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.453Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.453Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      50 Concurrent GET Requests: 144.73ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:323:15)
+
+    console.log
+      Average per request: 2.89ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:324:15)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.464Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.465Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.466Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.467Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.467Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.467Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.467Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.467Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.468Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.469Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.470Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.471Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.471Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.471Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.471Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.472Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.473Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.473Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.473Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.473Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.473Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.474Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.475Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.476Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.476Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.476Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.476Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.476Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.477Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.478Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      Memory increase after 100 requests:
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:355:15)
+
+    console.log
+      - Heap: 25.53 MB
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:356:15)
+
+    console.log
+      - External: -0.00 MB
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:357:15)
+
+    console.log
+      [2025-07-28T14:42:14.585Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      3G Network Simulation: 205.31ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:392:15)
+
+    console.log
+      [2025-07-28T14:42:14.804Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=5
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      3G Pagination: 202.23ms, Size: 2634 bytes
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:414:15)
+
+    console.log
+      [2025-07-28T14:42:14.908Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=50
+
+      at log (lib/api/logging.ts:11:11)
+
+    console.log
+      Large Dataset (1000 items, 50 per page): 0.89ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:451:15)
+
+    console.log
+      [2025-07-28T14:42:14.919Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.920Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.920Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.920Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.921Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.922Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.922Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.922Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.922Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.923Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.923Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.923Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.923Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.924Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.924Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.924Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.924Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.924Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.925Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.925Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.925Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.925Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.925Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.926Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.927Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.928Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.946Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.946Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.946Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.947Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.948Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.949Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.950Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] POST POST /api/v2/reservations - http://localhost:3000/api/v2/reservations
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      [2025-07-28T14:42:14.951Z] GET GET /api/v2/reservations - http://localhost:3000/api/v2/reservations?page=1&pageSize=10
+
+      at log (lib/api/logging.ts:11:11)
+          at Array.map (<anonymous>)
+
+    console.log
+      Peak Time Simulation (100 users):
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:487:15)
+
+    console.log
+      - Total time: 37.22ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:488:15)
+
+    console.log
+      - Success: 100, Errors: 0
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:489:15)
+
+    console.log
+      - Average per request: 0.37ms
+
+      at Object.log (app/api/v2/__tests__/performance/benchmark.test.ts:490:15)
+
+PASS component app/api/v2/__tests__/data-validation/validation.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/get-checkin-details.use-case.test.ts
+PASS component app/api/v2/auth/__tests__/auth.api.test.ts
+PASS unit src/application/use-cases/time-slot/__tests__/create-time-slot-template.use-case.test.ts
+PASS unit src/application/use-cases/check-in/__tests__/process-check-out.use-case.test.ts
+PASS integration tests/integration/realtime-sync.test.ts
+PASS component app/api/v2/checkins/__tests__/checkin-api.test.ts
+PASS unit src/application/use-cases/payment/__tests__/refund-payment.use-case.test.ts
+PASS unit src/domain/entities/__tests__/time-slot-template.test.ts
+PASS component app/api/v2/auth/__tests__/auth.api.simple.test.ts
+PASS unit src/application/use-cases/time-slot/__tests__/schedule-time-slots.use-case.test.ts
+PASS component app/api/v2/reservations/__tests__/route.test.ts
+PASS unit src/infrastructure/repositories/__tests__/checkin.supabase.repository.test.ts
+PASS unit src/application/use-cases/time-slot/__tests__/get-available-time-slots.use-case.test.ts
+PASS unit src/domain/value-objects/__tests__/role.test.ts
+PASS unit src/domain/value-objects/__tests__/rental-availability.test.ts
+PASS unit src/application/use-cases/reservation/__tests__/create-reservation.use-case.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/adjust-time-and-amount.use-case.test.ts
+PASS unit src/domain/services/__tests__/reservation.service.test.ts
+PASS unit src/application/use-cases/auth/__tests__/refresh-token.use-case.test.ts
+PASS unit src/domain/entities/__tests__/rental-settings.test.ts
+PASS unit src/domain/services/__tests__/reservation-rules.service.test.ts
+PASS unit src/application/use-cases/admin/__tests__/get-admin-detail.use-case.test.ts
+PASS unit src/domain/value-objects/__tests__/rental-time-slot.test.ts
+PASS unit src/domain/value-objects/__tests__/permission.test.ts
+PASS unit src/application/use-cases/reservation/__tests__/adjust-time.use-case.test.ts
+PASS unit src/application/use-cases/check-in/__tests__/process-check-in.use-case.test.ts
+PASS component app/api/admin/reservations/[id]/adjust-amount/__tests__/route.test.ts
+  ● Console
+
+    console.log
+      금액 조정 이력 저장 스킵 (테이블 없음)
+
+      at log (app/api/admin/reservations/[id]/adjust-amount/route.ts:79:15)
+
+PASS unit src/application/use-cases/check-in/__tests__/handle-no-show.use-case.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/confirm-payment.use-case.test.ts
+PASS unit src/infrastructure/services/__tests__/jwt-token.service.test.ts
+PASS unit src/domain/aggregates/__tests__/device-hierarchy.test.ts
+PASS unit src/domain/entities/__tests__/reservation.test.ts
+PASS unit src/infrastructure/repositories/__tests__/admin.supabase.repository.test.ts
+PASS unit src/infrastructure/repositories/__tests__/user.supabase.repository.test.ts
+PASS unit src/application/use-cases/admin/__tests__/list-admins.use-case.test.ts
+PASS unit src/domain/entities/__tests__/checkin.test.ts
+PASS unit src/application/use-cases/admin/__tests__/update-admin-permissions.use-case.test.ts
+PASS unit src/application/use-cases/reservation/__tests__/approve-reservation.use-case.test.ts
+PASS unit src/domain/value-objects/__tests__/rental-pricing.test.ts
+PASS unit src/application/use-cases/auth/__tests__/google-auth.use-case.test.ts
+PASS unit src/application/use-cases/device/__tests__/change-device-status.use-case.test.ts
+PASS unit src/application/use-cases/admin/__tests__/delete-admin.use-case.test.ts
+PASS unit src/infrastructure/repositories/__tests__/payment.supabase.repository.test.ts
+PASS unit src/application/use-cases/auth/__tests__/google-auth.use-case.unit.test.ts
+PASS unit src/domain/entities/__tests__/admin.test.ts
+PASS unit src/domain/entities/__tests__/device.test.ts
+PASS unit src/domain/value-objects/__tests__/auth-token.test.ts
+PASS unit tests/unit/time-system.test.js
+PASS unit src/infrastructure/repositories/__tests__/supabase-reservation.repository.v2.test.ts
+PASS unit src/application/use-cases/__tests__/get-device-availability.use-case.test.ts
+PASS unit src/application/use-cases/device/__tests__/create-device.use-case.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/process-checkout.use-case.test.ts
+PASS unit src/infrastructure/repositories/__tests__/supabase-user.repository.test.ts
+PASS unit src/application/use-cases/admin/__tests__/create-admin.use-case.test.ts
+PASS unit src/domain/services/__tests__/authorization-domain.service.test.ts
+PASS unit src/infrastructure/repositories/__tests__/notification.supabase.repository.test.ts
+PASS unit src/application/use-cases/auth/__tests__/logout.use-case.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/get-checkins-by-date-range.use-case.test.ts
+PASS unit src/application/use-cases/checkin/__tests__/get-active-checkins.use-case.test.ts
+PASS unit src/domain/value-objects/__tests__/checkin-time.test.ts
+PASS unit src/domain/entities/__tests__/session.test.ts
+PASS unit src/application/use-cases/reservation/__tests__/reject-reservation.use-case.test.ts
+PASS unit src/domain/value-objects/__tests__/kst-datetime.test.ts
+PASS unit src/application/use-cases/__tests__/create-reservation.use-case.test.ts
+PASS unit src/application/use-cases/reservation/__tests__/check-in.use-case.test.ts
+PASS unit tests/unit/sample.test.js
+PASS unit src/application/use-cases/auth/__tests__/get-profile.use-case.test.ts
+PASS unit src/domain/entities/__tests__/user.test.ts
+PASS unit src/domain/value-objects/__tests__/reservation-status.test.ts
+PASS unit src/domain/value-objects/__tests__/time-slot.test.ts
+PASS integration tests/integration/pwa-features.test.ts
+FAIL integration tests/integration/mobile-ui-ux.test.tsx
+  ● Console
+
+    console.warn
+      Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+      59 |       render(
+      60 |         <TouchRipple>
+    > 61 |           <button onClick={handleClick}>터치하기</button>
+         |           ^
+      62 |         </TouchRipple>
+      63 |       );
+      64 |
+
+      at process.env.NODE_ENV.exports.createElement (node_modules/react/cjs/react.development.js:991:19)
+      at Object.__jsx (tests/integration/mobile-ui-ux.test.tsx:61:11)
+
+  ● 모바일 UI/UX 테스트 › 모바일 폼 최적화 › TC-MOBILE-020: 가상 키보드 대응
+
+    expect(element).toHaveFocus()
+
+    Expected element with focus:
+      <input autocomplete="username" class="
+                  w-full px-4 py-3 border rounded-xl transition-all duration-200···············
+                  pr-10
+                  border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400
+                  bg-white dark:bg-gray-900·
+                  text-gray-900 dark:text-white
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:cursor-not-allowed···············
+                " name="nickname" placeholder="닉네임" type="text" />
+    Received element with focus:
+      <body><div><div class="relative"><div class="relative"><div class="relative"><input autocomplete="username" class="
+                  w-full px-4 py-3 border rounded-xl transition-all duration-200···············
+                  pr-10
+                  border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400
+                  bg-white dark:bg-gray-900·
+                  text-gray-900 dark:text-white
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:cursor-not-allowed···············
+                " name="nickname" placeholder="닉네임" type="text" /></div><div class="absolute bottom-0 left-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" style="width: 0%;" /></div></div></div></body>
+
+      361 |
+      362 |       // Then: 입력 필드가 포커스됨 (가상 키보드 대응은 브라우저가 처리)
+    > 363 |       expect(input).toHaveFocus();
+          |                     ^
+      364 |       expect(input).toHaveAttribute('type', 'text');
+      365 |       expect(input).toHaveAttribute('autoComplete', 'username');
+      366 |     });
+
+      at Object.toHaveFocus (tests/integration/mobile-ui-ux.test.tsx:363:21)
+
+Summary of all failing tests
+FAIL src/application/use-cases/checkin/__tests__/process-checkin.use-case.test.ts
+  ● ProcessCheckInUseCase › execute › 성공적으로 체크인을 처리한다
+
+    체크인 처리 실패: 9시간 18분 후 체크인 가능
+
+      91 |     } catch (error) {
+      92 |       if (error instanceof Error) {
+    > 93 |         throw new Error(`체크인 처리 실패: ${error.message}`);
+         |               ^
+      94 |       }
+      95 |       throw error;
+      96 |     }
+
+      at ProcessCheckInUseCase.execute (src/application/use-cases/checkin/process-checkin.use-case.ts:93:15)
+      at Object.<anonymous> (src/application/use-cases/checkin/__tests__/process-checkin.use-case.test.ts:144:22)
+
+FAIL app/api/v2/__tests__/integration/admin.test.ts
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 관리자가 예약 승인
+
+    TypeError: Cannot read properties of undefined (reading 'status')
+
+      125 |       expect(response.status).toBe(200)
+      126 |       expect(data.success).toBe(true)
+    > 127 |       expect(data.reservation.status).toBe('approved')
+          |                               ^
+      128 |     })
+      129 |
+      130 |     it('비관리자 접근 차단', async () => {
+
+      at Object.status (app/api/v2/__tests__/integration/admin.test.ts:127:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 비관리자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      144 |       const data = await response.json()
+      145 |       
+    > 146 |       expect(response.status).toBe(401)
+          |                               ^
+      147 |       expect(data.error).toContain('인증')
+      148 |     })
+      149 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:146:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 승인 기능 › 이미 승인된 예약 재승인 방지
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      178 |       const data = await response.json()
+      179 |       
+    > 180 |       expect(response.status).toBe(401)
+          |                               ^
+      181 |       expect(data.error).toContain('인증')
+      182 |     })
+      183 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:180:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 거절 기능 › 관리자가 예약 거절 및 사유 기록
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      222 |       const data = await response.json()
+      223 |       
+    > 224 |       expect(response.status).toBe(401) // 인증 헤더 없으면 401
+          |                               ^
+      225 |       expect(data.error).toBeDefined()
+      226 |     })
+      227 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:224:31)
+
+  ● v2 API Integration Tests - Admin Functions › 예약 거절 기능 › 거절 사유 필수 입력
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      243 |       const data = await response.json()
+      244 |       
+    > 245 |       expect(response.status).toBe(401)
+          |                               ^
+      246 |       expect(data.error).toContain('인증')
+      247 |     })
+      248 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:245:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 정상적인 체크인 처리
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      331 |       const data = await response.json()
+      332 |       
+    > 333 |       expect(response.status).toBe(200)
+          |                               ^
+      334 |       expect(data.success).toBe(true)
+      335 |       expect(data.data.reservation.status).toBe('checked_in')
+      336 |       expect(data.data.checkIn).toBeDefined()
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:333:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 승인되지 않은 예약 체크인 방지
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 401
+
+      383 |       const data = await response.json()
+      384 |       
+    > 385 |       expect(response.status).toBe(400)
+          |                               ^
+      386 |       expect(data.error).toContain('승인된 예약만')
+      387 |     })
+      388 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:385:31)
+
+  ● v2 API Integration Tests - Admin Functions › 체크인 기능 › 예약 시간 30분 전부터 체크인 허용
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      460 |       const data = await response.json()
+      461 |       
+    > 462 |       expect(response.status).toBe(200)
+          |                               ^
+      463 |       expect(data.success).toBe(true)
+      464 |     })
+      465 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:462:31)
+
+  ● v2 API Integration Tests - Admin Functions › 노쇼 처리 › 노쇼 처리 (예약 시간 30분 경과)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 403
+
+      514 |       const data = await response.json()
+      515 |       
+    > 516 |       expect(response.status).toBe(200)
+          |                               ^
+      517 |       expect(data.status).toBe('no_show')
+      518 |     })
+      519 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:516:31)
+
+  ● v2 API Integration Tests - Admin Functions › 노쇼 처리 › 이미 체크인한 예약은 노쇼 처리 불가
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 403
+
+      545 |       const data = await response.json()
+      546 |       
+    > 547 |       expect(response.status).toBe(400)
+          |                               ^
+      548 |       expect(data.error).toContain('체크인')
+      549 |     })
+      550 |   })
+
+      at Object.toBe (app/api/v2/__tests__/integration/admin.test.ts:547:31)
+
+FAIL tests/integration/api/v2/reservations.test.ts
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-001: 정상적인 예약 생성
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      69 |       const futureDate = new Date();
+      70 |       futureDate.setDate(futureDate.getDate() + 2);
+    > 71 |       const dateString = KSTDateTime.toDateString(futureDate);
+         |                                      ^
+      72 |
+      73 |       const requestBody = {
+      74 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:71:38)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-002: 24시간 규칙 위반 시 거부
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      119 |       const tomorrow = new Date();
+      120 |       tomorrow.setHours(tomorrow.getHours() + 12);
+    > 121 |       const dateString = KSTDateTime.toDateString(tomorrow);
+          |                                      ^
+      122 |
+      123 |       const requestBody = {
+      124 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:121:38)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/create › TC-INT-003: 시간 충돌 검증
+
+    TypeError: _kstDatetime.KSTDateTime.toDateString is not a function
+
+      154 |       const futureDate = new Date();
+      155 |       futureDate.setDate(futureDate.getDate() + 2);
+    > 156 |       const dateString = KSTDateTime.toDateString(futureDate);
+          |                                      ^
+      157 |
+      158 |       const requestBody = {
+      159 |         deviceId: 'device-123',
+
+      at Object.toDateString (tests/integration/api/v2/reservations.test.ts:156:38)
+
+  ● Reservations API Integration Tests › GET /api/v2/reservations/list › TC-INT-004: 사용자 예약 목록 조회
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      248 |
+      249 |       // Then: 예약 목록 반환
+    > 250 |       expect(response.status).toBe(200);
+          |                               ^
+      251 |       expect(data.reservations).toHaveLength(2);
+      252 |       expect(data.reservations[0].id).toBe('res-1');
+      253 |       expect(data.reservations[0].status).toBe('approved');
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:250:31)
+
+  ● Reservations API Integration Tests › GET /api/v2/reservations/list › TC-INT-005: 필터링 및 페이지네이션
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      270 |
+      271 |       // Then: 필터와 페이지네이션 적용
+    > 272 |       expect(response.status).toBe(200);
+          |                               ^
+      273 |       expect(mockSupabase.from).toHaveBeenCalled();
+      274 |     });
+      275 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:272:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/approve › TC-INT-006: 관리자의 예약 승인
+
+    expect(received).toContain(expected) // indexOf
+
+    Matcher error: received value must not be null nor undefined
+
+    Received has value: undefined
+
+      333 |       // Then: 승인 성공
+      334 |       expect(response.status).toBe(200);
+    > 335 |       expect(data.message).toContain('승인');
+          |                            ^
+      336 |     });
+      337 |
+      338 |     it('TC-INT-007: 일반 사용자 승인 시도 거부', async () => {
+
+      at Object.toContain (tests/integration/api/v2/reservations.test.ts:335:28)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/approve › TC-INT-007: 일반 사용자 승인 시도 거부
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+      368 |
+      369 |       // Then: 권한 없음
+    > 370 |       expect(response.status).toBe(403);
+          |                               ^
+      371 |       expect(data.error).toContain('권한');
+      372 |     });
+      373 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:370:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/cancel › TC-INT-008: 본인 예약 취소
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      420 |
+      421 |       // Then: 취소 성공
+    > 422 |       expect(response.status).toBe(200);
+          |                               ^
+      423 |       expect(data.message).toContain('취소');
+      424 |     });
+      425 |
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:422:31)
+
+  ● Reservations API Integration Tests › POST /api/v2/reservations/[id]/cancel › TC-INT-009: 타인 예약 취소 시도 거부
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 401
+
+      460 |
+      461 |       // Then: 권한 없음
+    > 462 |       expect(response.status).toBe(403);
+          |                               ^
+      463 |       expect(data.error).toContain('본인');
+      464 |     });
+      465 |   });
+
+      at Object.toBe (tests/integration/api/v2/reservations.test.ts:462:31)
+
+FAIL app/api/v2/__tests__/integration/reservations.test.ts
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 정상적인 예약 생성
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 400
+
+      189 |       const data = await response.json()
+      190 |
+    > 191 |       expect(response.status).toBe(401) // 인증 없이 호출하면 401
+          |                               ^
+      192 |       expect(data.error).toBe('Unauthorized')
+      193 |     })
+      194 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:191:31)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 24시간 룰 위반 시 에러
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "24시간"
+    Received string:    "Bad Request"
+
+      214 |
+      215 |       expect(response.status).toBe(400)
+    > 216 |       expect(data.error).toContain('24시간')
+          |                          ^
+      217 |     })
+      218 |
+      219 |     it('시간대 충돌 감지', async () => {
+
+      at Object.toContain (app/api/v2/__tests__/integration/reservations.test.ts:216:26)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 미인증 사용자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "로그인이 필요합니다"
+    Received: "Unauthorized"
+
+      274 |
+      275 |       expect(response.status).toBe(401)
+    > 276 |       expect(data.error).toBe('로그인이 필요합니다')
+          |                          ^
+      277 |     })
+      278 |
+      279 |     it('필수 필드 검증', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:276:26)
+
+  ● v2 API Integration Tests - Reservations › POST /api/v2/reservations - 예약 생성 › 필수 필드 검증
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "startTime"
+    Received string:    "Bad Request"
+
+      293 |
+      294 |       expect(response.status).toBe(400)
+    > 295 |       expect(data.error).toContain('startTime')
+          |                          ^
+      296 |     })
+      297 |
+      298 |     it('잘못된 날짜 형식 검증', async () => {
+
+      at Object.toContain (app/api/v2/__tests__/integration/reservations.test.ts:295:26)
+
+  ● v2 API Integration Tests - Reservations › GET /api/v2/reservations - 예약 목록 조회 › 페이지네이션 테스트
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+      382 |       expect(response.status).toBe(200)
+      383 |       expect(data.reservations).toHaveLength(2)
+    > 384 |       expect(data.page).toBe(1)
+          |                         ^
+      385 |       expect(data.pageSize).toBe(10)
+      386 |       expect(data.totalPages).toBeDefined()
+      387 |     })
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:384:25)
+
+  ● v2 API Integration Tests - Reservations › GET /api/v2/reservations - 예약 목록 조회 › 미인증 사용자 접근 차단
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      403 |       
+      404 |       const response = await getReservations(request)
+    > 405 |       expect(response.status).toBe(401)
+          |                               ^
+      406 |     })
+      407 |   })
+      408 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:405:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 데이터베이스 연결 실패
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 400
+
+      494 |
+      495 |       const response = await createReservation(request)
+    > 496 |       expect(response.status).toBe(500)
+          |                               ^
+      497 |     })
+      498 |
+      499 |     it('잘못된 JSON 요청', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:496:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 잘못된 JSON 요청
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 500
+
+      507 |
+      508 |       const response = await createReservation(request)
+    > 509 |       expect(response.status).toBe(400)
+          |                               ^
+      510 |     })
+      511 |
+      512 |     it('존재하지 않는 기기 ID', async () => {
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:509:31)
+
+  ● v2 API Integration Tests - Reservations › Error Handling & Edge Cases - 에러 처리 › 존재하지 않는 기기 ID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 400
+
+      539 |
+      540 |       const response = await createReservation(request)
+    > 541 |       expect(response.status).toBe(404)
+          |                               ^
+      542 |     })
+      543 |   })
+      544 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:541:31)
+
+  ● v2 API Integration Tests - Reservations › Mobile-Specific Tests - 모바일 최적화 › 큰 페이로드 처리 (느린 네트워크)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      566 |       const duration = Date.now() - startTime
+      567 |
+    > 568 |       expect(response.status).toBe(200)
+          |                               ^
+      569 |       expect(duration).toBeLessThan(200) // 200ms 이내 응답
+      570 |     })
+      571 |
+
+      at Object.toBe (app/api/v2/__tests__/integration/reservations.test.ts:568:31)
+
+FAIL tests/integration/performance-security.test.ts
+  ● 성능 테스트 › 부하 테스트 › TC-PERF-012: CDN 캐시 효율성
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0.8
+    Received:   0.75
+
+      221 |       // Then: 높은 CDN 적중률
+      222 |       const cdnHitRate = cdnHits.count / (cdnHits.count + originHits.count);
+    > 223 |       expect(cdnHitRate).toBeGreaterThan(0.8);
+          |                          ^
+      224 |     });
+      225 |
+      226 |     it('TC-PERF-013: 실시간 동기화 성능', async () => {
+
+      at Object.toBeGreaterThan (tests/integration/performance-security.test.ts:223:26)
+
+FAIL tests/integration/admin-system.test.tsx
+  ● 예약 관리 › TC-ADMIN-023: 예약 상세 정보 수정
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+    Here are the accessible roles:
+
+      combobox:
+
+      Name "":
+      [36m<select />[39m
+
+      --------------------------------------------------
+      option:
+
+      Name "PC-01":
+      [36m<option[39m
+        [33mvalue[39m=[32m"PC-01"[39m
+      [36m/>[39m
+
+      Name "PC-02":
+      [36m<option[39m
+        [33mvalue[39m=[32m"PC-02"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body[39m
+      [33mdata-location[39m=[32m"/admin"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<form>[39m
+          [36m<input[39m
+            [33mtype[39m=[32m"time"[39m
+            [33mvalue[39m=[32m"14:00"[39m
+          [36m/>[39m
+          [36m<input[39m
+            [33mtype[39m=[32m"time"[39m
+            [33mvalue[39m=[32m"18:00"[39m
+          [36m/>[39m
+          [36m<select>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"PC-01"[39m
+            [36m>[39m
+              [0mPC-01[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"PC-02"[39m
+            [36m>[39m
+              [0mPC-02[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</form>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      495 |
+      496 |     // When: 시간 변경
+    > 497 |     const timeInputs = screen.getAllByRole('textbox');
+          |                               ^
+      498 |     const endTimeInput = timeInputs.find(input => input.getAttribute('value') === '19:00');
+      499 |     if (endTimeInput) {
+      500 |       fireEvent.change(endTimeInput, {
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+      at Object.getAllByRole (tests/integration/admin-system.test.tsx:497:31)
+
+  ● 설정 및 환경설정 › TC-ADMIN-070: 운영 시간 설정
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "평일":
+      [36m<h4 />[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body[39m
+      [33mdata-location[39m=[32m"/admin"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<div>[39m
+          [36m<div>[39m
+            [36m<h4>[39m
+              [0m평일[0m
+            [36m</h4>[39m
+            [36m<input[39m
+              [33mtype[39m=[32m"time"[39m
+              [33mvalue[39m=[32m"10:00"[39m
+            [36m/>[39m
+            [0m-[0m
+            [36m<input[39m
+              [33mtype[39m=[32m"time"[39m
+              [33mvalue[39m=[32m"22:00"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      1320 |
+      1321 |     // When: 평일 마감 시간 변경
+    > 1322 |     const timeInputs = screen.getAllByRole('textbox');
+           |                               ^
+      1323 |     const closeTimeInput = timeInputs.find(input => input.getAttribute('name')?.includes('close'));
+      1324 |     if (closeTimeInput) {
+      1325 |       fireEvent.change(closeTimeInput, {
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+      at Object.getAllByRole (tests/integration/admin-system.test.tsx:1322:31)
+
+FAIL tests/integration/mobile-ui-ux.test.tsx
+  ● 모바일 UI/UX 테스트 › 모바일 폼 최적화 › TC-MOBILE-020: 가상 키보드 대응
+
+    expect(element).toHaveFocus()
+
+    Expected element with focus:
+      <input autocomplete="username" class="
+                  w-full px-4 py-3 border rounded-xl transition-all duration-200···············
+                  pr-10
+                  border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400
+                  bg-white dark:bg-gray-900·
+                  text-gray-900 dark:text-white
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:cursor-not-allowed···············
+                " name="nickname" placeholder="닉네임" type="text" />
+    Received element with focus:
+      <body><div><div class="relative"><div class="relative"><div class="relative"><input autocomplete="username" class="
+                  w-full px-4 py-3 border rounded-xl transition-all duration-200···············
+                  pr-10
+                  border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400
+                  bg-white dark:bg-gray-900·
+                  text-gray-900 dark:text-white
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:cursor-not-allowed···············
+                " name="nickname" placeholder="닉네임" type="text" /></div><div class="absolute bottom-0 left-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" style="width: 0%;" /></div></div></div></body>
+
+      361 |
+      362 |       // Then: 입력 필드가 포커스됨 (가상 키보드 대응은 브라우저가 처리)
+    > 363 |       expect(input).toHaveFocus();
+          |                     ^
+      364 |       expect(input).toHaveAttribute('type', 'text');
+      365 |       expect(input).toHaveAttribute('autoComplete', 'username');
+      366 |     });
+
+      at Object.toHaveFocus (tests/integration/mobile-ui-ux.test.tsx:363:21)
+
+
+Test Suites: 7 failed, 78 passed, 85 total
+Tests:       34 failed, 1048 passed, 1082 total
+Snapshots:   0 total
+Time:        6.01 s
+Ran all test suites matching test in 3 projects.

@@ -15,7 +15,7 @@ export async function PUT(
     // 기존 플레이 모드 삭제
     console.log('[Play modes API] 기존 모드 삭제 - device_type_id:', deviceTypeId)
     const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('play_modes')
+  const { error: deleteError } = await supabaseAdmin.from('play_modes')
       .delete()
       .eq('device_type_id', deviceTypeId)
 
@@ -35,7 +35,7 @@ export async function PUT(
       
       console.log('[Play modes API] 추가할 모드 데이터:', modesData)
 
-  const { data: playmodesData } = await supabaseAdmin.from('play_modes')
+  const { data: insertedData, error: insertError } = await supabaseAdmin.from('play_modes')
         .insert(modesData)
         .select()
 

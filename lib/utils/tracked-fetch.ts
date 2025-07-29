@@ -239,6 +239,12 @@ export async function trackedBatchFetch<T = any>(
   for (let i = 0; i < requests.length; i++) {
     const request = requests[i]
     
+    // request null 체크
+    if (!request) {
+      results[i] = { error: new Error('Invalid request') }
+      continue
+    }
+    
     const promise = trackedFetchJson<T>(request.url, request.options)
       .then(data => {
         results[i] = { data }

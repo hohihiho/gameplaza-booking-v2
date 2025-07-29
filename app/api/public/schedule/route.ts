@@ -22,19 +22,18 @@ export async function GET(request: Request) {
     // 1. 운영 일정 가져오기 (테이블이 없을 수 있으므로 에러 처리)
     let scheduleEvents: any[] = [];
     try {
-      const supabase = createClient();
-  const { data: data, error: error } = await supabase.from('schedule_events')
+      const { data: scheduleData, error: scheduleError } = await supabase.from('schedule_events')
         .select('*')
         .gte('date', startStr)
         .lte('date', endStr)
         .order('date');
       
-      if (error && error.code !== '42P01') { // 42P01: table does not exist
-        console.error('일정 조회 오류:', error);
-        throw error;
+      if (scheduleError && scheduleError.code !== '42P01') { // 42P01: table does not exist
+        console.error('일정 조회 오류:', scheduleError);
+        throw scheduleError;
       }
       
-      scheduleEvents = data || [];
+      scheduleEvents = scheduleData || [];
     } catch (error: any) {
       // 테이블이 없는 경우는 무시하고 빈 배열 반환
       if (error?.code !== '42P01') {
@@ -44,8 +43,7 @@ export async function GET(request: Request) {
     }
     
     // 2. 예약 데이터 가져오기 (대기, 취소 제외)
-    
-  const { data: data, error: error } = await supabase.from('reservations')
+    const { data: reservations, error: reservationsError } = await supabase.from('reservations')
       .select(`
         id,
         device_id,
@@ -68,8 +66,7 @@ export async function GET(request: Request) {
     if (reservations && reservations.length > 0) {
       const deviceIds = [...new Set(reservations.map(r => r.device_id).filter(Boolean))];
       if (deviceIds.length > 0) {
-        
-  const { data: data, error: error } = await supabase.from('devices')
+        const { data: devicesData, error: devicesError } = await supabase.from('devices')
           .select(`
             id,
             device_number,
@@ -82,6 +79,9 @@ export async function GET(request: Request) {
           .in('id', deviceIds);
         
         devices = devicesData || [];
+        if (devicesError) {
+          console.error('기기 조회 오류:', devicesError);
+        }
       }
     }
     

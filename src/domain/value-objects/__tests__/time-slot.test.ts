@@ -21,12 +21,14 @@ describe('TimeSlot', () => {
     })
 
     it('should throw error for invalid end hour', () => {
-      expect(() => TimeSlot.create(10, 30)).toThrow('종료 시간은 0-29 사이여야 합니다')
+      expect(() => TimeSlot.create(10, 31)).toThrow('종료 시간은 1-30 사이여야 합니다')
     })
 
-    it('should throw error if not 2-hour slot', () => {
-      expect(() => TimeSlot.create(10, 11)).toThrow('시간 슬롯은 2시간 단위여야 합니다')
-      expect(() => TimeSlot.create(10, 13)).toThrow('시간 슬롯은 2시간 단위여야 합니다')
+    it('should allow flexible time slots (1-12 hours)', () => {
+      expect(() => TimeSlot.create(10, 11)).not.toThrow() // 1시간 OK
+      expect(() => TimeSlot.create(10, 13)).not.toThrow() // 3시간 OK
+      expect(() => TimeSlot.create(10, 22)).not.toThrow() // 12시간 OK
+      expect(() => TimeSlot.create(10, 23)).toThrow('최대 12시간을 초과할 수 없습니다')
     })
 
     it('should throw error if start >= end', () => {

@@ -1,6 +1,6 @@
 import { Notification, NotificationType } from '@/src/domain/entities/notification'
 import { Reservation } from '@/src/domain/entities/reservation'
-import { Device } from '@/src/domain/entities/device'
+import { Device } from '@/src/domain/entities/device.entity'
 import { NotificationRepository } from '@/src/domain/repositories/notification.repository.interface'
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
 import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'

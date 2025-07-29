@@ -32,7 +32,7 @@ export default function PullToRefresh({
     }
   };
 
-  const handleDrag = (_: any, info: PanInfo) => {
+  const handleDrag = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // 스크롤이 맨 위에 있을 때만 당기기 허용
     if (containerRef.current?.scrollTop !== 0) {
       y.set(0);

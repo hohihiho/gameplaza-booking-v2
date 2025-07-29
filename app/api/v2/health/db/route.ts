@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient, handleSupabaseError } from '@/lib/supabase/service-role';
 
 /**
  * Database health check endpoint
@@ -10,7 +10,7 @@ export async function GET() {
   const startTime = Date.now();
   
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const metrics = {
       status: 'healthy',
       responseTime: 0,
@@ -24,7 +24,7 @@ export async function GET() {
 
     // 1. 기본 연결 테스트
     const connectStart = Date.now();
-    const { data: testData, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from('devices')
       .select('id')
       .limit(1);
@@ -97,12 +97,12 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Database health check failed:', error);
+    const errorResponse = handleSupabaseError(error, 'Database health check failed');
 
     return NextResponse.json(
       {
         status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        ...errorResponse,
         responseTime: Date.now() - startTime,
         timestamp: new Date().toISOString(),
       },

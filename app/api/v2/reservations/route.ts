@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { auth } from '@/auth'
 import { CreateReservationUseCase } from '@/src/application/use-cases/reservation/create-reservation.use-case'
 import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
@@ -9,7 +9,6 @@ import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supaba
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { logRequest, logError } from '@/lib/api/logging'
-import { GetReservationsUseCase } from '@/src/application/use-cases/reservation/get-reservations.use-case'
 
 // 요청 스키마 정의 (시간을 시간 단위로 변경)
 const createReservationSchema = z.object({
@@ -47,11 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createServiceRoleClient()
     const userId = session.user.id
 
     // 요청 본문 파싱
@@ -186,11 +181,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createServiceRoleClient()
     const userId = session.user.id
 
     // 쿼리 파라미터 파싱

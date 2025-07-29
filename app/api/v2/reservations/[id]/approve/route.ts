@@ -4,48 +4,47 @@ import { ApproveReservationUseCase } from '@/src/application/use-cases/reservati
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { SupabaseNotificationRepository } from '@/src/infrastructure/repositories/supabase-notification.repository'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getAuthenticatedUser, isAdmin } from '@/src/infrastructure/middleware/auth.middleware'
 
 export const POST = createApiHandler(
   async (request: NextRequest, { params }: { params: { id: string } }) => {
     const reservationId = params.id
     
     // 인증 확인
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const user = getAuthenticatedUser(request)
+    if (!user) {
       return NextResponse.json(
-        { error: '인증이 필요합니다' },
+        { message: '인증이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
+    // 관리자 권한 확인
+    if (!isAdmin(user)) {
+      return NextResponse.json(
+        { message: '관리자 권한이 필요합니다' },
         { status: 401 }
       )
     }
 
     try {
       // Supabase 클라이언트 생성
-      const supabase = createServerSupabaseClient()
-      
-      // 현재 사용자 정보 가져오기
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !user) {
-        return NextResponse.json(
-          { error: '인증 정보가 유효하지 않습니다' },
-          { status: 401 }
-        )
-      }
+      const supabase = createServiceRoleClient()
 
       // 리포지토리 생성
       const userRepository = new UserSupabaseRepository(supabase)
       const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
       const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
-      const notificationRepository = new SupabaseNotificationRepository(supabase)
+      const notificationRepository = new NotificationSupabaseRepository(supabase)
 
       // 유스케이스 실행
       const useCase = new ApproveReservationUseCase(
-        userRepository,
-        reservationRepository,
-        deviceRepository,
-        notificationRepository
+        userRepository as any,
+        reservationRepository as any,
+        deviceRepository as any,
+        notificationRepository as any
       )
 
       const result = await useCase.execute({

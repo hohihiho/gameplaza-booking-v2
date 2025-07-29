@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GetCheckInsByDateRangeUseCase } from '@/src/application/use-cases/checkin/get-checkins-by-date-range.use-case'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { ReservationSupabaseRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 체크인 이력 조회 API
@@ -100,34 +97,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
-    const reservationRepository = new ReservationSupabaseRepository(supabase)
-    const deviceRepository = new DeviceSupabaseRepository(supabase)
-    const userRepository = new UserSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
+    // 5. 유스케이스 실행
     const useCase = new GetCheckInsByDateRangeUseCase(
-      checkInRepository,
-      reservationRepository,
-      deviceRepository,
-      userRepository
+      checkInRepository as any
     )
 
     const result = await useCase.execute({
@@ -137,8 +113,8 @@ export async function GET(request: NextRequest) {
       userId
     })
 
-    // 7. 응답 반환
-    return NextResponse.json(result.data, { status: 200 })
+    // 6. 응답 반환
+    return NextResponse.json(result, { status: 200 })
 
   } catch (error) {
     console.error('Get check-in history error:', error)

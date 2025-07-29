@@ -119,10 +119,12 @@ export class ReservationRulesService {
     
     if (conflictingReservations.length > 0) {
       const conflict = conflictingReservations[0]
-      errors.push(
-        `이미 해당 시간대에 예약이 있습니다. ` +
-        `(${conflict.date.dateString} ${conflict.timeSlot.displayTime})`
-      )
+      if (conflict) {
+        errors.push(
+          `이미 해당 시간대에 예약이 있습니다. ` +
+          `(${conflict.date.dateString} ${conflict.timeSlot.displayTime})`
+        )
+      }
     }
     
     return {

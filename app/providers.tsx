@@ -1,8 +1,12 @@
 'use client'
 
 import { SessionProvider } from 'next-auth/react'
-import { AuthCheck } from './components/auth-check'
 import { useEffect } from 'react'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -36,31 +40,37 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     // PWA 설치 프롬프트 처리
-    let deferredPrompt: any
+    let deferredPrompt: BeforeInstallPromptEvent | null = null
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
-      deferredPrompt = e
+      deferredPrompt = e as BeforeInstallPromptEvent
       
       // 설치 버튼 표시 (필요한 경우)
       const installButton = document.getElementById('install-pwa')
       if (installButton) {
         installButton.style.display = 'block'
         installButton.addEventListener('click', () => {
-          deferredPrompt.prompt()
-          deferredPrompt.userChoice.then((choiceResult: any) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('User accepted the PWA prompt')
-            }
-            deferredPrompt = null
-          })
+          if (deferredPrompt) {
+            deferredPrompt.prompt()
+            deferredPrompt.userChoice.then((choiceResult) => {
+              if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the PWA prompt')
+              }
+              deferredPrompt = null
+            })
+          }
         })
       }
     })
   }, [])
 
   return (
-    <SessionProvider>
-      <AuthCheck />
+    <SessionProvider 
+      refetchInterval={5 * 60} 
+      refetchOnWindowFocus={true}
+      basePath="/api/auth"
+      baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
+    >
       {children}
     </SessionProvider>
   )

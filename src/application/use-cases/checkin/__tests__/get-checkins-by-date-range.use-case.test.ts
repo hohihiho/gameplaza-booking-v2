@@ -197,6 +197,11 @@ describe('GetCheckInsByDateRangeUseCase', () => {
       });
 
       const checkInDTO = result.checkIns[0];
+      
+      // checkInDTO null 체크
+      expect(checkInDTO).toBeDefined();
+      if (!checkInDTO) return;
+      
       expect(checkInDTO.id).toBe('checkin-1');
       expect(checkInDTO.paymentStatus).toBe(PaymentStatusType.COMPLETED);
       expect(checkInDTO.paymentMethod).toBe(PaymentMethodType.CASH);

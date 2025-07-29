@@ -1,19 +1,18 @@
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
-import { GET as getDetail } from '../[id]/route'
 import { PATCH as confirmPayment } from '../[id]/payment/route'
-import { PATCH as adjustTimeAmount } from '../[id]/adjust/route'
 import { PATCH as checkout } from '../[id]/checkout/route'
-import { GET as getHistory } from '../history/route'
 
 // Mock 설정
+const mockUser = {
+  id: 'admin-123',
+  email: 'admin@test.com',
+  role: 'admin',
+  sessionId: 'session-123'
+}
+
 jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
-  getAuthenticatedUser: jest.fn(() => ({
-    id: 'admin-123',
-    email: 'admin@test.com',
-    role: 'admin',
-    sessionId: 'session-123'
-  }))
+  getAuthenticatedUser: jest.fn(() => mockUser)
 }))
 
 jest.mock('@supabase/supabase-js', () => ({
@@ -48,7 +47,19 @@ jest.mock('@/src/infrastructure/repositories/checkin.supabase.repository', () =>
 }))
 
 jest.mock('@/src/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
-  ReservationSupabaseRepository: jest.fn(() => mockReservationRepo)
+  SupabaseReservationRepositoryV2: jest.fn(() => mockReservationRepo)
+}))
+
+jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => ({
+  ConfirmPaymentUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn().mockResolvedValue({
+      checkIn: {
+        id: 'checkin-123',
+        paymentStatus: '완료'
+      },
+      message: '결제가 확인되었습니다'
+    })
+  }))
 }))
 
 jest.mock('@/src/infrastructure/repositories/device.supabase.repository', () => ({
@@ -57,6 +68,39 @@ jest.mock('@/src/infrastructure/repositories/device.supabase.repository', () => 
 
 jest.mock('@/src/infrastructure/repositories/user.supabase.repository', () => ({
   UserSupabaseRepository: jest.fn(() => mockUserRepo)
+}))
+
+// UseCase mocks
+jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => ({
+  ConfirmPaymentUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn().mockResolvedValue({
+      checkIn: {
+        id: 'checkin-123',
+        status: '사용중',
+        paymentStatus: '완료',
+        paymentMethod: '현금'
+      },
+      message: '결제가 확인되었습니다. 이용을 시작할 수 있습니다.'
+    })
+  }))
+}))
+
+jest.mock('@/src/application/use-cases/checkin/process-checkout.use-case', () => ({
+  ProcessCheckOutUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn().mockResolvedValue({
+      checkIn: {
+        id: 'checkin-123',
+        status: '완료'
+      },
+      summary: {
+        totalTime: 90,
+        totalTimeDisplay: '1시간 30분',
+        finalAmount: 30000,
+        paymentMethod: '현금'
+      },
+      message: '체크아웃이 완료되었습니다. 총 이용시간: 1시간 30분'
+    })
+  }))
 }))
 
 describe('CheckIn API', () => {
@@ -172,7 +216,7 @@ describe('CheckIn API', () => {
   describe('PATCH /api/v2/checkins/{id}/payment', () => {
     it('결제를 확인한다', async () => {
       const body = {
-        paymentMethod: 'CASH'
+        paymentMethod: 'cash'
       }
 
       mockRequest = new NextRequest('http://localhost:3000/api/v2/checkins/checkin-123/payment', {
@@ -184,22 +228,9 @@ describe('CheckIn API', () => {
         body: JSON.stringify(body)
       })
 
-      // Mock 응답 설정
-      const mockCheckIn = {
-        id: 'checkin-123',
-        status: '사용중',
-        paymentStatus: '완료',
-        paymentMethod: '현금'
-      }
+      // Mock 응답은 이미 위에서 설정됨
 
-      // ConfirmPaymentUseCase의 execute 메서드 모킹
-      const ConfirmPaymentUseCase = require('@/src/application/use-cases/checkin/confirm-payment.use-case').ConfirmPaymentUseCase
-      ConfirmPaymentUseCase.prototype.execute = jest.fn().mockResolvedValue({
-        checkIn: mockCheckIn,
-        message: '결제가 확인되었습니다. 이용을 시작할 수 있습니다.'
-      })
-
-      const response = await confirmPayment(mockRequest, { params: { id: 'checkin-123' } })
+      const response = await confirmPayment(mockRequest, { params: Promise.resolve({ id: 'checkin-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -223,26 +254,9 @@ describe('CheckIn API', () => {
         body: JSON.stringify(body)
       })
 
-      // Mock 응답 설정
-      const mockResult = {
-        checkIn: {
-          id: 'checkin-123',
-          status: '완료'
-        },
-        summary: {
-          totalTime: 90,
-          totalTimeDisplay: '1시간 30분',
-          finalAmount: 30000,
-          paymentMethod: '현금'
-        },
-        message: '체크아웃이 완료되었습니다. 총 이용시간: 1시간 30분'
-      }
+      // Mock 응답은 이미 위에서 설정됨
 
-      // ProcessCheckOutUseCase의 execute 메서드 모킹
-      const ProcessCheckOutUseCase = require('@/src/application/use-cases/checkin/process-checkout.use-case').ProcessCheckOutUseCase
-      ProcessCheckOutUseCase.prototype.execute = jest.fn().mockResolvedValue(mockResult)
-
-      const response = await checkout(mockRequest, { params: { id: 'checkin-123' } })
+      const response = await checkout(mockRequest, { params: Promise.resolve({ id: 'checkin-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)

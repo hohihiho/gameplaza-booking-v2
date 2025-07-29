@@ -94,7 +94,7 @@ export default function MachinesPage() {
 
       // 종료된 예약 찾기 (오늘 + 어제 새벽 예약 포함)
       const supabase = createClient();
-  const { data$1 } = await supabase.from('reservations')
+      const { data: reservations, error: fetchError } = await supabase.from('reservations')
         .select('device_id, date, end_time')
         .in('date', [todayStr, yesterdayStr])
         .eq('status', 'approved')
@@ -130,8 +130,7 @@ export default function MachinesPage() {
 
       if (expiredDeviceIds.length > 0) {
         // 해당 기기들의 현재 상태 확인
-        const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+        const { data: devices, error: devicesError } = await supabase.from('devices')
           .select('id, status')
           .in('id', expiredDeviceIds)
           .in('status', ['in_use', 'reserved']); // 사용불가나 점검중은 제외
@@ -143,8 +142,7 @@ export default function MachinesPage() {
 
         if (devices && devices.length > 0) {
           // 상태를 available로 업데이트
-          const supabase = createClient();
-  const { error$1 } = await supabase.from('devices')
+          const { error: updateError } = await supabase.from('devices')
             .update({ status: 'available' })
             .in('id', devices.map(d => d.id));
 
@@ -204,7 +202,7 @@ export default function MachinesPage() {
       const categoriesMap = new Map<string, Category>();
       
       // 카테고리 초기화
-      (categoriesData || []).forEach(cat => {
+      (categories || []).forEach(cat => {
         categoriesMap.set(cat.id, {
           id: cat.id,
           name: cat.name,
@@ -214,7 +212,7 @@ export default function MachinesPage() {
       });
 
       // 디바이스 타입을 카테고리별로 분류
-      (deviceTypesData || []).forEach(type => {
+      (deviceTypes || []).forEach(type => {
         const formattedType: DeviceType = {
           id: type.id,
           name: type.name,
@@ -263,7 +261,7 @@ export default function MachinesPage() {
   const loadMachineRules = async () => {
     try {
       const supabase = createClient();
-  const { data$1 } = await supabase.from('machine_rules')
+      const { data, error } = await supabase.from('machine_rules')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });

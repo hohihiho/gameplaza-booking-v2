@@ -6,6 +6,7 @@ import { IReservationRepository } from '../../../domain/repositories/reservation
 import { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import { IPaymentRepository } from '../../../domain/repositories/payment.repository.interface'
 import { INotificationRepository } from '../../../domain/repositories/notification.repository.interface'
+import { ITimeAdjustmentRepository } from '../../../domain/repositories/time-adjustment.repository.interface'
 import { Notification } from '../../../domain/entities/notification'
 import { NotificationChannel } from '../../../domain/value-objects/notification-channel'
 import { KSTDateTime } from '../../../domain/value-objects/kst-datetime'
@@ -33,7 +34,8 @@ export class AdjustReservationTimeUseCase {
     private readonly userRepository: IUserRepository,
     private readonly reservationRepository: IReservationRepository,
     private readonly paymentRepository: IPaymentRepository,
-    private readonly notificationRepository: INotificationRepository
+    private readonly notificationRepository: INotificationRepository,
+    private readonly timeAdjustmentRepository: ITimeAdjustmentRepository
   ) {}
 
   async execute(request: AdjustReservationTimeRequest): Promise<AdjustReservationTimeResponse> {
@@ -115,7 +117,7 @@ export class AdjustReservationTimeUseCase {
         type: 'time_adjusted',
         title: '이용 시간이 조정되었습니다',
         content: this.createNotificationContent(timeAdjustment, originalAmount, adjustedAmount),
-        channels: [NotificationChannel.push(), NotificationChannel.inApp()],
+        channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
         metadata: {
           reservationId: reservation.id,
           timeAdjustment: {
@@ -129,8 +131,8 @@ export class AdjustReservationTimeUseCase {
       await this.notificationRepository.save(notification)
     }
 
-    // 10. 시간 조정 이력 저장 (별도 테이블에 저장 필요)
-    // TODO: TimeAdjustmentRepository 구현 후 저장
+    // 10. 시간 조정 이력 저장
+    await this.timeAdjustmentRepository.save(reservation.id, timeAdjustment)
 
     return {
       reservation: updatedReservation,

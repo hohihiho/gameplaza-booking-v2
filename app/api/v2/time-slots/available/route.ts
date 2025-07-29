@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotTemplateRepository } from '@/src/domain/repositories/time-slot-template-repository.interface'
-import { TimeSlotScheduleRepository } from '@/src/domain/repositories/time-slot-schedule-repository.interface'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { GetAvailableTimeSlotsUseCase } from '@/src/application/use-cases/time-slot'
-import { ReservationRepository } from '@/src/domain/repositories/reservation-repository.interface'
-import { DeviceRepository } from '@/src/domain/repositories/device-repository.interface'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
 import { SupabaseTimeSlotScheduleRepository } from '@/src/infrastructure/repositories/supabase-time-slot-schedule.repository'
 import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
@@ -22,7 +18,7 @@ const querySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     // 인증 확인
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

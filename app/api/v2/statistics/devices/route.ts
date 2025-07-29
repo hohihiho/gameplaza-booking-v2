@@ -3,8 +3,8 @@ import { GetDeviceStatisticsUseCase } from '@/src/application/use-cases/statisti
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { auth } from '@/auth'
 import { z } from 'zod'
 
 // 쿼리 파라미터 스키마 정의
@@ -24,9 +24,9 @@ const getDeviceStatisticsSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    // 1. 인증 확인
-    const user = getAuthenticatedUser(request)
-    if (!user) {
+    // 1. NextAuth 세션 확인
+    const session = await auth()
+    if (!session?.user?.id) {
       return NextResponse.json(
         { 
           error: 'Unauthorized',
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Bad Request',
-          message: firstError.message 
+          message: firstError?.message ?? '유효하지 않은 요청입니다' 
         },
         { status: 400 }
       )
@@ -63,28 +63,13 @@ export async function GET(request: NextRequest) {
 
     const data = validationResult.data
 
-    // 3. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 4. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 3. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 5. 유스케이스 실행
+    // 4. 유스케이스 실행
     const useCase = new GetDeviceStatisticsUseCase(
       reservationRepository,
       deviceRepository,
@@ -92,7 +77,7 @@ export async function GET(request: NextRequest) {
     )
 
     const result = await useCase.execute({
-      userId: user.id,
+      userId: session.user.id,
       deviceId: data.deviceId,
       periodType: data.periodType,
       date: data.date,

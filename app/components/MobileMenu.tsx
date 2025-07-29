@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function MobileMenu() {
   // 메뉴 열림/닫힘 상태를 관리하는 변수
@@ -46,22 +47,22 @@ export default function MobileMenu() {
               
               {/* 메뉴 항목들 */}
               <nav className="mt-8 space-y-4">
-                <a href="/reservations/new" className="block py-2 text-gray-700 hover:text-blue-600">
+                <Link href="/reservations/new" className="block py-2 text-gray-700 hover:text-blue-600">
                   🎯 예약하기
-                </a>
-                <a href="/reservations" className="block py-2 text-gray-700 hover:text-blue-600">
+                </Link>
+                <Link href="/reservations" className="block py-2 text-gray-700 hover:text-blue-600">
                   📋 내 예약
-                </a>
-                <a href="/guide" className="block py-2 text-gray-700 hover:text-blue-600">
+                </Link>
+                <Link href="/guide" className="block py-2 text-gray-700 hover:text-blue-600">
                   📖 이용안내
-                </a>
-                <a href="/mypage" className="block py-2 text-gray-700 hover:text-blue-600">
+                </Link>
+                <Link href="/mypage" className="block py-2 text-gray-700 hover:text-blue-600">
                   👤 마이페이지
-                </a>
+                </Link>
                 <hr className="my-4" />
-                <a href="/login" className="block w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center">
+                <Link href="/login" className="block w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center">
                   로그인
-                </a>
+                </Link>
               </nav>
             </div>
           </div>

@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+
 import { 
   ApiResponse, 
   ApiError 
@@ -17,6 +17,7 @@ import {
   ErrorCodes 
 } from '@/lib/utils/error-handler';
 import { logger } from '@/lib/utils/logger';
+import { serverLogCollector } from '@/lib/server/log-collector';
 
 export interface ApiHandlerOptions {
   requireAuth?: boolean;
@@ -42,13 +43,15 @@ export function apiHandler<T>(
   options?: ApiHandlerOptions
 ) {
   return async (req: NextRequest, context?: any): Promise<NextResponse> => {
+    const startTime = Date.now();
+    
     try {
       // 요청 로깅
       logger.info(`API Request: ${req.method} ${req.url}`);
 
       // 인증 확인
       if (options?.requireAuth || options?.requireAdmin) {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         
         if (!session?.user) {
           throw new AppError(
@@ -78,18 +81,39 @@ export function apiHandler<T>(
 
       // 성공 응답
       const response = createApiResponse(data);
+      const duration = Date.now() - startTime;
+      
+      // 서버 로그 수집
+      serverLogCollector.logApiRequest(
+        { method: req.method, url: req.url, headers: Object.fromEntries(req.headers.entries()) },
+        { statusCode: 200 },
+        duration
+      );
+      
       return NextResponse.json(response);
 
     } catch (error) {
       // 에러 로깅
       logger.error('API Error:', error);
+      
+      const duration = Date.now() - startTime;
 
       // 에러 처리
       const apiError = handleError(error);
+      const statusCode = apiError.statusCode || 500;
+      
+      // 서버 로그 수집 (에러)
+      serverLogCollector.logApiRequest(
+        { method: req.method, url: req.url, headers: Object.fromEntries(req.headers.entries()) },
+        { statusCode },
+        duration,
+        error instanceof Error ? error : new Error(String(error))
+      );
+      
       const response = createApiResponse<T>(undefined, apiError);
       
       return NextResponse.json(response, { 
-        status: apiError.statusCode || 500 
+        status: statusCode 
       });
     }
   };
@@ -250,3 +274,9 @@ export function validateUUID(id: string, fieldName: string = 'ID'): string {
   
   return id;
 }
+
+/**
+ * createApiHandler - apiHandler의 별칭
+ * 기존 코드와의 호환성을 위해 추가
+ */
+export const createApiHandler = apiHandler;

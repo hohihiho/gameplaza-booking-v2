@@ -81,7 +81,7 @@ export async function GET() {
     }
     
     // 응답 헤더
-    const headers = {
+    const headers: Record<string, string> = {
       'Cache-Control': 'no-store',
       'X-Memory-Pressure': usage.pressure,
       'X-Memory-Used': `${usage.total_mb}MB`,

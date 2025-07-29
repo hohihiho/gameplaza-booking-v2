@@ -1,4 +1,5 @@
 import { Session } from 'next-auth';
+import { NextRequest } from 'next/server';
 
 // 확장된 사용자 타입
 export interface ExtendedUser {
@@ -40,4 +41,9 @@ export interface AuthContext {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+}
+
+// 인증된 요청 타입
+export interface AuthenticatedRequest extends NextRequest {
+  user: ExtendedUser;
 }

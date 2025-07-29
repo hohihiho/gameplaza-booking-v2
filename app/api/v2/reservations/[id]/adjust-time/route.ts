@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
-import { withAuth } from '@/lib/api/auth-middleware'
-import { AuthenticatedRequest } from '@/lib/api/types'
-import { UserRole } from '@/src/domain/value-objects/user-role'
+import { withAuth, ExtendedUser } from '@/lib/auth'
 import { AdjustReservationTimeUseCase } from '@/src/application/use-cases/reservation/adjust-time.use-case'
-import { UserRepository } from '@/src/infrastructure/repositories/supabase/user.repository'
-import { ReservationRepository } from '@/src/infrastructure/repositories/supabase/reservation.repository'
-import { PaymentRepository } from '@/src/infrastructure/repositories/supabase/payment.repository'
-import { NotificationRepository } from '@/src/infrastructure/repositories/supabase/notification.repository'
-import { createClient } from '@/utils/supabase/server'
+import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
+import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
+import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { TimeAdjustmentSupabaseRepository } from '@/src/infrastructure/repositories/time-adjustment.supabase.repository'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  return withAuth(async (authenticatedReq: AuthenticatedRequest) => {
+  return withAuth(async (req: NextRequest, { user }: { user: ExtendedUser }) => {
     try {
-      const { user } = authenticatedReq
+      // params를 await로 추출
+      const { id } = await params
       
       // 관리자 권한 확인
-      const userRole = new UserRole(user.role as any)
-      if (userRole.value !== 'admin') {
+      if (user.role !== 'admin') {
         return createResponse(
           new ErrorResponse('관리자 권한이 필요합니다', 'FORBIDDEN'),
           403
@@ -49,25 +48,27 @@ export async function POST(
       }
 
       // Supabase 클라이언트 생성
-      const supabase = await createClient()
+      const supabase = createServiceRoleClient()
       
       // 리포지토리 초기화
-      const userRepository = new UserRepository(supabase)
-      const reservationRepository = new ReservationRepository(supabase)
-      const paymentRepository = new PaymentRepository(supabase)
-      const notificationRepository = new NotificationRepository(supabase)
+      const userRepository = new UserSupabaseRepository(supabase)
+      const reservationRepository = new SupabaseReservationRepository(supabase)
+      const paymentRepository = new PaymentSupabaseRepository(supabase)
+      const notificationRepository = new NotificationSupabaseRepository(supabase)
+      const timeAdjustmentRepository = new TimeAdjustmentSupabaseRepository(supabase)
 
       // Use Case 실행
       const useCase = new AdjustReservationTimeUseCase(
-        userRepository,
-        reservationRepository,
-        paymentRepository,
-        notificationRepository
+        userRepository as any,
+        reservationRepository as any,
+        paymentRepository as any,
+        notificationRepository as any,
+        timeAdjustmentRepository as any
       )
 
       const result = await useCase.execute({
         userId: user.id,
-        reservationId: params.id,
+        reservationId: id,
         actualStartTime,
         actualEndTime,
         reason,
@@ -85,7 +86,7 @@ export async function POST(
             timeSlot: {
               startHour: result.reservation.timeSlot.startHour,
               endHour: result.reservation.timeSlot.endHour,
-              displayText: result.reservation.timeSlot.displayText
+              displayText: (result.reservation.timeSlot as any).displayText
             },
             status: result.reservation.status.value,
             reservationNumber: result.reservation.reservationNumber,
@@ -121,13 +122,13 @@ export async function POST(
       
       if (error instanceof Error) {
         return createResponse(
-          new ErrorResponse(error.message, 'ADJUST_TIME_ERROR'),
+          new ErrorResponse(error.message),
           400
         )
       }
       
       return createResponse(
-        new ErrorResponse('시간 조정 중 오류가 발생했습니다', 'INTERNAL_ERROR'),
+        new ErrorResponse('시간 조정 중 오류가 발생했습니다'),
         500
       )
     }

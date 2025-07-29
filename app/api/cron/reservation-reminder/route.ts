@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     // 각 예약에 대해 리마인더 전송
     for (const reservation of reservations || []) {
       try {
-        const deviceName = reservation.devices?.device_types?.name || '게임기기';
+        const deviceName = reservation.devices?.[0]?.device_types?.[0]?.name || '게임기기';
         const success = await sendReservationReminderNotification(
           reservation.user_id,
           1, // 1시간 전

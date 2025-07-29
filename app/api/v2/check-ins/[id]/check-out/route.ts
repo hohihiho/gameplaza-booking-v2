@@ -4,8 +4,8 @@ import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/che
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 체크아웃 처리 API
@@ -13,9 +13,12 @@ import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middl
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // params를 await로 추출
+    const { id } = await params
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -43,57 +46,41 @@ export async function POST(
     const body = await request.json()
     const { notes } = body
 
-    // 4. 환경 변수 확인
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing required environment variables')
-      return NextResponse.json(
-        { 
-          error: 'Internal Server Error',
-          message: '서버 설정 오류' 
-        },
-        { status: 500 }
-      )
-    }
-
-    // 5. 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // 4. 서비스 초기화
+    const supabase = createServiceRoleClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 6. 유스케이스 실행
+    // 5. 유스케이스 실행
     const useCase = new ProcessCheckOutUseCase(
-      checkInRepository,
-      reservationRepository,
+      checkInRepository as any,
+      reservationRepository as any,
       deviceRepository,
       userRepository
     )
 
     const result = await useCase.execute({
-      checkInId: params.id,
-      adminId: user.id,
+      checkInId: id,
       notes
-    })
+    } as any)
 
-    // 7. 응답 반환
+    // 6. 응답 반환
     return NextResponse.json({
       checkIn: {
         id: result.checkIn.id,
         reservationId: result.checkIn.reservationId,
-        userId: result.checkIn.userId,
+        userId: (result.checkIn as any).userId,
         deviceId: result.checkIn.deviceId,
         checkInTime: result.checkIn.checkInTime.toISOString(),
         checkOutTime: result.checkIn.checkOutTime?.toISOString(),
         status: result.checkIn.status,
-        checkInBy: result.checkIn.checkInBy,
-        checkOutBy: result.checkIn.checkOutBy,
-        notes: result.checkIn.notes,
-        createdAt: result.checkIn.createdAt.toISOString(),
-        updatedAt: result.checkIn.updatedAt.toISOString()
+        checkInBy: (result.checkIn as any).checkInBy,
+        checkOutBy: (result.checkIn as any).checkOutBy,
+        notes: (result.checkIn as any).notes,
+        createdAt: (result.checkIn as any).createdAt.toISOString(),
+        updatedAt: (result.checkIn as any).updatedAt.toISOString()
       },
       usageMinutes: result.usageMinutes
     }, { status: 200 })

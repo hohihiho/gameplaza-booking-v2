@@ -26,7 +26,7 @@ export class UpdateAdminPermissionsUseCase {
     superAdminCheck: SuperAdminCheckDto
   ): Promise<AdminResponseDto> {
     // 1. 실행자가 슈퍼관리자인지 확인
-    const executor = await this.validateSuperAdmin(superAdminCheck)
+    await this.validateSuperAdmin(superAdminCheck)
 
     // 2. 대상 관리자 조회
     const targetAdmin = await this.adminRepository.findById(request.adminId)

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -75,6 +74,59 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Profile API error:', error);
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { nickname } = body;
+
+    if (!nickname) {
+      return NextResponse.json(
+        { error: '닉네임을 입력해주세요' },
+        { status: 400 }
+      );
+    }
+
+    // 프로필 업데이트
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.from('users')
+      .update({
+        nickname,
+        updated_at: new Date().toISOString()
+      })
+      .eq('email', session.user.email)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('프로필 업데이트 오류:', error);
+      return NextResponse.json(
+        { error: '프로필 업데이트 중 오류가 발생했습니다' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      profile: data
+    });
+  } catch (error) {
+    console.error('Profile PUT API error:', error);
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다' },
       { status: 500 }

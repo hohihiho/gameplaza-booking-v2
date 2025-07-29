@@ -1,8 +1,7 @@
 // 금액 조정 API 엔드포인트
 // 비전공자 설명: 예약 금액을 수동으로 조정하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(
@@ -13,7 +12,7 @@ export async function POST(
     const { id } = await params;
     
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: '인증되지 않았습니다' }, { status: 401 });
     }
@@ -53,7 +52,7 @@ export async function POST(
 
     // 예약 정보 조회
     
-  const { data: reservationsData } = await supabaseAdmin.from('reservations')
+  const { data: reservation, error: reservationError } = await supabaseAdmin.from('reservations')
       .select('*')
       .eq('id', id)
       .single();
@@ -64,7 +63,7 @@ export async function POST(
 
     // 금액 조정 이력 저장 (audit trail)
     
-  const { error } = await supabaseAdmin.from('amount_adjustments')
+  const { error: historyError } = await supabaseAdmin.from('amount_adjustments')
       .insert({
         reservation_id: id,
         original_amount: reservation.total_amount,
@@ -82,7 +81,7 @@ export async function POST(
 
     // 예약 금액 업데이트
     
-  const { data: reservationsData2 } = await supabaseAdmin.from('reservations')
+  const { data: updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
       .update({
         adjusted_amount: adjustedAmount,
         adjustment_reason: reason || '관리자 수동 조정',

@@ -4,8 +4,8 @@ import { JWTTokenService } from '@/src/infrastructure/services/jwt-token.service
 import { AuthDomainService } from '@/src/domain/services/auth-domain.service'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
-import { createClient } from '@supabase/supabase-js'
 import { RefreshTokenRequestDto } from '@/src/application/dtos/auth.dto'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 /**
  * 토큰 갱신 API
@@ -35,10 +35,8 @@ export async function POST(request: NextRequest) {
     // 환경 변수 확인
     const accessTokenSecret = process.env.JWT_ACCESS_SECRET
     const refreshTokenSecret = process.env.JWT_REFRESH_SECRET
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!accessTokenSecret || !refreshTokenSecret || !supabaseUrl || !supabaseKey) {
+    if (!accessTokenSecret || !refreshTokenSecret) {
       console.error('Missing required environment variables')
       return NextResponse.json(
         { 
@@ -50,15 +48,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createServiceRoleClient()
     const tokenService = new JWTTokenService(accessTokenSecret, refreshTokenSecret)
-    const authDomainService = new AuthDomainService(tokenService)
+    const authDomainService = new AuthDomainService(tokenService as any)
     const userRepository = new UserSupabaseRepository(supabase)
     const sessionRepository = new SessionSupabaseRepository(supabase)
 
     // 유스케이스 실행
     const useCase = new RefreshTokenUseCase(
-      tokenService,
       authDomainService,
       userRepository,
       sessionRepository

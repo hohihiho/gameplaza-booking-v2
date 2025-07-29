@@ -1,8 +1,8 @@
-import { CheckIn } from '@/src/domain/entities/check-in.entity'
+import { CheckIn } from '@/src/domain/entities/checkin'
 import { ReservationRepository } from '@/src/domain/repositories/reservation.repository.interface'
-import { CheckInRepository } from '@/src/domain/repositories/check-in.repository.interface'
+import { CheckInRepository } from '@/src/domain/repositories/checkin-repository.interface'
 import { DeviceRepository } from '@/src/domain/repositories/device.repository.interface'
-import { UserRepository } from '@/src/domain/repositories/user.repository.interface'
+import { UserRepository } from '@/src/domain/repositories/user-repository.interface'
 import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime'
 
 export interface ProcessCheckInRequest {
@@ -46,11 +46,21 @@ export class ProcessCheckInUseCase {
 
     // 4. 이미 체크인된 예약인지 확인
     const existingCheckIn = await this.checkInRepository.findByReservationId(request.reservationId)
-    if (existingCheckIn && existingCheckIn.isCheckedIn()) {
+    if (existingCheckIn && existingCheckIn.isActive()) {
       throw new Error('이미 체크인이 완료된 예약입니다')
     }
 
-    // 5. 현재 시간이 예약 시간대에 맞는지 확인 (30분 전부터 체크인 가능)
+    // 5. 기기 상태 확인 (시간보다 먼저 체크)
+    const device = await this.deviceRepository.findById(reservation.deviceId)
+    if (!device) {
+      throw new Error('기기를 찾을 수 없습니다')
+    }
+
+    if (!device.isOperational()) {
+      throw new Error('사용할 수 없는 기기입니다')
+    }
+
+    // 6. 현재 시간이 예약 시간대에 맞는지 확인 (30분 전부터 체크인 가능)
     const now = KSTDateTime.now()
     const reservationStartTime = KSTDateTime.fromDateAndHour(
       reservation.date,
@@ -71,16 +81,6 @@ export class ProcessCheckInUseCase {
       throw new Error('예약 시간이 지나 체크인할 수 없습니다')
     }
 
-    // 6. 기기 상태 확인
-    const device = await this.deviceRepository.findById(reservation.deviceId)
-    if (!device) {
-      throw new Error('기기를 찾을 수 없습니다')
-    }
-
-    if (!device.isActive()) {
-      throw new Error('사용할 수 없는 기기입니다')
-    }
-
     // 7. 다른 사용자가 해당 기기를 사용 중인지 확인
     const activeCheckIn = await this.checkInRepository.findActiveByDeviceId(device.id)
     if (activeCheckIn) {
@@ -94,12 +94,9 @@ export class ProcessCheckInUseCase {
     // 9. 체크인 엔티티 생성
     const checkIn = CheckIn.create({
       reservationId: reservation.id,
-      userId: reservation.userId,
       deviceId: reservation.deviceId,
-      checkInTime: now,
-      status: 'checked_in',
-      checkInBy: request.adminId,
-      notes: request.notes
+      paymentAmount: 30000, // TODO: 예약 금액 정보 필요
+      reservationStartTime: reservation.startDateTime.toDate()
     })
 
     // 10. 체크인 정보 저장
