@@ -17,6 +17,7 @@ export interface ReservationProps {
   actualStartTime?: Date | null
   actualEndTime?: Date | null
   note?: string | null
+  totalAmount?: number | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -36,6 +37,7 @@ export class Reservation {
     private _actualStartTime: Date | null,
     private _actualEndTime: Date | null,
     private _note: string | null,
+    private _totalAmount: number | null,
     public readonly createdAt: Date,
     private _updatedAt: Date
   ) {}
@@ -58,6 +60,7 @@ export class Reservation {
       props.actualStartTime || null,
       props.actualEndTime || null,
       props.note || null,
+      props.totalAmount || null,
       props.createdAt || now,
       props.updatedAt || now
     )
@@ -111,6 +114,15 @@ export class Reservation {
 
   get note(): string | null {
     return this._note
+  }
+
+  get totalAmount(): number | null {
+    return this._totalAmount
+  }
+
+  // UseCase 호환성을 위한 별칭 속성
+  get totalPrice(): number {
+    return this._totalAmount || 0
   }
 
   get startDateTime(): KSTDateTime {
@@ -205,6 +217,8 @@ export class Reservation {
       this._checkedInAt,
       this._actualStartTime,
       this._actualEndTime,
+      this._note,
+      this._totalAmount,
       this.createdAt,
       new Date()
     )
@@ -245,6 +259,8 @@ export class Reservation {
       this._checkedInAt,
       this._actualStartTime,
       this._actualEndTime,
+      this._note,
+      this._totalAmount,
       this.createdAt,
       new Date()
     )
@@ -273,6 +289,8 @@ export class Reservation {
       this._checkedInAt,
       this._actualStartTime,
       this._actualEndTime,
+      this._note,
+      this._totalAmount,
       this.createdAt,
       new Date()
     )
@@ -305,6 +323,8 @@ export class Reservation {
       this._checkedInAt,
       this._actualStartTime,
       this._actualEndTime,
+      this._note,
+      this._totalAmount,
       this.createdAt,
       new Date()
     )
@@ -345,6 +365,8 @@ export class Reservation {
       now, // checkedInAt
       now, // actualStartTime - 체크인 시점을 실제 시작 시간으로 기록
       this._actualEndTime,
+      this._note,
+      this._totalAmount,
       this.createdAt,
       now
     )

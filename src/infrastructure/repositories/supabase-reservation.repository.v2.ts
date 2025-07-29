@@ -358,6 +358,7 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       timeSlot: TimeSlot.create(startHour, endHour),
       status: ReservationStatus.create(record.status as any),
       reservationNumber: record.reservation_number || this.generateReservationNumber(record.date, record.id),
+      totalAmount: record.total_amount,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
     })
@@ -381,7 +382,7 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       start_time: `${reservation.timeSlot.startHour.toString().padStart(2, '0')}:00`,
       end_time: `${reservation.timeSlot.endHour.toString().padStart(2, '0')}:00`,
       player_count: 1, // 기본값
-      total_amount: null, // 기본값
+      total_amount: reservation.totalAmount,
       status: reservation.status.value,
       reservation_number: reservationNumber,
       user_notes: null, // 기본값
