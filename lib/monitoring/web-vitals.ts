@@ -5,6 +5,9 @@ type Metric = {
   name: string;
   value: number;
   id: string;
+  delta?: number;
+  entries?: any[];
+  navigationType?: string;
 }
 
 // Web Vitals 임계값 (밀리초)
@@ -124,6 +127,14 @@ async function sendToAnalytics(endpoint: string, data: MetricData) {
     console.error('[Web Vitals] Failed to send analytics:', error)
   }
 }
+
+// Mock functions until web-vitals package is installed
+const onLCP = (fn: any) => {}
+const onFID = (fn: any) => {}
+const onCLS = (fn: any) => {}
+const onFCP = (fn: any) => {}
+const onINP = (fn: any) => {}
+const onTTFB = (fn: any) => {}
 
 // Web Vitals 모니터링 초기화
 export function initWebVitals() {

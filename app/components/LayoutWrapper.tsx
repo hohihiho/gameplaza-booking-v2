@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation';
 import DesktopSidebar from './DesktopSidebar';
 import BottomTabBar from './BottomTabBar';
-import TabletNavigation from './TabletNavigation';
 import { ToastContainer } from './mobile';
 import { useProfileCheck } from '@/app/hooks/useProfileCheck';
 import ServiceWorkerRegistration from './ServiceWorkerRegistration';
@@ -37,9 +36,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   
   return (
     <div className="min-h-screen">
-      {/* 태블릿 네비게이션 (768px ~ 1023px) */}
-      <TabletNavigation />
-      
       {/* 데스크톱 사이드바 - aside 태그로 의미적 마크업 */}
       <aside role="complementary" aria-label="사이드바 네비게이션">
         <DesktopSidebar />
@@ -48,7 +44,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       {/* 메인 콘텐츠 영역 - 랜드마크로 명확히 구분 */}
       <main 
         id="main-content"
-        className="min-h-screen lg:ml-64 pb-16 lg:pb-0 md:pt-20 lg:pt-0" 
+        className="min-h-screen lg:ml-64 pb-16 lg:pb-0" 
         role="main"
         aria-label="메인 콘텐츠"
       >

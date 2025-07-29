@@ -110,6 +110,7 @@ export class ScheduleService {
       console.log(`스케줄 정보: ${title}, ${startTime} - ${endTime}`);
 
       // 기존 자동 생성 일정 확인
+      const supabaseAdmin = createAdminClient();
       const { data: existingSchedule } = await supabaseAdmin
         .from('schedule_events')
         .select('id')
@@ -193,6 +194,7 @@ export class ScheduleService {
       console.log(`자동 스케줄 삭제 검사 시작 - 날짜: ${date}`);
       
       // 해당 날짜의 활성 예약 조회 (pending, approved, checked_in)
+      const supabaseAdmin = createAdminClient();
       const { data: activeReservations, error: reservationError } = await supabaseAdmin
         .from('reservations')
         .select('id, start_time, end_time')

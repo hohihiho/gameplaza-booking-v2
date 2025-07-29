@@ -152,8 +152,8 @@ export default function ReservationDetailPage() {
         : `/api/reservations/${params.id}`;
       
       const headers: HeadersInit = {};
-      if (isV2Enabled && session.accessToken) {
-        headers['Authorization'] = `Bearer ${session.accessToken}`;
+      if (isV2Enabled && (session as any).accessToken) {
+        headers['Authorization'] = `Bearer ${(session as any).accessToken}`;
       }
       
       const response = await fetch(apiUrl, { headers });
@@ -227,8 +227,8 @@ export default function ReservationDetailPage() {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
-      if (isV2Enabled && session?.accessToken) {
-        headers['Authorization'] = `Bearer ${session.accessToken}`;
+      if (isV2Enabled && (session as any)?.accessToken) {
+        headers['Authorization'] = `Bearer ${(session as any).accessToken}`;
       }
       
       const response = await fetch(apiUrl, {
