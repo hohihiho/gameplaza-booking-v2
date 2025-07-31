@@ -141,12 +141,10 @@ export const GET = withAuth(
         updated_at: res.updated_at
       }))
 
+      // createResponse는 이미 success: true와 data를 감싸므로 직접 데이터만 전달
       return createResponse({
-        success: true,
-        data: {
-          reservations: formattedData,
-          total: formattedData.length
-        }
+        reservations: formattedData,
+        total: formattedData.length
       })
     } catch (error) {
       console.error('Get reservations error:', error)
@@ -220,14 +218,12 @@ export const PATCH = withAuth(
       // - 승인 시: 스케줄 업데이트, 푸시 알림
       // - 거절/취소 시: 스케줄 삭제, 푸시 알림
 
+      // createResponse는 이미 success: true와 data를 감싸므로 직접 데이터만 전달
       return createResponse({
-        success: true,
-        data: {
-          reservation: {
-            id: data.id,
-            status: data.status,
-            updated_at: data.updated_at
-          }
+        reservation: {
+          id: data.id,
+          status: data.status,
+          updated_at: data.updated_at
         }
       })
     } catch (error) {
