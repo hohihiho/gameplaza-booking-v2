@@ -80,6 +80,7 @@ export default function NewReservationPage() {
   // 선택된 정보
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState('');
+  const [selectedDeviceInfo, setSelectedDeviceInfo] = useState<any>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [selectedDevice, setSelectedDevice] = useState(0);
   const [selectedCreditOption, setSelectedCreditOption] = useState('');
@@ -97,8 +98,7 @@ export default function NewReservationPage() {
   // v2 API 훅 사용
   const { createReservation: createReservationV2, loading: creatingV2, error: errorV2 } = useCreateReservation();
 
-  // 선택된 기기와 시간대 정보
-  const selectedDeviceInfo = deviceTypes.find(d => d.id === selectedDeviceType);
+  // 선택된 시간대 정보
   const selectedTimeSlotInfo = timeSlots.find(s => s.id === selectedTimeSlot);
 
   // 기기 타입 불러오기
@@ -108,16 +108,18 @@ export default function NewReservationPage() {
 
   // 날짜 선택 시 타임슬롯 불러오기
   useEffect(() => {
-    if (selectedDate && selectedDeviceType) {
+    if (selectedDate && selectedDeviceInfo?.id) {
       fetchTimeSlots();
     }
-  }, [selectedDate, selectedDeviceType]);
+  }, [selectedDate, selectedDeviceInfo]);
 
   const fetchDeviceTypes = async () => {
+    console.log('=== fetchDeviceTypes started ===');
     setIsLoadingDevices(true);
     try {
       // device_types와 관련 정보 가져오기
       const supabase = createClient();
+      // 모든 렌탈 가능한 기기 타입 조회 (일단 시간대 필터링 제거)
       const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
@@ -134,6 +136,8 @@ export default function NewReservationPage() {
         `)
         .eq('is_rentable', true)
         .order('display_order', { ascending: true });
+
+      console.log('Fetched device types:', deviceTypesData?.length || 0, 'types');
 
       if (typesError) {
         console.error('Supabase query error:', typesError);
@@ -165,12 +169,13 @@ export default function NewReservationPage() {
         return orderA - orderB;
       });
 
-      console.log('Processed device types:', sortedTypes);
+      console.log('=== Processed device types:', sortedTypes?.length || 0, 'types ===');
       setDeviceTypes(sortedTypes);
     } catch (error) {
-      console.error('Error fetching device types:', error);
+      console.error('=== Error fetching device types:', error, '===');
       setError('기기 정보를 불러올 수 없습니다');
     } finally {
+      console.log('=== fetchDeviceTypes finished ===');
       setIsLoadingDevices(false);
     }
   };
@@ -178,52 +183,58 @@ export default function NewReservationPage() {
   const fetchTimeSlots = async () => {
     setIsLoadingSlots(true);
     setError(null);
-    try {
-      // 임시로 기본 시간 슬롯 생성 (API 개발 완료 전까지)
-      const mockTimeSlots = [
-        {
-          id: '1',
-          date: selectedDate,
-          start_time: '10:00',
-          end_time: '12:00',
-          device_type_id: selectedDeviceType,
-          max_devices: 4,
-          available_devices: [1, 2, 3, 4],
-          is_available: true,
-          price: 8000,
-          slot_type: 'regular',
-          is_youth_time: true,
-          credit_options: [
-            { type: 'fixed', price: 8000, fixed_credits: 20 },
-            { type: 'unlimited', price: 12000 }
-          ],
-          enable_2p: true,
-          price_2p_extra: 2000,
-          device_reservation_status: []
-        },
-        {
-          id: '2',
-          date: selectedDate,
-          start_time: '14:00',
-          end_time: '16:00',
-          device_type_id: selectedDeviceType,
-          max_devices: 4,
-          available_devices: [1, 2, 3, 4],
-          is_available: true,
-          price: 8000,
-          slot_type: 'regular',
-          is_youth_time: false,
-          credit_options: [
-            { type: 'fixed', price: 8000, fixed_credits: 20 },
-            { type: 'unlimited', price: 12000 }
-          ],
-          enable_2p: true,
-          price_2p_extra: 2000,
-          device_reservation_status: []
-        }
-      ];
+    
+    if (!selectedDeviceInfo?.id) {
+      setIsLoadingSlots(false);
+      return;
+    }
 
-      setTimeSlots(mockTimeSlots);
+    try {
+      // 실제 API 호출로 변경
+      const response = await fetch(`/api/v2/time-slots/available?date=${selectedDate}&deviceId=${selectedDeviceInfo.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // API 응답을 기존 컴포넌트 형식에 맞게 변환
+      const transformedSlots = result.data.map((slot: any) => ({
+        id: slot.timeSlot.id,
+        date: selectedDate,
+        start_time: String(slot.timeSlot.startHour).padStart(2, '0') + ':00',
+        end_time: String(slot.timeSlot.endHour).padStart(2, '0') + ':00',
+        device_type_id: selectedDeviceInfo.typeId,
+        max_devices: slot.remainingSlots + 1, // 임시: 남은 슬롯 + 1로 최대 개수 추정
+        available_devices: Array.from({length: slot.remainingSlots}, (_, i) => i + 1),
+        is_available: slot.available,
+        price: slot.creditOptions[0]?.prices?.[1] || slot.creditOptions[0]?.price || 0,
+        slot_type: slot.timeSlot.type === 'overnight' ? 'overnight' : 'regular',
+        is_youth_time: slot.isYouthTime,
+        credit_options: slot.creditOptions.map((option: any) => ({
+          type: option.type,
+          price: option.price || Object.values(option.prices || {})[0] || 0,
+          fixed_credits: option.fixedCredits,
+          hours: option.hours
+        })),
+        enable_2p: slot.enable2P,
+        price_2p_extra: slot.price2PExtra || 0,
+        device_reservation_status: [],
+        displayTime: slot.timeSlot.displayTime
+      }));
+
+      setTimeSlots(transformedSlots);
+      
+      // 시간대가 없는 경우 사용자에게 알림
+      if (transformedSlots.length === 0) {
+        setError('선택한 기기에 대한 예약 가능한 시간대가 없습니다');
+      }
     } catch (error) {
       console.error('Error fetching time slots:', error);
       setError('시간대 정보를 불러올 수 없습니다');
@@ -238,23 +249,41 @@ export default function NewReservationPage() {
     setIsSubmitting(true);
     setError(null);
 
+    let reservationData: any = null;
+
     try {
-      const deviceId = selectedDeviceInfo.devices.find(d => d.device_number === selectedDevice)?.id;
+      // 기기 번호를 선택하지 않은 경우, 선택된 기기 타입의 첫 번째 사용 가능한 기기 사용
+      let finalDeviceInfo = selectedDeviceInfo;
+      
+      if (selectedDevice === 0) {
+        const selectedDeviceTypeObj = deviceTypes.find(dt => dt.id === selectedDeviceType);
+        const firstAvailableDevice = selectedDeviceTypeObj?.devices?.find((d: any) => d.status === 'available');
+        
+        if (firstAvailableDevice) {
+          finalDeviceInfo = {
+            id: firstAvailableDevice.id,
+            name: selectedDeviceTypeObj.name,
+            typeId: selectedDeviceTypeObj.id,
+            deviceNumber: firstAvailableDevice.device_number
+          };
+        }
+      }
+      
+      const deviceId = finalDeviceInfo?.id;
       if (!deviceId) {
         throw new Error('선택한 기기를 찾을 수 없습니다');
       }
 
-      const reservationData = {
+      // API v2 형식에 맞게 데이터 변환
+      const startHour = parseInt(selectedTimeSlotInfo.start_time.split(':')[0]);
+      const endHour = parseInt(selectedTimeSlotInfo.end_time.split(':')[0]);
+      
+      reservationData = {
+        deviceId: deviceId,
         date: selectedDate,
-        device_id: deviceId,
-        start_time: selectedTimeSlotInfo.start_time,
-        end_time: selectedTimeSlotInfo.end_time,
-        player_count: playerCount,
-        credit_type: selectedCreditOption,
-        fixed_credits: selectedTimeSlotInfo.credit_options?.find(opt => opt.type === selectedCreditOption)?.fixed_credits || undefined,
-        user_notes: userNotes || undefined,
-        slot_type: selectedTimeSlotInfo.slot_type || 'regular',
-        total_amount: calculateTotalPrice()
+        startHour: startHour,
+        endHour: endHour,
+        userNotes: userNotes || undefined
       };
 
       // v2 API 사용
@@ -268,8 +297,15 @@ export default function NewReservationPage() {
         throw new Error('예약 ID를 받지 못했습니다');
       }
     } catch (error: any) {
-      console.error('Reservation error:', error);
-      setError(error.message || '예약 중 오류가 발생했습니다');
+      console.error('Reservation error details:', {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        reservationData,
+        selectedDeviceInfo,
+        selectedTimeSlotInfo
+      });
+      setError(error?.message || error?.toString() || '예약 중 오류가 발생했습니다');
     } finally {
       setIsSubmitting(false);
     }
@@ -421,17 +457,43 @@ export default function NewReservationPage() {
                 </div>
               </div>
 
-              <DeviceSelector
-                deviceTypes={deviceTypes}
-                selectedDeviceId={selectedDeviceType}
-                onDeviceSelect={(deviceId) => {
-                  setSelectedDeviceType(deviceId);
-                  handleStepChange(3);
-                }}
-                isLoading={isLoadingDevices}
-                emptyMessage="대여 가능한 기기가 없습니다"
-                columns={{ mobile: 1, tablet: 2, desktop: 2 }}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {deviceTypes.map((deviceType) => (
+                  <button
+                    key={deviceType.id}
+                    onClick={() => {
+                      // 기기 타입 선택 시 첫 번째 기기로 시간대 미리 로드 (시간대 확인용)
+                      const availableDevice = deviceType.devices?.find((d: any) => d.status === 'available');
+                      if (availableDevice) {
+                        setSelectedDeviceType(deviceType.id);
+                        setSelectedDevice(0); // 사용자는 아직 기기 번호 선택 안함
+                        // 시간대 로딩을 위해 임시로 첫 번째 기기 정보 설정
+                        const tempDeviceInfo = {
+                          id: availableDevice.id,
+                          name: deviceType.name,
+                          typeId: deviceType.id,
+                          deviceNumber: availableDevice.device_number
+                        };
+                        setSelectedDeviceInfo(tempDeviceInfo);
+                        handleStepChange(3);
+                      }
+                    }}
+                    disabled={!deviceType.devices?.some((d: any) => d.status === 'available')}
+                    className="p-6 rounded-2xl border-2 transition-all text-left hover:border-indigo-300 dark:hover:border-indigo-600 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
+                          {deviceType.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          사용 가능: {deviceType.devices?.filter((d: any) => d.status === 'available').length || 0}대
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </motion.div>
           )}
 
@@ -457,7 +519,7 @@ export default function NewReservationPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">언제 이용하실 건가요?</h2>
                   <p className="text-gray-600 dark:text-gray-400">
-                    {selectedDeviceInfo.name} • {formatKoreanDate(parseKSTDate(selectedDate))}
+                    {selectedDeviceInfo ? `${selectedDeviceInfo.name} (${selectedDeviceInfo.deviceNumber}번)` : deviceTypes.find(dt => dt.id === selectedDeviceType)?.name} • {formatKoreanDate(parseKSTDate(selectedDate))}
                   </p>
                 </div>
               </div>
@@ -586,7 +648,7 @@ export default function NewReservationPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">기기</span>
                   <span className="font-medium text-gray-900 dark:text-white">
-                    {selectedDeviceInfo.name}
+                    {selectedDeviceInfo?.name} ({selectedDeviceInfo?.deviceNumber}번)
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -598,39 +660,48 @@ export default function NewReservationPage() {
               </div>
 
               {/* 기기 번호 선택 */}
-              {selectedTimeSlotInfo.available_devices && selectedTimeSlotInfo.available_devices.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">기기 번호 선택</h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                    {selectedTimeSlotInfo.available_devices.map((deviceNum) => {
-                      const deviceStatus = selectedTimeSlotInfo.device_reservation_status?.find(
-                        d => d.device_number === deviceNum
-                      );
-                      const isReserved = deviceStatus?.reservation_status === 'approved' || 
-                                        deviceStatus?.reservation_status === 'pending';
-                      
-                      return (
-                        <motion.button
-                          key={deviceNum}
-                          whileHover={!isReserved ? { scale: 1.05 } : {}}
-                          whileTap={!isReserved ? { scale: 0.95 } : {}}
-                          onClick={() => !isReserved && setSelectedDevice(deviceNum)}
-                          disabled={isReserved}
-                          className={`p-4 rounded-xl border-2 transition-all ${
-                            isReserved
-                              ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
-                              : selectedDevice === deviceNum
+              {(() => {
+                const selectedDeviceTypeObj = deviceTypes.find(dt => dt.id === selectedDeviceType);
+                const availableDevices = selectedDeviceTypeObj?.devices
+                  ?.filter(d => d.status === 'available')
+                  ?.sort((a, b) => a.device_number - b.device_number) || [];
+                
+                return availableDevices.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">기기 번호 선택</h3>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                      {availableDevices.map((device) => {
+                        const isSelected = selectedDevice === device.device_number;
+                        
+                        return (
+                          <motion.button
+                            key={device.id}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              const newDeviceInfo = {
+                                id: device.id,
+                                name: selectedDeviceTypeObj.name,
+                                typeId: selectedDeviceTypeObj.id,
+                                deviceNumber: device.device_number
+                              };
+                              setSelectedDeviceInfo(newDeviceInfo);
+                              setSelectedDevice(device.device_number);
+                            }}
+                            className={`p-4 rounded-xl border-2 transition-all ${
+                              isSelected
                                 ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
                                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                          }`}
-                        >
-                          <span className="font-medium text-gray-900 dark:text-white">{deviceNum}번</span>
-                        </motion.button>
-                      );
-                    })}
+                            }`}
+                          >
+                            <span className="font-medium text-gray-900 dark:text-white">{device.device_number}번</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* 크레딧 옵션 선택 */}
               {selectedTimeSlotInfo.credit_options && selectedTimeSlotInfo.credit_options.length > 0 && (
@@ -764,9 +835,9 @@ export default function NewReservationPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmit}
-                  disabled={!selectedDevice || !selectedCreditOption || isSubmitting}
+                  disabled={!selectedDeviceInfo || !selectedCreditOption || isSubmitting}
                   className={`flex-1 py-4 px-6 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-                    !selectedDevice || !selectedCreditOption || isSubmitting
+                    !selectedDeviceInfo || !selectedCreditOption || isSubmitting
                       ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
                   }`}

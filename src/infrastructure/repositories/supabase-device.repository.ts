@@ -35,10 +35,21 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   // Device operations
-  async findDeviceById(id: string): Promise<Device | null> {
+  async findById(id: string): Promise<Device | null> {
     const { data, error } = await this.supabase
       .from('devices')
-      .select('*')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
       .eq('id', id)
       .single()
 
@@ -47,6 +58,10 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
     }
 
     return this.deviceToDomain(data)
+  }
+
+  async findDeviceById(id: string): Promise<Device | null> {
+    return this.findById(id)
   }
 
   async findDevicesByTypeId(typeId: string): Promise<Device[]> {
@@ -204,8 +219,204 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
     return this.categoryToDomain(data)
   }
 
+  // IDeviceRepository 인터페이스 구현
+  async findByDeviceNumber(deviceNumber: string): Promise<Device | null> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
+      .eq('device_number', deviceNumber)
+      .single()
+
+    if (error || !data) {
+      return null
+    }
+
+    return this.deviceToDomain(data)
+  }
+
+  async findAll(): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
+      .order('device_number', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to find devices: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.deviceToDomain(record))
+  }
+
+  async findByStatus(status: any): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
+      .eq('status', status)
+      .order('device_number', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to find devices by status: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.deviceToDomain(record))
+  }
+
+  async findAvailable(): Promise<Device[]> {
+    return this.findByStatus('available')
+  }
+
+  async findOperational(): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
+      .in('status', ['available', 'in_use', 'reserved'])
+      .order('device_number', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to find operational devices: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.deviceToDomain(record))
+  }
+
+  async findByTypeId(typeId: string): Promise<Device[]> {
+    return this.findDevicesByTypeId(typeId)
+  }
+
+  async findByTypeIdAndStatus(typeId: string, status: any): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (
+          id,
+          name,
+          category_id,
+          device_categories (
+            id,
+            name
+          )
+        )
+      `)
+      .eq('device_type_id', typeId)
+      .eq('status', status)
+      .order('device_number', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to find devices by type and status: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.deviceToDomain(record))
+  }
+
+  async findByLocation(location: string): Promise<Device[]> {
+    // 위치 필드가 없으므로 빈 배열 반환
+    return []
+  }
+
+  async save(device: Device): Promise<Device> {
+    return this.saveDevice(device)
+  }
+
+  async update(device: Device): Promise<Device> {
+    return this.updateDevice(device)
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('devices')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      throw new Error(`Failed to delete device: ${error.message}`)
+    }
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    return !error && !!data
+  }
+
+  async existsByDeviceNumber(deviceNumber: string, excludeId?: string): Promise<boolean> {
+    let query = this.supabase
+      .from('devices')
+      .select('id')
+      .eq('device_number', deviceNumber)
+
+    if (excludeId) {
+      query = query.neq('id', excludeId)
+    }
+
+    const { data, error } = await query.single()
+    return !error && !!data
+  }
+
+  // UseCase에서 필요한 추가 메서드
+  async countByType(typeId: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('devices')
+      .select('*', { count: 'exact', head: true })
+      .eq('device_type_id', typeId)
+
+    if (error) {
+      throw new Error(`Failed to count devices by type: ${error.message}`)
+    }
+
+    return count || 0
+  }
+
   // Mappers
-  private deviceToDomain(record: DeviceRecord): Device {
+  private deviceToDomain(record: any): Device {
     return Device.create({
       id: record.id,
       deviceTypeId: record.device_type_id,

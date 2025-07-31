@@ -382,7 +382,8 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       start_time: `${reservation.timeSlot.startHour.toString().padStart(2, '0')}:00`,
       end_time: `${reservation.timeSlot.endHour.toString().padStart(2, '0')}:00`,
       player_count: 1, // 기본값
-      total_amount: reservation.totalAmount,
+      hourly_rate: 25000, // 기본 시간당 요금 (밤샘/조기 영업 시간대는 25,000-30,000원)
+      total_amount: reservation.totalAmount || 25000 * (reservation.timeSlot.endHour - reservation.timeSlot.startHour),
       status: reservation.status.value,
       reservation_number: reservationNumber,
       user_notes: null, // 기본값

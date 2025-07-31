@@ -145,6 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: String(token.email || ''),
               name: String(token.name || ''),
               image: token.picture ? String(token.picture) : null,
+              nickname: token.nickname ? String(token.nickname) : null,
               isAdmin: isAdmin
             }
           };
@@ -161,6 +162,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.name = token.name ? String(token.name) : (session.user.name || null);
         session.user.image = token.picture ? String(token.picture) : (session.user.image || null);
         // @ts-ignore - NextAuth v5 타입 호환성
+        session.user.nickname = token.nickname ? String(token.nickname) : null;
+        // @ts-ignore - NextAuth v5 타입 호환성
         session.user.isAdmin = isAdmin;
         
         return session;
@@ -174,6 +177,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: null,
             name: null,
             image: null,
+            // @ts-ignore - NextAuth v5 타입 호환성
+            nickname: null,
             // @ts-ignore - NextAuth v5 타입 호환성
             isAdmin: false
           }
@@ -196,13 +201,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           
           const { data: userData } = await supabaseAdmin
             .from('users')
-            .select('id, role')
+            .select('id, role, nickname')
             .eq('email', token.email as string)
             .single();
           
           if (userData?.id) {
             // 실제 데이터베이스의 사용자 ID로 업데이트
             token.sub = userData.id;
+            token.nickname = userData.nickname || undefined;
             
             const { data: adminData } = await supabaseAdmin
               .from('admins')

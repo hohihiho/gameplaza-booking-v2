@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { SendReservationNotificationUseCase } from '../notification/send-reservation-notification.use-case'
 import { NotificationRepository } from '@/src/domain/repositories/notification.repository.interface'
 import { NotificationService } from '@/src/domain/services/notification.service.interface'
+import { ReservationRulesService } from '@/src/domain/services/reservation-rules.service'
 
 export interface CreateReservationRequest {
   userId: string
@@ -74,9 +75,10 @@ export class CreateReservationV2UseCase {
 
     // 6. 비즈니스 규칙 검증
 
-    // 6-1. 24시간 규칙 검증
-    if (!reservation.isValidFor24HourRule()) {
-      throw new Error('예약은 시작 시간 24시간 전까지만 가능합니다')
+    // 6-1. 특별 운영 시간대 24시간 규칙 검증 (밤샘/조기개장만)
+    const specialHoursValidation = ReservationRulesService.validateSpecialOperatingHours(reservation)
+    if (!specialHoursValidation.isValid) {
+      throw new Error(specialHoursValidation.errors[0])
     }
 
     // 6-2. 과거 날짜 검증

@@ -36,16 +36,15 @@ export default function QuickReservationWidget() {
   useEffect(() => {
     const fetchReservationStatus = async () => {
       try {
-        // 오늘 날짜 (KST 기준)
-        const today = new Date();
-        // const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        
-        // 영업시간 조회 (공통 API 사용)
-        try {
-          const response = await fetch('/api/public/schedule/today');
-          if (!response.ok) throw new Error('Failed to fetch schedule');
-          
-          const scheduleData = await response.json();
+        // 병렬로 데이터 조회 (성능 최적화)
+        const [scheduleResponse, deviceCountResponse] = await Promise.all([
+          fetch('/api/public/schedule/today'),
+          fetch('/api/public/device-count')
+        ]);
+
+        // 영업시간 데이터 처리
+        if (scheduleResponse.ok) {
+          const scheduleData = await scheduleResponse.json();
           setTodaySchedule({
             floor1Start: scheduleData.floor1Start,
             floor1End: scheduleData.floor1End,
@@ -54,9 +53,9 @@ export default function QuickReservationWidget() {
             floor1EventType: scheduleData.floor1EventType,
             floor2EventType: scheduleData.floor2EventType
           });
-        } catch (err) {
-          console.error('영업시간 조회 오류:', err);
+        } else {
           // 오류 발생시 기본 영업시간 사용
+          const today = new Date();
           const dayOfWeek = today.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           
@@ -70,22 +69,26 @@ export default function QuickReservationWidget() {
           });
         }
 
-        // 전체 기기 수 조회
-        const { data: devices, error: devicesError } = await supabase.from('devices')
-          .select('id, status');
+        // 기기 카운트 데이터 처리
+        if (deviceCountResponse.ok) {
+          const deviceData = await deviceCountResponse.json();
+          setTotalCount(deviceData.total);
+          setAvailableCount(deviceData.available);
+        } else {
+          // Fallback: 기존 방식으로 조회
+          const { data: devices, error: devicesError } = await supabase.from('devices')
+            .select('id, status');
 
-        if (devicesError) {
-          console.error('Devices query error:', devicesError);
-          // 에러가 발생해도 계속 진행
+          if (!devicesError) {
+            const total = devices?.length || 0;
+            const available = devices?.filter(d => d.status === 'available').length || 0;
+            setTotalCount(total);
+            setAvailableCount(available);
+          } else {
+            setTotalCount(0);
+            setAvailableCount(0);
+          }
         }
-
-        // 전체 기기 수 (모든 상태 포함)
-        const total = devices?.length || 0;
-        setTotalCount(total);
-
-        // 현재 이용 가능한 기기 수 (available 상태인 기기만)
-        const availableDevices = devices?.filter(d => d.status === 'available') || [];
-        setAvailableCount(availableDevices.length);
 
       } catch (error) {
         console.error('Failed to fetch reservation status:', error);
@@ -205,13 +208,13 @@ export default function QuickReservationWidget() {
                     <div className="flex-1">
                       <div className="flex items-baseline gap-1">
                         <span className="text-white text-lg xs:text-xl sm:text-2xl font-bold">
-                          {loading ? '...' : availableCount}
+                          {loading ? <div className="w-8 h-6 bg-white/20 rounded animate-pulse inline-block" /> : availableCount}
                         </span>
                         <span className="text-white/80 text-xs xs:text-sm font-medium">
-                          /{totalCount}대
+                          /{loading ? <div className="w-4 h-4 bg-white/20 rounded animate-pulse inline-block" /> : totalCount}대
                         </span>
                         <span className="text-white text-xs xs:text-sm sm:text-base font-bold ml-2">
-                          {Math.round(availablePercentage)}%
+                          {loading ? <div className="w-8 h-4 bg-white/20 rounded animate-pulse inline-block" /> : `${Math.round(availablePercentage)}%`}
                         </span>
                       </div>
                       <div className="w-full bg-white/20 rounded-full h-2 mt-2">
@@ -240,14 +243,14 @@ export default function QuickReservationWidget() {
                     <div className="flex items-center justify-between text-xs xs:text-sm">
                       <span className="text-blue-300 font-medium">1층</span>
                       <span className="text-white font-medium">
-                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)}-${formatTime24Hour(todaySchedule.floor1End)}` : '...'}
+                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)}-${formatTime24Hour(todaySchedule.floor1End)}` : <div className="w-16 h-4 bg-white/20 rounded animate-pulse inline-block" />}
                       </span>
                     </div>
                     
                     <div className="flex items-center justify-between text-xs xs:text-sm">
                       <span className="text-purple-300 font-medium">2층</span>
                       <span className="text-white font-medium">
-                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)}-${formatTime24Hour(todaySchedule.floor2End)}` : '...'}
+                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)}-${formatTime24Hour(todaySchedule.floor2End)}` : <div className="w-16 h-4 bg-white/20 rounded animate-pulse inline-block" />}
                       </span>
                     </div>
                   </div>
@@ -358,7 +361,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">1층</span>
                         <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)} - ${formatTime24Hour(todaySchedule.floor1End)}` : '...'}
+                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)} - ${formatTime24Hour(todaySchedule.floor1End)}` : <div className="w-20 h-6 bg-white/20 rounded animate-pulse inline-block" />}
                         </span>
                       </div>
                     </div>
@@ -366,7 +369,7 @@ export default function QuickReservationWidget() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-medium">2층</span>
                         <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)} - ${formatTime24Hour(todaySchedule.floor2End)}` : '...'}
+                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)} - ${formatTime24Hour(todaySchedule.floor2End)}` : <div className="w-20 h-6 bg-white/20 rounded animate-pulse inline-block" />}
                         </span>
                       </div>
                     </div>

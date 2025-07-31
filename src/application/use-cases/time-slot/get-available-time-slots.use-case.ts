@@ -64,6 +64,12 @@ export class GetAvailableTimeSlotsUseCase {
       throw new Error('기기를 찾을 수 없습니다')
     }
 
+    // 기기 타입 정보 조회 (UseCase 응답에 필요)
+    const deviceType = await this.deviceRepository.findTypeById(device.deviceTypeId)
+    if (!deviceType) {
+      throw new Error('기기 타입 정보를 찾을 수 없습니다')
+    }
+
     // 사용 가능한 시간대 템플릿 조회
     let templates = await this.domainService.getAvailableTimeSlots(
       date,
@@ -119,8 +125,8 @@ export class GetAvailableTimeSlotsUseCase {
       date: query.date,
       deviceInfo: {
         id: device.id,
-        typeId: device.typeId,
-        typeName: device.typeName,
+        typeId: device.deviceTypeId,
+        typeName: deviceType.name,
         deviceNumber: device.deviceNumber
       }
     }

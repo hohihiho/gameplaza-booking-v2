@@ -228,7 +228,7 @@ export default function MainActionButtons() {
               네이버지도
             </a>
             <a
-              href="https://map.kakao.com/?q=게임플라자 광주광역시 동구 충장로안길 6"
+              href="https://place.map.kakao.com/1155241361"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#FEE500] hover:bg-[#e6cf00] text-black py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"

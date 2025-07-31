@@ -133,8 +133,17 @@ export class Reservation {
       throw new Error('유효하지 않은 날짜 형식입니다')
     }
     
-    const startHour = this._timeSlot.normalizedStartHour
-    return KSTDateTime.create(new Date(year, month - 1, day, startHour, 0))
+    const originalStartHour = this._timeSlot.startHour
+    const normalizedStartHour = this._timeSlot.normalizedStartHour
+    
+    // 24시간 표시에서 0-5시는 실제로 다음날을 의미
+    const dateToUse = new Date(year, month - 1, day)
+    if (originalStartHour < 6) {
+      // 0-5시는 다음 날짜로 처리
+      dateToUse.setDate(dateToUse.getDate() + 1)
+    }
+    
+    return KSTDateTime.create(new Date(dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(), normalizedStartHour, 0))
   }
 
   get endDateTime(): KSTDateTime {
@@ -145,15 +154,17 @@ export class Reservation {
       throw new Error('유효하지 않은 날짜 형식입니다')
     }
     
-    const endHour = this._timeSlot.normalizedEndHour
-    let endDay = day
+    const originalEndHour = this._timeSlot.endHour
+    const normalizedEndHour = this._timeSlot.normalizedEndHour
     
-    // 자정을 넘어가는 경우 처리
-    if (this._timeSlot.endHour >= 24 && this._timeSlot.startHour < 24) {
-      endDay = endDay !== undefined ? endDay + 1 : 1
+    // 24시간 표시에서 0-6시는 실제로 다음날을 의미
+    const dateToUse = new Date(year, month - 1, day)
+    if (originalEndHour <= 6) {
+      // 0-6시는 다음 날짜로 처리
+      dateToUse.setDate(dateToUse.getDate() + 1)
     }
     
-    return KSTDateTime.create(new Date(year, month - 1, endDay, endHour, 0))
+    return KSTDateTime.create(new Date(dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(), normalizedEndHour, 0))
   }
 
   /**

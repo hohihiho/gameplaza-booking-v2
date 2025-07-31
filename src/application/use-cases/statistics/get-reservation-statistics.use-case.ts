@@ -56,10 +56,12 @@ export class GetReservationStatisticsUseCase {
       period.endDate
     )
     
-    // 관리자가 아닌 경우 본인 예약만 필터링
+    // 관리자가 아닌 경우 본인 예약만 필터링 + 완료된 예약만
     const reservations = user.role === 'admin' 
-      ? allReservations 
-      : allReservations.filter(reservation => reservation.userId === request.userId)
+      ? allReservations.filter(r => r.status.value === 'completed')
+      : allReservations.filter(reservation => 
+          reservation.userId === request.userId && reservation.status.value === 'completed'
+        )
 
     // 4. 통계 데이터 계산
     const statisticsData = this.calculateStatistics(reservations)

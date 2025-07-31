@@ -30,6 +30,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id?: string;
+    nickname?: string;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     sub?: string;

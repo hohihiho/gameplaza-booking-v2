@@ -14,6 +14,13 @@ export const GET = withAuth(
       const status = searchParams.get('status')
       const date = searchParams.get('date')
       
+      // 전체 예약 수 확인 (디버깅용)
+      const { count: totalCount, error: countError } = await supabaseAdmin
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+      
+      console.log('Admin reservations API: Total reservations in DB:', totalCount, 'Error:', countError)
+      
       let query = supabaseAdmin
         .from('reservations')
         .select(`
@@ -74,7 +81,17 @@ export const GET = withAuth(
       // 최신 순으로 정렬
       query = query.order('created_at', { ascending: false })
 
+      console.log('Admin reservations API: Query built')
+      console.log('Query parameters:', { year, limit, status, date })
+      
       const { data: reservationsData, error } = await query
+
+      console.log('Admin reservations API: Raw data count:', reservationsData?.length || 0)
+      console.log('Admin reservations API: Query error:', error)
+      
+      if (reservationsData && reservationsData.length > 0) {
+        console.log('Admin reservations API: First reservation:', reservationsData[0])
+      }
 
       if (error) {
         console.error('예약 데이터 조회 에러:', error)

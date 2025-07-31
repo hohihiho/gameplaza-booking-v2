@@ -1,10 +1,26 @@
 import { createAdminClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
+// 메모리 캐시 (10분 캐시)
+let scheduleCache: {
+  data: any;
+  timestamp: number;
+  dateStr: string;
+} | null = null;
+
+const CACHE_DURATION = 10 * 60 * 1000; // 10분
+
 export async function GET() {
   try {
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // 캐시 확인 (같은 날짜이고 10분 이내)
+    if (scheduleCache && 
+        scheduleCache.dateStr === dateStr && 
+        Date.now() - scheduleCache.timestamp < CACHE_DURATION) {
+      return NextResponse.json(scheduleCache.data);
+    }
     
     const supabase = createAdminClient();
     
@@ -68,7 +84,7 @@ export async function GET() {
         ? floor2EventClose?.end_time?.substring(0, 5) || defaultSchedule.floor2End
         : defaultSchedule.floor2End;
       
-      return NextResponse.json({
+      const result = {
         floor1Start,
         floor1End,
         floor2Start,
@@ -78,15 +94,33 @@ export async function GET() {
         date: dateStr,
         dayOfWeek: ['일', '월', '화', '수', '목', '금', '토'][dayOfWeek],
         isWeekend
-      });
+      };
+      
+      // 결과를 캐시에 저장
+      scheduleCache = {
+        data: result,
+        timestamp: Date.now(),
+        dateStr
+      };
+      
+      return NextResponse.json(result);
     }
     
-    return NextResponse.json({
+    const result = {
       ...defaultSchedule,
       date: dateStr,
       dayOfWeek: ['일', '월', '화', '수', '목', '금', '토'][dayOfWeek],
       isWeekend
-    });
+    };
+    
+    // 결과를 캐시에 저장
+    scheduleCache = {
+      data: result,
+      timestamp: Date.now(),
+      dateStr
+    };
+    
+    return NextResponse.json(result);
     
   } catch (error) {
     console.error('API 오류:', error);

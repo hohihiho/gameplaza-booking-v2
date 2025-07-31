@@ -8,10 +8,161 @@ import { DeviceRepository } from '@/lib/repositories/device.repository'
 export const GET = withAuth(
   async (_req, { user: _user }) => {
     try {
+    console.log('Dashboard API: Starting request')
     const supabase = createAdminClient()
+    console.log('Dashboard API: Created Supabase client')
+    
+    // 단계별로 서비스 테스트 - 먼저 간단한 데이터베이스 조회부터
+    console.log('Dashboard API: Testing basic queries')
+    
+    // 1. 기본 예약 수 조회
+    const { data: reservationCount, error: resError } = await supabase
+      .from('reservations')
+      .select('id', { count: 'exact' })
+    
+    console.log('Reservation count query:', { count: reservationCount?.length, error: resError })
+    
+    // 2. 기본 기기 수 조회
+    const { data: deviceCount, error: devError } = await supabase
+      .from('devices')
+      .select('id', { count: 'exact' })
+    
+    console.log('Device count query:', { count: deviceCount?.length, error: devError })
+    
+    // 3. 오늘 예약 조회 (간단한 버전)
+    const today = new Date().toISOString().split('T')[0]
+    const { data: todayReservations, error: todayError } = await supabase
+      .from('reservations')
+      .select('id, status, date')
+      .eq('date', today)
+    
+    console.log('Today reservations query:', { count: todayReservations?.length, error: todayError, today })
+    
+    // 전체 예약 수도 확인
+    const { data: allReservations, error: allError } = await supabase
+      .from('reservations')
+      .select('id, date, status')
+      .limit(10)
+    
+    console.log('All reservations sample:', { count: allReservations?.length, error: allError, data: allReservations })
+    
+    // 4. 오늘 매출 조회 (완료된 예약만)
+    const { data: todayRevenue, error: revenueError } = await supabase
+      .from('reservations')
+      .select('total_amount')
+      .eq('date', today)
+      .eq('status', 'completed')
+    
+    console.log('Today revenue query:', { 
+      count: todayRevenue?.length, 
+      error: revenueError,
+      data: todayRevenue?.map(r => ({ total_amount: r.total_amount }))
+    })
+    
+    // 5. 최근 예약 5건 조회
+    const { data: recentReservations, error: recentError } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        status,
+        date,
+        start_time,
+        end_time,
+        created_at,
+        users!inner(name, nickname),
+        devices!inner(
+          device_number,
+          device_types!inner(
+            name,
+            model_name
+          )
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    
+    console.log('Recent reservations query:', { count: recentReservations?.length, error: recentError })
+    
+    // 기본 통계 계산
+    const totalReservations = todayReservations?.length || 0
+    const pendingReservations = todayReservations?.filter(r => r.status === 'pending').length || 0
+    const usingCount = todayReservations?.filter(r => r.status === 'checked_in').length || 0
+    const todayRevenueAmount = todayRevenue?.reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0
+    
+    // 최근 예약 데이터 형식화
+    const formattedRecentReservations = recentReservations?.map(r => {
+      const device = r.devices
+      const deviceType = (device as any)?.device_types
+      const user = (r as any).users
+      
+      // created_at 시간 차이 계산
+      const createdAt = new Date(r.created_at)
+      const now = new Date()
+      const diffMs = now.getTime() - createdAt.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMins / 60)
+      
+      let createdAtText = ''
+      if (diffMins < 60) {
+        createdAtText = `${diffMins}분 전`
+      } else if (diffHours < 24) {
+        createdAtText =
+ `${diffHours}시간 전`
+      } else {
+        const diffDays = Math.floor(diffHours / 24)
+        createdAtText = `${diffDays}일 전`
+      }
+
+      // 기기명 조합
+      const deviceName = deviceType?.model_name 
+        ? `${deviceType.name} ${deviceType.model_name}` 
+        : deviceType?.name || '알 수 없음'
+
+      return {
+        id: r.id,
+        user_name: (user as any)?.nickname || (user as any)?.name || '알 수 없음',
+        device_name: deviceName,
+        date: r.date,
+        time: `${r.start_time.slice(0, 5)}-${r.end_time.slice(0, 5)}`,
+        status: r.status,
+        created_at: createdAtText
+      }
+    }) || []
+    
+    return NextResponse.json({
+      stats: {
+        revenue: {
+          value: todayRevenueAmount,
+          trend: 0
+        },
+        reservations: {
+          total: totalReservations,
+          pending: pendingReservations,
+          trend: 0
+        },
+        currentlyUsing: {
+          using: usingCount,
+          waiting: 0 // 일단 0으로 유지
+        },
+        devices: {
+          available: deviceCount?.length || 0,
+          total: deviceCount?.length || 0,
+          maintenance: 0
+        }
+      },
+      recentReservations: formattedRecentReservations,
+      pendingPayments: 0
+    })
+    
+    /*
     const analyticsService = new AnalyticsService(supabase)
+    console.log('Dashboard API: Created analytics service')
+    
     const reservationRepo = new ReservationRepository(supabase)
+    console.log('Dashboard API: Created reservation repository')
+    
     const deviceRepo = new DeviceRepository(supabase)
+    console.log('Dashboard API: Created device repository')
 
     // 오늘 영업일 날짜 (KST 기준, 06시 이전은 전날 영업일)
     const kstOffset = 9 * 60 * 60 * 1000 // 9시간을 밀리초로
@@ -164,7 +315,9 @@ export const GET = withAuth(
         created_at: createdAtText
       }
     }) || []
+    */
 
+    /* 원래 코드 주석 처리됨
     return NextResponse.json({
       stats: {
         revenue: {
@@ -189,11 +342,14 @@ export const GET = withAuth(
       recentReservations: formattedRecentReservations,
       pendingPayments: pendingPaymentCount
     })
+    */
 
   } catch (error) {
     console.error('Dashboard API error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error message:', error instanceof Error ? error.message : error)
       return NextResponse.json(
-        { error: 'Internal server error' },
+        { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       )
     }

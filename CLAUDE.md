@@ -2,38 +2,77 @@
 
 이 프로젝트는 여러 전문가 에이전트가 협업하여 개발합니다. 각 에이전트는 자신의 전문 분야에서 최고의 결과를 만들어야 합니다.
 
-## 🤖 에이전트 시스템
+## 🤖 고급 에이전트 시스템 (Awesome Claude Agents 통합)
 
-### 에이전트 파일 구조
-각 전문가 에이전트는 별도 파일로 관리되어 필요시 로드됩니다:
+### 새로운 에이전트 구조
+최신 Awesome Claude Agents 시스템이 통합되어 더욱 강력한 협업이 가능합니다:
+
 ```
 /docs/agents/
-  ├── frontend-developer.md    # React/TypeScript 전문가
-  ├── backend-developer.md      # Supabase/API 전문가
-  ├── ui-ux-designer.md        # 디자인/UX 전문가
-  ├── security-expert.md       # 보안 전문가
-  ├── data-analyst.md          # 데이터 분석가
-  ├── qa-engineer.md           # 품질 보증 엔지니어
-  ├── code-quality.md          # 코드 품질 전문가
-  ├── devops.md               # 배포/운영 전문가
-  └── project-manager.md       # 프로젝트 매니저
+├── orchestrators/              # 🎯 조정자 (필수 시작점)
+│   ├── gameplaza-tech-lead.md  # 게임플라자 기술 리더
+│   ├── project-analyst.md      # 프로젝트 분석가
+│   └── team-configurator.md    # 팀 구성 관리자
+├── core/                       # 💎 핵심 팀
+│   ├── code-reviewer.md        # 코드 리뷰어
+│   ├── performance-optimizer.md # 성능 최적화
+│   ├── documentation-specialist.md # 문서화
+│   └── security-expert.md      # 보안 전문가
+├── universal/                  # 🌐 범용 전문가
+│   ├── backend-developer.md    # 백엔드 개발
+│   ├── frontend-developer.md   # 프론트엔드 개발
+│   ├── api-architect.md        # API 설계
+│   └── mobile-ux-expert.md     # 모바일 UX
+└── specialized/                # 🔧 특화 전문가
+    ├── react/
+    │   ├── react-component-architect.md
+    │   └── react-nextjs-expert.md
+    ├── supabase/
+    │   ├── supabase-backend-expert.md
+    │   ├── supabase-auth-expert.md
+    │   └── supabase-realtime-expert.md
+    └── gameplaza/              # 게임플라자 전용
+        ├── reservation-system-expert.md  # 예약 시스템
+        ├── kst-time-expert.md           # 시간대 처리
+        ├── mobile-first-expert.md       # 모바일 최적화
+        └── device-management-expert.md  # 기기 관리
 ```
 
-### 에이전트 활성화 방법
-작업에 따라 필요한 에이전트를 호출하여 전문적인 도움을 받으세요:
+### 🚨 중요: 새로운 에이전트 사용법
 
-1. **특정 에이전트 호출**
-   - "Frontend Developer 에이전트로 이 컴포넌트 검토해줘"
-   - "Security Expert 관점에서 이 코드 분석해줘"
-   - "QA Engineer로서 테스트 시나리오 작성해줘"
+#### 1. **복잡한 작업은 반드시 Tech Lead로 시작**
+```
+"예약 시스템 개선해줘" → gameplaza-tech-lead가 먼저 분석하고 적절한 에이전트 할당
+```
 
-2. **다중 에이전트 협업**
-   - "Frontend와 Backend 에이전트가 함께 API 설계해줘"
-   - "모든 에이전트가 이 기능 검토해줘"
+#### 2. **에이전트 라우팅 프로토콜**
+```
+사용자 요청 → Tech Lead 분석 → 에이전트 라우팅 맵 → 지정된 에이전트로 실행
+```
 
-3. **자동 활성화 조건**
-   - 각 에이전트는 특정 키워드나 작업 유형에 따라 자동 활성화
-   - 예: React 코드 작성 시 Frontend Developer 자동 활성화
+#### 3. **병렬 실행 제한**
+- 최대 2개 에이전트만 동시 실행 가능
+- Tech Lead가 실행 순서 결정
+
+### 에이전트 호출 예시
+
+#### 기본 호출 (자동 라우팅)
+```
+"예약 시스템에서 시간대 버그 수정해줘"
+→ Tech Lead가 자동으로 적절한 에이전트 조합 선택
+```
+
+#### 특정 에이전트 직접 호출
+```
+"reservation-system-expert로 이 예약 로직 검토해줘"
+"mobile-first-expert 관점에서 성능 개선해줘"
+```
+
+#### 다중 에이전트 협업
+```
+"예약 UI를 모바일에 최적화해줘"
+→ Tech Lead가 mobile-first-expert + react-component-architect 조합 추천
+```
 
 ## 🎯 공통 원칙
 

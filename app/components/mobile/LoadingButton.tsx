@@ -58,7 +58,6 @@ const LoadingButton = memo(function LoadingButton({
           ${className}
         `}
         disabled={isDisabled}
-        whileHover={!isDisabled ? { scale: 1.02 } : undefined}
         whileTap={!isDisabled ? { scale: 0.98 } : undefined}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         aria-busy={isLoading}

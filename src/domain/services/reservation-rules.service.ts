@@ -91,6 +91,16 @@ export class ReservationRulesService {
     if (isOvernightHours || isEarlyHours) {
       const hoursUntilStart = reservation.startDateTime.differenceInHours(currentTime)
       
+      console.log('Special hours validation:', {
+        startHour,
+        isOvernightHours,
+        isEarlyHours,
+        currentTime: currentTime.toString(),
+        startDateTime: reservation.startDateTime.toString(),
+        hoursUntilStart,
+        meetsRequirement: hoursUntilStart >= 24
+      })
+      
       if (hoursUntilStart < 24) {
         const type = isOvernightHours ? '밤샘 영업' : '조기 영업'
         errors.push(`${type} 시간대 예약은 24시간 전까지만 신청 가능합니다`)

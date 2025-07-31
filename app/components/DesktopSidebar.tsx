@@ -150,7 +150,7 @@ export default function DesktopSidebar() {
                   )}
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {session.user?.name || '사용자'}
+                      {session.user?.nickname || session.user?.name || '사용자'}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {session.user?.email}

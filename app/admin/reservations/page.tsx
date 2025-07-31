@@ -106,7 +106,7 @@ export default function ReservationManagementPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedYear, setSelectedYear] = useState('all'); // 기본값을 'all'로 변경
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -250,17 +250,23 @@ export default function ReservationManagementPage() {
       // v2 API 사용 (v1은 deprecated)
       const apiUrl = `/api/v2/admin/reservations?${params}`;
       
+      console.log('API 호출 시작:', apiUrl);
       const response = await fetch(apiUrl);
+      console.log('API 응답 상태:', response.status);
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '예약 데이터를 불러올 수 없습니다');
+        const error = await response.text();
+        console.error('API 응답 에러:', error);
+        throw new Error(error || '예약 데이터를 불러올 수 없습니다');
       }
       
       const responseData = await response.json();
+      console.log('API 응답 전체:', responseData);
+      
       // v2 API 응답 형식
       const reservationsData = responseData.data?.reservations || [];
       
+      console.log('예약 데이터 개수:', reservationsData.length);
       console.log('예약 데이터:', reservationsData);
       
       // 첫 번째 예약 데이터의 구조 확인
@@ -324,7 +330,10 @@ export default function ReservationManagementPage() {
       setTabCounts(counts);
     } catch (error) {
       console.error('예약 데이터 불러오기 실패:', error);
+      console.error('에러 상세:', error instanceof Error ? error.message : error);
+      setAllReservations([]);
       setReservations([]);
+      setTabCounts({});
     } finally {
       setIsLoading(false);
     }
@@ -733,10 +742,10 @@ export default function ReservationManagementPage() {
                 </div>
                 
                 {/* 필터 초기화 버튼 */}
-                {(selectedYear !== new Date().getFullYear().toString() || selectedDate) && (
+                {(selectedYear !== 'all' || selectedDate) && (
                   <button
                     onClick={() => {
-                      setSelectedYear(new Date().getFullYear().toString());
+                      setSelectedYear('all');
                       setSelectedDate('');
                     }}
                     className="self-end px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

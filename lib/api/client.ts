@@ -181,30 +181,25 @@ class ApiClient {
     }
   }
 
-  // 예약 생성
+  // 예약 생성 (v2 API)
   async createReservation(data: {
+    deviceId: string;
     date: string;
-    start_time: string;
-    end_time: string;
-    device_id: string;
-    player_count?: number;
-    credit_type?: string;
-    fixed_credits?: number;
-    user_notes?: string;
-    slot_type?: string;
-    total_amount?: number;
+    startHour: number;
+    endHour: number;
+    userNotes?: string;
   }): Promise<V2Reservation> {
-    const endpoint = '/reservations';
-    const response = await this.fetch<V2Reservation>(endpoint, {
+    const endpoint = '/reservations/create';
+    const response = await this.fetch<{ reservation: V2Reservation }>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
     });
 
-    if (!response.data) {
+    if (!response.data?.reservation) {
       throw new Error('예약 데이터가 없습니다');
     }
 
-    return response.data;
+    return response.data.reservation;
   }
 
   // 예약 목록 조회

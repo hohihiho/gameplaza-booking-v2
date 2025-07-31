@@ -2,7 +2,7 @@
 // 비전공자 설명: 오락실이 보유한 게임기 목록과 실시간 상태를 보여주는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar, Activity, Wrench, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
@@ -584,6 +584,13 @@ export default function MachinesPage() {
               const availableCount = deviceType.devices.filter(d => d.status === 'available').length;
               const isExpanded = expandedType === deviceType.id;
               
+              // 디버깅용 로그
+              console.log(`기기 타입 ${deviceType.name} (${deviceType.id}):`, {
+                expandedType,
+                isExpanded,
+                deviceTypeId: deviceType.id
+              });
+              
               return (
                 <motion.div
                   key={deviceType.id}
@@ -596,7 +603,7 @@ export default function MachinesPage() {
                 >
                   {/* 기기 타입 헤더 */}
                   <button
-                    onClick={() => setExpandedType(isExpanded ? null : deviceType.id)}
+                    onClick={() => setExpandedType(expandedType === deviceType.id ? null : deviceType.id)}
                     className="w-full p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -684,24 +691,25 @@ export default function MachinesPage() {
                       </div>
                       <motion.div
                         animate={{ rotate: isExpanded ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="p-2 bg-gray-100 dark:bg-gray-700 rounded-xl"
+                        transition={{ duration: 0.3 }}
+                        className={`p-2 rounded-xl transition-colors ${
+                          isExpanded 
+                            ? 'bg-indigo-100 dark:bg-indigo-900/30' 
+                            : 'bg-gray-100 dark:bg-gray-700'
+                        }`}
                       >
-                        <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                        <ChevronRight className={`w-5 h-5 transition-colors ${
+                          isExpanded 
+                            ? 'text-indigo-600 dark:text-indigo-400' 
+                            : 'text-gray-600 dark:text-gray-300'
+                        }`} />
                       </motion.div>
                     </div>
                   </button>
                   
                   {/* 개별 기기 목록 (확장시) */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: 'auto' }}
-                        exit={{ height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden border-t border-gray-200 dark:border-gray-800"
-                      >
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 dark:border-gray-800">
                         <div className="p-6 pt-4 bg-gray-50 dark:bg-gray-900/50">
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                             {deviceType.devices
@@ -733,9 +741,8 @@ export default function MachinesPage() {
                             ))}
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    </div>
+                  )}
                 </motion.div>
                   );
                   })}
@@ -778,8 +785,7 @@ export default function MachinesPage() {
           className="mt-12 text-center"
         >
           <div className="bg-indigo-100 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-3xl p-8 shadow-xl">
-            <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mb-2">기기를 예약하고 싶으신가요?</h3>
-            <p className="text-indigo-700 dark:text-indigo-300 mb-6">특정 기기를 시간 단위로 대여할 수 있습니다</p>
+            <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mb-6">기기를 예약하고 싶으신가요?</h3>
             <motion.a 
               href="/reservations/new" 
               whileHover={{ scale: 1.05 }}

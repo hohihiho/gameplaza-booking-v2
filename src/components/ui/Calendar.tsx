@@ -42,8 +42,8 @@ export function Calendar({
 }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // 요일 이름
-  const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+  // 요일 이름 (월~일 순서)
+  const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
 
   // 현재 표시할 월의 날짜들 생성
   const calendarDays = useMemo(() => {
@@ -60,9 +60,9 @@ export function Calendar({
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
       
-      // 첫 주의 빈 날짜 채우기
+      // 첫 주의 빈 날짜 채우기 (월요일 시작으로 조정)
       const monthDays: (Date | null)[] = [];
-      const firstDayOfWeek = firstDay.getDay();
+      const firstDayOfWeek = (firstDay.getDay() + 6) % 7; // 일요일=0을 월요일=0으로 변경
       
       for (let i = 0; i < firstDayOfWeek; i++) {
         monthDays.push(null);
@@ -155,28 +155,32 @@ export function Calendar({
   };
 
   return (
-    <div className={`select-none ${className}`}>
+    <div className={`select-none bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       {/* 월 네비게이션 */}
-      <div className="flex items-center justify-between mb-4">
-        <button
+      <div className="flex items-center justify-between mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => navigateMonth('prev')}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-all"
           aria-label="이전 달"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </button>
+          <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </motion.button>
         
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           {formatMonthYear(currentMonth)}
         </h3>
         
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => navigateMonth('next')}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-all"
           aria-label="다음 달"
         >
-          <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </button>
+          <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </motion.button>
       </div>
 
       {/* 캘린더 그리드 */}
@@ -186,12 +190,16 @@ export function Calendar({
         onTouchEnd={onTouchEnd}
       >
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+        <div className="grid grid-cols-7 gap-2 mb-3">
           {weekDays.map((day, index) => (
             <div
               key={day}
               className={`text-center text-sm font-medium py-2 ${
-                index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-700 dark:text-gray-300'
+                index === 5 
+                  ? 'text-blue-500' 
+                  : index === 6 
+                    ? 'text-red-500' 
+                    : 'text-gray-600 dark:text-gray-400'
               }`}
             >
               {day}
@@ -200,25 +208,25 @@ export function Calendar({
         </div>
 
         {/* 날짜 그리드 */}
-        <div className="space-y-1 sm:space-y-2">
+        <div className="space-y-2">
           {calendarDays.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div key={weekIndex} className="grid grid-cols-7 gap-2">
               {week.map((date, dayIndex) => {
                 if (!date) {
-                  return <div key={`empty-${weekIndex}-${dayIndex}`} className="aspect-square" />;
+                  return <div key={`empty-${weekIndex}-${dayIndex}`} className="h-12 w-full min-w-[48px]" />;
                 }
                 
                 const dateStr = formatKSTDate(date);
                 const isSelected = selectedDate === dateStr;
-                const isToday = new Date().toDateString() === date.toDateString();
+                // const isToday = new Date().toDateString() === date.toDateString(); // 당일 예약 불가로 표시 불필요
                 const isDisabled = checkDateDisabled(date);
-                const dayOfWeek = date.getDay();
+                const dayOfWeek = (date.getDay() + 6) % 7; // 월=0, 화=1, ..., 일=6으로 변경
                 const mark = dateMarks[dateStr];
                 
                 // 커스텀 렌더링이 제공된 경우
                 if (renderDate) {
                   return (
-                    <div key={dateStr} className="aspect-square">
+                    <div key={dateStr} className="h-12 w-full min-w-[48px]">
                       {renderDate(date, isSelected, isDisabled)}
                     </div>
                   );
@@ -236,29 +244,27 @@ export function Calendar({
                     }}
                     disabled={isDisabled}
                     className={`
-                      aspect-square flex flex-col items-center justify-center rounded-lg sm:rounded-xl 
-                      border-2 transition-all relative
+                      h-12 w-full min-w-[48px] flex items-center justify-center rounded-lg 
+                      transition-all relative group
                       ${isDisabled
-                        ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'
+                        ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
                         : isSelected
-                          ? 'border-indigo-600 bg-indigo-600 text-white'
-                          : isToday
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600'
                       }
                     `}
                     title={mark?.tooltip}
                   >
                     <span className={`
-                      text-sm font-medium
+                      text-sm font-medium transition-colors
                       ${isDisabled
                         ? 'text-gray-400 dark:text-gray-600'
                         : isSelected 
                           ? 'text-white' 
-                          : dayOfWeek === 0 
-                            ? 'text-red-500' 
+                          : dayOfWeek === 5 
+                            ? 'text-blue-600' 
                             : dayOfWeek === 6 
-                              ? 'text-blue-500' 
+                              ? 'text-red-600' 
                               : 'text-gray-700 dark:text-gray-300'
                       }
                     `}>
@@ -268,7 +274,7 @@ export function Calendar({
                     {/* 마크 표시 */}
                     {mark && !isDisabled && (
                       <div 
-                        className="absolute bottom-1 w-1.5 h-1.5 rounded-full"
+                        className="absolute bottom-1 w-2 h-2 rounded-full shadow-sm"
                         style={{ backgroundColor: mark.color }}
                       />
                     )}

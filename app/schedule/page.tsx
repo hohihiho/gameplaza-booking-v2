@@ -10,6 +10,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Sun,
   Moon,
@@ -80,7 +81,7 @@ export default function SchedulePage() {
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
   const [supabase] = useState(() => createClient());
   const [, setIsLoading] = useState(false);
-  const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(false);
+  const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(true);
   const [todaySchedule, setTodaySchedule] = useState<{ 
     floor1Start: string; 
     floor1End: string; 
@@ -537,13 +538,29 @@ export default function SchedulePage() {
             </h2>
             <button
               onClick={() => setIsDefaultHoursOpen(!isDefaultHoursOpen)}
-              className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <ChevronRight className={`w-5 h-5 text-gray-500 transform transition-transform ${isDefaultHoursOpen ? 'rotate-90' : ''}`} />
+              <motion.div
+                animate={{ rotate: isDefaultHoursOpen ? 0 : -90 }}
+                transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+              >
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              </motion.div>
             </button>
           </div>
           
-          <div className={`${isDefaultHoursOpen ? 'block' : 'hidden'} md:block`}>
+          <motion.div 
+            initial={false}
+            animate={{ 
+              height: isDefaultHoursOpen ? 'auto' : 0,
+              opacity: isDefaultHoursOpen ? 1 : 0
+            }}
+            transition={{ 
+              duration: 0.3,
+              ease: [0.04, 0.62, 0.23, 0.98]
+            }}
+            style={{ overflow: 'hidden' }}
+          >
             <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -557,11 +574,11 @@ export default function SchedulePage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="text-gray-900 dark:text-white font-medium">평일, 주말</span>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">
                         22시 이후 손님 없으면 조기 마감
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                       {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 22:00'}
                     </span>
                   </div>
@@ -583,7 +600,7 @@ export default function SchedulePage() {
                         평일 자정까지 운영
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                       {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 24:00'}
                     </span>
                   </div>
@@ -597,7 +614,7 @@ export default function SchedulePage() {
                         밤샘 영업 (익일 새벽 5시까지)
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">12:00 - 29:00</span>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">12:00 - 29:00</span>
                   </div>
                 </div>
               </div>
@@ -633,7 +650,7 @@ export default function SchedulePage() {
               </div>
             </div>
           </div>
-          </div>
+          </motion.div>
         </motion.div>
         
         <div className="grid gap-6 lg:gap-8">
