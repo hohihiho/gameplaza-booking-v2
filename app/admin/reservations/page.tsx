@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/lib/supabase/client';
+// Supabase Auth는 사용하지 않음 - NextAuth 사용
 import { 
   Calendar,
   Clock,
@@ -112,7 +112,7 @@ export default function ReservationManagementPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingReservationId, setRejectingReservationId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [supabase] = useState(() => createClient());
+  // NextAuth 세션 정보는 API가 자동으로 처리
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
@@ -251,17 +251,48 @@ export default function ReservationManagementPage() {
       const apiUrl = `/api/v2/admin/reservations?${params}`;
       
       console.log('API 호출 시작:', apiUrl);
-      const response = await fetch(apiUrl);
+      
+      // NextAuth는 쿠키 기반 인증을 사용하므로 별도의 헤더가 필요 없음
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // 쿠키 포함 (NextAuth 세션 쿠키)
+      });
       console.log('API 응답 상태:', response.status);
+      console.log('API 응답 헤더:', response.headers);
+      
+      // 응답 텍스트를 먼저 가져오기
+      const responseText = await response.text();
+      console.log('API 응답 텍스트:', responseText);
       
       if (!response.ok) {
-        const error = await response.text();
-        console.error('API 응답 에러:', error);
-        throw new Error(error || '예약 데이터를 불러올 수 없습니다');
+        console.error('API 응답 에러:', responseText);
+        // 인증 에러인 경우 처리
+        if (response.status === 401 || response.status === 403) {
+          console.error('인증 에러: 관리자 권한이 필요합니다');
+          alert('관리자 권한이 필요합니다. 다시 로그인해주세요.');
+          // 로그인 페이지로 리다이렉트
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error(responseText || '예약 데이터를 불러올 수 없습니다');
       }
       
-      const responseData = await response.json();
+      // JSON 파싱 시도
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON 파싱 에러:', parseError);
+        console.error('파싱 실패한 텍스트:', responseText);
+        throw new Error('응답 데이터 파싱 실패');
+      }
+      
       console.log('API 응답 전체:', responseData);
+      console.log('API 응답 success:', responseData.success);
+      console.log('API 응답 data:', responseData.data);
       
       // v2 API 응답 형식
       const reservationsData = responseData.data?.reservations || [];
@@ -438,31 +469,7 @@ export default function ReservationManagementPage() {
     setCurrentPage(1); // 필터 변경 시 첫 페이지로
   };
 
-  useEffect(() => {
-
-    // 실시간 업데이트 구독
-    const channel = supabase
-      .channel('reservations-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        () => {
-          fetchReservations();
-        }
-      )
-      .subscribe();
-
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [supabase, fetchReservations]);
+  // 실시간 업데이트는 useAdminReservationRealtime 훅이 처리
 
 
   const getStatusBadge = (status: Reservation['status']) => {
