@@ -232,13 +232,8 @@ export default function MachinesPage() {
         });
       });
 
-      // 대여 카테고리 추가
-      const rentalCategory: Category = {
-        id: 'rental',
-        name: '대여 기기',
-        display_order: -1, // 가장 위에 표시
-        deviceTypes: []
-      };
+      // 대여 가능한 기기만 모은 카테고리
+      const rentalDeviceTypes: DeviceType[] = [];
 
       // 디바이스 타입을 카테고리별로 분류
       (deviceTypes || []).forEach(type => {
@@ -277,9 +272,9 @@ export default function MachinesPage() {
           ) : []
         };
 
-        // 대여 가능한 기기는 대여 카테고리에도 추가
+        // 대여 가능한 기기만 따로 모으기
         if (type.is_rentable) {
-          rentalCategory.deviceTypes.push(formattedType);
+          rentalDeviceTypes.push(formattedType);
         }
 
         const category = categoriesMap.get(type.category_id);
@@ -293,8 +288,16 @@ export default function MachinesPage() {
         .sort((a, b) => a.display_order - b.display_order)
         .filter(cat => cat.deviceTypes.length > 0); // 빈 카테고리 제외
 
+      // 대여 카테고리는 따로 관리
+      const rentalCategory: Category = {
+        id: 'rental',
+        name: '대여',
+        display_order: -1,
+        deviceTypes: rentalDeviceTypes
+      };
+
       // 대여 카테고리를 맨 앞에 추가
-      if (rentalCategory.deviceTypes.length > 0) {
+      if (rentalDeviceTypes.length > 0) {
         setCategories([rentalCategory, ...sortedCategories]);
       } else {
         setCategories(sortedCategories);
@@ -333,23 +336,39 @@ export default function MachinesPage() {
   };
 
   // 필터링된 카테고리 (검색 및 카테고리 선택 포함)
-  const filteredCategories = categories
-    .filter(category => {
-      // '대여' 카테고리가 선택된 경우 대여 카테고리만 표시
-      if (selectedCategoryId === 'rental') {
-        return category.id === 'rental';
+  const filteredCategories = (() => {
+    // '대여' 카테고리가 선택된 경우 대여 가능한 기기만 표시
+    if (selectedCategoryId === 'rental') {
+      const rentalCategory = categories.find(cat => cat.id === 'rental');
+      if (rentalCategory) {
+        return [{
+          ...rentalCategory,
+          deviceTypes: rentalCategory.deviceTypes.filter(deviceType => {
+            const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesSearch;
+          })
+        }].filter(cat => cat.deviceTypes.length > 0);
       }
-      return selectedCategoryId === 'all' || category.id === selectedCategoryId;
-    })
-    .map(category => ({
-      ...category,
-      deviceTypes: category.deviceTypes.filter(deviceType => {
-        const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesSearch;
+      return [];
+    }
+    
+    // 기타 카테고리 필터링
+    return categories
+      .filter(category => {
+        return selectedCategoryId === 'all' || category.id === selectedCategoryId;
       })
-    })).filter(cat => cat.deviceTypes.length > 0);
+      .map(category => ({
+        ...category,
+        deviceTypes: category.deviceTypes.filter(deviceType => {
+          const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesSearch;
+        })
+      })).filter(cat => cat.deviceTypes.length > 0);
+  })();
 
   // 전체 상태별 통계
   const allDeviceTypes = categories.flatMap(cat => cat.deviceTypes);
