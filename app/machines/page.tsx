@@ -57,7 +57,7 @@ export default function MachinesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all'); // 기본값을 '전체'로 설정
-  const [showRentalOnly, setShowRentalOnly] = useState<boolean>(false); // 대여 가능 기기만 표시
+  const [showRentalOnly, setShowRentalOnly] = useState<boolean>(true); // 대여 가능 기기만 표시 (기본값: true)
   const [expandedType, setExpandedType] = useState<string | null>(null);
   // const [supabase] = useState(() => createClient());
   const [machineRules, setMachineRules] = useState<any[]>([]);
