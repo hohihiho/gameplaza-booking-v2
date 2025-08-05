@@ -56,7 +56,8 @@ export default function MachinesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('rental'); // 기본값을 '대여'로 설정
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all'); // 기본값을 '전체'로 설정
+  const [showRentalOnly, setShowRentalOnly] = useState<boolean>(false); // 대여 가능 기기만 표시
   const [expandedType, setExpandedType] = useState<string | null>(null);
   // const [supabase] = useState(() => createClient());
   const [machineRules, setMachineRules] = useState<any[]>([]);
@@ -232,8 +233,6 @@ export default function MachinesPage() {
         });
       });
 
-      // 대여 가능한 기기만 모은 카테고리
-      const rentalDeviceTypes: DeviceType[] = [];
 
       // 디바이스 타입을 카테고리별로 분류
       (deviceTypes || []).forEach(type => {
@@ -272,10 +271,6 @@ export default function MachinesPage() {
           ) : []
         };
 
-        // 대여 가능한 기기만 따로 모으기
-        if (type.is_rentable) {
-          rentalDeviceTypes.push(formattedType);
-        }
 
         const category = categoriesMap.get(type.category_id);
         if (category) {
@@ -288,20 +283,7 @@ export default function MachinesPage() {
         .sort((a, b) => a.display_order - b.display_order)
         .filter(cat => cat.deviceTypes.length > 0); // 빈 카테고리 제외
 
-      // 대여 카테고리는 따로 관리
-      const rentalCategory: Category = {
-        id: 'rental',
-        name: '대여',
-        display_order: -1,
-        deviceTypes: rentalDeviceTypes
-      };
-
-      // 대여 카테고리를 맨 앞에 추가
-      if (rentalDeviceTypes.length > 0) {
-        setCategories([rentalCategory, ...sortedCategories]);
-      } else {
-        setCategories(sortedCategories);
-      }
+      setCategories(sortedCategories);
     } catch (error) {
       console.error('기기 정보 불러오기 실패:', error);
       setCategories([]);
@@ -336,39 +318,24 @@ export default function MachinesPage() {
   };
 
   // 필터링된 카테고리 (검색 및 카테고리 선택 포함)
-  const filteredCategories = (() => {
-    // '대여' 카테고리가 선택된 경우 대여 가능한 기기만 표시
-    if (selectedCategoryId === 'rental') {
-      const rentalCategory = categories.find(cat => cat.id === 'rental');
-      if (rentalCategory) {
-        return [{
-          ...rentalCategory,
-          deviceTypes: rentalCategory.deviceTypes.filter(deviceType => {
-            const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesSearch;
-          })
-        }].filter(cat => cat.deviceTypes.length > 0);
-      }
-      return [];
-    }
-    
-    // 기타 카테고리 필터링
-    return categories
-      .filter(category => {
-        return selectedCategoryId === 'all' || category.id === selectedCategoryId;
+  const filteredCategories = categories
+    .filter(category => {
+      return selectedCategoryId === 'all' || category.id === selectedCategoryId;
+    })
+    .map(category => ({
+      ...category,
+      deviceTypes: category.deviceTypes.filter(deviceType => {
+        // 검색어 필터
+        const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        // 대여 가능 필터
+        const matchesRental = !showRentalOnly || deviceType.is_rentable;
+        
+        return matchesSearch && matchesRental;
       })
-      .map(category => ({
-        ...category,
-        deviceTypes: category.deviceTypes.filter(deviceType => {
-          const matchesSearch = deviceType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                               deviceType.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                               deviceType.company.toLowerCase().includes(searchQuery.toLowerCase());
-          return matchesSearch;
-        })
-      })).filter(cat => cat.deviceTypes.length > 0);
-  })();
+    })).filter(cat => cat.deviceTypes.length > 0);
 
   // 전체 상태별 통계
   const allDeviceTypes = categories.flatMap(cat => cat.deviceTypes);
@@ -569,17 +536,17 @@ export default function MachinesPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCategoryId('rental')}
+              onClick={() => setShowRentalOnly(!showRentalOnly)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative overflow-hidden ${
-                selectedCategoryId === 'rental'
+                showRentalOnly
                   ? 'text-white shadow-lg'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
-              style={selectedCategoryId === 'rental' ? { 
+              style={showRentalOnly ? { 
                 background: 'linear-gradient(to bottom right, #10b981, #059669, #047857)' 
               } : {}}
             >
-              <Calendar className={`inline w-4 h-4 mr-1 ${selectedCategoryId === 'rental' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+              <Calendar className={`inline w-4 h-4 mr-1 ${showRentalOnly ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
               대여
             </motion.button>
             <motion.button
