@@ -83,6 +83,8 @@ type CheckInReservation = {
 
 export default function CheckInPage() {
   const [todayReservations, setTodayReservations] = useState<CheckInReservation[]>([]);
+  const [pastReservations, setPastReservations] = useState<CheckInReservation[]>([]);
+  const [activeTab, setActiveTab] = useState<'today' | 'past'>('today');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReservation, setSelectedReservation] = useState<CheckInReservation | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
@@ -216,6 +218,86 @@ export default function CheckInPage() {
     }
   }, [supabase]);
 
+  // 과거 예약 데이터 가져오기
+  const fetchPastReservations = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch('/api/admin/checkin?mode=past');
+      if (!response.ok) throw new Error('Failed to fetch past reservations');
+      
+      const { data: reservationsData } = await response.json();
+      
+      // 데이터 포맷팅 (fetchTodayReservations와 동일한 로직)
+      const formattedReservations: CheckInReservation[] = (reservationsData || []).map((res: any) => {
+        let deviceTypeName = '알 수 없음';
+        let deviceTypeId = '';
+        
+        if (res.devices?.device_types) {
+          deviceTypeName = res.devices.device_types.name || deviceTypeName;
+          deviceTypeId = res.devices.device_types.id || '';
+        }
+        else if (res.rental_machines) {
+          deviceTypeName = res.rental_machines.display_name || res.rental_machines.name || deviceTypeName;
+          deviceTypeId = res.rental_machine_id || '';
+        }
+        else if (res.device_type_name) {
+          deviceTypeName = res.device_type_name;
+          deviceTypeId = res.device_type_id || '';
+        }
+        
+        return {
+          id: res.id,
+          user: {
+            id: res.users?.id || '',
+            name: res.users?.nickname || res.users?.name || '알 수 없음',
+            phone: res.users?.phone || '',
+            email: res.users?.email || ''
+          },
+          device_type: {
+            id: deviceTypeId,
+            name: deviceTypeName,
+            play_modes: []
+          },
+          device: res.devices ? {
+            id: res.devices.id,
+            device_number: res.devices.device_number,
+            device_types: res.devices.device_types
+          } : undefined,
+          date: res.date,
+          time_slot: res.start_time && res.end_time ? 
+            `${res.start_time.slice(0, 5)}-${res.end_time.slice(0, 5)}` : '',
+          player_count: res.player_count || 1,
+          credit_option: res.credit_type === 'unlimited' ? '무한크레딧' : 
+                         res.credit_type === 'freeplay' ? '프리플레이' : 
+                         res.credit_type === 'fixed' ? '고정크레딧' : '알 수 없음',
+          total_price: res.total_amount || 0,
+          status: res.status,
+          payment_status: res.payment_status || 'pending',
+          payment_method: res.payment_method,
+          assigned_device_number: res.assigned_device_number || res.devices?.device_number || null,
+          check_in_time: res.check_in_at,
+          actual_start_time: res.actual_start_time,
+          actual_end_time: res.actual_end_time,
+          adjusted_amount: res.adjusted_amount,
+          notes: res.user_notes,
+          admin_notes: res.admin_notes,
+          rental_time_slot_id: res.rental_time_slot_id || res.id,
+          payment_confirmed_at: res.payment_confirmed_at,
+          payment_confirmed_by: res.payment_confirmed_by
+        };
+      });
+
+      setPastReservations(formattedReservations);
+    } catch (error) {
+      console.error('과거 예약 데이터 불러오기 실패:', error);
+      toast.error('과거 예약 데이터 로드 실패', '새로고침 후 다시 시도해주세요.');
+      setPastReservations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTodayReservations();
     loadBankAccount(); // 계좌 정보 불러오기
@@ -290,20 +372,21 @@ export default function CheckInPage() {
 
 
   // 필터링된 예약 목록
-  const filteredReservations = todayReservations.filter(reservation => {
+  const currentReservations = activeTab === 'today' ? todayReservations : pastReservations;
+  const filteredReservations = currentReservations.filter(reservation => {
     const matchesSearch = 
       reservation.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       reservation.user.phone.includes(searchQuery);
     return matchesSearch;
   });
 
-  // 시간대별 그룹화
-  const groupedByTimeSlot = filteredReservations.reduce((acc, reservation) => {
-    const timeSlot = reservation.time_slot;
-    if (!acc[timeSlot]) {
-      acc[timeSlot] = [];
+  // 시간대별 또는 날짜별 그룹화
+  const groupedReservations = filteredReservations.reduce((acc, reservation) => {
+    const groupKey = activeTab === 'today' ? reservation.time_slot : reservation.date;
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
     }
-    acc[timeSlot].push(reservation);
+    acc[groupKey].push(reservation);
     return acc;
   }, {} as Record<string, CheckInReservation[]>);
 
@@ -572,24 +655,62 @@ export default function CheckInPage() {
         </p>
       </div>
 
+      {/* 탭 */}
+      <div className="mb-6">
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => {
+              setActiveTab('today');
+              if (todayReservations.length === 0) fetchTodayReservations();
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'today'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            오늘 예약
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('past');
+              if (pastReservations.length === 0) fetchPastReservations();
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'past'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            과거 미체크인
+            {activeTab === 'today' && pastReservations.length === 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">!</span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* 현재 시간 및 통계 */}
       <div className="mb-6">
-        {/* 현재 시간 - 모바일에서 전체 너비 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">현재 시간</span>
+        {/* 현재 시간 - 모바일에서 전체 너비 (오늘 탭에서만 표시) */}
+        {activeTab === 'today' && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">현재 시간</span>
+            </div>
+            <p className="text-2xl font-bold dark:text-white">
+              {currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {currentTime.toLocaleDateString('ko-KR', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
           </div>
-          <p className="text-2xl font-bold dark:text-white">
-            {currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {currentTime.toLocaleDateString('ko-KR', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
+        )}
 
-        {/* 상태 통계 - 모바일에서 2열, 데스크탑에서 4열 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* 상태 통계 - 모바일에서 2열, 데스크탑에서 4열 (오늘 탭에서만 표시) */}
+        {activeTab === 'today' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between mb-2">
               <Timer className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -641,6 +762,7 @@ export default function CheckInPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">이용 완료</p>
           </div>
         </div>
+        )}
       </div>
 
       {/* 검색 */}
@@ -658,24 +780,42 @@ export default function CheckInPage() {
       </div>
 
       {/* 시간대별 예약 목록 */}
+      {activeTab === 'past' && filteredReservations.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <AlertTriangle className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">과거 날짜에 체크인되지 않은 예약이 없습니다.</p>
+        </div>
+      )}
+      
       <div className="space-y-6">
-        {Object.entries(groupedByTimeSlot)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([timeSlot, reservations]) => {
-            const slotStatus = getTimeSlotStatus(timeSlot);
+        {Object.entries(groupedReservations)
+          .sort(([a], [b]) => {
+            if (activeTab === 'past') {
+              // 과거 예약은 날짜 내림차순 (최근 날짜 먼저)
+              return b.localeCompare(a);
+            }
+            // 오늘 예약은 시간 오름차순
+            return a.localeCompare(b);
+          })
+          .map(([groupKey, reservations]) => {
+            const slotStatus = activeTab === 'today' ? getTimeSlotStatus(groupKey) : null;
             
             return (
-              <div key={timeSlot} className="space-y-4">
+              <div key={groupKey} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <h3 className="text-lg font-semibold dark:text-white">
-                    {(() => {
-                      const parts = timeSlot.split('-');
+                    {activeTab === 'today' ? (() => {
+                      const parts = groupKey.split('-');
                       const start = parts[0] || '';
                       const end = parts[1] || '';
                       return `${formatTimeKST(start)} - ${formatTimeKST(end)}`;
+                    })() : (() => {
+                      const date = new Date(groupKey);
+                      return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
                     })()}
                   </h3>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  {activeTab === 'today' && slotStatus && (
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     slotStatus.status === 'current' 
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                       : slotStatus.status === 'soon'
@@ -686,6 +826,7 @@ export default function CheckInPage() {
                   }`}>
                     {slotStatus.message}
                   </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

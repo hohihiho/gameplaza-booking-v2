@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { auth } from '@/auth'
-import { CreateReservationUseCase } from '@/src/application/use-cases/reservation/create-reservation.use-case'
-import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
-import { SupabaseDeviceRepository } from '@/src/infrastructure/repositories/supabase-device.repository'
+import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
+import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
 import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
@@ -64,20 +64,24 @@ export async function POST(request: NextRequest) {
     const data = validationResult.data
 
     // 레포지토리 초기화
-    const reservationRepository = new SupabaseReservationRepository(supabase)
-    const deviceRepository = new SupabaseDeviceRepository(supabase)
+    const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
+    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new SupabaseUserRepository(supabase)
     const timeSlotTemplateRepository = new SupabaseTimeSlotTemplateRepository(supabase)
     const timeSlotDomainService = new TimeSlotDomainService(timeSlotTemplateRepository)
 
     // 유스케이스 실행
-    const useCase = new CreateReservationUseCase(
+    const useCase = new CreateReservationV2UseCase(
       reservationRepository,
       deviceRepository,
       userRepository,
       timeSlotDomainService
     )
 
+    // 사용자 정보 확인해서 관리자인지 체크
+    const user = await userRepository.findById(userId)
+    const isAdmin = user?.role === 'admin'
+    
     const result = await useCase.execute({
       userId: userId,
       deviceId: data.device_id,
@@ -85,7 +89,8 @@ export async function POST(request: NextRequest) {
       startHour: data.start_hour,
       endHour: data.end_hour,
       creditType: data.credit_type,
-      playerCount: data.player_count
+      playerCount: data.player_count,
+      isAdmin: isAdmin
     })
 
     // 실시간 업데이트를 위한 브로드캐스트
@@ -299,7 +304,7 @@ export async function GET(request: NextRequest) {
         status: reservation.status,
         credit_type: reservation.credit_type,
         player_count: reservation.player_count,
-        total_amount: reservation.total_amount || reservation.hourly_rate || 0,
+        total_amount: reservation.total_amount || 0,
         user_notes: reservation.user_notes,
         created_at: reservation.created_at,
         updated_at: reservation.updated_at,

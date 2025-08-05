@@ -15,7 +15,7 @@ interface DeviceWithType extends DeviceRow {
  * 실제 Supabase 데이터베이스와 연결되는 기기 리포지토리
  */
 export class SupabaseDeviceRepositoryV2 implements IDeviceRepository {
-  constructor(private readonly supabase: SupabaseClient<Database>) {}
+  constructor(public readonly supabase: SupabaseClient<Database>) {}
 
   async findById(id: string): Promise<Device | null> {
     const { data, error } = await this.supabase
@@ -112,6 +112,23 @@ export class SupabaseDeviceRepositoryV2 implements IDeviceRepository {
     return (data || []).map(record => this.toDomain(record as DeviceWithType))
   }
 
+  async findByTypeId(deviceTypeId: string): Promise<Device[]> {
+    const { data, error } = await this.supabase
+      .from('devices')
+      .select(`
+        *,
+        device_types (*)
+      `)
+      .eq('device_type_id', deviceTypeId)
+      .order('device_number')
+
+    if (error) {
+      throw new Error(`Failed to find devices by type id: ${error.message}`)
+    }
+
+    return (data || []).map(record => this.toDomain(record as DeviceWithType))
+  }
+
   async isAvailable(deviceId: string): Promise<boolean> {
     const device = await this.findById(deviceId)
     if (!device) {
@@ -165,10 +182,11 @@ export class SupabaseDeviceRepositoryV2 implements IDeviceRepository {
 
     return Device.create({
       id: record.id,
-      name: deviceName,
-      deviceType: deviceType?.name || 'Unknown',
-      status: DeviceStatus.from(record.status as any),
+      deviceTypeId: record.device_type_id,
+      deviceNumber: record.device_number.toString(),
+      status: record.status,
       notes: record.notes || undefined,
+      lastMaintenanceDate: record.last_maintenance ? new Date(record.last_maintenance) : undefined,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
     })

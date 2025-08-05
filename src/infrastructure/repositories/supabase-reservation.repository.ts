@@ -13,6 +13,7 @@ interface ReservationRecord {
   time_slot: string
   status: string
   reservation_number: string
+  total_amount?: number
   created_at: string
   updated_at: string
 }
@@ -191,6 +192,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
       timeSlot: TimeSlot.fromString(record.time_slot),
       status: ReservationStatus.create(record.status as any),
       reservationNumber: record.reservation_number,
+      totalAmount: record.total_amount,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)
     })
@@ -309,6 +311,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
       time_slot: reservation.timeSlot.displayString,
       status: reservation.status.value,
       reservation_number: reservation.reservationNumber,
+      total_amount: reservation.totalAmount,
       created_at: reservation.createdAt.toISOString(),
       updated_at: reservation.updatedAt.toISOString()
     }

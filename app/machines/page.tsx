@@ -12,6 +12,12 @@ type Device = {
   device_number: number;
   status: 'available' | 'in_use' | 'maintenance' | 'reserved' | 'broken';
   current_user?: string;
+  reservation_info?: {
+    start_time: string;
+    end_time: string;
+    user_name: string;
+    is_checked_in: boolean;
+  };
 };
 
 type DeviceType = {
@@ -50,7 +56,7 @@ export default function MachinesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('rental'); // 기본값을 '대여'로 설정
   const [expandedType, setExpandedType] = useState<string | null>(null);
   // const [supabase] = useState(() => createClient());
   const [machineRules, setMachineRules] = useState<any[]>([]);
@@ -196,6 +202,21 @@ export default function MachinesPage() {
         `)
         .order('display_order', { ascending: true });
 
+      // 오늘 날짜의 활성 예약 정보 가져오기
+      const today = new Date().toISOString().split('T')[0];
+      const { data: activeReservations, error: reservationsError } = await supabase.from('reservations')
+        .select(`
+          device_id,
+          start_time,
+          end_time,
+          status,
+          users!user_id (
+            name
+          )
+        `)
+        .eq('date', today)
+        .in('status', ['approved', 'checked_in']);
+
       if (typesError) throw typesError;
 
       // 카테고리별로 그룹화
@@ -211,6 +232,14 @@ export default function MachinesPage() {
         });
       });
 
+      // 대여 카테고리 추가
+      const rentalCategory: Category = {
+        id: 'rental',
+        name: '대여 기기',
+        display_order: -1, // 가장 위에 표시
+        deviceTypes: []
+      };
+
       // 디바이스 타입을 카테고리별로 분류
       (deviceTypes || []).forEach(type => {
         const formattedType: DeviceType = {
@@ -223,12 +252,23 @@ export default function MachinesPage() {
           play_price: '현장 문의',
           is_rentable: type.is_rentable || false,
           total_count: type.devices?.length || 0,
-          devices: (type.devices || []).map((device: any) => ({
-            id: device.id,
-            device_number: device.device_number,
-            status: device.status,
-            current_user: null
-          })),
+          devices: (type.devices || []).map((device: any) => {
+            // 해당 기기의 예약 정보 찾기
+            const reservation = activeReservations?.find(r => r.device_id === device.id);
+            
+            return {
+              id: device.id,
+              device_number: device.device_number,
+              status: device.status,
+              current_user: null,
+              reservation_info: reservation ? {
+                start_time: reservation.start_time,
+                end_time: reservation.end_time,
+                user_name: reservation.users?.name || 'Unknown',
+                is_checked_in: reservation.status === 'checked_in'
+              } : undefined
+            };
+          }),
           category_id: type.category_id,
           display_order: type.display_order,
           rental_settings: type.rental_settings,
@@ -236,6 +276,11 @@ export default function MachinesPage() {
             (a.display_order || 0) - (b.display_order || 0)
           ) : []
         };
+
+        // 대여 가능한 기기는 대여 카테고리에도 추가
+        if (type.is_rentable) {
+          rentalCategory.deviceTypes.push(formattedType);
+        }
 
         const category = categoriesMap.get(type.category_id);
         if (category) {
@@ -248,7 +293,12 @@ export default function MachinesPage() {
         .sort((a, b) => a.display_order - b.display_order)
         .filter(cat => cat.deviceTypes.length > 0); // 빈 카테고리 제외
 
-      setCategories(sortedCategories);
+      // 대여 카테고리를 맨 앞에 추가
+      if (rentalCategory.deviceTypes.length > 0) {
+        setCategories([rentalCategory, ...sortedCategories]);
+      } else {
+        setCategories(sortedCategories);
+      }
     } catch (error) {
       console.error('기기 정보 불러오기 실패:', error);
       setCategories([]);
@@ -284,7 +334,13 @@ export default function MachinesPage() {
 
   // 필터링된 카테고리 (검색 및 카테고리 선택 포함)
   const filteredCategories = categories
-    .filter(category => selectedCategoryId === 'all' || category.id === selectedCategoryId)
+    .filter(category => {
+      // '대여' 카테고리가 선택된 경우 대여 카테고리만 표시
+      if (selectedCategoryId === 'rental') {
+        return category.id === 'rental';
+      }
+      return selectedCategoryId === 'all' || category.id === selectedCategoryId;
+    })
     .map(category => ({
       ...category,
       deviceTypes: category.deviceTypes.filter(deviceType => {
@@ -326,8 +382,8 @@ export default function MachinesPage() {
     }
   };
 
-  const getStatusLabel = (status: Device['status']) => {
-    switch (status) {
+  const getStatusLabel = (device: Device) => {
+    switch (device.status) {
       case 'available':
         return '이용 가능';
       case 'in_use':
@@ -335,11 +391,15 @@ export default function MachinesPage() {
       case 'maintenance':
         return '점검 중';
       case 'reserved':
+        // 체크인 여부에 따라 다른 레이블 표시
+        if (device.reservation_info?.is_checked_in) {
+          return '대기 중'; // 체크인은 되었지만 예약 시간 전
+        }
         return '예약됨';
       case 'broken':
         return '사용불가';
       default:
-        return status;
+        return device.status;
     }
   };
 
@@ -487,6 +547,22 @@ export default function MachinesPage() {
         >
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">카테고리</h3>
           <div className="flex flex-wrap gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedCategoryId('rental')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative overflow-hidden ${
+                selectedCategoryId === 'rental'
+                  ? 'text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              style={selectedCategoryId === 'rental' ? { 
+                background: 'linear-gradient(to bottom right, #10b981, #059669, #047857)' 
+              } : {}}
+            >
+              <Calendar className={`inline w-4 h-4 mr-1 ${selectedCategoryId === 'rental' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+              대여
+            </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -708,41 +784,65 @@ export default function MachinesPage() {
                   </button>
                   
                   {/* 개별 기기 목록 (확장시) */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-200 dark:border-gray-800">
-                        <div className="p-6 pt-4 bg-gray-50 dark:bg-gray-900/50">
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {deviceType.devices
-                              .sort((a, b) => a.device_number - b.device_number)
-                              .map((device) => (
-                              <motion.div
-                                key={device.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.2 }}
-                                className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {device.device_number}번
-                                  </span>
-                                  <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(device.status)}`}>
-                                    {getStatusIcon(device.status)}
-                                    {getStatusLabel(device.status)}
-                                  </span>
-                                </div>
-                                {device.current_user && (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    <Users className="inline w-3 h-3 mr-1" />
-                                    {device.current_user}
-                                  </p>
-                                )}
-                              </motion.div>
-                            ))}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ 
+                          height: { duration: 0.3, ease: 'easeInOut' },
+                          opacity: { duration: 0.2 }
+                        }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-gray-200 dark:border-gray-800">
+                          <div className="p-6 pt-4 bg-gray-50 dark:bg-gray-900/50">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {deviceType.devices
+                                .sort((a, b) => a.device_number - b.device_number)
+                                .map((device, index) => (
+                                <motion.div
+                                  key={device.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.03 }}
+                                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                      {device.device_number}번
+                                    </span>
+                                    <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(device.status)}`}>
+                                      {getStatusIcon(device.status)}
+                                      {getStatusLabel(device)}
+                                    </span>
+                                  </div>
+                                  {device.reservation_info && (
+                                    <div className="mt-2 text-xs space-y-1">
+                                      <p className="text-gray-600 dark:text-gray-400">
+                                        <Users className="inline w-3 h-3 mr-1" />
+                                        {device.reservation_info.user_name}
+                                      </p>
+                                      <p className="text-gray-500 dark:text-gray-500">
+                                        <Clock className="inline w-3 h-3 mr-1" />
+                                        {device.reservation_info.start_time.slice(0,5)} - {device.reservation_info.end_time.slice(0,5)}
+                                      </p>
+                                      {device.status === 'reserved' && device.reservation_info.is_checked_in && (
+                                        <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                          체크인 완료 (예약 시간 대기 중)
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </motion.div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                    </div>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
                   );
                   })}

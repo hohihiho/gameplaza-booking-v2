@@ -24,7 +24,7 @@ export class TimeSlot {
       throw new Error('최소 1시간 이상이어야 합니다')
     }
     if (duration > 12) {
-      throw new Error('최대 12시간을 초과할 수 없습니다')
+      throw new Error('하루 연속 12시간을 초과할 수 없습니다')
     }
 
     return new TimeSlot(startHour, endHour)

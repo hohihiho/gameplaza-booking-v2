@@ -75,7 +75,7 @@ export const GET = withAuth(
       if (limit) {
         query = query.limit(parseInt(limit))
       } else {
-        query = query.limit(1000)
+        query = query.limit(200) // 성능 최적화를 위해 기본 200건으로 제한
       }
       
       // 최신 순으로 정렬
@@ -123,7 +123,11 @@ export const GET = withAuth(
         end_hour: res.end_hour,
         player_count: res.player_count || 1,
         credit_type: res.credit_type,
-        total_amount: res.total_amount || 0,
+        total_amount: (() => {
+          const amount = res.total_amount ? parseFloat(res.total_amount.toString()) : 0;
+          console.log(`예약 ${res.id}: total_amount = ${res.total_amount} (${typeof res.total_amount}) -> ${amount}`);
+          return amount;
+        })(),
         status: res.status,
         payment_status: res.payment_status,
         payment_method: res.payment_method,

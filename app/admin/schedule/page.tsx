@@ -22,7 +22,8 @@ import {
   Coffee,
   XCircle,
   Loader2,
-  X
+  X,
+  CalendarPlus
 } from 'lucide-react';
 
 type ScheduleEvent = {
@@ -89,6 +90,7 @@ export default function ScheduleManagementPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDateEventsModal, setShowDateEventsModal] = useState(false);
+  const [isGeneratingWeekend, setIsGeneratingWeekend] = useState(false);
 
   // 24시간 표시 형식 변환 함수
   const formatTime24Hour = (time: string) => {
@@ -292,6 +294,38 @@ export default function ScheduleManagementPage() {
 
   const calendarDays = generateCalendarDays();
 
+  // 주말 밤샘영업 자동 생성 함수
+  const handleGenerateWeekendSchedules = async () => {
+    if (!confirm('향후 3주간의 주말 밤샘영업 일정을 자동으로 생성하시겠습니까?\n\n금요일, 토요일 밤샘영업이 생성됩니다.')) {
+      return;
+    }
+    
+    try {
+      setIsGeneratingWeekend(true);
+      
+      const response = await fetch('/api/v2/admin/schedule/generate-weekend', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '주말 밤샘영업 생성에 실패했습니다');
+      }
+      
+      const result = await response.json();
+      alert(`주말 밤샘영업 생성 완료!\n\n생성: ${result.result.created}개\n이미 존재: ${result.result.skipped}개`);
+      
+      // 데이터 새로고침
+      await loadEvents();
+    } catch (error) {
+      console.error('주말 밤샘영업 생성 실패:', error);
+      alert(error instanceof Error ? error.message : '주말 밤샘영업 생성에 실패했습니다');
+    } finally {
+      setIsGeneratingWeekend(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* 헤더 */}
@@ -420,14 +454,34 @@ export default function ScheduleManagementPage() {
 
         {/* 이벤트 목록 및 추가 */}
         <div className="space-y-6">
-          {/* 이벤트 추가 버튼 */}
-          <button
-            onClick={() => setIsAddingEvent(true)}
-            className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400"
-          >
-            <Plus className="w-5 h-5" />
-            <span>새 일정 추가</span>
-          </button>
+          {/* 이벤트 추가 버튼들 */}
+          <div className="space-y-3">
+            <button
+              onClick={() => setIsAddingEvent(true)}
+              className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400"
+            >
+              <Plus className="w-5 h-5" />
+              <span>새 일정 추가</span>
+            </button>
+            
+            <button
+              onClick={handleGenerateWeekendSchedules}
+              disabled={isGeneratingWeekend}
+              className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+            >
+              {isGeneratingWeekend ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>생성 중...</span>
+                </>
+              ) : (
+                <>
+                  <CalendarPlus className="w-5 h-5" />
+                  <span>주말 밤샘영업 3주치 생성</span>
+                </>
+              )}
+            </button>
+          </div>
 
           {/* 이벤트 타입별 범례 */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -677,6 +731,7 @@ export default function ScheduleManagementPage() {
               <li>• 특별 운영 시간은 일반 운영 시간을 덮어씁니다</li>
               <li>• 밤샘 영업은 다음날 새벽까지 운영 시간을 연장합니다</li>
               <li>• 조기 마감은 영업 시간을 단축합니다</li>
+              <li>• 주말 밤샘영업 자동 생성: 금요일, 토요일 밤 → 29시(05:00)까지 영업</li>
             </ul>
           </div>
         </div>

@@ -71,6 +71,7 @@ class ApiClient {
           'Content-Type': 'application/json',
           ...options.headers,
         },
+        credentials: 'include' // NextAuth 세션 쿠키 포함
       });
 
       const responseText = await response.text();
@@ -89,15 +90,19 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        // v2 API 에러 형식 처리
-        if (data?.error) {
-          const error = data.error as ApiError;
-          throw error; // ApiError 객체를 그대로 throw
-        }
+        // v2 API 에러 응답 처리
+        const errorMessage = data?.message || data?.error || '요청 처리 중 오류가 발생했습니다';
         
-        // 기본 에러
-        const errorMessage = data?.message || '요청 처리 중 오류가 발생했습니다';
-          
+        logger.error(`API v2 Error Response:`, {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          errorMessage,
+          url,
+          method: options.method || 'GET',
+          body: options.body
+        });
+        
         // HTTP 상태 코드에 따른 에러 코드 매핑
         let errorCode: string = ErrorCode.INTERNAL_ERROR;
         switch (response.status) {
@@ -121,7 +126,8 @@ class ApiClient {
             break;
         }
         
-        throw new ErrorResponse(errorMessage, errorCode as any);
+        const apiError = new ErrorResponse(errorMessage, errorCode as any);
+        throw apiError;
       }
 
       return {
@@ -190,9 +196,19 @@ class ApiClient {
     userNotes?: string;
   }): Promise<V2Reservation> {
     const endpoint = '/reservations/create';
+    
+    // API가 camelCase를 기대함
+    const requestData = {
+      deviceId: data.deviceId,
+      date: data.date,
+      startHour: data.startHour,
+      endHour: data.endHour,
+      userNotes: data.userNotes
+    };
+    
     const response = await this.fetch<{ reservation: V2Reservation }>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(requestData),
     });
 
     if (!response.data?.reservation) {

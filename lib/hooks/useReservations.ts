@@ -109,8 +109,21 @@ export function useCreateReservation() {
       const result = await api.createReservation(data);
       return result;
     } catch (err) {
-      logger.error('예약 생성 실패:', err);
-      const errorMessage = err instanceof Error ? err.message : '예약 생성에 실패했습니다';
+      logger.error('예약 생성 실패:', {
+        error: err,
+        message: err instanceof Error ? err.message : '알 수 없는 에러',
+        data: data
+      });
+      
+      // ErrorResponse 객체인 경우 메시지 추출
+      let errorMessage = '예약 생성에 실패했습니다';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (err && typeof err === 'object' && 'message' in err) {
+        errorMessage = (err as any).message;
+      }
+      
+      console.error('Reservation error details:', err);
       setError(errorMessage);
       throw err;
     } finally {

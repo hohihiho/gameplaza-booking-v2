@@ -9,6 +9,7 @@ import { Notification } from '../../../domain/entities/notification'
 import { NotificationChannel } from '../../../domain/value-objects/notification-channel'
 import { DeviceStatus } from '../../../domain/value-objects/device-status'
 import { KSTDateTime } from '../../../domain/value-objects/kst-datetime'
+import { ScheduleService } from '../../../../lib/services/schedule.service'
 
 export interface ApproveReservationRequest {
   userId: string
@@ -51,9 +52,15 @@ export class ApproveReservationUseCase {
       throw new Error('대기 중인 예약만 승인할 수 있습니다')
     }
 
-    // 4. 사용 가능한 기기 번호 찾기
+    // 4. 예약한 기기 정보 조회
+    const reservedDevice = await this.deviceRepository.findById(reservation.deviceId)
+    if (!reservedDevice) {
+      throw new Error('예약된 기기를 찾을 수 없습니다')
+    }
+
+    // 5. 사용 가능한 기기 번호 찾기
     const availableDeviceNumber = await this.findAvailableDeviceNumber(
-      reservation.deviceId,
+      reservedDevice.deviceTypeId,
       reservation.date,
       reservation.timeSlot
     )
@@ -62,27 +69,35 @@ export class ApproveReservationUseCase {
       throw new Error('사용 가능한 기기가 없습니다')
     }
 
-    // 5. 예약 승인 및 기기 번호 할당
+    // 6. 예약 승인 및 기기 번호 할당
     const approvedReservation = reservation.approveWithDevice(availableDeviceNumber)
     await this.reservationRepository.update(approvedReservation)
 
-    // 6. 예약한 사용자에게 알림 발송
-    const reservationUser = await this.userRepository.findById(reservation.userId)
-    if (reservationUser) {
-      const notification = Notification.create({
-        id: this.generateId(),
-        userId: reservation.userId,
-        type: 'reservation_approved',
-        title: '예약이 승인되었습니다',
-        content: `예약번호 ${reservation.reservationNumber}이(가) 승인되었습니다. 기기번호: ${availableDeviceNumber}`,
-        channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
-        metadata: {
-          reservationId: reservation.id,
-          assignedDeviceNumber: availableDeviceNumber
-        }
-      })
+    // 7. 예약한 사용자에게 알림 발송 - 임시로 주석 처리
+    // const reservationUser = await this.userRepository.findById(reservation.userId)
+    // if (reservationUser) {
+    //   const notification = Notification.create({
+    //     id: this.generateId(),
+    //     userId: reservation.userId,
+    //     type: 'reservation_approved',
+    //     title: '예약이 승인되었습니다',
+    //     content: `예약번호 ${reservation.reservationNumber}이(가) 승인되었습니다. 기기번호: ${availableDeviceNumber}`,
+    //     channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    //     metadata: {
+    //       reservationId: reservation.id,
+    //       assignedDeviceNumber: availableDeviceNumber
+    //     }
+    //   })
       
-      await this.notificationRepository.save(notification)
+    //   await this.notificationRepository.save(notification)
+    // }
+
+    // 8. 조기대여인 경우 자동으로 영업 스케줄 생성
+    try {
+      await ScheduleService.handleReservationApproved(reservation.id)
+    } catch (error) {
+      // 스케줄 생성 실패는 예약 승인을 막지 않음
+      console.error('자동 스케줄 생성 실패:', error)
     }
 
     return {

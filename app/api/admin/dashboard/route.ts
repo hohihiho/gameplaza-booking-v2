@@ -83,11 +83,49 @@ export const GET = withAuth(
     
     console.log('Recent reservations query:', { count: recentReservations?.length, error: recentError })
     
+    // 6. 전체 대기승인 예약 조회 (날짜 상관없이)
+    const { data: allPendingReservations, error: pendingError } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('status', 'pending')
+    
+    console.log('All pending reservations query:', { count: allPendingReservations?.length, error: pendingError })
+
+    // 7. 체크인 대기중인 예약 조회 (승인됐지만 아직 체크인 안한 예약)
+    // 오늘 날짜의 예약 중 현재 시간 기준으로 체크인 가능한 예약만 조회
+    const now = new Date()
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`
+    
+    const { data: waitingCheckIn, error: waitingError } = await supabase
+      .from('reservations')
+      .select('id, date, start_time')
+      .eq('status', 'approved')
+      .eq('date', today) // 오늘 날짜만
+      .lte('start_time', currentTime) // 현재 시간 이전에 시작하는 예약만
+    
+    console.log('Waiting check-in query:', { 
+      count: waitingCheckIn?.length, 
+      error: waitingError,
+      today,
+      currentTime
+    })
+
+    // 8. 결제 대기중인 예약 조회 (체크인했지만 결제 안된 예약)
+    const { data: pendingPaymentReservations, error: paymentError } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('status', 'checked_in')
+      .eq('payment_status', 'pending')
+    
+    console.log('Pending payment reservations query:', { count: pendingPaymentReservations?.length, error: paymentError })
+
     // 기본 통계 계산
     const totalReservations = todayReservations?.length || 0
-    const pendingReservations = todayReservations?.filter(r => r.status === 'pending').length || 0
+    const pendingReservations = allPendingReservations?.length || 0 // 전체 대기승인 개수
     const usingCount = todayReservations?.filter(r => r.status === 'checked_in').length || 0
     const todayRevenueAmount = todayRevenue?.reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0
+    const waitingCheckInCount = waitingCheckIn?.length || 0
+    const pendingPaymentCount = pendingPaymentReservations?.length || 0
     
     // 최근 예약 데이터 형식화
     const formattedRecentReservations = recentReservations?.map(r => {
@@ -142,7 +180,7 @@ export const GET = withAuth(
         },
         currentlyUsing: {
           using: usingCount,
-          waiting: 0 // 일단 0으로 유지
+          waiting: waitingCheckInCount // 체크인 대기중인 예약 수
         },
         devices: {
           available: deviceCount?.length || 0,
@@ -151,7 +189,7 @@ export const GET = withAuth(
         }
       },
       recentReservations: formattedRecentReservations,
-      pendingPayments: 0
+      pendingPayments: pendingPaymentCount
     })
     
     /*

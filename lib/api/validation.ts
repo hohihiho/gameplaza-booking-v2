@@ -22,10 +22,10 @@ export const schemas = {
     .positive('금액은 0보다 커야 합니다')
     .max(1000000, '금액이 너무 큽니다'),
     
-  // 예약 시간 검증 (분 단위)
+  // 고정 시간대 시스템에서는 duration 제한 불필요
+  // rental_time_slots에서 정의한 시간대만 사용 가능
   duration: z.number()
     .min(30, '최소 예약 시간은 30분입니다')
-    .max(240, '최대 예약 시간은 4시간입니다')
     .multipleOf(30, '예약 시간은 30분 단위여야 합니다')
 };
 

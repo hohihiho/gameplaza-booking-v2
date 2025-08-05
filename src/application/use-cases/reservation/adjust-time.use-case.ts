@@ -7,6 +7,7 @@ import { IUserRepository } from '../../../domain/repositories/user.repository.in
 import { PaymentRepository } from '../../../domain/repositories/payment.repository.interface'
 import { INotificationRepository } from '../../../domain/repositories/notification.repository.interface'
 import { ITimeAdjustmentRepository } from '../../../domain/repositories/time-adjustment.repository.interface'
+import { IDeviceRepository } from '../../../domain/repositories/device.repository.interface'
 import { Notification } from '../../../domain/entities/notification'
 import { NotificationChannel } from '../../../domain/value-objects/notification-channel'
 import { KSTDateTime } from '../../../domain/value-objects/kst-datetime'
@@ -35,7 +36,8 @@ export class AdjustReservationTimeUseCase {
     private readonly reservationRepository: IReservationRepository,
     private readonly paymentRepository: IPaymentRepository,
     private readonly notificationRepository: INotificationRepository,
-    private readonly timeAdjustmentRepository: ITimeAdjustmentRepository
+    private readonly timeAdjustmentRepository: ITimeAdjustmentRepository,
+    private readonly deviceRepository?: IDeviceRepository
   ) {}
 
   async execute(request: AdjustReservationTimeRequest): Promise<AdjustReservationTimeResponse> {
@@ -133,6 +135,31 @@ export class AdjustReservationTimeUseCase {
 
     // 10. 시간 조정 이력 저장
     await this.timeAdjustmentRepository.save(reservation.id, timeAdjustment)
+
+    // 11. 종료 시간이 현재 시간보다 이전인 경우 기기 상태 즉시 업데이트
+    const now = new Date()
+    if (actualEndTime <= now && this.deviceRepository) {
+      // 예약을 완료 상태로 변경
+      const completedReservation = updatedReservation.complete()
+      await this.reservationRepository.update(completedReservation)
+      
+      // 기기 상태를 available로 변경
+      if (reservation.assignedDeviceNumber) {
+        const device = await this.deviceRepository.findByDeviceNumber(reservation.assignedDeviceNumber)
+        if (device && device.status === 'in_use') {
+          const availableDevice = device.changeStatus('available')
+          await this.deviceRepository.update(availableDevice)
+        }
+      }
+      
+      return {
+        reservation: completedReservation,
+        timeAdjustment,
+        originalAmount,
+        adjustedAmount,
+        message: `시간이 조정되고 예약이 종료되었습니다. 조정 사유: ${timeAdjustment.reasonText}`
+      }
+    }
 
     return {
       reservation: updatedReservation,

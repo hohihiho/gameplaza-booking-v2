@@ -17,6 +17,8 @@ export interface CreateReservationRequest {
   startHour: number // 0-29
   endHour: number // 1-30
   userNotes?: string
+  isAdmin?: boolean // 관리자 여부
+  createdByUserId?: string // 실제 예약 생성자 (onBehalf인 경우)
 }
 
 export interface CreateReservationResponse {
@@ -76,9 +78,12 @@ export class CreateReservationV2UseCase {
     // 6. 비즈니스 규칙 검증
 
     // 6-1. 특별 운영 시간대 24시간 규칙 검증 (밤샘/조기개장만)
-    const specialHoursValidation = ReservationRulesService.validateSpecialOperatingHours(reservation)
-    if (!specialHoursValidation.isValid) {
-      throw new Error(specialHoursValidation.errors[0])
+    // 관리자는 24시간 제한 해제
+    if (!request.isAdmin) {
+      const specialHoursValidation = ReservationRulesService.validateSpecialOperatingHours(reservation)
+      if (!specialHoursValidation.isValid) {
+        throw new Error(specialHoursValidation.errors[0])
+      }
     }
 
     // 6-2. 과거 날짜 검증
@@ -96,14 +101,35 @@ export class CreateReservationV2UseCase {
     // 7. 시간 충돌 검증 (해당 기기)
     await this.validateNoDeviceTimeConflict(reservation)
 
-    // 8. 사용자 시간 충돌 검증 (1인 1기기 규칙)
-    await this.validateNoUserTimeConflict(reservation)
+    // 8. 사용자 시간 충돌 검증 제거 - 같은 시간대 여러 기기 예약 가능
+    // await this.validateNoUserTimeConflict(reservation) // 비활성화
 
-    // 9. 동시 예약 개수 제한 검증
-    await this.validateReservationLimit(request.userId)
+    // 9. 동시 예약 개수 제한 검증 (관리자는 제외)
+    if (!request.isAdmin) {
+      await this.validateReservationLimit(request.userId)
+    }
 
-    // 10. 예약 저장
+    // 10. 시간대별 최대 대여 가능 대수 제한 검증 (조기/밤샘 전체 시간대)
+    console.log('validateMaxRentalUnitsForTimeSlot 호출:', {
+      deviceTypeId: device.deviceTypeId,
+      date: reservation.date.dateString,
+      timeSlot: `${reservation.timeSlot.startHour}-${reservation.timeSlot.endHour}`
+    })
+    await this.validateMaxRentalUnitsForTimeSlot(device.deviceTypeId, reservation)
+
+    // 11. 예약 저장
     const savedReservation = await this.reservationRepository.save(reservation)
+    
+    // 11-1. 대리 예약인 경우 created_by 필드 업데이트
+    if (request.createdByUserId && request.createdByUserId !== request.userId) {
+      const repo = this.reservationRepository as any
+      if (repo.supabase) {
+        await repo.supabase
+          .from('reservations')
+          .update({ created_by: request.createdByUserId })
+          .eq('id', savedReservation.id)
+      }
+    }
 
     // 11. 예약 생성 알림 발송 (옵션)
     if (this.notificationRepository && this.notificationService) {
@@ -162,15 +188,8 @@ export class CreateReservationV2UseCase {
       throw new Error('종료 시간은 시작 시간보다 커야 합니다')
     }
 
-    // 최소/최대 예약 시간 검증
-    const duration = request.endHour - request.startHour
-    if (duration < 1) {
-      throw new Error('최소 예약 시간은 1시간입니다')
-    }
-
-    if (duration > 4) {
-      throw new Error('최대 예약 시간은 4시간입니다')
-    }
+    // 고정 시간대 시스템에서는 최소/최대 시간 제한 불필요
+    // 사용자는 rental_time_slots에 정의된 시간대 중에서만 선택 가능
   }
 
   /**
@@ -211,24 +230,7 @@ export class CreateReservationV2UseCase {
     }
   }
 
-  /**
-   * 사용자 시간 충돌 검증 (1인 1기기 규칙)
-   */
-  private async validateNoUserTimeConflict(reservation: Reservation): Promise<void> {
-    const userReservations = await this.reservationRepository.findByUserAndTimeRange(
-      reservation.userId,
-      reservation.startDateTime,
-      reservation.endDateTime
-    )
-
-    const hasConflict = userReservations.some(existing => 
-      existing.isActive() && reservation.hasUserConflict(existing)
-    )
-
-    if (hasConflict) {
-      throw new Error('동일 시간대에 이미 다른 기기를 예약하셨습니다')
-    }
-  }
+  // 사용자 시간 충돌 검증 제거 - 같은 시간대 여러 기기 예약 가능
 
   /**
    * 동시 예약 개수 제한 검증
@@ -245,5 +247,94 @@ export class CreateReservationV2UseCase {
     if (futureActiveReservations.length >= 3) {
       throw new Error('동시에 예약 가능한 최대 개수(3개)를 초과했습니다')
     }
+  }
+
+  /**
+   * 시간대별 최대 대여 가능 대수 제한 검증 (조기/밤샘 시간대 전체)
+   */
+  private async validateMaxRentalUnitsForTimeSlot(deviceTypeId: string, reservation: Reservation): Promise<void> {
+    // DeviceRepository를 통해 Supabase 클라이언트에 접근
+    const deviceRepo = this.deviceRepository as any
+    if (!deviceRepo.supabase) {
+      throw new Error('Supabase 클라이언트에 접근할 수 없습니다')
+    }
+
+    // 해당 기기 타입의 rental_settings에서 max_rental_units 조회
+    const { data: deviceType, error: deviceTypeError } = await deviceRepo.supabase
+      .from('device_types')
+      .select('name, rental_settings')
+      .eq('id', deviceTypeId)
+      .single()
+
+    console.log('기기 타입 정보:', deviceType)
+
+    if (deviceTypeError || !deviceType || !deviceType.rental_settings?.max_rental_units) {
+      console.log('max_rental_units 설정 없음, 제한 없이 진행')
+      return // max_rental_units가 설정되지 않은 경우 제한 없음
+    }
+
+    const maxRentalUnits = deviceType.rental_settings.max_rental_units
+    console.log(`${deviceType.name} max_rental_units:`, maxRentalUnits)
+
+    // 예약하려는 시간대의 타입 결정 (조기/밤샘)
+    const timeSlotType = this.getTimeSlotType(reservation.timeSlot.startHour)
+    
+    if (!timeSlotType) {
+      return // 시간대 타입을 알 수 없는 경우 제한 없음
+    }
+
+    // 해당 기기 타입의 같은 시간대 타입(조기/밤샘)에 이미 예약된 개수 조회
+    const { data: existingReservations, error: queryError } = await deviceRepo.supabase
+      .from('reservations')
+      .select(`
+        id,
+        start_time,
+        devices!device_id (
+          device_types!device_type_id (
+            id
+          )
+        )
+      `)
+      .eq('date', reservation.date.dateString)
+      .in('status', ['pending', 'approved', 'checked_in'])
+
+    if (queryError) {
+      console.error('기존 예약 조회 오류:', queryError)
+      throw new Error('예약 가능 여부를 확인할 수 없습니다')
+    }
+
+    // 같은 기기 타입이면서 같은 시간대 타입의 예약만 필터링
+    const sameTypeReservations = (existingReservations || []).filter((res: any) => {
+      if (res.devices?.device_types?.id !== deviceTypeId) return false
+      
+      const existingStartHour = parseInt(res.start_time.split(':')[0])
+      const existingTimeSlotType = this.getTimeSlotType(existingStartHour)
+      
+      return existingTimeSlotType === timeSlotType
+    })
+
+    console.log(`같은 시간대 타입(${timeSlotType}) 예약 수:`, sameTypeReservations.length)
+    console.log('기존 예약들:', sameTypeReservations.map((r: any) => ({
+      id: r.id,
+      startTime: r.start_time,
+      deviceType: r.devices?.device_types?.id
+    })))
+
+    if (sameTypeReservations.length >= maxRentalUnits) {
+      const timeSlotName = timeSlotType === 'early' ? '조기 시간대' : '밤샘 시간대'
+      throw new Error(`${timeSlotName}에 이미 예약이 있습니다. 최대 대여 가능 대수(${maxRentalUnits}대)를 초과했습니다`)
+    }
+  }
+
+  /**
+   * 시간대 타입 결정 (조기/밤샘)
+   */
+  private getTimeSlotType(startHour: number): 'early' | 'night' | null {
+    if (startHour >= 7 && startHour <= 14) {
+      return 'early' // 조기 시간대 (7~14시)
+    } else if (startHour >= 22 || startHour <= 5) {
+      return 'night' // 밤샘 시간대 (22~5시)
+    }
+    return null
   }
 }

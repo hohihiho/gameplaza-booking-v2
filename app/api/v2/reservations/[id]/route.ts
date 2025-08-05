@@ -9,7 +9,7 @@ import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/pay
 import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
 import { NotificationService } from '@/src/infrastructure/services/notification.service'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getCurrentUser } from '@/lib/auth'
 import { z } from 'zod'
 
 // PATCH 요청 바디 스키마
@@ -42,7 +42,7 @@ export async function GET(
     const { id } = await params
     
     // 1. 인증 확인
-    const user = getAuthenticatedUser(request)
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         { 
@@ -137,7 +137,7 @@ export async function PATCH(
     const { id } = await params
     
     // 1. 인증 확인
-    const user = getAuthenticatedUser(request)
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         { 
@@ -273,7 +273,7 @@ export async function DELETE(
     const { id } = await params
     
     // 1. 인증 확인
-    const user = getAuthenticatedUser(request)
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         { 

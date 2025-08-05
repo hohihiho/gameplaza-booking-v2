@@ -69,34 +69,26 @@ export class CreateReservationUseCase {
     // 5. 시간대 생성
     const timeSlot = TimeSlot.create(command.startHour, command.endHour)
 
-    // 6. 예약 가능 시간대 확인 및 가격 조회
-    const availableTemplates = await this.timeSlotDomainService.getAvailableTimeSlots(
-      reservationDate,
-      device.typeId
-    )
-
-    const selectedTemplate = availableTemplates.find(template => 
-      template.timeSlot.startHour === command.startHour &&
-      template.timeSlot.endHour === command.endHour
-    )
-
-    if (!selectedTemplate) {
+    // 6. rental_time_slots에서 직접 시간대 및 가격 정보 조회
+    const rentalTimeSlot = await this.getRentalTimeSlot(device.typeId, command.startHour, command.endHour)
+    
+    if (!rentalTimeSlot) {
       throw new Error('선택한 시간대는 예약이 불가능합니다')
     }
 
     // 7. 선택한 크레딧 타입이 가능한지 확인
-    const creditOption = selectedTemplate.creditOptions.find(opt => opt.type === command.creditType)
+    const creditOption = rentalTimeSlot.credit_options?.find((opt: any) => opt.type === command.creditType)
     if (!creditOption) {
       throw new Error(`선택한 시간대에서는 ${command.creditType} 옵션을 사용할 수 없습니다`)
     }
 
     // 8. 2인 플레이 가능 여부 확인
-    if (command.playerCount === 2 && !selectedTemplate.enable2P) {
+    if (command.playerCount === 2 && !rentalTimeSlot.enable_2p) {
       throw new Error('해당 시간대는 2인 플레이가 불가능합니다')
     }
 
     // 9. 청소년 시간대 제한 확인
-    if (selectedTemplate.isYouthTime) {
+    if (rentalTimeSlot.is_youth_time) {
       const userAge = user.getAge()
       if (userAge && userAge >= 16) {
         throw new Error('성인은 청소년 시간대를 예약할 수 없습니다')
@@ -105,23 +97,20 @@ export class CreateReservationUseCase {
 
     // 10. 가격 계산
     const hours = command.endHour - command.startHour
-    const totalPrice = selectedTemplate.getPrice(
-      command.creditType,
-      hours,
-      command.playerCount === 2
-    )
+    const totalPrice = this.calculatePrice(creditOption, hours, command.playerCount === 2, rentalTimeSlot.price_2p_extra)
 
     if (totalPrice === null) {
       throw new Error('가격 정보를 찾을 수 없습니다')
     }
 
-    // 11. 예약 생성
+    // 11. 예약 생성 (가격 정보 포함)
     const reservation = Reservation.create({
       id: this.generateId(),
       userId: command.userId,
       deviceId: command.deviceId,
       date: kstDate,
-      timeSlot
+      timeSlot,
+      totalAmount: totalPrice
     })
 
     // 12. 사용자의 모든 활성 예약 조회
@@ -142,6 +131,9 @@ export class CreateReservationUseCase {
 
     // 14. 기기별 시간 충돌 검증 (같은 기기의 예약)
     await this.validateNoTimeConflict(reservation)
+
+    // 15. 시간대별 최대 대여 가능 대수 제한 검증
+    await this.validateMaxRentalUnits(device.typeId, reservation, rentalTimeSlot.max_rental_units)
 
     // 16. 예약 저장
     const savedReservation = await this.reservationRepository.save(reservation)
@@ -224,8 +216,185 @@ export class CreateReservationUseCase {
     }
   }
 
+  /**
+   * 시간대별 최대 대여 가능 대수 제한 검증
+   * 조기/밤샘 시간대 전체에 대한 제한을 적용
+   */
+  private async validateMaxRentalUnits(deviceTypeId: string, reservation: Reservation, maxRentalUnits?: number): Promise<void> {
+    // max_rental_units가 설정되지 않은 경우 제한 없음
+    if (!maxRentalUnits) {
+      return
+    }
+
+    // DeviceRepository를 통해 Supabase 클라이언트에 접근
+    const deviceRepo = this.deviceRepository as any
+    if (!deviceRepo.supabase) {
+      throw new Error('Supabase 클라이언트에 접근할 수 없습니다')
+    }
+
+    // 예약하려는 시간대의 타입 결정 (조기/밤샘)
+    const timeSlotType = this.getTimeSlotType(reservation.timeSlot.startHour)
+    
+    if (!timeSlotType) {
+      return // 시간대 타입을 알 수 없는 경우 제한 없음
+    }
+
+    // 해당 기기 타입의 같은 시간대 타입(조기/밤샘)에 이미 예약된 개수 조회
+    let timeRangeCondition: string
+    if (timeSlotType === 'early') {
+      // 조기 시간대: 10:00-22:00 (10~22시)
+      timeRangeCondition = `start_time >= '10:00:00' AND start_time < '22:00:00'`
+    } else {
+      // 밤샘 시간대: 22:00-05:00 (22~29시를 22~23시와 00~05시로 분할)
+      timeRangeCondition = `(start_time >= '22:00:00' OR (start_time >= '00:00:00' AND start_time <= '05:00:00'))`
+    }
+
+    const { data: existingReservations, error } = await deviceRepo.supabase
+      .rpc('get_reservations_by_time_range', {
+        target_device_type_id: deviceTypeId,
+        target_date: reservation.date.dateString,
+        time_condition: timeRangeCondition
+      })
+
+    // RPC가 없는 경우 직접 쿼리 사용
+    if (error || !existingReservations) {
+      console.log('RPC 실패, 직접 쿼리 사용:', error)
+      
+      const { data: directQuery, error: directError } = await deviceRepo.supabase
+        .from('reservations')
+        .select(`
+          id,
+          start_time,
+          devices!device_id (
+            device_types!device_type_id (
+              id
+            )
+          )
+        `)
+        .eq('date', reservation.date.dateString)
+        .in('status', ['pending', 'approved', 'checked_in'])
+
+      if (directError) {
+        console.error('기존 예약 조회 오류:', directError)
+        throw new Error('예약 가능 여부를 확인할 수 없습니다')
+      }
+
+      // 같은 기기 타입이면서 같은 시간대 타입의 예약만 필터링
+      const sameTypeReservations = (directQuery || []).filter((res: any) => {
+        if (res.devices?.device_types?.id !== deviceTypeId) return false
+        
+        const existingStartHour = parseInt(res.start_time.split(':')[0])
+        const existingTimeSlotType = this.getTimeSlotType(existingStartHour)
+        
+        return existingTimeSlotType === timeSlotType
+      })
+
+      if (sameTypeReservations.length >= maxRentalUnits) {
+        const timeSlotName = timeSlotType === 'early' ? '조기 시간대' : '밤샘 시간대'
+        throw new Error(`${timeSlotName}에 이미 예약이 있습니다. 최대 대여 가능 대수(${maxRentalUnits}대)를 초과했습니다`)
+      }
+
+      return
+    }
+
+    // RPC 결과 처리
+    const reservationCount = existingReservations.length || 0
+    if (reservationCount >= maxRentalUnits) {
+      const timeSlotName = timeSlotType === 'early' ? '조기 시간대' : '밤샘 시간대'
+      throw new Error(`${timeSlotName}에 이미 예약이 있습니다. 최대 대여 가능 대수(${maxRentalUnits}대)를 초과했습니다`)
+    }
+  }
+
+  /**
+   * 시간대 타입 결정 (조기/밤샘)
+   */
+  private getTimeSlotType(startHour: number): 'early' | 'night' | null {
+    if (startHour >= 10 && startHour < 22) {
+      return 'early' // 조기 시간대 (10~21시)
+    } else if (startHour >= 22 || (startHour >= 0 && startHour <= 5)) {
+      return 'night' // 밤샘 시간대 (22~29시)
+    }
+    return null
+  }
+
 
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  /**
+   * rental_time_slots에서 해당 기기 타입과 시간대에 맞는 설정 조회
+   */
+  private async getRentalTimeSlot(deviceTypeId: string, startHour: number, endHour: number): Promise<any> {
+    // DeviceRepository를 통해 Supabase 클라이언트에 접근
+    const deviceRepo = this.deviceRepository as any
+    if (!deviceRepo.supabase) {
+      throw new Error('Supabase 클라이언트에 접근할 수 없습니다')
+    }
+
+    // 요청한 시간대와 정확히 일치하는 rental_time_slot 찾기
+    const startTimeStr = `${startHour.toString().padStart(2, '0')}:00:00`
+    const endTimeStr = `${endHour.toString().padStart(2, '0')}:00:00`
+
+    const { data, error } = await deviceRepo.supabase
+      .from('rental_time_slots')
+      .select('*')
+      .eq('device_type_id', deviceTypeId)
+      .eq('start_time', startTimeStr)
+      .eq('end_time', endTimeStr)
+      .single()
+
+    if (error) {
+      console.error('rental_time_slots 조회 오류:', error)
+      // 정확한 매칭이 안 되면 포함되는 시간대 찾기
+      const { data: fallbackData, error: fallbackError } = await deviceRepo.supabase
+        .from('rental_time_slots')
+        .select('*')
+        .eq('device_type_id', deviceTypeId)
+        .lte('start_time', startTimeStr)
+        .gte('end_time', endTimeStr)
+        .single()
+
+      if (fallbackError) {
+        console.error('rental_time_slots fallback 조회 오류:', fallbackError)
+        return null
+      }
+
+      return fallbackData
+    }
+
+    return data
+  }
+
+  /**
+   * 크레딧 옵션과 시간에 따른 가격 계산
+   */
+  private calculatePrice(creditOption: any, hours: number, is2P: boolean, price2PExtra?: number): number | null {
+    if (!creditOption) return null
+
+    let basePrice = 0
+
+    // 크레딧 타입에 따른 기본 가격 계산
+    if (creditOption.type === 'fixed') {
+      basePrice = creditOption.fixedCredits || 0
+    } else if (creditOption.type === 'freeplay') {
+      // 시간당 가격이 있는 경우
+      if (creditOption.prices && creditOption.prices[hours]) {
+        basePrice = creditOption.prices[hours]
+      } else if (creditOption.hourlyRate) {
+        basePrice = creditOption.hourlyRate * hours
+      } else {
+        basePrice = 25000 // 기본 프리플레이 가격
+      }
+    } else if (creditOption.type === 'unlimited') {
+      basePrice = creditOption.unlimitedPrice || 50000
+    }
+
+    // 2인 플레이 추가 요금
+    if (is2P && price2PExtra) {
+      basePrice += price2PExtra
+    }
+
+    return basePrice
   }
 }

@@ -28,14 +28,18 @@ import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime'
 // 24시간 이상 시간 포맷팅
 const formatTime = (time: string) => {
   if (!time) return '';
-  const [hour, minute] = time.split(':');
+  // 초가 포함된 경우 제거 (HH:MM:SS -> HH:MM)
+  const timeParts = time.split(':');
+  const hour = timeParts[0];
+  const minute = timeParts[1] || '00';
+  
   if (!hour) return '';
   const h = parseInt(hour);
   // 0~5시는 24~29시로 표시
   if (h >= 0 && h <= 5) {
-    return `${h + 24}:${minute || '00'}`;
+    return `${h + 24}:${minute}`;
   }
-  return `${hour}:${minute || '00'}`;
+  return `${hour}:${minute}`;
 };
 
 // 시간대 구분 함수
@@ -245,7 +249,7 @@ export default function ReservationManagementPage() {
       if (year && year !== 'all') {
         params.append('year', year);
       }
-      params.append('limit', '1000'); // 최대 1000건
+      params.append('limit', '200'); // 성능을 위해 200건으로 제한
       
       // v2 API 사용 (v1은 deprecated)
       const apiUrl = `/api/v2/admin/reservations?${params}`;
@@ -311,6 +315,15 @@ export default function ReservationManagementPage() {
 
       // 데이터 포맷팅 (v2 API 형식)
       const formattedData: Reservation[] = sortedData.map((res: any) => {
+        // 디버깅: 시간과 금액 정보 로그
+        console.log('예약 데이터 변환:', {
+          id: res.id,
+          start_time: res.start_time,
+          end_time: res.end_time, 
+          total_amount: res.total_amount,
+          type: typeof res.total_amount
+        });
+        
         // v2 API 형식 (snake_case)
         return {
             id: res.id,
@@ -328,7 +341,7 @@ export default function ReservationManagementPage() {
             },
             date: res.date || '',
             time_slot: res.start_time && res.end_time ? 
-              `${res.start_time}-${res.end_time}` : '',
+              `${formatTime(res.start_time)}-${formatTime(res.end_time)}` : '',
             player_count: res.player_count || 1,
             credit_option: (() => {
               if (res.credit_type === 'fixed') return '고정크레딧';
@@ -336,7 +349,7 @@ export default function ReservationManagementPage() {
               if (res.credit_type === 'unlimited') return '무한크레딧';
               return res.credit_type || '알 수 없음';
             })(),
-            total_price: res.total_amount || 0,
+            total_price: typeof res.total_amount === 'string' ? parseFloat(res.total_amount) : (res.total_amount || 0),
             status: res.status,
             notes: res.user_notes,
             admin_notes: res.admin_notes,
@@ -424,7 +437,8 @@ export default function ReservationManagementPage() {
     if (allReservations.length > 0) {
       filterReservations();
     }
-  }, [selectedStatus, searchQuery, selectedDate, selectedYear, allReservations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatus, searchQuery, selectedDate, allReservations]);
 
   // 필터링 함수
   const filterReservations = () => {
@@ -540,6 +554,7 @@ export default function ReservationManagementPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // NextAuth 세션 쿠키 포함
         body: JSON.stringify({
           id: reservationId,
           status: 'approved',
@@ -600,6 +615,7 @@ export default function ReservationManagementPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // NextAuth 세션 쿠키 포함
         body: JSON.stringify({
           id: rejectingReservationId,
           status: 'rejected',
@@ -654,7 +670,7 @@ export default function ReservationManagementPage() {
           <div className="pt-4 pb-3">
             <h1 className="text-xl sm:text-2xl font-bold dark:text-white mb-1">예약 관리</h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              예약 요청을 검토하고 승인/취소합니다
+              예약 요청을 검토하고 승인/취소합니다 (최근 200건 표시, 더 많은 데이터는 검색 사용)
             </p>
           </div>
 
@@ -685,7 +701,7 @@ export default function ReservationManagementPage() {
                     {status === 'cancelled' && '취소'}
                     {status === 'completed' && '완료'}
                     {status === 'no_show' && '노쇼'}
-                    <span className="ml-1 text-[10px]">({count})</span>
+                    {status === 'pending' && <span className="ml-1 text-[10px]">({count})</span>}
                   </button>
                 );
               })}
@@ -702,7 +718,7 @@ export default function ReservationManagementPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="이름, 전화번호, 기종명 검색"
+                  placeholder="이름, 전화번호, 기종명 검색 (Enter 키로 검색)"
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -1038,21 +1054,41 @@ export default function ReservationManagementPage() {
 
 
         {/* 안내 메시지 */}
-        {(tabCounts.pending || 0) > 0 && (
-        <div className="mt-4 sm:mt-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
-          <div className="flex items-start gap-2 sm:gap-3">
-            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm sm:text-base font-medium text-yellow-800 dark:text-yellow-200 mb-0.5 sm:mb-1">
-                승인 대기중인 예약이 {tabCounts.pending}건 있습니다
-              </h4>
-              <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300">
-                가능한 빨리 검토하여 고객에게 알림을 보내주세요.
-              </p>
+        <div className="mt-4 sm:mt-6 space-y-3">
+          {/* 대기 중인 예약 안내 */}
+          {(tabCounts.pending || 0) > 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm sm:text-base font-medium text-yellow-800 dark:text-yellow-200 mb-0.5 sm:mb-1">
+                  승인 대기중인 예약이 {tabCounts.pending}건 있습니다
+                </h4>
+                <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300">
+                  가능한 빨리 검토하여 고객에게 알림을 보내주세요.
+                </p>
+              </div>
             </div>
           </div>
+          )}
+          
+          {/* 검색 안내 */}
+          {!searchQuery && !selectedDate && selectedYear === 'all' && allReservations.length >= 200 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm sm:text-base font-medium text-blue-800 dark:text-blue-200 mb-0.5 sm:mb-1">
+                  성능 최적화를 위해 최근 200건만 표시됩니다
+                </h4>
+                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                  더 많은 데이터를 보려면 검색 기능을 사용하거나 연도/날짜 필터를 활용하세요.
+                </p>
+              </div>
+            </div>
+          </div>
+          )}
         </div>
-        )}
 
       {/* 예약 상세 모달 - 모바일 최적화 */}
       <AnimatePresence>

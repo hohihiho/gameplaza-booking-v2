@@ -72,7 +72,7 @@ export class ReservationStatus {
   }
 
   isActive(): boolean {
-    return this._status === 'approved' || this._status === 'checked_in'
+    return this._status === 'pending' || this._status === 'approved' || this._status === 'checked_in'
   }
 
   isFinal(): boolean {

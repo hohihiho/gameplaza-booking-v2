@@ -19,7 +19,8 @@ import {
   FileText,
   TrendingUp,
   Bell,
-  Settings
+  Settings,
+  UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -333,6 +334,16 @@ export default function AdminDashboard() {
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">일정관리</span>
             </Link>
+            
+            <Link
+              href="/admin/reservations/on-behalf"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-800/30 dark:hover:to-emerald-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                <UserPlus className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">대리예약</span>
+            </Link>
           </div>
         </motion.div>
 
@@ -460,6 +471,16 @@ export default function AdminDashboard() {
                 )}
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white text-center">예약 승인</span>
+            </Link>
+            
+            <Link
+              href="/admin/reservations/on-behalf"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-800/30 dark:hover:to-emerald-700/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                <UserCheck className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">대리 예약</span>
             </Link>
             
             <Link

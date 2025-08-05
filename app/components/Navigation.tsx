@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import ThemeToggle from './ThemeToggle';
-import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck } from 'lucide-react';
+import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,12 +61,14 @@ export default function Navigation() {
     { href: '/reservations', label: '내 예약', icon: FileText },
     { href: '/machines', label: '기기 현황', icon: Gamepad2 },
     { href: '/schedule', label: '운영 일정', icon: CalendarDays },
+    { href: '/guide', label: '이용안내', icon: HelpCircle },
     { href: '/mypage', label: '마이페이지', icon: User },
     ...(showAdminMenu ? [{ href: '/admin', label: '관리자 페이지', icon: ShieldCheck }] : [])
   ] : [
     { href: '/', label: '홈', icon: Home },
     { href: '/machines', label: '기기 현황', icon: Gamepad2 },
     { href: '/schedule', label: '운영 일정', icon: CalendarDays },
+    { href: '/guide', label: '이용안내', icon: HelpCircle },
   ];
 
   return (

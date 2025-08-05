@@ -255,7 +255,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-white mb-1">최상의 기체 상태</h3>
-                  <p className="text-indigo-100">정기적인 점검과 보수로 항상 최고의 컨디션 유지</p>
+                  <p className="text-indigo-100">정기적인 점검과 보수로 최고의 컨디션 유지</p>
                 </div>
               </motion.div>
             </div>

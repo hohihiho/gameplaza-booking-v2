@@ -374,6 +374,63 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       reservationNumber = this.generateReservationNumber(reservation.date.dateString, count + 1)
     }
 
+    // 실제 가격 계산을 위해 기기 정보와 rental_time_slots에서 가격 가져오기
+    let totalAmount = reservation.totalAmount
+    let hourlyRate = 0
+
+    if (!totalAmount) {
+      try {
+        // 기기 정보 조회
+        const { data: device } = await this.supabase
+          .from('devices')
+          .select(`
+            device_type_id,
+            device_types!device_type_id (
+              id,
+              name
+            )
+          `)
+          .eq('id', reservation.deviceId)
+          .single()
+
+        if (device) {
+          // 해당 시간대의 rental_time_slots에서 가격 조회
+          const startTimeStr = `${reservation.timeSlot.startHour.toString().padStart(2, '0')}:00:00`
+          const endTimeStr = `${reservation.timeSlot.endHour.toString().padStart(2, '0')}:00:00`
+
+          const { data: timeSlot } = await this.supabase
+            .from('rental_time_slots')
+            .select('credit_options')
+            .eq('device_type_id', device.device_type_id)
+            .eq('start_time', startTimeStr)
+            .eq('end_time', endTimeStr)
+            .single()
+
+          if (timeSlot && timeSlot.credit_options && timeSlot.credit_options.length > 0) {
+            // 첫 번째 크레딧 옵션의 가격 사용 (기본적으로 freeplay)
+            const creditOption = timeSlot.credit_options[0]
+            totalAmount = creditOption.price || 30000
+            hourlyRate = Math.round(totalAmount / (reservation.timeSlot.endHour - reservation.timeSlot.startHour))
+          } else {
+            // fallback: 기본 가격
+            hourlyRate = 30000
+            totalAmount = hourlyRate * (reservation.timeSlot.endHour - reservation.timeSlot.startHour)
+          }
+        } else {
+          // 기기를 찾을 수 없는 경우 기본 가격
+          hourlyRate = 30000
+          totalAmount = hourlyRate * (reservation.timeSlot.endHour - reservation.timeSlot.startHour)
+        }
+      } catch (error) {
+        console.error('가격 계산 중 오류:', error)
+        // 오류 발생 시 기본 가격
+        hourlyRate = 30000
+        totalAmount = hourlyRate * (reservation.timeSlot.endHour - reservation.timeSlot.startHour)
+      }
+    } else {
+      hourlyRate = Math.round(totalAmount / (reservation.timeSlot.endHour - reservation.timeSlot.startHour))
+    }
+
     return {
       id: reservation.id === 'temp-id' ? undefined : reservation.id,
       user_id: reservation.userId,
@@ -382,8 +439,8 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       start_time: `${reservation.timeSlot.startHour.toString().padStart(2, '0')}:00`,
       end_time: `${reservation.timeSlot.endHour.toString().padStart(2, '0')}:00`,
       player_count: 1, // 기본값
-      hourly_rate: 25000, // 기본 시간당 요금 (밤샘/조기 영업 시간대는 25,000-30,000원)
-      total_amount: reservation.totalAmount || 25000 * (reservation.timeSlot.endHour - reservation.timeSlot.startHour),
+      hourly_rate: hourlyRate,
+      total_amount: totalAmount,
       status: reservation.status.value,
       reservation_number: reservationNumber,
       user_notes: null, // 기본값
@@ -405,8 +462,8 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       .select('*')
       .eq('device_id', deviceId)
       .eq('date', date.dateString)
-      .eq('start_time', timeSlot.startTime)
-      .eq('end_time', timeSlot.endTime)
+      .eq('start_time', `${timeSlot.normalizedStartHour.toString().padStart(2, '0')}:00:00`)
+      .eq('end_time', `${timeSlot.normalizedEndHour.toString().padStart(2, '0')}:00:00`)
 
     if (error) {
       throw new Error(`Failed to find reservations: ${error.message}`)

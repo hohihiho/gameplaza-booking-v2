@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info } from 'lucide-react';
+import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info, UserPlus } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { parseKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
@@ -50,6 +50,7 @@ type TimeSlot = {
   max_devices: number;
   available_devices: number[];
   is_available: boolean;
+  userAlreadyReserved?: boolean; // 사용자가 이미 예약했는지 여부
   price?: number;
   slot_type?: 'early' | 'overnight' | 'regular';
   is_youth_time?: boolean;
@@ -64,9 +65,16 @@ type TimeSlot = {
 
 export default function NewReservationPage() {
   const router = useRouter();
-  const { status } = useSession();
+  const searchParams = useSearchParams();
+  const { status, data: session } = useSession();
   // const [supabase] = useState(() => createClient());
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
+  
+  // 대리 예약 모드 확인
+  const onBehalfUserId = searchParams.get('onBehalf');
+  const onBehalfUserName = searchParams.get('userName');
+  const isOnBehalfMode = !!onBehalfUserId;
+  const isAdmin = session?.user?.role === 'admin';
   
   // 현재 단계
   const [currentStep, setCurrentStep] = useState(1);
@@ -113,6 +121,32 @@ export default function NewReservationPage() {
     }
   }, [selectedDate, selectedDeviceInfo]);
 
+  // 실시간 예약 업데이트 구독
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('reservations')
+      .on(
+        'broadcast',
+        { event: 'new_reservation' },
+        (payload) => {
+          console.log('New reservation broadcast received:', payload);
+          
+          // 현재 선택된 날짜와 기기 타입이 일치하는 경우만 업데이트
+          if (payload.payload?.date === selectedDate && 
+              selectedDeviceInfo?.typeId === payload.payload?.deviceTypeId) {
+            console.log('Refreshing time slots due to new reservation');
+            fetchTimeSlots();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate, selectedDeviceInfo]);
+
   const fetchDeviceTypes = async () => {
     console.log('=== fetchDeviceTypes started ===');
     setIsLoadingDevices(true);
@@ -152,6 +186,7 @@ export default function NewReservationPage() {
         
         return {
           ...type,
+          devices: (type.devices || []).sort((a: any, b: any) => a.device_number - b.device_number), // 기기 번호 순서대로 정렬
           category: type.device_categories?.name || '',
           active_device_count: type.devices?.filter((d: any) => d.status === 'available').length || 0,
           total_device_count: type.devices?.length || 0,
@@ -211,9 +246,10 @@ export default function NewReservationPage() {
         start_time: String(slot.timeSlot.startHour).padStart(2, '0') + ':00',
         end_time: String(slot.timeSlot.endHour).padStart(2, '0') + ':00',
         device_type_id: selectedDeviceInfo.typeId,
-        max_devices: slot.remainingSlots + 1, // 임시: 남은 슬롯 + 1로 최대 개수 추정
+        max_devices: slot.remainingSlots + (slot.device_reservation_status?.length || 0), // 총 가능 대수
         available_devices: Array.from({length: slot.remainingSlots}, (_, i) => i + 1),
-        is_available: slot.available,
+        is_available: slot.available && slot.remainingSlots > 0,
+        userAlreadyReserved: slot.userAlreadyReserved || false, // 사용자가 이미 예약했는지 여부
         price: slot.creditOptions[0]?.prices?.[1] || slot.creditOptions[0]?.price || 0,
         slot_type: slot.timeSlot.type === 'overnight' ? 'overnight' : 'regular',
         is_youth_time: slot.isYouthTime,
@@ -225,7 +261,7 @@ export default function NewReservationPage() {
         })),
         enable_2p: slot.enable2P,
         price_2p_extra: slot.price2PExtra || 0,
-        device_reservation_status: [],
+        device_reservation_status: slot.device_reservation_status || [],
         displayTime: slot.timeSlot.displayTime
       }));
 
@@ -283,8 +319,16 @@ export default function NewReservationPage() {
         date: selectedDate,
         startHour: startHour,
         endHour: endHour,
-        userNotes: userNotes || undefined
+        userNotes: userNotes || undefined,
+        onBehalfUserId: onBehalfUserId || undefined // 대리 예약 대상 사용자
       };
+
+      console.log('전송될 예약 데이터:', {
+        ...reservationData,
+        selectedTimeSlotInfo,
+        selectedDeviceInfo,
+        finalDeviceInfo
+      });
 
       // v2 API 사용
       const reservation = await createReservationV2(reservationData);
@@ -305,7 +349,19 @@ export default function NewReservationPage() {
         selectedDeviceInfo,
         selectedTimeSlotInfo
       });
-      setError(error?.message || error?.toString() || '예약 중 오류가 발생했습니다');
+      
+      // API 에러 메시지 처리
+      let errorMessage = '예약 중 오류가 발생했습니다';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.error === 'Bad Request' && error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -399,12 +455,36 @@ export default function NewReservationPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
+              {/* 대리 예약 모드 표시 */}
+              {isOnBehalfMode && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <div>
+                      <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
+                        대리 예약 모드
+                      </p>
+                      <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                        {onBehalfUserName}님을 대신하여 예약을 생성합니다
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">언제 대여하실 건가요?</h2>
                 <p className="text-gray-600 dark:text-gray-400">대여 가능한 날짜를 선택해주세요</p>
-                <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                  ※ 당일 예약은 불가능합니다. 대여 24시간 전부터 최대 3주 후까지 예약 가능합니다.
-                </p>
+                {!isAdmin && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                    ※ 당일 예약은 불가능합니다. 대여 24시간 전부터 최대 3주 후까지 예약 가능합니다.
+                  </p>
+                )}
+                {isAdmin && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                    ※ 관리자 권한으로 24시간 제한이 해제되었습니다.
+                  </p>
+                )}
               </div>
 
               <Calendar
@@ -414,6 +494,12 @@ export default function NewReservationPage() {
                   handleStepChange(2);
                 }}
                 minDate={(() => {
+                  // 관리자는 오늘부터 선택 가능
+                  if (isAdmin) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return today;
+                  }
                   const tomorrow = new Date();
                   tomorrow.setDate(tomorrow.getDate() + 1);
                   tomorrow.setHours(0, 0, 0, 0);
@@ -542,7 +628,8 @@ export default function NewReservationPage() {
                     .map((slot) => {
                     const slotDate = createKSTDateTime(selectedDate, slot.start_time);
                     const within24Hours = isWithin24Hours(slotDate);
-                    const isAvailable = slot.is_available && !within24Hours;
+                    // 관리자는 24시간 제한 해제, 동일 시간대 체크 제거
+                    const isAvailable = slot.is_available && (isAdmin || !within24Hours);
                     
                     return (
                       <motion.button
@@ -589,7 +676,7 @@ export default function NewReservationPage() {
                               )}
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                              {within24Hours ? (
+                              {within24Hours && !isAdmin ? (
                                 <span className="text-amber-600">24시간 이내 예약 불가</span>
                               ) : (
                                 <span className="text-green-600">
@@ -662,39 +749,77 @@ export default function NewReservationPage() {
               {/* 기기 번호 선택 */}
               {(() => {
                 const selectedDeviceTypeObj = deviceTypes.find(dt => dt.id === selectedDeviceType);
-                const availableDevices = selectedDeviceTypeObj?.devices
+                const selectedTimeSlotObj = timeSlots.find(ts => ts.id === selectedTimeSlot);
+                
+                // 해당 시간대의 예약 상태 맵 생성
+                const deviceReservationMap = new Map();
+                (selectedTimeSlotObj?.device_reservation_status || []).forEach(status => {
+                  deviceReservationMap.set(status.device_number, status.reservation_status);
+                });
+
+                // 물리적으로 사용 가능한 기기
+                const physicallyAvailableDevices = selectedDeviceTypeObj?.devices
                   ?.filter(d => d.status === 'available')
                   ?.sort((a, b) => a.device_number - b.device_number) || [];
                 
-                return availableDevices.length > 0 && (
+                return physicallyAvailableDevices.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">기기 번호 선택</h3>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                      {availableDevices.map((device) => {
+                      {physicallyAvailableDevices.map((device) => {
                         const isSelected = selectedDevice === device.device_number;
+                        const reservationStatus = deviceReservationMap.get(device.device_number);
+                        const isReserved = !!reservationStatus;
+                        const isPending = reservationStatus === 'pending';
+                        const isApproved = reservationStatus === 'approved';
+                        const isCheckedIn = reservationStatus === 'checked_in';
                         
                         return (
                           <motion.button
                             key={device.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={!isReserved ? { scale: 1.05 } : {}}
+                            whileTap={!isReserved ? { scale: 0.95 } : {}}
                             onClick={() => {
-                              const newDeviceInfo = {
-                                id: device.id,
-                                name: selectedDeviceTypeObj.name,
-                                typeId: selectedDeviceTypeObj.id,
-                                deviceNumber: device.device_number
-                              };
-                              setSelectedDeviceInfo(newDeviceInfo);
-                              setSelectedDevice(device.device_number);
+                              if (!isReserved) {
+                                const newDeviceInfo = {
+                                  id: device.id,
+                                  name: selectedDeviceTypeObj.name,
+                                  typeId: selectedDeviceTypeObj.id,
+                                  deviceNumber: device.device_number
+                                };
+                                setSelectedDeviceInfo(newDeviceInfo);
+                                setSelectedDevice(device.device_number);
+                              }
                             }}
-                            className={`p-4 rounded-xl border-2 transition-all ${
-                              isSelected
+                            disabled={isReserved}
+                            className={`p-3 rounded-xl border-2 transition-all relative ${
+                              isReserved
+                                ? 'cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'
+                                : isSelected
                                 ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900'
                             }`}
                           >
-                            <span className="font-medium text-gray-900 dark:text-white">{device.device_number}번</span>
+                            <div className="text-center">
+                              <span className={`text-sm ${
+                                isReserved ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'
+                              }`}>
+                                {device.device_number}번
+                              </span>
+                              {isReserved && (
+                                <div className={`text-xs mt-1 font-medium ${
+                                  isPending 
+                                    ? 'text-orange-600 dark:text-orange-400'
+                                    : isApproved
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : isCheckedIn
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-gray-600 dark:text-gray-400'
+                                }`}>
+                                  {isPending ? '예약대기' : isApproved ? '예약확정' : isCheckedIn ? '사용중' : '예약됨'}
+                                </div>
+                              )}
+                            </div>
                           </motion.button>
                         );
                       })}
@@ -864,6 +989,9 @@ export default function NewReservationPage() {
                     <p className="font-medium mb-1">예약 안내</p>
                     <ul className="space-y-1 text-xs">
                       <li>• 예약은 대여 시작 24시간 전까지 취소 가능합니다</li>
+                      {isOnBehalfMode && (
+                        <li>• 대리 예약은 {onBehalfUserName}님의 예약으로 등록됩니다</li>
+                      )}
                       <li>• 무단 불참 시 다음 예약이 제한될 수 있습니다</li>
                       <li>• 대여 시작 10분 전까지 오락실에 도착해주세요</li>
                     </ul>

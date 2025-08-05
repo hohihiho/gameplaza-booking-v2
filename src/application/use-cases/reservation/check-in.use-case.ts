@@ -73,7 +73,7 @@ export class CheckInReservationUseCase {
       throw new Error('예약 시작 1시간 전부터 체크인이 가능합니다')
     }
 
-    // 5. 기기 상태 변경 (available -> in_use)
+    // 5. 기기 상태 확인 (체크인 시점에는 상태 변경하지 않음)
     const device = await this.deviceRepository.findByDeviceNumber(reservation.assignedDeviceNumber)
     if (!device) {
       throw new Error('배정된 기기를 찾을 수 없습니다')
@@ -83,8 +83,19 @@ export class CheckInReservationUseCase {
       throw new Error('기기가 사용 가능한 상태가 아닙니다')
     }
 
-    const updatedDevice = device.changeStatus('in_use')
-    await this.deviceRepository.update(updatedDevice)
+    // 예약 시간이 되었는지 확인
+    const reservationStartTime = reservation.startDateTime
+    const isReservationTimeReached = now.isAfter(reservationStartTime) || now.isSame(reservationStartTime)
+    
+    // 예약 시간이 되었을 때만 기기 상태를 in_use로 변경
+    if (isReservationTimeReached) {
+      const updatedDevice = device.changeStatus('in_use')
+      await this.deviceRepository.update(updatedDevice)
+    } else {
+      // 예약 시간 전이면 reserved 상태로 유지
+      const updatedDevice = device.changeStatus('reserved')
+      await this.deviceRepository.update(updatedDevice)
+    }
 
     // 6. 예약 체크인 처리
     const checkedInReservation = reservation.checkIn()

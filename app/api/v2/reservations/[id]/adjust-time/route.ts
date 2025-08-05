@@ -8,6 +8,7 @@ import { SupabaseReservationRepository } from '@/src/infrastructure/repositories
 import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
 import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
 import { TimeAdjustmentSupabaseRepository } from '@/src/infrastructure/repositories/time-adjustment.supabase.repository'
+import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function POST(
@@ -57,6 +58,7 @@ export async function POST(
       const paymentRepository = new PaymentSupabaseRepository(supabase)
       const notificationRepository = new NotificationSupabaseRepository(supabase)
       const timeAdjustmentRepository = new TimeAdjustmentSupabaseRepository(supabase)
+      const deviceRepository = new DeviceSupabaseRepository(supabase)
 
       // Use Case 실행
       const useCase = new AdjustReservationTimeUseCase(
@@ -64,7 +66,8 @@ export async function POST(
         reservationRepository as any,
         paymentRepository as any,
         notificationRepository as any,
-        timeAdjustmentRepository as any
+        timeAdjustmentRepository as any,
+        deviceRepository as any
       )
 
       const result = await useCase.execute({

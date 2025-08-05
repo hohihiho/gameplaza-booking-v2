@@ -6,6 +6,7 @@ import { SupabaseTimeSlotScheduleRepository } from '@/src/infrastructure/reposit
 import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
 import { SupabaseDeviceRepository } from '@/src/infrastructure/repositories/supabase-device.repository'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { z } from 'zod'
 
 // 쿼리 스키마 정의
@@ -50,7 +51,8 @@ export async function GET(request: NextRequest) {
         *,
         device_types (
           id,
-          name
+          name,
+          rental_settings
         )
       `)
       .eq('id', validatedQuery.deviceId)
@@ -87,27 +89,116 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // 해당 날짜의 모든 예약 조회 (기기 타입별)
+    // RLS를 우회하기 위해 service role 클라이언트 사용
+    const supabaseAdmin = createServiceRoleClient()
+    const { data: reservations, error: reservationError } = await supabaseAdmin
+      .from('reservations')
+      .select(`
+        device_id,
+        user_id,
+        start_time,
+        end_time,
+        status,
+        devices (
+          device_number,
+          device_type_id
+        )
+      `)
+      .eq('date', validatedQuery.date)
+      .in('status', ['pending', 'approved', 'checked_in'])
+
+    if (reservationError) {
+      console.error('예약 정보 조회 오류:', reservationError)
+    }
+    
+    console.log('예약 조회 결과:', reservations?.length || 0, '개')
+    console.log('예약 상세:', reservations?.slice(0, 3).map(r => ({
+      device_id: r.device_id,
+      start_time: r.start_time,
+      devices: r.devices
+    })))
+    
+    // 사용자의 동일 시간대 예약 체크 제거 - 같은 시간대 여러 기기 예약 가능
+    let userReservedTimeSlots: string[] = []
+
+    // 기기 타입별 예약 현황 맵 생성
+    const deviceReservationMap = new Map()
+    
+    // 시간대별(조기/밤샘) 예약 수 계산
+    let earlySlotReservationCount = 0  // 조기 시간대 예약 수
+    let overnightSlotReservationCount = 0  // 밤샘 시간대 예약 수
+    
+    ;(reservations || []).forEach(reservation => {
+      if (reservation.devices?.device_type_id === device.device_type_id) {
+        const timeKey = `${reservation.start_time}-${reservation.end_time}`
+        if (!deviceReservationMap.has(timeKey)) {
+          deviceReservationMap.set(timeKey, [])
+        }
+        deviceReservationMap.get(timeKey).push({
+          device_number: reservation.devices.device_number,
+          reservation_status: reservation.status
+        })
+        
+        // 시간대별 카운트 증가
+        const startHour = parseInt(reservation.start_time.split(':')[0])
+        if (startHour >= 7 && startHour <= 14) {
+          earlySlotReservationCount++
+        } else if (startHour >= 22 || startHour <= 5) {
+          overnightSlotReservationCount++
+        }
+      }
+    })
+    
+    // device_types의 rental_settings에서 max_rental_units 가져오기
+    const maxRentalUnits = device.device_types?.rental_settings?.max_rental_units || 4
+    console.log(`${device.device_types?.name} max_rental_units:`, maxRentalUnits)
+    console.log('조기 시간대 예약:', earlySlotReservationCount, '밤샘 시간대 예약:', overnightSlotReservationCount)
+
     // 시간대 데이터를 API 응답 형식으로 변환
     const slots = (timeSlots || [])
       .filter(slot => !isYouth || slot.is_youth_time) // 청소년인 경우 청소년 시간대만 필터링
-      .map(slot => ({
-        timeSlot: {
+      .map(slot => {
+        const timeKey = `${slot.start_time}-${slot.end_time}`
+        const deviceReservationStatus = deviceReservationMap.get(timeKey) || []
+        const isUserAlreadyReserved = userReservedTimeSlots.includes(timeKey)
+        
+        return {
           id: slot.id,
-          name: `${slot.start_time.slice(0,5)}-${slot.end_time.slice(0,5)}`,
-          description: slot.slot_type === 'overnight' ? '밤샘대여' : slot.slot_type === 'early' ? '조기대여' : '일반대여',
-          startHour: parseInt(slot.start_time.split(':')[0]),
-          endHour: parseInt(slot.end_time.split(':')[0]),
-          displayTime: `${slot.start_time.slice(0,5)} - ${slot.end_time.slice(0,5)}`,
-          duration: 0, // 계산 필요시 추가
-          type: slot.slot_type
-        },
-        available: true, // 임시로 모두 예약 가능으로 설정
-        remainingSlots: 4, // 임시 값
-        creditOptions: slot.credit_options || [],
-        enable2P: slot.enable_2p || false,
-        price2PExtra: slot.price_2p_extra,
-        isYouthTime: slot.is_youth_time
-      }))
+          timeSlot: {
+            id: slot.id,
+            name: `${slot.start_time.slice(0,5)}-${slot.end_time.slice(0,5)}`,
+            description: slot.slot_type === 'overnight' ? '밤샘대여' : slot.slot_type === 'early' ? '조기대여' : '일반대여',
+            startHour: parseInt(slot.start_time.split(':')[0]),
+            endHour: parseInt(slot.end_time.split(':')[0]),
+            displayTime: `${slot.start_time.slice(0,5)} - ${slot.end_time.slice(0,5)}`,
+            duration: 0, // 계산 필요시 추가
+            type: slot.slot_type
+          },
+          available: true, // 모든 시간대 선택 가능 (동시 예약 제한만 확인)
+          userAlreadyReserved: false, // 동일 시간대 체크 제거
+          remainingSlots: (() => {
+            // 시간대별 최대 대여 가능 대수 계산
+            const slotStartHour = parseInt(slot.start_time.split(':')[0])
+            let remainingUnits = maxRentalUnits
+            
+            if (slotStartHour >= 7 && slotStartHour <= 14) {
+              // 조기 시간대
+              remainingUnits = Math.max(0, maxRentalUnits - earlySlotReservationCount)
+            } else if (slotStartHour >= 22 || slotStartHour <= 5) {
+              // 밤샘 시간대
+              remainingUnits = Math.max(0, maxRentalUnits - overnightSlotReservationCount)
+            }
+            
+            return remainingUnits
+          })(),
+          creditOptions: slot.credit_options || [],
+          enable2P: slot.enable_2p || false,
+          price2PExtra: slot.price_2p_extra,
+          isYouthTime: slot.is_youth_time,
+          device_reservation_status: deviceReservationStatus // 예약된 기기 정보 추가
+        }
+      })
 
     const result = {
       slots,

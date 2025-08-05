@@ -1,0 +1,370 @@
+name: 🗄️ Database Backup (Production Only)
+
+on:
+  # 프로덕션 환경에서만 스케줄 실행
+  # schedule:
+  #   - cron: '0 2 * * *'  # 매일 새벽 2시 (프로덕션 배포 시 주석 해제)
+  
+  # 수동 실행 가능 (개발/테스트용)
+  workflow_dispatch:
+    inputs:
+      backup_type:
+        description: '백업 유형'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - json
+          - sql
+          - schema
+      
+      retention_days:
+        description: '백업 보관 일수'
+        required: true
+        default: '30'
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  BACKUP_REPO: 'gameplaza-backups' # 백업 전용 리포지토리 이름
+
+jobs:
+  backup:
+    name: 🚀 Database Backup
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: ✅ Checkout 소스코드
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📦 의존성 설치
+        run: |
+          npm ci --only=production
+          npm install @supabase/supabase-js dotenv
+      
+      - name: 🔐 환경 변수 설정
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_ENV
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+      
+      - name: 📊 백업 전 상태 확인
+        run: |
+          echo "=== 백업 시작 정보 ===" 
+          echo "시작 시간: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "한국 시간: $(TZ=Asia/Seoul date +"%Y-%m-%d %H:%M:%S KST")"
+          echo "백업 유형: ${{ github.event.inputs.backup_type || 'full' }}"
+          echo "보관 일수: ${{ github.event.inputs.retention_days || '30' }}"
+          echo "워크플로우: ${{ github.event_name }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Node 버전: $(node --version)"
+          echo "npm 버전: $(npm --version)"
+      
+      - name: 🗄️ 데이터베이스 백업 실행
+        id: backup
+        run: |
+          BACKUP_TYPE="${{ github.event.inputs.backup_type || 'full' }}"
+          TIMESTAMP=$(date -u +"%Y%m%d_%H%M%S")
+          
+          echo "backup_timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "backup_type=${BACKUP_TYPE}" >> $GITHUB_OUTPUT
+          
+          # 백업 디렉토리 생성
+          mkdir -p backups/{json,sql,logs}
+          
+          # 백업 실행
+          echo "🚀 ${BACKUP_TYPE} 백업 시작..."
+          
+          if [[ "$BACKUP_TYPE" == "full" ]]; then
+            node scripts/backup-database.js full 2>&1 | tee "backups/logs/backup-${TIMESTAMP}.log"
+          else
+            node scripts/backup-database.js "$BACKUP_TYPE" 2>&1 | tee "backups/logs/backup-${TIMESTAMP}.log"
+          fi
+          
+          # 백업 결과 확인
+          if [ $? -eq 0 ]; then
+            echo "✅ 백업 성공"
+            echo "backup_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ 백업 실패"
+            echo "backup_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: 📈 백업 파일 정보 수집
+        id: backup_info
+        run: |
+          echo "=== 백업 파일 정보 ===" 
+          
+          TOTAL_SIZE=0
+          FILE_COUNT=0
+          BACKUP_FILES=""
+          
+          # JSON 백업 파일 확인
+          if [ -d "backups/json" ] && [ "$(ls -A backups/json)" ]; then
+            echo "📄 JSON 백업 파일:"
+            for file in backups/json/*; do
+              if [ -f "$file" ]; then
+                size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+                size_mb=$(( size / 1024 / 1024 ))
+                echo "  - $(basename "$file"): ${size_mb}MB"
+                TOTAL_SIZE=$(( TOTAL_SIZE + size ))
+                FILE_COUNT=$(( FILE_COUNT + 1 ))
+                BACKUP_FILES="${BACKUP_FILES}$(basename "$file") (${size_mb}MB)\n"
+              fi
+            done
+          fi
+          
+          # SQL 백업 파일 확인
+          if [ -d "backups/sql" ] && [ "$(ls -A backups/sql)" ]; then
+            echo "🗃️ SQL 백업 파일:"
+            for file in backups/sql/*; do
+              if [ -f "$file" ]; then
+                size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+                size_mb=$(( size / 1024 / 1024 ))
+                echo "  - $(basename "$file"): ${size_mb}MB"
+                TOTAL_SIZE=$(( TOTAL_SIZE + size ))
+                FILE_COUNT=$(( FILE_COUNT + 1 ))
+                BACKUP_FILES="${BACKUP_FILES}$(basename "$file") (${size_mb}MB)\n"
+              fi
+            done
+          fi
+          
+          TOTAL_SIZE_MB=$(( TOTAL_SIZE / 1024 / 1024 ))
+          
+          echo "총 파일 수: ${FILE_COUNT}개"
+          echo "총 크기: ${TOTAL_SIZE_MB}MB"
+          
+          echo "total_size_mb=${TOTAL_SIZE_MB}" >> $GITHUB_OUTPUT
+          echo "file_count=${FILE_COUNT}" >> $GITHUB_OUTPUT
+          echo "backup_files<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$BACKUP_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: 🔍 백업 검증
+        run: |
+          echo "🔍 백업 파일 검증 중..."
+          
+          # JSON 파일 검증
+          for json_file in backups/json/*.json; do
+            if [ -f "$json_file" ]; then
+              echo "검증: $(basename "$json_file")"
+              
+              # JSON 파일 유효성 검사
+              if ! jq empty "$json_file" 2>/dev/null; then
+                echo "❌ JSON 파일이 유효하지 않습니다: $json_file"
+                exit 1
+              fi
+              
+              # 필수 필드 확인
+              if ! jq -e '.timestamp and .tables' "$json_file" >/dev/null; then
+                echo "❌ JSON 백업 구조가 올바르지 않습니다: $json_file"
+                exit 1
+              fi
+              
+              table_count=$(jq '.tables | keys | length' "$json_file")
+              echo "  ✅ 테이블 수: ${table_count}개"
+            fi
+          done
+          
+          # SQL 파일 검증 (기본적인 파일 존재 및 크기 확인)
+          for sql_file in backups/sql/*.sql; do
+            if [ -f "$sql_file" ]; then
+              echo "검증: $(basename "$sql_file")"
+              
+              file_size=$(stat -f%z "$sql_file" 2>/dev/null || stat -c%s "$sql_file")
+              if [ "$file_size" -lt 1000 ]; then
+                echo "❌ SQL 파일이 너무 작습니다: $sql_file (${file_size} bytes)"
+                exit 1
+              fi
+              
+              echo "  ✅ 파일 크기: $(( file_size / 1024 ))KB"
+            fi
+          done
+          
+          echo "✅ 모든 백업 파일 검증 완료"
+      
+      - name: 🚀 백업 저장소에 업로드
+        env:
+          BACKUP_PAT: ${{ secrets.BACKUP_REPO_PAT }}
+        run: |
+          TIMESTAMP="${{ steps.backup.outputs.backup_timestamp }}"
+          BACKUP_REPO_URL="https://${{ secrets.BACKUP_REPO_PAT }}@github.com/${{ github.repository_owner }}/${{ env.BACKUP_REPO }}.git"
+          
+          echo "🚀 백업 파일을 전용 리포지토리에 업로드 중..."
+          
+          # 임시 디렉토리 생성
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+          
+          # 백업 리포지토리 클론 (또는 초기화)
+          if git clone "$BACKUP_REPO_URL" backup-repo 2>/dev/null; then
+            echo "✅ 기존 백업 리포지토리 클론 완료"
+            cd backup-repo
+          else
+            echo "📝 새 백업 리포지토리 초기화"
+            mkdir backup-repo && cd backup-repo
+            git init
+            git remote add origin "$BACKUP_REPO_URL"
+            
+            # README 생성
+            cat > README.md << 'EOL'
+          # 게임플라자 데이터베이스 백업
+          
+          이 리포지토리는 게임플라자 데이터베이스의 자동 백업을 저장합니다.
+          
+          ## 구조
+          - `json/` - JSON 형식 백업 (Supabase API 사용)
+          - `sql/` - SQL 덤프 백업 (pg_dump 사용)  
+          - `logs/` - 백업 실행 로그
+          
+          ## 주의사항
+          - 이 리포지토리는 비공개로 유지되어야 합니다
+          - 백업 파일에는 민감한 데이터가 포함될 수 있습니다
+          - 자동화된 백업이므로 수동으로 수정하지 마세요
+          EOL
+            
+            git add README.md
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git commit -m "Initial commit"
+          fi
+          
+          # 백업 파일 복사
+          mkdir -p "json/$TIMESTAMP" "sql/$TIMESTAMP" "logs/$TIMESTAMP"
+          
+          if [ -d "$GITHUB_WORKSPACE/backups/json" ] && [ "$(ls -A $GITHUB_WORKSPACE/backups/json)" ]; then
+            cp -r "$GITHUB_WORKSPACE/backups/json/"* "json/$TIMESTAMP/"
+          fi
+          
+          if [ -d "$GITHUB_WORKSPACE/backups/sql" ] && [ "$(ls -A $GITHUB_WORKSPACE/backups/sql)" ]; then
+            cp -r "$GITHUB_WORKSPACE/backups/sql/"* "sql/$TIMESTAMP/"
+          fi
+          
+          if [ -d "$GITHUB_WORKSPACE/backups/logs" ] && [ "$(ls -A $GITHUB_WORKSPACE/backups/logs)" ]; then
+            cp -r "$GITHUB_WORKSPACE/backups/logs/"* "logs/$TIMESTAMP/"
+          fi
+          
+          # Git 커밋 및 푸시
+          git add .
+          
+          if git diff --cached --quiet; then
+            echo "⚠️ 커밋할 변경사항이 없습니다"
+          else
+            COMMIT_MESSAGE="🗄️ Database backup - $TIMESTAMP
+            
+          백업 정보:
+          - 시간: $(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M:%S KST')
+          - 유형: ${{ steps.backup.outputs.backup_type }}
+          - 파일 수: ${{ steps.backup_info.outputs.file_count }}개
+          - 총 크기: ${{ steps.backup_info.outputs.total_size_mb }}MB
+          - 트리거: ${{ github.event_name }}
+          
+          🤖 자동 백업 by GitHub Actions"
+            
+            git commit -m "$COMMIT_MESSAGE"
+            git push origin main
+            
+            echo "✅ 백업 파일 업로드 완료"
+          fi
+      
+      - name: 🧹 오래된 백업 정리
+        env:
+          BACKUP_PAT: ${{ secrets.BACKUP_REPO_PAT }}
+        run: |
+          RETENTION_DAYS="${{ github.event.inputs.retention_days || '30' }}"
+          BACKUP_REPO_URL="https://${{ secrets.BACKUP_REPO_PAT }}@github.com/${{ github.repository_owner }}/${{ env.BACKUP_REPO }}.git"
+          
+          echo "🧹 ${RETENTION_DAYS}일 이상 된 백업 정리 중..."
+          
+          # 임시 디렉토리에서 백업 리포지토리 클론
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+          
+          if git clone "$BACKUP_REPO_URL" backup-repo; then
+            cd backup-repo
+            
+            # 오래된 백업 폴더 찾기 및 삭제
+            CUTOFF_DATE=$(date -d "${RETENTION_DAYS} days ago" +%Y%m%d || date -v -${RETENTION_DAYS}d +%Y%m%d)
+            
+            DELETED_COUNT=0
+            
+            for backup_type in json sql logs; do
+              if [ -d "$backup_type" ]; then
+                for backup_dir in "$backup_type"/*/; do
+                  if [ -d "$backup_dir" ]; then
+                    dir_name=$(basename "$backup_dir")
+                    dir_date=$(echo "$dir_name" | cut -d'_' -f1)
+                    
+                    if [ ${#dir_date} -eq 8 ] && [ "$dir_date" -lt "$CUTOFF_DATE" ]; then
+                      echo "🗑️  삭제: $backup_type/$dir_name"
+                      rm -rf "$backup_dir"
+                      DELETED_COUNT=$((DELETED_COUNT + 1))
+                    fi
+                  fi
+                done
+              fi
+            done
+            
+            if [ $DELETED_COUNT -gt 0 ]; then
+              git add .
+              git config user.name "GitHub Actions"
+              git config user.email "actions@github.com"
+              git commit -m "🧹 정리: ${DELETED_COUNT}개의 오래된 백업 삭제 (${RETENTION_DAYS}일 이상)"
+              git push origin main
+              echo "✅ ${DELETED_COUNT}개의 오래된 백업을 정리했습니다"
+            else
+              echo "ℹ️  정리할 오래된 백업이 없습니다"
+            fi
+          else
+            echo "⚠️ 백업 리포지토리에 접근할 수 없습니다 (정리 건너뜀)"
+          fi
+      
+      - name: 📊 백업 결과 요약
+        if: always()
+        run: |
+          echo "=== 🗄️ 백업 완료 보고서 ==="
+          echo "⏰ 완료 시간: $(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M:%S KST')"
+          echo "📁 백업 유형: ${{ steps.backup.outputs.backup_type }}"
+          echo "📈 상태: ${{ steps.backup.outputs.backup_status }}"
+          echo "📄 파일 수: ${{ steps.backup_info.outputs.file_count }}개"
+          echo "💾 총 크기: ${{ steps.backup_info.outputs.total_size_mb }}MB"
+          echo ""
+          echo "📋 생성된 파일:"
+          echo -e "${{ steps.backup_info.outputs.backup_files }}"
+          echo ""
+          echo "🔗 백업 저장소: https://github.com/${{ github.repository_owner }}/${{ env.BACKUP_REPO }}"
+          
+          if [ "${{ steps.backup.outputs.backup_status }}" = "success" ]; then
+            echo "✅ 백업이 성공적으로 완료되었습니다!"
+          else
+            echo "❌ 백업 중 문제가 발생했습니다."
+          fi
+
+  # 백업 실패 시 알림 (선택적)
+  notify-failure:
+    name: 📢 실패 알림
+    runs-on: ubuntu-latest
+    needs: backup
+    if: failure()
+    
+    steps:
+      - name: 📧 실패 알림 (선택적)
+        run: |
+          echo "❌ 데이터베이스 백업 실패"
+          echo "시간: $(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M:%S KST')"
+          echo "워크플로우: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo ""
+          echo "⚠️ 관리자가 즉시 확인해야 합니다!"
+          
+          # 여기에 슬랙, 이메일, 웹훅 등 알림 로직 추가 가능
+          # 예: curl -X POST -H 'Content-type: application/json' --data '{"text":"백업 실패!"}' $SLACK_WEBHOOK_URL

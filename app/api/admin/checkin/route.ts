@@ -3,13 +3,17 @@ import { auth } from '@/auth';
 
 import { createAdminClient } from '@/lib/supabase';
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // URL 파라미터에서 mode 가져오기 (past: 과거 예약, today: 오늘 예약)
+    const searchParams = request.nextUrl.searchParams;
+    const mode = searchParams.get('mode') || 'today';
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
@@ -36,9 +40,8 @@ export async function GET(_request: NextRequest) {
     const kstNow = new Date(Date.now() + kstOffset);
     const today = kstNow.toISOString().split('T')[0];
 
-    // 오늘의 승인된/체크인된/완료된 예약 조회 (모든 시간대)
-    
-  const { data: reservations, error } = await supabaseAdmin.from('reservations')
+    // mode에 따라 다른 쿼리 실행
+    let query = supabaseAdmin.from('reservations')
       .select(`
         *,
         users:user_id (
@@ -58,27 +61,47 @@ export async function GET(_request: NextRequest) {
             version_name
           )
         )
-      `)
-      .in('status', ['approved', 'checked_in', 'completed'])
-      .eq('date', today)
-      .order('start_time', { ascending: true });
+      `);
+
+    if (mode === 'past') {
+      // 과거 날짜의 승인된 예약 (체크인하지 않은 예약)
+      query = query
+        .eq('status', 'approved')
+        .lt('date', today)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: true });
+    } else {
+      // 오늘의 승인된/체크인된/완료된 예약 조회
+      query = query
+        .in('status', ['approved', 'checked_in', 'completed'])
+        .eq('date', today)
+        .order('start_time', { ascending: true });
+    }
+    
+    const { data: reservations, error } = await query;
     
     if (error) {
       console.error('Database query error:', error);
       return NextResponse.json({ error: 'Failed to fetch reservations' }, { status: 500 });
     }
 
-    // 예약을 시간별로 필터링 (7시~29시 기준)
-    const filteredReservations = (reservations || []).filter(reservation => {
-      const startHour = parseInt(reservation.start_time.split(':')[0]);
-      
-      // 7시~23시 또는 0시~5시(24시~29시로 표시) 예약만 포함
-      return (startHour >= 7 && startHour <= 23) || (startHour >= 0 && startHour <= 5);
-    });
+    // 과거 예약은 필터링하지 않고, 오늘 예약만 시간별로 필터링
+    let filteredReservations = reservations || [];
+    
+    if (mode !== 'past') {
+      // 예약을 시간별로 필터링 (7시~29시 기준)
+      filteredReservations = filteredReservations.filter(reservation => {
+        const startHour = parseInt(reservation.start_time.split(':')[0]);
+        
+        // 7시~23시 또는 0시~5시(24시~29시로 표시) 예약만 포함
+        return (startHour >= 7 && startHour <= 23) || (startHour >= 0 && startHour <= 5);
+      });
+    }
 
     return NextResponse.json({ 
       data: filteredReservations,
-      today
+      today,
+      mode
     });
 
   } catch (error) {
