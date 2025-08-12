@@ -443,7 +443,7 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       total_amount: totalAmount,
       status: reservation.status.value,
       reservation_number: reservationNumber,
-      user_notes: null, // 기본값
+      user_notes: reservation.note || null, // entity의 note를 user_notes로 매핑
       credit_type: 'freeplay', // 기본값
       payment_method: 'cash', // 기본값
       payment_status: 'pending', // 기본값

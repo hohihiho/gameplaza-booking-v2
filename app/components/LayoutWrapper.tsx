@@ -11,11 +11,41 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   
   // 로그인한 사용자의 프로필 체크
-  useProfileCheck();
+  const { isCheckingProfile, isLoading } = useProfileCheck();
   
   // 회원가입, 로그인, 이용약관, 환영 페이지에서는 사이드바와 하단바 숨기기
   const hideNavigation = pathname === '/signup' || pathname === '/login' || pathname === '/terms' || pathname === '/welcome';
   
+  // 프로필 체크 중이거나 세션 로딩 중일 때 로딩 화면 표시 (특정 페이지 제외)
+  const excludedPaths = ['/signup', '/login', '/terms', '/welcome', '/api/auth'];
+  const shouldShowLoading = (isCheckingProfile || isLoading) && 
+                           !excludedPaths.some(path => pathname.startsWith(path));
+  
+  // 로딩 화면 표시
+  if (shouldShowLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        <div className="text-center">
+          <div className="relative">
+            {/* 로딩 인디케이터 */}
+            <div className="flex justify-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              게임플라자
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              로딩 중...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (hideNavigation) {
     return (
       <div className="min-h-screen">

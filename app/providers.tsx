@@ -2,6 +2,8 @@
 
 import { SessionProvider } from 'next-auth/react'
 import { useEffect } from 'react'
+import { ModalProvider, modal } from '@/hooks/useModal'
+import { ToastProvider } from '@/hooks/useToast'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -22,10 +24,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing
               if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
+                newWorker.addEventListener('statechange', async () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // 새 버전이 설치되었을 때 사용자에게 알림
-                    if (confirm('새로운 버전이 있습니다. 새로고침하시겠습니까?')) {
+                    const confirmed = await modal.confirm(
+                      '새로운 버전이 있습니다. 새로고침하시겠습니까?',
+                      '업데이트 알림'
+                    );
+                    if (confirmed) {
                       window.location.reload()
                     }
                   }
@@ -72,6 +78,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
     >
       {children}
+      <ModalProvider />
+      <ToastProvider />
     </SessionProvider>
   )
 }

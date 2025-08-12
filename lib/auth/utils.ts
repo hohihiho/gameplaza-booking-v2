@@ -55,6 +55,9 @@ export async function getCurrentUser(): Promise<ExtendedUser | null> {
       .eq('user_id', userData.id)
       .single();
 
+    // 세션의 isAdmin 정보도 확인 (NextAuth에서 이미 확인했을 수 있음)
+    const isAdmin = !!adminData || (session.user as any).isAdmin === true;
+
     return {
       id: userData.id,
       email: userData.email,
@@ -62,8 +65,8 @@ export async function getCurrentUser(): Promise<ExtendedUser | null> {
       nickname: userData.nickname || undefined,
       phone: userData.phone || undefined,
       image: session.user.image,
-      role: adminData ? 'admin' : 'user',
-      isAdmin: !!adminData,
+      role: isAdmin ? 'admin' : 'user',
+      isAdmin: isAdmin,
       isSuperAdmin: adminData?.is_super_admin || false
     };
   } catch (error) {

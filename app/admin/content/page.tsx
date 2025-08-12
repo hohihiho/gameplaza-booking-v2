@@ -6,11 +6,7 @@ import { motion } from 'framer-motion';
 import { 
   ChevronLeft,
   ChevronRight,
-  // FileText,
   Info,
-  Calendar,
-  // Settings,
-  Edit3,
   Gamepad2
 } from 'lucide-react';
 
@@ -37,20 +33,6 @@ export default function ContentMenuPage() {
       icon: Gamepad2,
       href: '/admin/content/machine-guide',
       color: 'bg-orange-500'
-    },
-    {
-      title: '오락실 이용안내',
-      description: '오락실 영업 정보와 이용 방법 안내 페이지를 편집합니다',
-      icon: Edit3,
-      href: '/guide',
-      color: 'bg-green-500'
-    },
-    {
-      title: '예약 안내',
-      description: '예약 시스템 사용 방법과 주의사항 안내 페이지를 편집합니다',
-      icon: Calendar,
-      href: '/guide/reservation',
-      color: 'bg-purple-500'
     }
   ];
 

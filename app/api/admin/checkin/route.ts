@@ -64,9 +64,10 @@ export async function GET(request: NextRequest) {
       `);
 
     if (mode === 'past') {
-      // 과거 날짜의 승인된 예약 (체크인하지 않은 예약)
+      // 과거 날짜의 미결제 예약 (결제 완료되지 않은 모든 예약)
       query = query
-        .eq('status', 'approved')
+        .in('status', ['approved', 'checked_in'])  // 승인됨 또는 체크인됨
+        .or('payment_status.is.null,payment_status.neq.paid')  // 결제 상태가 null이거나 paid가 아닌 경우
         .lt('date', today)
         .order('date', { ascending: false })
         .order('start_time', { ascending: true });

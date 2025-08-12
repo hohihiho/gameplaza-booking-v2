@@ -46,9 +46,12 @@ export async function GET() {
       });
     }
 
+    // ndz5496@gmail.com은 항상 슈퍼관리자로 처리
+    const isSuperAdmin = session.user.email === 'ndz5496@gmail.com' || adminData.is_super_admin;
+    
     return NextResponse.json({ 
       isAdmin: true, 
-      role: adminData.is_super_admin ? 'super_admin' : 'admin',
+      role: isSuperAdmin ? 'super_admin' : 'admin',
       email: session.user.email
     });
 

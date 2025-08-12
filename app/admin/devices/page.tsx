@@ -930,9 +930,9 @@ export default function DevicesPage() {
           {categories.map((category, index) => (
             <motion.div
               key={category.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ duration: 0.2, delay: index * 0.02 }}
               draggable="false"
               onDragOver={(e) => handleCategoryDragOver(e, index)}
               onDragLeave={handleCategoryDragLeave}
@@ -1235,9 +1235,9 @@ export default function DevicesPage() {
           {categoryTypes.map((type, index) => (
             <motion.div
               key={type.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ duration: 0.2, delay: index * 0.02 }}
               draggable="false"
               onDragOver={(e) => handleTypeDragOver(e, index)}
               onDragLeave={handleTypeDragLeave}

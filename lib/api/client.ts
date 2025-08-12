@@ -193,17 +193,21 @@ class ApiClient {
     date: string;
     startHour: number;
     endHour: number;
+    creditType?: string;
+    playerCount?: number;
     userNotes?: string;
   }): Promise<V2Reservation> {
-    const endpoint = '/reservations/create';
+    const endpoint = '/reservations';
     
-    // API가 camelCase를 기대함
+    // API가 snake_case를 기대함
     const requestData = {
-      deviceId: data.deviceId,
+      device_id: data.deviceId,
       date: data.date,
-      startHour: data.startHour,
-      endHour: data.endHour,
-      userNotes: data.userNotes
+      start_hour: data.startHour,
+      end_hour: data.endHour,
+      credit_type: data.creditType || 'freeplay',
+      player_count: data.playerCount || 1,
+      user_notes: data.userNotes
     };
     
     const response = await this.fetch<{ reservation: V2Reservation }>(endpoint, {

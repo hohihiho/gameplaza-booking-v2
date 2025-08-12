@@ -17,6 +17,7 @@ export interface ReservationProps {
   actualStartTime?: Date | null
   actualEndTime?: Date | null
   note?: string | null
+  userNotes?: string | null  // userNotes도 지원
   totalAmount?: number | null
   createdAt?: Date
   updatedAt?: Date
@@ -59,7 +60,7 @@ export class Reservation {
       props.checkedInAt || null,
       props.actualStartTime || null,
       props.actualEndTime || null,
-      props.note || null,
+      props.note || props.userNotes || null,  // note 또는 userNotes 사용
       props.totalAmount || null,
       props.createdAt || now,
       props.updatedAt || now

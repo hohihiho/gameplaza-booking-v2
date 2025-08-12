@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReservations, cancelReservation } from '@/lib/api/reservations';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useApiError } from '@/lib/hooks/useApiError';
+import useModal from '@/hooks/useModal';
+import useToast from '@/hooks/useToast';
 
 
 
@@ -53,6 +55,8 @@ export default function ReservationsPage() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { handleError } = useApiError();
+  const modal = useModal();
+  const toast = useToast();
   
   const [activeTab, setActiveTab] = useState('all');
   const [reservations, setReservations] = useState<any[]>([]);
@@ -415,7 +419,7 @@ export default function ReservationsPage() {
 
   const handleCancel = (reservationId: string) => {
     if (!session) {
-      alert('로그인이 필요합니다');
+      toast.warning('로그인이 필요합니다');
       router.push('/login');
       return;
     }

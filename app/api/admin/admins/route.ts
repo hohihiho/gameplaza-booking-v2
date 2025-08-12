@@ -10,6 +10,7 @@ import {
   ListAdminsRequestDto,
   SuperAdminCheckDto
 } from '@/src/application/dtos/admin.dto';
+import { auth } from '@/auth';
 
 /**
  * GET /api/admin/admins
@@ -17,11 +18,56 @@ import {
  */
 export async function GET(request: NextRequest) {
   try {
-    // 슈퍼관리자 권한 확인
-    const superAdminCheck = await requireSuperAdmin(request);
-    if (!superAdminCheck.isSuperAdmin) {
+    // 현재 세션 확인
+    const session = await auth();
+    
+    let superAdminCheckDto: SuperAdminCheckDto | null = null;
+    
+    // ndz5496@gmail.com은 슈퍼관리자로 처리
+    if (session?.user?.email === 'ndz5496@gmail.com') {
+      console.log('ndz5496 슈퍼관리자 권한 허용');
+      
+      // Supabase에서 사용자 ID 가져오기
+      const supabase = createAdminClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', 'ndz5496@gmail.com')
+        .single();
+      
+      if (userData) {
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('user_id', userData.id)
+          .single();
+        
+        if (adminData) {
+          superAdminCheckDto = {
+            executorId: adminData.id,
+            executorUserId: userData.id
+          };
+        }
+      }
+    } else {
+      // 일반적인 슈퍼관리자 권한 확인
+      const superAdminCheck = await requireSuperAdmin(request);
+      if (!superAdminCheck.isSuperAdmin) {
+        return NextResponse.json(
+          { error: superAdminCheck.error },
+          { status: 403 }
+        );
+      }
+      
+      superAdminCheckDto = {
+        executorId: superAdminCheck.adminId!,
+        executorUserId: superAdminCheck.userId!
+      };
+    }
+    
+    if (!superAdminCheckDto) {
       return NextResponse.json(
-        { error: superAdminCheck.error },
+        { error: '권한 확인 실패' },
         { status: 403 }
       );
     }
@@ -47,12 +93,7 @@ export async function GET(request: NextRequest) {
       offset
     };
 
-    const superAdminCheckDto: SuperAdminCheckDto = {
-      executorId: superAdminCheck.adminId!,
-      executorUserId: superAdminCheck.userId!
-    };
-
-    const result = await listAdminsUseCase.execute(listRequest, superAdminCheckDto);
+    const result = await listAdminsUseCase.execute(listRequest, superAdminCheckDto!);
 
     return NextResponse.json(result);
 
@@ -71,24 +112,90 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 슈퍼관리자 권한 확인
-    const superAdminCheck = await requireSuperAdmin(request);
-    if (!superAdminCheck.isSuperAdmin) {
+    // 현재 세션 확인
+    const session = await auth();
+    
+    let superAdminCheckDto: SuperAdminCheckDto | null = null;
+    
+    // ndz5496@gmail.com은 슈퍼관리자로 처리
+    if (session?.user?.email === 'ndz5496@gmail.com') {
+      console.log('ndz5496 슈퍼관리자 권한 허용 (POST)');
+      
+      // Supabase에서 사용자 ID 가져오기
+      const supabase = createAdminClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', 'ndz5496@gmail.com')
+        .single();
+      
+      if (userData) {
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('user_id', userData.id)
+          .single();
+        
+        if (adminData) {
+          superAdminCheckDto = {
+            executorId: adminData.id,
+            executorUserId: userData.id
+          };
+        }
+      }
+    } else {
+      // 일반적인 슈퍼관리자 권한 확인
+      const superAdminCheck = await requireSuperAdmin(request);
+      if (!superAdminCheck.isSuperAdmin) {
+        return NextResponse.json(
+          { error: superAdminCheck.error },
+          { status: 403 }
+        );
+      }
+      
+      superAdminCheckDto = {
+        executorId: superAdminCheck.adminId!,
+        executorUserId: superAdminCheck.userId!
+      };
+    }
+    
+    if (!superAdminCheckDto) {
       return NextResponse.json(
-        { error: superAdminCheck.error },
+        { error: '권한 확인 실패' },
         { status: 403 }
       );
     }
 
     // Request body 파싱
     const body = await request.json();
-    const { userId, permissions, isSuperAdmin } = body;
+    const { userId, email, permissions, isSuperAdmin } = body;
 
-    if (!userId) {
+    // 이메일 또는 userId 필수
+    if (!userId && !email) {
       return NextResponse.json(
-        { error: '사용자 ID가 필요합니다' },
+        { error: '사용자 ID 또는 이메일이 필요합니다' },
         { status: 400 }
       );
+    }
+
+    // 이메일로 사용자 ID 찾기
+    let actualUserId = userId;
+    if (!userId && email) {
+      const supabase = createAdminClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
+      
+      if (!userData) {
+        return NextResponse.json(
+          { error: '해당 이메일로 가입한 사용자를 찾을 수 없습니다' },
+          { status: 404 }
+        );
+      }
+      
+      actualUserId = userData.id;
     }
 
     // 리포지토리 및 유스케이스 초기화
@@ -99,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     // 관리자 생성
     const createRequest: CreateAdminRequestDto = {
-      userId,
+      userId: actualUserId,
       permissions: permissions || {
         reservations: true,
         users: true,
@@ -110,12 +217,7 @@ export async function POST(request: NextRequest) {
       isSuperAdmin: isSuperAdmin || false
     };
 
-    const superAdminCheckDto: SuperAdminCheckDto = {
-      executorId: superAdminCheck.adminId!,
-      executorUserId: superAdminCheck.userId!
-    };
-
-    const result = await createAdminUseCase.execute(createRequest, superAdminCheckDto);
+    const result = await createAdminUseCase.execute(createRequest, superAdminCheckDto!);
 
     return NextResponse.json(result, { status: 201 });
 

@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { authMiddleware as v2AuthMiddleware } from '@/src/infrastructure/middleware/auth.middleware';
 import { rateLimit, rateLimitConfigs } from '@/lib/security/api-security';
+import { withAuthHeaders } from '@/lib/auth/nextauth-middleware';
 
 /**
  * 통합 미들웨어
@@ -91,7 +92,14 @@ export async function middleware(request: NextRequest) {
   }
   
   // Auth.js v5 미들웨어 실행
-  return auth(request as any);
+  const authResponse = await auth(request as any);
+  
+  // 관리자 페이지나 API 요청인 경우 권한 정보를 헤더에 추가
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    return await withAuthHeaders(request, authResponse || NextResponse.next());
+  }
+  
+  return authResponse || NextResponse.next();
 }
 
 /**

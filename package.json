@@ -134,8 +134,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
-    "@stagewise-plugins/react": "^0.6.2",
-    "@stagewise/toolbar-next": "^0.6.2",
     "@supabase/mcp-server-supabase": "^0.4.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

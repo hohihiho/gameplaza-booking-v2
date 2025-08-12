@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createServerClient } from '@supabase/ssr';
 import { isSuperAdminOnlyPath } from './superadmin';
+import { auth } from '@/auth';
 
 // Supabase 토큰 확인
 async function getSupabaseUser(request: NextRequest) {
@@ -92,44 +93,50 @@ const adminCheckCache = new Map<string, AdminStatus>();
 const CACHE_TTL = 60 * 1000; // 1분
 
 async function checkAdminStatus(email: string): Promise<{ isAdmin: boolean; isSuperAdmin: boolean }> {
-  // 캐시 확인
-  const cached = adminCheckCache.get(email);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return { isAdmin: cached.isAdmin, isSuperAdmin: cached.isSuperAdmin };
-  }
+  // 캐시 확인 (일시적으로 비활성화)
+  // const cached = adminCheckCache.get(email);
+  // if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+  //   return { isAdmin: cached.isAdmin, isSuperAdmin: cached.isSuperAdmin };
+  // }
   
   try {
     const supabaseAdmin = createAdminClient();
     
     // 사용자 조회
-    const { data: userData } = await supabaseAdmin
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, role')
       .eq('email', email)
       .single();
     
-    if (!userData) {
+    if (userError || !userData) {
+      console.log('[checkAdminStatus] User not found:', email, userError);
       adminCheckCache.set(email, { isAdmin: false, isSuperAdmin: false, timestamp: Date.now() });
       return { isAdmin: false, isSuperAdmin: false };
     }
     
-    // 역할로 먼저 확인
-    if (userData.role === 'superadmin') {
-      adminCheckCache.set(email, { isAdmin: true, isSuperAdmin: true, timestamp: Date.now() });
-      return { isAdmin: true, isSuperAdmin: true };
-    }
+    console.log('[checkAdminStatus] User found:', userData);
     
-    if (userData.role === 'admin') {
-      // admins 테이블에서 추가 정보 확인
-      const { data: adminData } = await supabaseAdmin
-        .from('admins')
-        .select('isSuperAdmin')
-        .eq('userId', userData.id)
-        .single();
-      
-      const isSuperAdmin = adminData?.isSuperAdmin || false;
+    // admins 테이블에서 관리자 정보 확인 (role에 관계없이)
+    const { data: adminData, error: adminError } = await supabaseAdmin
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+    
+    console.log('[checkAdminStatus] Admin data:', adminData, 'Error:', adminError);
+    
+    if (adminData) {
+      // admins 테이블에 레코드가 있으면 관리자
+      const isSuperAdmin = adminData.is_super_admin || false;
       adminCheckCache.set(email, { isAdmin: true, isSuperAdmin, timestamp: Date.now() });
       return { isAdmin: true, isSuperAdmin };
+    }
+    
+    // 역할로도 확인 (하위 호환성)
+    if (userData.role === 'superadmin' || userData.role === 'admin') {
+      adminCheckCache.set(email, { isAdmin: true, isSuperAdmin: userData.role === 'superadmin', timestamp: Date.now() });
+      return { isAdmin: true, isSuperAdmin: userData.role === 'superadmin' };
     }
     
     // 일반 사용자
@@ -231,4 +238,59 @@ export function clearAdminCache() {
       adminCheckCache.delete(email);
     }
   }
+}
+
+/**
+ * API 라우트용 인증 래퍼
+ */
+export function withAuth(
+  handler: (req: NextRequest, context?: any) => Promise<NextResponse>,
+  options?: { requireAdmin?: boolean; requireSuperAdmin?: boolean }
+) {
+  return async (req: NextRequest, context?: any) => {
+    console.log('[withAuth] Starting authentication check');
+    console.log('[withAuth] Options:', options);
+    
+    // NextAuth 세션 확인
+    const session = await auth();
+    console.log('[withAuth] Session:', session);
+    
+    // 인증되지 않은 경우
+    if (!session?.user?.email) {
+      console.log('[withAuth] No session or email found');
+      return NextResponse.json(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('[withAuth] User email:', session.user.email);
+    
+    // 관리자 권한이 필요한 경우
+    if (options?.requireAdmin || options?.requireSuperAdmin) {
+      console.log('[withAuth] Checking admin status for:', session.user.email);
+      const adminStatus = await checkAdminStatus(session.user.email);
+      console.log('[withAuth] Admin status:', adminStatus);
+      
+      if (!adminStatus.isAdmin) {
+        console.log('[withAuth] User is not admin');
+        return NextResponse.json(
+          { error: 'Forbidden - Admin access required', code: 'FORBIDDEN' },
+          { status: 403 }
+        );
+      }
+      
+      // 슈퍼관리자 권한이 필요한 경우
+      if (options?.requireSuperAdmin && !adminStatus.isSuperAdmin) {
+        return NextResponse.json(
+          { error: 'Forbidden - Super admin access required', code: 'FORBIDDEN_SUPERADMIN' },
+          { status: 403 }
+        );
+      }
+    }
+    
+    // 인증된 요청 처리
+    console.log('[withAuth] Authentication successful, calling handler');
+    return handler(req, context);
+  };
 }

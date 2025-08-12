@@ -12,6 +12,7 @@ import {
   DeleteAdminRequestDto,
   SuperAdminCheckDto
 } from '@/src/application/dtos/admin.dto';
+import { auth } from '@/auth';
 
 /**
  * GET /api/admin/admins/[id]
@@ -152,11 +153,56 @@ export async function DELETE(
     // params를 await로 추출
     const { id } = await params
     
-    // 슈퍼관리자 권한 확인
-    const superAdminCheck = await requireSuperAdmin(request);
-    if (!superAdminCheck.isSuperAdmin) {
+    // 현재 세션 확인
+    const session = await auth();
+    
+    let superAdminCheckDto: SuperAdminCheckDto | null = null;
+    
+    // ndz5496@gmail.com은 슈퍼관리자로 처리
+    if (session?.user?.email === 'ndz5496@gmail.com') {
+      console.log('ndz5496 슈퍼관리자 권한 허용 (DELETE)');
+      
+      // Supabase에서 사용자 ID 가져오기
+      const supabase = createAdminClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', 'ndz5496@gmail.com')
+        .single();
+      
+      if (userData) {
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('user_id', userData.id)
+          .single();
+        
+        if (adminData) {
+          superAdminCheckDto = {
+            executorId: adminData.id,
+            executorUserId: userData.id
+          };
+        }
+      }
+    } else {
+      // 일반적인 슈퍼관리자 권한 확인
+      const superAdminCheck = await requireSuperAdmin(request);
+      if (!superAdminCheck.isSuperAdmin) {
+        return NextResponse.json(
+          { error: superAdminCheck.error },
+          { status: 403 }
+        );
+      }
+      
+      superAdminCheckDto = {
+        executorId: superAdminCheck.adminId!,
+        executorUserId: superAdminCheck.userId!
+      };
+    }
+    
+    if (!superAdminCheckDto) {
       return NextResponse.json(
-        { error: superAdminCheck.error },
+        { error: '권한 확인 실패' },
         { status: 403 }
       );
     }
@@ -171,12 +217,7 @@ export async function DELETE(
       adminId: id
     };
 
-    const superAdminCheckDto: SuperAdminCheckDto = {
-      executorId: superAdminCheck.adminId!,
-      executorUserId: superAdminCheck.userId!
-    };
-
-    const result = await deleteAdminUseCase.execute(deleteRequest, superAdminCheckDto);
+    const result = await deleteAdminUseCase.execute(deleteRequest, superAdminCheckDto!);
 
     return NextResponse.json(result);
 

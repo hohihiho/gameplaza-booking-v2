@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
       endHour: data.end_hour,
       creditType: data.credit_type,
       playerCount: data.player_count,
+      userNotes: data.user_notes,
       isAdmin: isAdmin
     })
 
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // v2 응답 형식 (snake_case)
-    const response = {
+    const reservation = {
       id: result.reservation.id,
       reservation_number: result.reservationNumber,
       user_id: result.reservation.userId,
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
       updated_at: result.reservation.updatedAt.toISOString()
     }
 
-    return NextResponse.json(response, { status: 201 })
+    return NextResponse.json({ reservation }, { status: 201 })
 
   } catch (error) {
     logError(error, 'POST /api/v2/reservations')

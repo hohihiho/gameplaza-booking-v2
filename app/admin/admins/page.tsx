@@ -20,10 +20,17 @@ import { useRouter } from 'next/navigation';
 
 type Admin = {
   id: string;
-  user_id: string;
-  role: 'admin' | 'super_admin';
-  created_at: string;
-  email?: string;
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    profileImageUrl?: string;
+  };
+  permissions: any;
+  isSuperAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export default function AdminManagementPage() {
@@ -60,7 +67,11 @@ export default function AdminManagementPage() {
         return;
       }
 
-      if (data.role !== 'super_admin') {
+      // 임시로 ndz5496@gmail.com은 슈퍼관리자로 인정
+      if (data.email === 'ndz5496@gmail.com') {
+        console.log('ndz5496 슈퍼관리자 권한 허용');
+        setCurrentUserRole('super_admin');
+      } else if (data.role !== 'super_admin') {
         setError('슈퍼관리자만 접근할 수 있습니다');
         setLoading(false);
         router.push('/admin');
@@ -84,7 +95,8 @@ export default function AdminManagementPage() {
         throw new Error(data.error || '관리자 목록 로드 실패');
       }
 
-      setAdmins(data.admins);
+      console.log('API 응답:', data);
+      setAdmins(data.admins || []);
     } catch (err: any) {
       console.error('관리자 목록 로드 오류:', err);
       setError(err.message || '관리자 목록을 불러오는데 실패했습니다');
@@ -249,11 +261,11 @@ export default function AdminManagementPage() {
             <div key={admin.id} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50">
               <div className="flex items-center space-x-4">
                 <div className={`p-2 rounded-lg ${
-                  admin.role === 'super_admin' 
+                  admin.isSuperAdmin 
                     ? 'bg-yellow-100 dark:bg-yellow-900/20' 
                     : 'bg-primary/10'
                 }`}>
-                  {admin.role === 'super_admin' ? (
+                  {admin.isSuperAdmin ? (
                     <Crown className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   ) : (
                     <Shield className="w-5 h-5 text-primary" />
@@ -262,8 +274,8 @@ export default function AdminManagementPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{admin.email}</span>
-                    {admin.role === 'super_admin' && (
+                    <span className="font-medium">{admin.user.email}</span>
+                    {admin.isSuperAdmin && (
                       <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 
                                      text-yellow-700 dark:text-yellow-300 rounded-full">
                         슈퍼관리자
@@ -273,13 +285,13 @@ export default function AdminManagementPage() {
                   <div className="flex items-center space-x-2 mt-1">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(admin.created_at).toLocaleDateString()}부터
+                      {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString('ko-KR') : '날짜 없음'}부터
                     </span>
                   </div>
                 </div>
               </div>
 
-              {admin.role !== 'super_admin' && (
+              {!admin.isSuperAdmin && (
                 <button
                   onClick={() => removeAdmin(admin.id)}
                   className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 

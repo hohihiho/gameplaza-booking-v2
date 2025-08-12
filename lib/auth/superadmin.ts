@@ -28,9 +28,9 @@ export async function getSuperAdminInfo(userId: string): Promise<SuperAdminCheck
     // admins 테이블에서 슈퍼관리자 정보 조회
     const { data: adminData, error } = await supabaseAdmin
       .from('admins')
-      .select('id, userId, isSuperAdmin')
-      .eq('userId', userId)
-      .eq('isSuperAdmin', true)
+      .select('id, user_id, is_super_admin')
+      .eq('user_id', userId)
+      .eq('is_super_admin', true)
       .single();
     
     if (error || !adminData) {
@@ -40,7 +40,7 @@ export async function getSuperAdminInfo(userId: string): Promise<SuperAdminCheck
     return {
       isSuperAdmin: true,
       adminId: adminData.id,
-      userId: adminData.userId
+      userId: adminData.user_id
     };
   } catch (error) {
     console.error('Super admin check error:', error);

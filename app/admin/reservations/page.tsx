@@ -20,6 +20,7 @@ import {
   Gamepad2,
   Phone,
   MessageSquare,
+  MessageCircle,
   Eye,
   X
 } from 'lucide-react';
@@ -145,6 +146,14 @@ export default function ReservationManagementPage() {
   // 데이터 정렬 함수 (공통 사용)
   const sortReservationsData = (data: any[]) => {
     console.log('정렬 전 데이터:', data.map(d => ({ id: d.id, status: d.status, date: d.date, start_time: d.start_time })));
+    console.log('오늘 날짜:', new Date().toISOString().split('T')[0]);
+    
+    // 현재 시점 계산 (KST 기준)
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0];
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
     
     const sorted = [...data].sort((a, b) => {
       // 1. 상태별 우선순위 (기획서 기준: 대기중 → 승인 → 체크인 → 완료/취소)
@@ -175,6 +184,36 @@ export default function ReservationManagementPage() {
           return a.date ? -1 : (b.date ? 1 : 0);
         }
         
+        // 과거/미래 여부 판단
+        const aIsPast = a.date < currentDate || 
+                        (a.date === currentDate && 
+                         a.start_time && 
+                         parseInt(a.start_time.split(':')[0]) * 60 + parseInt(a.start_time.split(':')[1] || '0') < currentTotalMinutes);
+        
+        const bIsPast = b.date < currentDate || 
+                        (b.date === currentDate && 
+                         b.start_time && 
+                         parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1] || '0') < currentTotalMinutes);
+        
+        // 과거와 미래가 섞여있으면, 미래가 먼저 (과거는 후순위)
+        if (aIsPast !== bIsPast) {
+          return aIsPast ? 1 : -1;  // 미래 예약이 먼저
+        }
+        
+        // 둘 다 과거 예약이면 최신순(내림차순)으로 정렬
+        if (aIsPast && bIsPast) {
+          // 날짜가 최신인 것이 먼저 (내림차순)
+          const dateDiff = b.date.localeCompare(a.date);
+          if (dateDiff !== 0) {
+            return dateDiff;
+          }
+          // 같은 날짜면 시간이 늦은 것이 먼저
+          const aMinutes = parseInt(a.start_time?.split(':')[0] || '0') * 60 + parseInt(a.start_time?.split(':')[1] || '0');
+          const bMinutes = parseInt(b.start_time?.split(':')[0] || '0') * 60 + parseInt(b.start_time?.split(':')[1] || '0');
+          return bMinutes - aMinutes;
+        }
+        
+        // 둘 다 미래 예약이면 기존 로직대로 (가까운 날짜 먼저)
         // 영업일 기준으로 날짜 계산
         const aBusinessDate = getBusinessDate(a.date, a.start_time || '00:00:00');
         const bBusinessDate = getBusinessDate(b.date, b.start_time || '00:00:00');
@@ -351,7 +390,7 @@ export default function ReservationManagementPage() {
             })(),
             total_price: typeof res.total_amount === 'string' ? parseFloat(res.total_amount) : (res.total_amount || 0),
             status: res.status,
-            notes: res.user_notes,
+            notes: res.user_notes || res.notes,  // user_notes가 있으면 사용, 없으면 notes 사용
             admin_notes: res.admin_notes,
             created_at: res.created_at,
             reviewed_at: res.approved_at || res.updated_at,
@@ -360,6 +399,13 @@ export default function ReservationManagementPage() {
         // v1 API 지원 제거됨
       });
 
+      // 디버깅: user_notes 확인
+      console.log('관리자 예약 데이터 샘플:', formattedData.slice(0, 3).map(r => ({
+        id: r.id,
+        notes: r.notes,
+        raw_data: r
+      })));
+      
       setAllReservations(formattedData);
       
       // 각 탭의 개수 계산
@@ -367,6 +413,7 @@ export default function ReservationManagementPage() {
         all: formattedData.length,
         pending: formattedData.filter(r => r.status === 'pending').length,
         approved: formattedData.filter(r => r.status === 'approved').length,
+        checked_in: formattedData.filter(r => r.status === 'checked_in').length,
         cancelled: formattedData.filter(r => r.status === 'cancelled' || r.status === 'rejected').length,
         completed: formattedData.filter(r => r.status === 'completed').length,
         no_show: formattedData.filter(r => r.status === 'no_show').length
@@ -668,10 +715,41 @@ export default function ReservationManagementPage() {
         <div className="w-full px-3 sm:px-6">
           {/* 페이지 타이틀 */}
           <div className="pt-4 pb-3">
-            <h1 className="text-xl sm:text-2xl font-bold dark:text-white mb-1">예약 관리</h1>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              예약 요청을 검토하고 승인/취소합니다 (최근 200건 표시, 더 많은 데이터는 검색 사용)
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold dark:text-white mb-1">예약 관리</h1>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  예약 요청을 검토하고 승인/취소합니다 (최근 200건 표시, 더 많은 데이터는 검색 사용)
+                </p>
+              </div>
+              {/* 조기영업 일정 관리 버튼 */}
+              <button
+                onClick={async () => {
+                  if (confirm('누락된 조기영업 일정을 검사하고 자동 생성하시겠습니까?')) {
+                    try {
+                      const response = await fetch('/api/admin/schedule/check-missing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ autoFix: true })
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        alert(`${result.summary.created}개의 조기영업 일정이 생성되었습니다.`);
+                      } else {
+                        alert(result.message || '일정 생성에 실패했습니다.');
+                      }
+                    } catch (error) {
+                      alert('오류가 발생했습니다.');
+                      console.error(error);
+                    }
+                  }
+                }}
+                className="px-3 py-2 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <AlertCircle className="w-4 h-4 inline mr-1" />
+                조기영업 일정 점검
+              </button>
+            </div>
           </div>
 
           {/* 상태 필터 탭 - 모바일 최적화 */}
@@ -698,6 +776,7 @@ export default function ReservationManagementPage() {
                     {status === 'all' && '전체'}
                     {status === 'pending' && '대기'}
                     {status === 'approved' && '승인'}
+                    {status === 'checked_in' && '체크인'}
                     {status === 'cancelled' && '취소'}
                     {status === 'completed' && '완료'}
                     {status === 'no_show' && '노쇼'}
@@ -785,7 +864,10 @@ export default function ReservationManagementPage() {
             <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(prev - 1, 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   disabled={currentPage === 1}
                   className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -797,7 +879,10 @@ export default function ReservationManagementPage() {
                 </span>
                 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)))}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
                   className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -819,18 +904,18 @@ export default function ReservationManagementPage() {
               .map((reservation, index) => (
               <motion.div
                 key={reservation.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+                transition={{ duration: 0.2, delay: index * 0.02 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
               >
                 {/* 모바일: 카드 레이아웃 */}
                 <div className="md:hidden">
-                  <div className="p-3">
+                  <div className="px-4 py-4">
                     {/* 상단: 상태와 액션 버튼 */}
                     <div className="flex items-center justify-between mb-3">
                       {getStatusBadge(reservation.status)}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5" style={{ paddingRight: '8px' }}>
                         {reservation.status === 'pending' && (
                           <>
                             <button
@@ -854,6 +939,7 @@ export default function ReservationManagementPage() {
                         <button
                           onClick={() => setSelectedReservation(reservation)}
                           className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          title="상세 보기"
                         >
                           <Eye className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                         </button>
@@ -929,13 +1015,18 @@ export default function ReservationManagementPage() {
                       </div>
                     </div>
 
-                    {/* 메모 */}
+                    {/* 사용자 요청사항 */}
                     {reservation.notes && (
-                      <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          <MessageSquare className="w-3 h-3 inline mr-1" />
-                          {reservation.notes}
-                        </p>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-2">
+                          <MessageCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-0.5">사용자 메모</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 break-words">
+                              {reservation.notes}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1028,14 +1119,19 @@ export default function ReservationManagementPage() {
                     </div>
                   </div>
 
-                  {/* 메모가 있는 경우 */}
+                  {/* 사용자 메모가 있는 경우 */}
                   {reservation.notes && (
                     <div className="px-4 pb-4">
-                      <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          <MessageSquare className="w-4 h-4 inline mr-1" />
-                          {reservation.notes}
-                        </p>
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-2">
+                          <MessageCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <span className="text-xs font-medium text-blue-900 dark:text-blue-100 block mb-0.5">사용자 메모</span>
+                            <span className="text-sm text-blue-700 dark:text-blue-300">
+                              {reservation.notes}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

@@ -88,6 +88,19 @@ export async function POST(
       return NextResponse.json({ error: '노쇼 처리 실패', details: updateError.message }, { status: 500 });
     }
 
+    // 사용자의 노쇼 횟수 증가
+    const { error: userUpdateError } = await supabaseAdmin
+      .from('users')
+      .update({ 
+        no_show_count: supabaseAdmin.raw('no_show_count + 1')
+      })
+      .eq('id', reservation.user_id);
+    
+    if (userUpdateError) {
+      console.error('노쇼 카운트 업데이트 에러:', userUpdateError);
+      // 에러가 발생해도 노쇼 처리는 계속 진행
+    }
+
     // 배정된 기기가 있다면 상태를 사용가능으로 변경
     if (reservation.device_id) {
       await supabaseAdmin

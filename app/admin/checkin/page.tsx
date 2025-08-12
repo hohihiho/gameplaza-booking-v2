@@ -440,7 +440,7 @@ export default function CheckInPage() {
 
       console.log('체크인 처리 성공:', result.data);
 
-      // 로컬 상태 업데이트
+      // 로컬 상태 업데이트 - 오늘 예약
       setTodayReservations(todayReservations.map(r => 
         r.id === selectedReservation.id 
           ? {
@@ -455,6 +455,20 @@ export default function CheckInPage() {
           : r
       ));
       
+      // 과거 예약 리스트에서도 상태 업데이트 (결제 완료 전까지는 유지)
+      setPastReservations(pastReservations.map(r => 
+        r.id === selectedReservation.id 
+          ? {
+              ...r,
+              status: 'checked_in',
+              payment_status: 'pending',
+              assigned_device_number: selectedReservation.assigned_device_number,
+              check_in_time: new Date().toISOString(),
+              notes: additionalNotes ? `${r.notes || ''}\n체크인 메모: ${additionalNotes}` : r.notes
+            }
+          : r
+      ));
+      
       setSelectedReservation(null);
       setAdditionalNotes('');
       setCheckInAmount('');
@@ -462,7 +476,11 @@ export default function CheckInPage() {
       toast.success('체크인 완료', '체크인이 성공적으로 처리되었습니다.');
       
       // 데이터 새로고침
-      await fetchTodayReservations();
+      if (activeTab === 'today') {
+        await fetchTodayReservations();
+      } else {
+        await fetchPastReservations();
+      }
     } catch (error: any) {
       console.error('체크인 처리 실패:', error);
       const errorMessage = error?.message || error?.error || '알 수 없는 오류가 발생했습니다.';
@@ -498,7 +516,7 @@ export default function CheckInPage() {
 
       console.log('결제 확인 성공:', result.data);
 
-      // 로컬 상태 즉시 업데이트
+      // 로컬 상태 즉시 업데이트 - 오늘 예약
       setTodayReservations(prev => prev.map(r => 
         r.id === reservationId 
           ? { 
@@ -510,6 +528,9 @@ export default function CheckInPage() {
           : r
       ));
       
+      // 과거 미체크인 리스트에서 결제 완료된 예약 제거
+      setPastReservations(prev => prev.filter(r => r.id !== reservationId));
+      
       setShowPaymentModal(false);
       setSelectedReservation(null);
       setPaymentMethod('cash');
@@ -517,7 +538,11 @@ export default function CheckInPage() {
       
       // 잠시 후 전체 데이터 새로고침
       setTimeout(() => {
-        fetchTodayReservations();
+        if (activeTab === 'today') {
+          fetchTodayReservations();
+        } else {
+          fetchPastReservations();
+        }
       }, 1000);
       
     } catch (error: any) {
@@ -683,7 +708,7 @@ export default function CheckInPage() {
             }`}
           >
             과거 미체크인
-            {activeTab === 'today' && pastReservations.length === 0 && (
+            {activeTab === 'today' && pastReservations.length > 0 && (
               <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">!</span>
             )}
           </button>
@@ -2183,12 +2208,25 @@ export default function CheckInPage() {
                         throw new Error('노쇼 처리 실패');
                       }
 
-                      // 목록 새로고침
-                      await fetchTodayReservations();
+                      // 로컬 상태에서 즉시 제거
+                      const reservationId = noShowReservation.id;
+                      setTodayReservations(prev => prev.filter(r => r.id !== reservationId));
+                      setPastReservations(prev => prev.filter(r => r.id !== reservationId));
+                      
+                      toast.success('노쇼 처리 완료', '예약이 노쇼 처리되었습니다.');
                       
                       // 모달 닫기
                       setShowNoShowModal(false);
                       setNoShowReservation(null);
+                      
+                      // 목록 새로고침 - 현재 탭에 따라 적절한 함수 호출
+                      setTimeout(() => {
+                        if (activeTab === 'today') {
+                          fetchTodayReservations();
+                        } else {
+                          fetchPastReservations();
+                        }
+                      }, 500);
                     } catch (error) {
                       console.error('노쇼 처리 에러:', error);
                       toast.error('노쇼 처리 실패', '노쇼 처리 중 오류가 발생했습니다.');

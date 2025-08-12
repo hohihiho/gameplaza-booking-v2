@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     })))
     
     // 사용자의 동일 시간대 예약 체크 제거 - 같은 시간대 여러 기기 예약 가능
-    let userReservedTimeSlots: string[] = []
+    const userReservedTimeSlots: string[] = []
 
     // 기기 타입별 예약 현황 맵 생성
     const deviceReservationMap = new Map()
@@ -151,7 +151,9 @@ export async function GET(request: NextRequest) {
     })
     
     // device_types의 rental_settings에서 max_rental_units 가져오기
-    const maxRentalUnits = device.device_types?.rental_settings?.max_rental_units || 4
+    // 설정이 없으면 실제 기기 대수를 기본값으로 사용
+    const deviceCount = await getDeviceCount(device.device_type_id, supabase)
+    const maxRentalUnits = device.device_types?.rental_settings?.max_rental_units || deviceCount
     console.log(`${device.device_types?.name} max_rental_units:`, maxRentalUnits)
     console.log('조기 시간대 예약:', earlySlotReservationCount, '밤샘 시간대 예약:', overnightSlotReservationCount)
 
@@ -162,6 +164,34 @@ export async function GET(request: NextRequest) {
         const timeKey = `${slot.start_time}-${slot.end_time}`
         const deviceReservationStatus = deviceReservationMap.get(timeKey) || []
         const isUserAlreadyReserved = userReservedTimeSlots.includes(timeKey)
+        
+        // 해당 시간대와 겹치는 예약들의 기기 번호 수집
+        const overlappingDevices = new Set<number>()
+        const slotStart = slot.start_time
+        const slotEnd = slot.end_time
+        
+        ;(reservations || []).forEach(reservation => {
+          if (reservation.devices?.device_type_id === device.device_type_id) {
+            // 시간 겹침 확인: 예약 시작 < 슬롯 종료 AND 예약 종료 > 슬롯 시작
+            if (reservation.start_time < slotEnd && reservation.end_time > slotStart) {
+              overlappingDevices.add(reservation.devices.device_number)
+            }
+          }
+        })
+        
+        // 겹치는 기기들의 예약 상태 정보 생성
+        const overlappingDeviceStatus = Array.from(overlappingDevices).map(deviceNum => {
+          const reservation = reservations?.find(r => 
+            r.devices?.device_number === deviceNum && 
+            r.devices?.device_type_id === device.device_type_id &&
+            r.start_time < slotEnd && 
+            r.end_time > slotStart
+          )
+          return {
+            device_number: deviceNum,
+            reservation_status: reservation?.status || 'unknown'
+          }
+        })
         
         return {
           id: slot.id,
@@ -177,26 +207,12 @@ export async function GET(request: NextRequest) {
           },
           available: true, // 모든 시간대 선택 가능 (동시 예약 제한만 확인)
           userAlreadyReserved: false, // 동일 시간대 체크 제거
-          remainingSlots: (() => {
-            // 시간대별 최대 대여 가능 대수 계산
-            const slotStartHour = parseInt(slot.start_time.split(':')[0])
-            let remainingUnits = maxRentalUnits
-            
-            if (slotStartHour >= 7 && slotStartHour <= 14) {
-              // 조기 시간대
-              remainingUnits = Math.max(0, maxRentalUnits - earlySlotReservationCount)
-            } else if (slotStartHour >= 22 || slotStartHour <= 5) {
-              // 밤샘 시간대
-              remainingUnits = Math.max(0, maxRentalUnits - overnightSlotReservationCount)
-            }
-            
-            return remainingUnits
-          })(),
+          remainingSlots: Math.max(0, maxRentalUnits - overlappingDevices.size),
           creditOptions: slot.credit_options || [],
           enable2P: slot.enable_2p || false,
           price2PExtra: slot.price_2p_extra,
           isYouthTime: slot.is_youth_time,
-          device_reservation_status: deviceReservationStatus // 예약된 기기 정보 추가
+          device_reservation_status: overlappingDeviceStatus // 겹치는 기기들의 예약 정보
         }
       })
 
@@ -259,6 +275,24 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * 기기 타입별 실제 대수 조회
+ */
+async function getDeviceCount(deviceTypeId: string, supabase: any): Promise<number> {
+  const { data, error } = await supabase
+    .from('devices')
+    .select('id')
+    .eq('device_type_id', deviceTypeId)
+    .in('status', ['available', 'in_use'])
+  
+  if (error) {
+    console.error('기기 대수 조회 오류:', error)
+    return 3 // 오류시 기본값
+  }
+  
+  return data?.length || 3
 }
 
 /**

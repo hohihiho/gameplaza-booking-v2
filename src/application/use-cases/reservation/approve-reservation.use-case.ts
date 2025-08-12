@@ -93,17 +93,39 @@ export class ApproveReservationUseCase {
     // }
 
     // 8. 조기대여인 경우 자동으로 영업 스케줄 생성
+    let scheduleCreated = false
+    let scheduleError = null
+    
     try {
-      await ScheduleService.handleReservationApproved(reservation.id)
+      // reservation.id가 Value Object인 경우를 대비
+      const reservationId = typeof reservation.id === 'string' 
+        ? reservation.id 
+        : reservation.id.value || reservation.id.toString()
+      
+      console.log('스케줄 서비스 호출 - 예약 ID:', reservationId)
+      await ScheduleService.handleReservationApproved(reservationId)
+      scheduleCreated = true
+      console.log('조기영업 일정 자동 생성 성공')
     } catch (error) {
       // 스케줄 생성 실패는 예약 승인을 막지 않음
+      scheduleError = error instanceof Error ? error.message : '알 수 없는 오류'
       console.error('자동 스케줄 생성 실패:', error)
+      
+      // 조기대여인지 확인
+      const startHour = approvedReservation.timeSlot.startHour
+      if (startHour >= 7 && startHour <= 14) {
+        console.warn(`⚠️ 조기영업 일정 자동 생성 실패 - 예약번호: ${approvedReservation.reservationNumber}`)
+        console.warn(`   날짜: ${approvedReservation.date.dateString}, 시간: ${startHour}:00`)
+        console.warn(`   관리자 페이지에서 "조기영업 일정 점검" 버튼을 클릭하여 수동으로 생성하세요.`)
+      }
     }
 
     return {
       reservation: approvedReservation,
       assignedDeviceNumber: availableDeviceNumber,
-      message: `예약이 승인되었습니다. 기기번호 ${availableDeviceNumber}가 배정되었습니다.`
+      message: `예약이 승인되었습니다. 기기번호 ${availableDeviceNumber}가 배정되었습니다.`,
+      scheduleCreated,
+      scheduleError
     }
   }
 

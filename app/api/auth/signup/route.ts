@@ -28,6 +28,7 @@ export async function POST(request: Request) {
 
     // 먼저 기본 정보만 업데이트
     const updateData: any = {
+      name: nickname, // name 필드에도 닉네임 저장 (호환성을 위해)
       nickname,
       updated_at: new Date().toISOString()
     };

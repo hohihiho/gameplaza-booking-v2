@@ -374,9 +374,9 @@ export default function RentalDevicesPage() {
           {deviceTypes.map((device, index) => (
             <motion.div
               key={device.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ duration: 0.2, delay: index * 0.02 }}
               draggable="false"
               onDragOver={(e) => handleDragOver(e, index)}
               onDragLeave={handleDragLeave}
@@ -652,7 +652,7 @@ export default function RentalDevicesPage() {
                 type="number"
                 min="0"
                 max={selectedDevice.device_count || 0}
-                value={selectedDevice.rental_settings?.max_rental_units || selectedDevice.device_count || 0}
+                value={selectedDevice.rental_settings?.max_rental_units ?? selectedDevice.device_count ?? 0}
                 onChange={async (e) => {
                   const newValue = e.target.value === '' ? null : Number(e.target.value);
                   const updatedDevice = {
@@ -661,7 +661,7 @@ export default function RentalDevicesPage() {
                       credit_types: selectedDevice.rental_settings?.credit_types || ['freeplay'],
                       max_players: selectedDevice.rental_settings?.max_players || 1,
                       ...selectedDevice.rental_settings,
-                      max_rental_units: newValue || undefined
+                      max_rental_units: newValue
                     }
                   };
                   setSelectedDevice(updatedDevice);

@@ -314,11 +314,17 @@ export default function NewReservationPage() {
       const startHour = parseInt(selectedTimeSlotInfo.start_time.split(':')[0]);
       const endHour = parseInt(selectedTimeSlotInfo.end_time.split(':')[0]);
       
+      // 선택된 시간대의 크레딧 옵션 가져오기
+      const creditOption = selectedTimeSlotInfo.credit_options?.[0];
+      const creditType = creditOption?.type || 'freeplay'; // 기본값은 freeplay
+      
       reservationData = {
         deviceId: deviceId,
         date: selectedDate,
         startHour: startHour,
         endHour: endHour,
+        creditType: creditType,
+        playerCount: 1, // 기본값 1명
         userNotes: userNotes || undefined,
         onBehalfUserId: onBehalfUserId || undefined // 대리 예약 대상 사용자
       };
@@ -564,7 +570,7 @@ export default function NewReservationPage() {
                         handleStepChange(3);
                       }
                     }}
-                    disabled={!deviceType.devices?.some((d: any) => d.status === 'available')}
+                    disabled={!deviceType.total_device_count || deviceType.total_device_count === 0}
                     className="p-6 rounded-2xl border-2 transition-all text-left hover:border-indigo-300 dark:hover:border-indigo-600 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
                   >
                     <div className="flex items-center justify-between">
@@ -573,7 +579,22 @@ export default function NewReservationPage() {
                           {deviceType.name}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          사용 가능: {deviceType.devices?.filter((d: any) => d.status === 'available').length || 0}대
+                          {(() => {
+                            // 전체 보유 기기 수
+                            const totalDevices = deviceType.total_device_count || 0;
+                            
+                            // 관리자가 설정한 최대 대여 가능 대수
+                            const maxRental = deviceType.max_rental_units || totalDevices;
+                            
+                            // 표시 형식 결정
+                            if (maxRental < totalDevices) {
+                              // 제한이 있는 경우 (예: 4대 중 3대까지만)
+                              return `${totalDevices}대 보유 (최대 ${maxRental}대 대여 가능)`;
+                            } else {
+                              // 제한이 없는 경우
+                              return `${totalDevices}대 보유`;
+                            }
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -638,6 +659,9 @@ export default function NewReservationPage() {
                         whileTap={isAvailable ? { scale: 0.99 } : {}}
                         onClick={() => {
                           if (isAvailable) {
+                            console.log('시간대 선택됨:', slot.id);
+                            console.log('시간대 객체:', slot);
+                            console.log('예약 상태:', slot.device_reservation_status);
                             setSelectedTimeSlot(slot.id);
                             handleStepChange(4);
                           }
@@ -751,11 +775,17 @@ export default function NewReservationPage() {
                 const selectedDeviceTypeObj = deviceTypes.find(dt => dt.id === selectedDeviceType);
                 const selectedTimeSlotObj = timeSlots.find(ts => ts.id === selectedTimeSlot);
                 
+                // 디버깅용 로그
+                console.log('Selected TimeSlot ID:', selectedTimeSlot);
+                console.log('Selected TimeSlot Object:', selectedTimeSlotObj);
+                console.log('Device Reservation Status:', selectedTimeSlotObj?.device_reservation_status);
+                
                 // 해당 시간대의 예약 상태 맵 생성
                 const deviceReservationMap = new Map();
                 (selectedTimeSlotObj?.device_reservation_status || []).forEach(status => {
                   deviceReservationMap.set(status.device_number, status.reservation_status);
                 });
+                console.log('Device Reservation Map:', Array.from(deviceReservationMap.entries()));
 
                 // 물리적으로 사용 가능한 기기
                 const physicallyAvailableDevices = selectedDeviceTypeObj?.devices

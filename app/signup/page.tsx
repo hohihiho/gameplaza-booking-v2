@@ -8,14 +8,19 @@ import { useSession, signOut } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PrivacyContent from '../../components/legal/PrivacyContent';
+import TermsContent from '../../components/legal/TermsContent';
+import useModal from '@/hooks/useModal';
+import useToast from '@/hooks/useToast';
 
 export default function SignupPage() {
   const [nickname, setNickname] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
+  
+  const modal = useModal();
+  const toast = useToast();
   
   // 약관 동의 상태
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -27,10 +32,6 @@ export default function SignupPage() {
   // 모달 상태
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  
-  // 약관 내용
-  const [termsContent, setTermsContent] = useState('');
-  const [privacyContent, setPrivacyContent] = useState('');
   
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -59,31 +60,6 @@ export default function SignupPage() {
     checkProfile();
   }, [session, status, router, supabase]);
 
-  // 약관 내용 불러오기
-  useEffect(() => {
-    const STORAGE_KEY = 'gameplaza_terms';
-    const savedTerms = localStorage.getItem(STORAGE_KEY);
-    
-    if (savedTerms) {
-      const terms = JSON.parse(savedTerms);
-      
-      // 활성화된 서비스 이용약관 찾기
-      const activeTerms = terms.find((t: any) => 
-        t.type === 'terms_of_service' && t.is_active
-      );
-      if (activeTerms) {
-        setTermsContent(activeTerms.content);
-      }
-      
-      // 활성화된 개인정보 처리방침 찾기
-      const activePrivacy = terms.find((t: any) => 
-        t.type === 'privacy_policy' && t.is_active
-      );
-      if (activePrivacy) {
-        setPrivacyContent(activePrivacy.content);
-      }
-    }
-  }, []);
 
   // 페이지 이탈 감지
   useEffect(() => {
@@ -101,7 +77,7 @@ export default function SignupPage() {
       // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
       if (session?.user && !nickname) {
         signOut({ redirect: false }).then(() => {
-          router.push('/login');
+          router.push('/');
         });
       }
     };
@@ -202,23 +178,22 @@ export default function SignupPage() {
     e.preventDefault();
     
     if (!nickname) {
-      setError('닉네임을 입력해주세요');
+      toast.warning('닉네임을 입력해주세요');
       return;
     }
 
     if (nicknameError) {
-      setError('유효한 닉네임을 입력해주세요');
+      toast.error('유효한 닉네임을 입력해주세요');
       return;
     }
 
     // 필수 약관 동의 확인
     if (!agreeTerms || !agreePrivacy || !agreeAge) {
-      setError('필수 약관에 모두 동의해주세요');
+      toast.warning('필수 약관에 모두 동의해주세요');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       console.log('회원가입 시도:', { nickname, agreeMarketing });
@@ -251,7 +226,7 @@ export default function SignupPage() {
       }, 100);
     } catch (error: any) {
       console.error('Signup error:', error);
-      setError(error.message || '회원가입 중 오류가 발생했습니다');
+      toast.error(error.message || '회원가입 중 오류가 발생했습니다');
     } finally {
       setIsLoading(false);
     }
@@ -275,9 +250,13 @@ export default function SignupPage() {
         >
           {/* 뒤로가기 버튼 */}
           <button
-            onClick={() => {
-              if (confirm('회원가입을 취소하시겠습니까? 입력한 정보는 저장되지 않습니다.')) {
-                signOut({ callbackUrl: '/login' });
+            onClick={async () => {
+              const confirmed = await modal.confirm(
+                '회원가입을 취소하시겠습니까? 입력한 정보는 저장되지 않습니다.',
+                '회원가입 취소'
+              );
+              if (confirmed) {
+                signOut({ callbackUrl: '/' });
               }
             }}
             className="mb-6 inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -305,7 +284,7 @@ export default function SignupPage() {
             {/* 닉네임 */}
             <div>
               <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                닉네임
+                닉네임 <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -335,7 +314,6 @@ export default function SignupPage() {
                 </p>
               )}
             </div>
-
 
             {/* 약관 동의 */}
             <div className="space-y-4 border-t pt-6">
@@ -423,17 +401,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* 에러 및 성공 메시지 */}
-            {error && (
-              <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="p-3 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                {success}
-              </div>
-            )}
 
             {/* 가입 버튼 */}
             <button
@@ -483,10 +450,8 @@ export default function SignupPage() {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-6">
-                <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 font-sans">
-                  {termsContent || '약관 내용을 불러오는 중...'}
-                </pre>
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <TermsContent />
               </div>
               
               <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">
@@ -533,10 +498,8 @@ export default function SignupPage() {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-6">
-                <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 font-sans">
-                  {privacyContent || '개인정보 처리방침을 불러오는 중...'}
-                </pre>
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <PrivacyContent />
               </div>
               
               <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">

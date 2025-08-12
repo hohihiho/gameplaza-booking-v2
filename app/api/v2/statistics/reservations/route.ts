@@ -21,7 +21,7 @@ const getReservationStatisticsSchema = z.object({
  * GET /api/v2/statistics/reservations
  */
 // 성능 최적화: 간단한 메모리 캐시 (5분)
-let statsCache = new Map<string, {
+const statsCache = new Map<string, {
   data: any;
   timestamp: number;
   userId: string;

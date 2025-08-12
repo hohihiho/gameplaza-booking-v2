@@ -442,6 +442,7 @@ export class ScheduleService {
       console.log('예약 정보:', reservation);
 
       let slotType: 'early' | 'overnight' | null = null;
+      let scheduleDate = reservation.date; // 스케줄을 생성할 날짜
       
       // 시간대로 판단
       if (reservation.start_time) {
@@ -451,13 +452,23 @@ export class ScheduleService {
         if (startHour >= 7 && startHour <= 14) {
           slotType = 'early';
         }
-        // 22시 이후 또는 0시-5시 시작은 밤샘영업
-        else if (startHour >= 22 || startHour < 6) {
+        // 22시 이후 시작은 밤샘영업 (전날 날짜에 생성)
+        else if (startHour >= 22) {
           slotType = 'overnight';
+          // 22시 이후 시작은 전날 밤샘영업으로 처리
+          const prevDate = new Date(reservation.date);
+          prevDate.setDate(prevDate.getDate() - 1);
+          scheduleDate = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+          console.log(`22시 이후 시작 - 전날(${scheduleDate}) 밤샘영업으로 처리`);
+        }
+        // 0시-5시 시작은 밤샘영업 (당일 날짜에 생성)
+        else if (startHour < 6) {
+          slotType = 'overnight';
+          console.log(`0시-5시 시작 - 당일(${scheduleDate}) 밤샘영업으로 처리`);
         }
       }
 
-      console.log('시간대 타입:', slotType);
+      console.log('시간대 타입:', slotType, '스케줄 날짜:', scheduleDate);
       
       // 조기대여 또는 밤샘대여인 경우 자동 스케줄 업데이트
       if (slotType === 'early') {
@@ -465,19 +476,25 @@ export class ScheduleService {
         console.log(`조기예약 승인됨, 자동 스케줄 업데이트 시작`);
         await this.updateAutoSchedule(
           reservationId,
-          reservation.date,
+          scheduleDate,
           slotType
         );
-      } else if (slotType === 'overnight' && this.isWeekday(reservation.date)) {
-        // 밤샘영업은 주중(일-목)에만 생성
-        console.log(`밤샘예약 승인됨 (주중), 자동 스케줄 업데이트 시작`);
-        await this.updateAutoSchedule(
-          reservationId,
-          reservation.date,
-          slotType
-        );
-      } else if (slotType === 'overnight' && !this.isWeekday(reservation.date)) {
-        console.log(`밤샘예약이지만 주말(금/토)이므로 자동 스케줄 생성하지 않음`);
+      } else if (slotType === 'overnight') {
+        // 밤샘영업 생성 - 주말 체크는 scheduleDate 기준으로
+        const scheduleDay = new Date(scheduleDate).getDay();
+        const isWeekend = scheduleDay === 5 || scheduleDay === 6; // 금요일 또는 토요일
+        
+        if (!isWeekend) {
+          // 주중(일-목) 밤샘영업 자동 생성
+          console.log(`밤샘예약 승인됨 (주중), 자동 스케줄 업데이트 시작`);
+          await this.updateAutoSchedule(
+            reservationId,
+            scheduleDate,
+            slotType
+          );
+        } else {
+          console.log(`밤샘예약이지만 주말(금/토)이므로 자동 스케줄 생성하지 않음`);
+        }
       } else {
         console.log(`일반 예약이므로 자동 스케줄 생성하지 않음`);
       }

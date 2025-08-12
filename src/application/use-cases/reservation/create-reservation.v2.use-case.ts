@@ -72,7 +72,8 @@ export class CreateReservationV2UseCase {
       userId: request.userId,
       deviceId: request.deviceId,
       date: kstDate,
-      timeSlot: timeSlot
+      timeSlot: timeSlot,
+      userNotes: request.userNotes
     })
 
     // 6. 비즈니스 규칙 검증

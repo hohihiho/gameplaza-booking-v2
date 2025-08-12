@@ -20,20 +20,30 @@ import {
   XCircle,
   Timer,
   User,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  UserX,
+  ShieldCheck
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import useModal from '@/hooks/useModal';
+import useToast from '@/hooks/useToast';
 
 type UserDetail = {
   id: string;
   email: string;
   name: string;
   nickname?: string;
-  phone: string;
+  phone?: string;
   created_at: string;
-  is_banned: boolean;
-  is_admin: boolean;
+  is_blacklisted: boolean;
+  is_banned?: boolean;
+  role: string;
+  admin_notes?: string;
+  no_show_count?: number;
+  isAdmin?: boolean;
+  isSuperAdmin?: boolean;
 };
 
 type ReservationType = {
@@ -42,7 +52,7 @@ type ReservationType = {
   start_time: string;
   end_time: string;
   status: string;
-  total_price: number;
+  total_amount: number;
   device: {
     device_number: number;
     device_type: {
@@ -115,7 +125,9 @@ export default function UserDetailPage() {
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
-  const [supabase] = useState(() => createClient());
+  const supabase = createClient();
+  const modal = useModal();
+  const toast = useToast();
   
   // 상태 관리
   const [user, setUser] = useState<UserDetail | null>(null);
@@ -123,63 +135,81 @@ export default function UserDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedUser, setEditedUser] = useState<Partial<UserDetail>>({});
-  const [activeTab, setActiveTab] = useState<'info' | 'reservations'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'reservations' | 'admin'>('info');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   // 사용자 정보 및 예약 내역 가져오기
   const fetchUserData = async () => {
     setIsLoading(true);
     try {
-      // 사용자 정보
-      const { data: userData, error: userError } = await supabase.from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (userError) throw userError;
-      setUser(userData);
-      setEditedUser(userData);
-
-      // 예약 내역
-      const { data: reservationsData, error: reservationsError } = await supabase.from('reservations')
-        .select(`
-          id,
-          date,
-          start_time,
-          end_time,
-          status,
-          total_price,
-          devices!inner (
-            device_number,
-            device_types!inner (
-              name,
-              model_name
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
-
-      if (reservationsError) throw reservationsError;
-
-      const formattedReservations = (reservationsData || []).map((res: any) => ({
-        id: res.id,
-        date: res.date,
-        start_time: res.start_time,
-        end_time: res.end_time,
-        status: res.status,
-        total_price: res.total_price,
-        device: {
-          device_number: res.devices?.device_number || 0,
-          device_type: {
-            name: res.devices?.device_types?.name || '기기 정보 없음',
-            model_name: res.devices?.device_types?.model_name || ''
-          }
+      // API를 통해 사용자 정보 조회
+      const response = await fetch(`/api/admin/users/${userId}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('사용자 정보 조회 오류:', error);
+        
+        if (response.status === 404) {
+          await modal.error('해당 사용자를 찾을 수 없습니다.');
+          router.back();
+          return;
         }
-      }));
+        
+        await modal.error(`사용자 정보를 불러올 수 없습니다: ${error.error || '알 수 없는 오류'}`);
+        router.back();
+        return;
+      }
+      
+      const data = await response.json();
+      const userData = data.user;
+      
+      // API 응답에서 사용자 역할 정보 사용
+      const userWithRole = {
+        ...userData,
+        role: userData.isAdmin ? 'admin' : 'user',
+        is_blacklisted: userData.is_banned || false
+      };
+      
+      setUser(userWithRole);
+      setEditedUser(userWithRole);
+      setAdminNotes(userData.notes || userData.admin_notes || '');
+
+      // API 응답에서 예약 데이터 사용
+      const reservationsData = data.reservations || [];
+      
+      // 각 예약 데이터 포맷팅
+      const formattedReservations = reservationsData.map((res: any) => {
+        let deviceInfo = null;
+        if (res.devices) {
+          deviceInfo = {
+            device_number: res.devices.device_number,
+            device_type: res.devices.device_types
+          };
+        }
+        
+        return {
+          id: res.id,
+          date: res.date,
+          start_time: res.start_time,
+          end_time: res.end_time,
+          status: res.status,
+          total_amount: res.total_amount || 0,
+          device: {
+            device_number: deviceInfo?.device_number || 0,
+            device_type: {
+              name: deviceInfo?.device_type?.name || '기기 정보 없음',
+              model_name: deviceInfo?.device_type?.model_name || ''
+            }
+          }
+        };
+      });
 
       setReservations(formattedReservations);
     } catch (error) {
       console.error('Error fetching user data:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +229,7 @@ export default function UserDetailPage() {
   const { error } = await supabase.from('users')
         .update({
           nickname: editedUser.nickname,
-          phone: editedUser.phone
+          phone: editedUser.phone || null
         })
         .eq('id', userId);
 
@@ -220,17 +250,78 @@ export default function UserDetailPage() {
     
     try {
       const supabase = createClient();
-  const { error } = await supabase.from('users')
-        .update({ is_banned: !user.is_banned })
+      const { error } = await supabase.from('users')
+        .update({ is_banned: !user.is_blacklisted })
         .eq('id', userId);
 
       if (error) throw error;
 
-      setUser({ ...user, is_banned: !user.is_banned });
-      alert(user.is_banned ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.');
+      setUser({ ...user, is_blacklisted: !user.is_blacklisted });
+      alert(user.is_blacklisted ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.');
+      await fetchUserData();
     } catch (error) {
       console.error('Error updating ban status:', error);
       alert('상태 변경에 실패했습니다.');
+    }
+  };
+
+  // 관리자 권한 토글
+  const toggleAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const supabase = createClient();
+      
+      if (user.role === 'admin') {
+        // 관리자 권한 제거
+        const { error } = await supabase
+          .from('admins')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (error) throw error;
+        alert('관리자 권한이 제거되었습니다.');
+      } else {
+        // 관리자 권한 추가
+        const { error } = await supabase
+          .from('admins')
+          .insert({ 
+            user_id: userId,
+            is_super_admin: false
+          });
+        
+        if (error) throw error;
+        alert('관리자 권한이 부여되었습니다.');
+      }
+      
+      await fetchUserData();
+    } catch (error) {
+      console.error('Error updating admin status:', error);
+      alert('권한 변경에 실패했습니다.');
+    }
+  };
+
+  // 노쇼 카운트는 이제 예약 관리에서 노쇼 처리 시 자동으로 증가합니다
+  // 수동 조작 기능은 제거되었습니다
+
+  // 관리자 메모 저장
+  const saveAdminNotes = async () => {
+    setIsSavingNotes(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('users')
+        .update({ notes: adminNotes })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setIsEditingNotes(false);
+      alert('메모가 저장되었습니다.');
+    } catch (error) {
+      console.error('Error saving admin notes:', error);
+      alert('메모 저장에 실패했습니다.');
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
@@ -241,7 +332,7 @@ export default function UserDetailPage() {
     cancelledReservations: reservations.filter(r => r.status === 'cancelled' || r.status === 'rejected').length,
     totalSpent: reservations
       .filter(r => r.status === 'checked_in')
-      .reduce((sum, r) => sum + r.total_price, 0)
+      .reduce((sum, r) => sum + r.total_amount, 0)
   };
 
   if (isLoading) {
@@ -285,13 +376,13 @@ export default function UserDetailPage() {
             <button
               onClick={toggleBanStatus}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
-                user.is_banned
+                user.is_blacklisted
                   ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/70'
                   : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/70'
               }`}
             >
               <Ban className="w-4 h-4" />
-              {user.is_banned ? '차단 해제' : '차단'}
+              {user.is_blacklisted ? '차단 해제' : '차단'}
             </button>
           </div>
         </div>
@@ -320,6 +411,16 @@ export default function UserDetailPage() {
               }`}
             >
               예약 내역 ({reservations.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`py-4 px-1 font-medium text-sm border-b-2 transition-all ${
+                activeTab === 'admin'
+                  ? 'text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400'
+                  : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              관리자 기능
             </button>
           </div>
         </div>
@@ -446,19 +547,19 @@ export default function UserDetailPage() {
                     상태
                   </label>
                   <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                    {user.is_admin && (
+                    {user.role === 'admin' && (
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-medium rounded-full">
                         <Shield className="w-4 h-4" />
                         관리자
                       </span>
                     )}
-                    {user.is_banned && (
+                    {user.is_blacklisted && (
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-sm font-medium rounded-full">
                         <Ban className="w-4 h-4" />
                         차단됨
                       </span>
                     )}
-                    {!user.is_admin && !user.is_banned && (
+                    {user.role !== 'admin' && !user.is_blacklisted && (
                       <span className="text-gray-500 dark:text-gray-400">일반 회원</span>
                     )}
                   </div>
@@ -511,7 +612,7 @@ export default function UserDetailPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'reservations' ? (
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
             {reservations.length === 0 ? (
               <div className="p-12 text-center">
@@ -554,7 +655,7 @@ export default function UserDetailPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <DollarSign className="w-4 h-4" />
-                              <span>₩{reservation.total_price.toLocaleString()}</span>
+                              <span>₩{reservation.total_amount.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -569,6 +670,111 @@ export default function UserDetailPage() {
                 })}
               </div>
             )}
+          </div>
+        ) : (
+          // 관리자 기능 탭
+          <div className="grid gap-6">
+            {/* 권한 관리 */}
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">권한 관리</h2>
+              
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">관리자 권한</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {user.role === 'admin' ? '현재 관리자입니다' : '일반 사용자입니다'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={toggleAdminStatus}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                      user.role === 'admin'
+                        ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200'
+                        : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
+                    }`}
+                  >
+                    {user.role === 'admin' ? '권한 제거' : '권한 부여'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 노쇼 관리 */}
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">노쇼 관리</h2>
+              
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                <div className="flex items-center gap-3 mb-2">
+                  <UserX className="w-5 h-5 text-orange-500" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">노쇼 횟수</p>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {user.no_show_count || 0}회
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  * 예약 관리에서 노쇼 처리 시 자동으로 카운트됩니다
+                </p>
+              </div>
+            </div>
+
+            {/* 관리자 메모 */}
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">관리자 메모</h2>
+                {!isEditingNotes ? (
+                  <button
+                    onClick={() => setIsEditingNotes(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all"
+                  >
+                    <Edit className="w-4 h-4" />
+                    수정
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveAdminNotes}
+                      disabled={isSavingNotes}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save className="w-4 h-4" />
+                      {isSavingNotes ? '저장 중...' : '저장'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setAdminNotes(user.admin_notes || '');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <MessageSquare className="w-5 h-5 text-gray-400 mt-1" />
+                {isEditingNotes ? (
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="이 사용자에 대한 관리자 메모를 작성하세요..."
+                    className="flex-1 min-h-[120px] p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  />
+                ) : (
+                  <p className="flex-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    {user.admin_notes || '작성된 메모가 없습니다.'}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ export { createClient, getClient } from './client'
 // Server exports는 별도로 import해서 사용하세요: import { createClient } from '@/lib/supabase/server'
 // export { createClient as createServerClient, createActionClient } from './server'
 export { createAdminClient, getAdminClient } from './admin'
+export { createServiceRoleClient } from './service-role'
 
 // 타입 exports - 명시적으로 export
 export type { Database, Tables, TablesInsert, TablesUpdate, Enums, User, Reservation, Device, DeviceType, Admin } from './types'

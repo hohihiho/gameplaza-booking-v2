@@ -2,10 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { createAdminClient } from '@/lib/supabase'
 
-// 현재 사용자 세션 가져오기
+// 현재 사용자 세션 가져오기 (role 정보 포함)
 export async function getCurrentUser() {
   const session = await auth();
-  return session?.user || null;
+  if (!session?.user) return null;
+  
+  // Supabase에서 role 정보 가져오기
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data: userData } = await supabaseAdmin
+      .from('users')
+      .select('id, role')
+      .eq('email', session.user.email!)
+      .single();
+    
+    if (userData) {
+      return {
+        ...session.user,
+        id: userData.id,
+        role: userData.role
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+  }
+  
+  return session.user;
 }
 
 // API 라우트용 인증 미들웨어

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -8,9 +8,9 @@ export function useProfileCheck() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
 
   useEffect(() => {
-    
     // 로딩 중이거나 로그인하지 않은 경우 체크하지 않음
     if (status === 'loading' || !session?.user) {
       return;
@@ -24,6 +24,7 @@ export function useProfileCheck() {
 
     // 프로필 확인
     const checkProfile = async () => {
+      setIsCheckingProfile(true);
       try {
         const response = await fetch('/api/auth/profile');
         const data = await response.json();
@@ -31,13 +32,16 @@ export function useProfileCheck() {
         // 프로필이 없거나 불완전한 경우 회원가입 페이지로 리다이렉트
         if (!data.exists || data.incomplete) {
           router.push('/signup');
-        } else {
         }
       } catch (error) {
         console.error('프로필 확인 오류:', error);
+      } finally {
+        setIsCheckingProfile(false);
       }
     };
 
     checkProfile();
   }, [session, status, router, pathname]);
+
+  return { isCheckingProfile, isLoading: status === 'loading' };
 }

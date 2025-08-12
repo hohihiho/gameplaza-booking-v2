@@ -17,10 +17,14 @@ import {
   Hash,
   User,
   ChevronRight,
-  Gamepad2
+  Gamepad2,
+  UserX,
+  MessageSquare
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import useModal from '@/hooks/useModal';
+import useToast from '@/hooks/useToast';
 
 type UserType = {
   id: string;
@@ -41,6 +45,8 @@ type UserType = {
 
 export default function UsersPage() {
   const router = useRouter();
+  const modal = useModal();
+  const toast = useToast();
   
   // 상태 관리
   const [users, setUsers] = useState<UserType[]>([]);
@@ -57,53 +63,32 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // 사용자 정보 가져오기
-      const supabase = createClient();
-  const { data: usersData, error: usersError } = await supabase.from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // API를 통해 사용자 목록 가져오기
+      const response = await fetch('/api/admin/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 쿠키 포함
+      });
 
-      if (usersError) throw usersError;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API 에러:', response.status, errorText);
+        throw new Error(`사용자 목록을 가져오는데 실패했습니다: ${response.status}`);
+      }
 
-      // 각 사용자의 예약 통계 가져오기
-      const usersWithStats = await Promise.all(
-        usersData.map(async (user) => {
-          // 총 예약 횟수
-          const { count } = await supabase
-            .from('reservations')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+      const data = await response.json();
+      const usersData = data.users || [];
 
-          // 최근 예약
-          const { data: recentReservation } = await supabase.from('reservations')
-            .select(`
-              date,
-              devices!inner (
-                device_types!inner (
-                  name
-                )
-              ),
-              status
-            `)
-            .eq('user_id', user.id)
-            .order('date', { ascending: false })
-            .limit(1)
-            .single();
-
-          return {
-            ...user,
-            total_reservations: count || 0,
-            recent_reservation: recentReservation ? {
-              date: recentReservation.date,
-              device_name: (recentReservation as any).devices?.device_types?.name || '',
-              status: recentReservation.status
-            } : undefined
-          };
-        })
-      );
-
-      setUsers(usersWithStats);
-      setFilteredUsers(usersWithStats);
+      // API에서 이미 통계 정보가 포함되어 있으므로 추가 쿼리 불필요
+      // 이름순으로 정렬 (가나다/ABC)
+      const sortedUsers = usersData.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko');
+      });
+      
+      setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -118,33 +103,54 @@ export default function UsersPage() {
     // 검색 필터
     if (searchQuery) {
       filtered = filtered.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.nickname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.phone.includes(searchQuery)
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // 타입 필터
     switch (filterType) {
       case 'banned':
-        filtered = filtered.filter(user => user.is_banned);
+        filtered = filtered.filter(user => user.is_blacklisted);
         break;
       case 'admin':
-        filtered = filtered.filter(user => user.is_admin);
+        filtered = filtered.filter(user => user.role === 'admin');
         break;
       case 'regular':
-        filtered = filtered.filter(user => !user.is_admin && !user.is_banned);
+        filtered = filtered.filter(user => user.role !== 'admin' && !user.is_blacklisted);
         break;
     }
 
+    // 필터링 후에도 이름순 정렬 유지
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    
     setFilteredUsers(filtered);
     setCurrentPage(1);
   }, [searchQuery, filterType, users]);
 
   // 초기 로드
   useEffect(() => {
-    fetchUsers();
+    // 현재 사용자 정보 확인
+    const checkUserAndFetch = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('현재 사용자:', user);
+      
+      if (user) {
+        // users 테이블에서 role 확인
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        console.log('사용자 role:', userData);
+      }
+      
+      await fetchUsers();
+    };
+    
+    checkUserAndFetch();
   }, []);
 
   // 사용자 차단/해제
@@ -162,10 +168,10 @@ export default function UsersPage() {
         user.id === userId ? { ...user, is_banned: !currentBanStatus } : user
       ));
 
-      alert(currentBanStatus ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.');
+      toast.success(currentBanStatus ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.');
     } catch (error) {
       console.error('Error updating ban status:', error);
-      alert('상태 변경에 실패했습니다.');
+      toast.error('상태 변경에 실패했습니다.');
     }
   };
 
@@ -253,11 +259,12 @@ export default function UsersPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {currentUsers.map((user) => (
+            {currentUsers.map((user, index) => (
               <motion.div
                 key={user.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15, delay: Math.min(index * 0.01, 0.1) }}
                 className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 hover:shadow-lg transition-all duration-200"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
@@ -280,16 +287,22 @@ export default function UsersPage() {
                               ({user.name})
                             </span>
                           )}
-                          {user.is_admin && (
+                          {user.role === 'admin' && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full">
                               <Shield className="w-3 h-3" />
                               관리자
                             </span>
                           )}
-                          {user.is_banned && (
+                          {user.is_blacklisted && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium rounded-full">
                               <Ban className="w-3 h-3" />
                               차단됨
+                            </span>
+                          )}
+                          {user.no_show_count && user.no_show_count > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 text-xs font-medium rounded-full">
+                              <UserX className="w-3 h-3" />
+                              노쇼 {user.no_show_count}회
                             </span>
                           )}
                         </div>
@@ -300,10 +313,6 @@ export default function UsersPage() {
                             <span className="truncate">{user.email}</span>
                           </div>
                           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Phone className="w-4 h-4" />
-                            <span>{user.phone || '미등록'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                             <Calendar className="w-4 h-4" />
                             <span>가입: {new Date(user.created_at).toLocaleDateString('ko-KR')}</span>
                           </div>
@@ -311,6 +320,12 @@ export default function UsersPage() {
                             <Hash className="w-4 h-4" />
                             <span>예약: {user.total_reservations}건</span>
                           </div>
+                          {user.admin_notes && (
+                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                              <MessageSquare className="w-4 h-4" />
+                              <span>메모 있음</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* 최근 예약 */}
@@ -336,22 +351,18 @@ export default function UsersPage() {
                   {/* 액션 버튼 */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => router.push(`/admin/users/${user.id}`)}
+                      onClick={() => {
+                        console.log('사용자 상세보기 클릭:', user.id, user.name);
+                        if (!user.id) {
+                          toast.error('사용자 ID가 없습니다.');
+                          return;
+                        }
+                        router.push(`/admin/users/${user.id}`);
+                      }}
                       className="flex items-center justify-center p-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                       title="상세보기"
                     >
                       <Eye className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => toggleBanUser(user.id, user.is_banned)}
-                      className={`flex items-center justify-center p-2.5 rounded-xl transition-all ${
-                        user.is_banned
-                          ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/70'
-                          : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/70'
-                      }`}
-                      title={user.is_banned ? '차단 해제' : '차단'}
-                    >
-                      <Ban className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
