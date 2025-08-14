@@ -39,7 +39,7 @@ const WARNING_PATTERNS = [
 // 닉네임 중복 체크
 async function checkNicknameDuplicate(nickname: string) {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('users')
     .select('nickname')
     .eq('nickname', nickname)
@@ -109,12 +109,12 @@ export async function POST(request: Request) {
     }
 
     // 3. 변형 체크 (숫자/특수문자로 대체한 욕설)
-    const variations: { [key: string]: string[] } = {
-      '시': ['ㅅ', 'si', '$!', 'c', 'ㅆ'],
-      '발': ['ㅂ', 'bal', '8', 'ㅃ'],
-      '새': ['ㅅ', 'sae', '$'],
-      '끼': ['ㄲ', 'kki', 'ㅋ']
-    };
+    // const variations: { [key: string]: string[] } = {
+    //   '시': ['ㅅ', 'si', '$!', 'c', 'ㅆ'],
+    //   '발': ['ㅂ', 'bal', '8', 'ㅃ'],
+    //   '새': ['ㅅ', 'sae', '$'],
+    //   '끼': ['ㄲ', 'kki', 'ㅋ']
+    // };
 
     // 변형된 욕설 패턴 체크
     const checkVariations = (text: string) => {

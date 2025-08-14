@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceRoleClient();
     
     // 1. 예약 시작 시간이 된 체크인 예약들의 기기 상태 업데이트
-    const { data: updateResult, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .rpc('check_rental_start_times');
     
     if (updateError) {
