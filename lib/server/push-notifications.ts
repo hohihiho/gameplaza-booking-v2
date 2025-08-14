@@ -3,18 +3,29 @@ import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase';
 import { notificationTemplates } from '@/lib/push-notifications';
 
-// VAPID 설정
-webpush.setVapidDetails(
-  'mailto:admin@gameplaza.kr',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// VAPID 설정 - 환경 변수가 있을 때만 설정
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    'mailto:admin@gameplaza.kr',
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+}
 
 // 특정 사용자에게 푸시 알림 전송
 export async function sendPushNotification(
   userId: string,
   notification: ReturnType<typeof notificationTemplates[keyof typeof notificationTemplates]>
 ) {
+  // VAPID 키가 설정되지 않은 경우 건너뛰기
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.log('VAPID 키가 설정되지 않아 푸시 알림을 건너뜁니다.');
+    return false;
+  }
+
   try {
     // 사용자의 구독 정보 가져오기
     const supabase = createAdminClient();
