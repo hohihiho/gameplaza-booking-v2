@@ -28,7 +28,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: ESLint 검사
         run: npm run lint
@@ -55,7 +55,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: 단위 테스트 실행
         run: npm run test:unit -- --coverage
@@ -99,7 +99,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: 테스트 DB 마이그레이션
         run: |
@@ -139,7 +139,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: Playwright 브라우저 설치
         run: npx playwright install --with-deps ${{ matrix.browser }}
@@ -174,7 +174,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: Next.js 빌드
         run: npm run build
@@ -208,7 +208,7 @@ jobs:
           cache: 'npm'
 
       - name: 의존성 설치
-        run: npm ci
+        run: npm install
 
       - name: 모바일 디바이스 테스트
         run: npm run test:e2e:mobile
@@ -308,7 +308,7 @@ jobs:
 
       - name: 스테이징 환경 회귀 테스트
         run: |
-          npm ci
+          npm install
           npm run test:e2e -- --config=playwright.staging.config.ts
         env:
           STAGING_URL: https://staging-gameplaza.vercel.app
@@ -328,7 +328,7 @@ jobs:
 
       - name: 리포트 생성
         run: |
-          npm ci
+          npm install
           npm run generate:test-report
 
       - name: 리포트 업로드
