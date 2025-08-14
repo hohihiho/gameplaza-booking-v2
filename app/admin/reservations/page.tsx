@@ -156,7 +156,7 @@ export default function ReservationManagementPage() {
     
     // 현재 시점 계산 (KST 기준)
     const now = new Date();
-    const currentDate: string = now.toISOString().split('T')[0];
+    const currentDate = now.toISOString().split('T')[0] || '';
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTotalMinutes = currentHour * 60 + currentMinute;
