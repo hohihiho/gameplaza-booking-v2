@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       if (!scheduleDateMap.has(date)) {
         missingSchedules.push({
           date,
-          reservations: reservations.map(r => ({
+          reservations: reservations.map((r: any) => ({
             id: r.id,
             number: r.reservation_number,
             time: `${r.start_time.slice(0, 5)} - ${r.end_time.slice(0, 5)}`,
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // 관리자 권한 확인
     const user = await getCurrentUser()

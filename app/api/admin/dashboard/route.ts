@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { AnalyticsService } from '@/lib/services/analytics.service'
-import { ReservationRepository } from '@/lib/repositories/reservation.repository'
-import { DeviceRepository } from '@/lib/repositories/device.repository'
 
 export const GET = withAuth(
   async (_req, { user: _user }) => {
@@ -74,7 +71,7 @@ export const GET = withAuth(
     const yesterdayReservations = [...(yesterdayDayReservations || []), ...(yesterdayNightReservations || [])]
     
     // 3. 전체 대기승인 예약 조회 (테스트 데이터 제외)
-    const { data: allPendingReservations, error: pendingError } = await supabase
+    const { data: allPendingReservations } = await supabase
       .from('reservations')
       .select('id, reservation_number')
       .eq('status', 'pending')
@@ -82,7 +79,7 @@ export const GET = withAuth(
     // 4. 체크인 대기중인 예약 조회 (승인됐지만 아직 체크인 안한 예약)
     const currentTime = `${String(kstNow.getHours()).padStart(2, '0')}:${String(kstNow.getMinutes()).padStart(2, '0')}:00`
     
-    const { data: waitingCheckIn, error: waitingError } = await supabase
+    const { data: waitingCheckIn } = await supabase
       .from('reservations')
       .select('id, date, start_time, reservation_number')
       .eq('status', 'approved')
@@ -90,7 +87,7 @@ export const GET = withAuth(
       .lte('start_time', currentTime)
     
     // 5. 결제 대기중인 예약 조회 (테스트 데이터 제외)
-    const { data: pendingPaymentReservations, error: paymentError } = await supabase
+    const { data: pendingPaymentReservations } = await supabase
       .from('reservations')
       .select('id, reservation_number')
       .eq('status', 'checked_in')
@@ -105,7 +102,7 @@ export const GET = withAuth(
     const maintenanceDevices = totalDevices?.filter(d => d.status === 'maintenance')?.length || 0
     
     // 7. 최근 예약 5건 조회 (테스트 데이터 제외)
-    const { data: recentReservations, error: recentError } = await supabase
+    const { data: recentReservations } = await supabase
       .from('reservations')
       .select(`
         id,

@@ -93,7 +93,7 @@ export class NotificationService {
       title: titleMap[type],
       message: messageMap[type],
       type: type === 'rejected' ? 'error' : type === 'reminder' ? 'warning' : 'info',
-      channels: ['push', 'email'], // 기본 채널
+      channels: [NotificationChannel.fromString('push'), NotificationChannel.fromString('email')], // 기본 채널
       metadata: {
         reservationId,
         notificationType: 'reservation',
@@ -116,7 +116,7 @@ export class NotificationService {
       title,
       message,
       type,
-      channels: ['push'],
+      channels: [NotificationChannel.fromString('push')],
       metadata: {
         notificationType: 'system'
       }
@@ -127,7 +127,7 @@ export class NotificationService {
    * 특정 채널로 알림 전송
    */
   private async sendToChannel(notification: NotificationData): Promise<void> {
-    switch (notification.channel) {
+    switch (notification.channel.value) {
       case 'push':
         await this.sendPushNotification(notification)
         break

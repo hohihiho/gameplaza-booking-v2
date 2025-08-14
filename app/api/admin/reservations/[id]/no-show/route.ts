@@ -20,18 +20,18 @@ export async function POST(
 
     // 관리자 권한 확인
     const supabaseAdmin = createAdminClient();
-  const { data: userData } = await supabaseAdmin.from('users')
+    const { data: adminUserData } = await supabaseAdmin.from('users')
       .select('id')
       .eq('email', session.user.email)
       .single();
 
-    if (!userData) {
+    if (!adminUserData) {
       return NextResponse.json({ error: '사용자 정보를 찾을 수 없습니다' }, { status: 404 });
     }
 
-  const { data: adminData } = await supabaseAdmin.from('admins')
+    const { data: adminData } = await supabaseAdmin.from('admins')
       .select('is_super_admin')
-      .eq('user_id', userData.id)
+      .eq('user_id', adminUserData.id)
       .single();
 
     if (!adminData) {
@@ -62,7 +62,7 @@ export async function POST(
     const updateData: any = {
       status: 'no_show',
       cancelled_at: new Date().toISOString(),
-      cancelled_by: userData.id,
+      cancelled_by: adminUserData.id,
       cancellation_reason: reason || '고객 미방문 (노쇼)'
     };
 
@@ -88,18 +88,8 @@ export async function POST(
       return NextResponse.json({ error: '노쇼 처리 실패', details: updateError.message }, { status: 500 });
     }
 
-    // 사용자의 노쇼 횟수 증가
-    const { error: userUpdateError } = await supabaseAdmin
-      .from('users')
-      .update({ 
-        no_show_count: supabaseAdmin.raw('no_show_count + 1')
-      })
-      .eq('id', reservation.user_id);
-    
-    if (userUpdateError) {
-      console.error('노쇼 카운트 업데이트 에러:', userUpdateError);
-      // 에러가 발생해도 노쇼 처리는 계속 진행
-    }
+    // 사용자의 노쇼 횟수 증가 - 현재는 스키마에 no_show_count가 없으므로 스킵
+    console.log('노쇼 카운트 증가는 추후 users 테이블에 no_show_count 컬럼 추가 후 구현 예정');
 
     // 배정된 기기가 있다면 상태를 사용가능으로 변경
     if (reservation.device_id) {

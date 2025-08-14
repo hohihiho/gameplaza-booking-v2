@@ -132,9 +132,9 @@ export class SupabaseUserRepositoryV2 implements IUserRepository {
   private toRecord(user: User): UserInsert {
     return {
       id: user.id,
-      email: user.email.value,
+      email: typeof user.email === 'string' ? user.email : user.email.value,
       name: user.fullName,
-      phone: user.phone?.value || null,
+      phone: typeof user.phone === 'string' ? user.phone : (user.phone?.value || null),
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString(),
       role: 'user' // 기본값

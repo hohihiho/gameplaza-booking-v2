@@ -17,7 +17,7 @@ export class JWTTokenService implements ITokenService {
    */
   async generateToken(
     payload: any, 
-    options?: SignOptions & { type?: 'access' | 'refresh' }
+    options?: { expiresIn?: string; type?: 'access' | 'refresh' }
   ): Promise<string> {
     const tokenType = options?.type || 'access'
     const secret = tokenType === 'refresh' ? this.refreshTokenSecret : this.accessTokenSecret

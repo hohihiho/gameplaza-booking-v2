@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { createAdminClient } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/services/schedule.service'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // 인증 확인
     const session = await auth()
@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
 }
 
 // 현재 상태 조회
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 인증 확인
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session?.user) {
       return NextResponse.json(
@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(today)
     endDate.setDate(today.getDate() + 21) // 3주 후
 
+    const adminSupabase = createAdminClient()
     const { data: schedules, error } = await adminSupabase
       .from('schedule_events')
       .select('*')

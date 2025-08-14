@@ -27,8 +27,6 @@ import {
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import useModal from '@/hooks/useModal';
-import useToast from '@/hooks/useToast';
 
 type UserDetail = {
   id: string;
@@ -125,9 +123,6 @@ export default function UserDetailPage() {
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
-  const supabase = createClient();
-  const modal = useModal();
-  const toast = useToast();
   
   // 상태 관리
   const [user, setUser] = useState<UserDetail | null>(null);
@@ -152,12 +147,12 @@ export default function UserDetailPage() {
         console.error('사용자 정보 조회 오류:', error);
         
         if (response.status === 404) {
-          await modal.error('해당 사용자를 찾을 수 없습니다.');
+          alert('해당 사용자를 찾을 수 없습니다.');
           router.back();
           return;
         }
         
-        await modal.error(`사용자 정보를 불러올 수 없습니다: ${error.error || '알 수 없는 오류'}`);
+        alert(`사용자 정보를 불러올 수 없습니다: ${error.error || '알 수 없는 오류'}`);
         router.back();
         return;
       }

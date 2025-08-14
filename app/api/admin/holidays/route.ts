@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HolidayService } from '@/lib/services/holiday.service';
-import { createClient } from '@/lib/supabase/server';
 
 // GET /api/admin/holidays - 공휴일 조회
 export async function GET(request: NextRequest) {

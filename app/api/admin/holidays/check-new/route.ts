@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HolidayService } from '@/lib/services/holiday.service';
 
 // GET /api/admin/holidays/check-new - 새로운 공휴일 확인
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const newHolidays = await HolidayService.checkNewHolidays();
 

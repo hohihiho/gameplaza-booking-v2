@@ -60,7 +60,7 @@ export async function seedSuperAdmins(supabase: SupabaseClient<Database>) {
         const hashedPassword = await bcrypt.hash(adminData.password, 10)
         const newUserId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-        const { data: newUser, error: createError } = await supabase
+        const { error: createError } = await supabase
           .from('users')
           .insert({
             id: newUserId,

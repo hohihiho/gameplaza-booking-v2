@@ -8,6 +8,10 @@ export class Email {
     this._value = value.toLowerCase().trim();
   }
 
+  static create(value: string): Email {
+    return new Email(value);
+  }
+
   get value(): string {
     return this._value;
   }

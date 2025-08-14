@@ -20,7 +20,6 @@ export default function OnBehalfReservationPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -51,7 +50,6 @@ export default function OnBehalfReservationPage() {
 
   // 사용자 선택 후 예약 페이지로 이동
   const handleUserSelect = (user: UserProfile) => {
-    setSelectedUser(user);
     // 대리 예약 모드로 예약 페이지 이동
     router.push(`/reservations/new?onBehalf=${user.id}&userName=${encodeURIComponent(user.name)}`);
   };

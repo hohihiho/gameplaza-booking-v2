@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // DELETE /api/admin/holidays/[id] - 공휴일 삭제
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

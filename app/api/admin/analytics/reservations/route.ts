@@ -443,7 +443,7 @@ export const GET = withAuth(
       let popularDevice = '알 수 없음';
       let maxDeviceCount = 0;
       if (details) {
-        details.devices.forEach((deviceCount, deviceName) => {
+        details.devices.forEach((deviceCount: number, deviceName: string) => {
           if (deviceCount > maxDeviceCount) {
             maxDeviceCount = deviceCount;
             popularDevice = deviceName;

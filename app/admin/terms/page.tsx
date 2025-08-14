@@ -366,7 +366,7 @@ export default function AdminTermsPage() {
                 title: termTypeLabels[selectedType],
                 content: '',
                 version: '1.0',
-                effective_date: new Date().toISOString().split('T')[0],
+                effective_date: new Date().toISOString().split('T')[0] || '',
                 created_at: '',
                 updated_at: '',
                 is_active: true

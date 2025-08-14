@@ -31,6 +31,10 @@ export async function POST() {
     
     const user = users[0]
     
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    
     // 사용자 role을 admin으로 업데이트
     const { error: updateError } = await supabase
       .from('users')
@@ -46,7 +50,7 @@ export async function POST() {
     const { error: adminError } = await supabase
       .from('admins')
       .upsert({
-        user_id: user.id,
+        user_id: user?.id || '',
         is_super_admin: true,
         permissions: {
           reservations: true,
@@ -66,11 +70,11 @@ export async function POST() {
     
     return NextResponse.json({
       success: true,
-      message: `User ${user.email} has been granted admin privileges`,
+      message: `User ${user?.email || ''} has been granted admin privileges`,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
+        id: user?.id || '',
+        email: user?.email || '',
+        name: user?.name || '',
         role: 'admin'
       }
     })

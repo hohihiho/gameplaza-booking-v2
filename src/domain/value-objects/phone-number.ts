@@ -9,6 +9,10 @@ export class PhoneNumber {
     this._value = cleaned;
   }
 
+  static create(value: string): PhoneNumber {
+    return new PhoneNumber(value);
+  }
+
   get value(): string {
     return this._value;
   }

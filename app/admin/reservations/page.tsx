@@ -20,12 +20,9 @@ import {
   User,
   Gamepad2,
   Phone,
-  MessageSquare,
   MessageCircle,
   Eye,
   X,
-  Square,
-  CheckSquare,
   Trash2
 } from 'lucide-react';
 import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime';
@@ -126,7 +123,6 @@ export default function ReservationManagementPage() {
   // 복수 선택 상태
   const [selectedReservationIds, setSelectedReservationIds] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
-  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
   const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
   
   // 페이지네이션 상태
@@ -160,7 +156,7 @@ export default function ReservationManagementPage() {
     
     // 현재 시점 계산 (KST 기준)
     const now = new Date();
-    const currentDate = now.toISOString().split('T')[0];
+    const currentDate: string = now.toISOString().split('T')[0];
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTotalMinutes = currentHour * 60 + currentMinute;
@@ -195,13 +191,15 @@ export default function ReservationManagementPage() {
         }
         
         // 과거/미래 여부 판단
-        const aIsPast = a.date < currentDate || 
-                        (a.date === currentDate && 
+        const todayStr = currentDate;
+        
+        const aIsPast = a.date < todayStr || 
+                        (a.date === todayStr && 
                          a.start_time && 
                          parseInt(a.start_time.split(':')[0]) * 60 + parseInt(a.start_time.split(':')[1] || '0') < currentTotalMinutes);
         
-        const bIsPast = b.date < currentDate || 
-                        (b.date === currentDate && 
+        const bIsPast = b.date < todayStr || 
+                        (b.date === todayStr && 
                          b.start_time && 
                          parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1] || '0') < currentTotalMinutes);
         
@@ -689,7 +687,6 @@ export default function ReservationManagementPage() {
   const clearSelection = () => {
     setSelectedReservationIds([]);
     setShowBulkActions(false);
-    setBulkAction(null);
   };
 
   // 복수 승인 처리

@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { 
   Search,
   ChevronLeft,
-  Phone,
   Mail,
   Calendar,
   UserCheck,
@@ -19,11 +18,10 @@ import {
   ChevronRight,
   Gamepad2,
   UserX,
-  MessageSquare
+  MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import useModal from '@/hooks/useModal';
 import useToast from '@/hooks/useToast';
 
 type UserType = {
@@ -34,7 +32,11 @@ type UserType = {
   phone: string;
   created_at: string;
   is_banned: boolean;
+  is_blacklisted: boolean;
   is_admin: boolean;
+  role: 'user' | 'admin' | 'super_admin';
+  no_show_count: number;
+  admin_notes?: string;
   total_reservations?: number;
   recent_reservation?: {
     date: string;
@@ -45,7 +47,6 @@ type UserType = {
 
 export default function UsersPage() {
   const router = useRouter();
-  const modal = useModal();
   const toast = useToast();
   
   // 상태 관리
@@ -83,7 +84,7 @@ export default function UsersPage() {
 
       // API에서 이미 통계 정보가 포함되어 있으므로 추가 쿼리 불필요
       // 이름순으로 정렬 (가나다/ABC)
-      const sortedUsers = usersData.sort((a, b) => {
+      const sortedUsers = usersData.sort((a: UserType, b: UserType) => {
         return a.name.localeCompare(b.name, 'ko');
       });
       
@@ -153,27 +154,7 @@ export default function UsersPage() {
     checkUserAndFetch();
   }, []);
 
-  // 사용자 차단/해제
-  const toggleBanUser = async (userId: string, currentBanStatus: boolean) => {
-    try {
-      const supabase = createClient();
-  const { error } = await supabase.from('users')
-        .update({ is_banned: !currentBanStatus })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      // 로컬 상태 업데이트
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_banned: !currentBanStatus } : user
-      ));
-
-      toast.success(currentBanStatus ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.');
-    } catch (error) {
-      console.error('Error updating ban status:', error);
-      toast.error('상태 변경에 실패했습니다.');
-    }
-  };
+  // 사용자 차단/해제 함수는 향후 구현 예정
 
   // 페이지네이션 계산
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -322,7 +303,7 @@ export default function UsersPage() {
                           </div>
                           {user.admin_notes && (
                             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                              <MessageSquare className="w-4 h-4" />
+                              <MessageCircle className="w-4 h-4" />
                               <span>메모 있음</span>
                             </div>
                           )}
