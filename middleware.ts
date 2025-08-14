@@ -91,15 +91,20 @@ export async function middleware(request: NextRequest) {
     if (canaryResponse) return canaryResponse;
   }
   
-  // Auth.js v5 미들웨어 실행
-  const authResponse = await auth(request as any);
-  
-  // 관리자 페이지나 API 요청인 경우 권한 정보를 헤더에 추가
-  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    return await withAuthHeaders(request, authResponse || NextResponse.next());
+  // Auth.js v5 미들웨어 실행 - 에러 처리 추가
+  try {
+    const authResponse = await auth(request as any);
+    
+    // 관리자 페이지나 API 요청인 경우 권한 정보를 헤더에 추가
+    if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+      return await withAuthHeaders(request, authResponse || NextResponse.next());
+    }
+    
+    return authResponse || NextResponse.next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return NextResponse.next();
   }
-  
-  return authResponse || NextResponse.next();
 }
 
 /**
