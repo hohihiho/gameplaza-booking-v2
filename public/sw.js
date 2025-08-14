@@ -59,13 +59,19 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API 요청은 Network First
+  // Auth API는 캐싱하지 않음
+  if (url.pathname.startsWith('/api/auth/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // 다른 API 요청은 Network First
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // 성공적인 응답은 캐시에 저장
-          if (response && response.status === 200) {
+          // 성공적인 응답은 캐시에 저장 (POST 요청 제외)
+          if (response && response.status === 200 && request.method === 'GET') {
             const responseToCache = response.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
