@@ -48,15 +48,18 @@ export async function GET() {
     // 오늘의 영업시간 계산
     const dayOfWeek = today.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isFriday = dayOfWeek === 5;
+    const isSaturday = dayOfWeek === 6;
     
     // 기본 영업시간
+    // 2층: 금요일, 토요일은 밤샘 영업(익일 05:00까지), 그 외는 22:00 또는 24:00까지
     const defaultSchedule = {
       floor1Start: isWeekend ? '11:00' : '12:00',
       floor1End: '22:00',
       floor2Start: isWeekend ? '11:00' : '12:00',
-      floor2End: isWeekend ? '22:00' : '05:00',
+      floor2End: (isFriday || isSaturday) ? '05:00' : (isWeekend ? '22:00' : '24:00'),
       floor1EventType: null,
-      floor2EventType: null
+      floor2EventType: (isFriday || isSaturday) ? 'overnight' : null
     };
     
     // 특별 일정이 있으면 반영
