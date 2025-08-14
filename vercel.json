@@ -7,7 +7,17 @@
       "GIT_AUTHOR_NAME": "hohihu",
       "GIT_AUTHOR_EMAIL": "ndz5496@gmail.com",
       "GIT_COMMITTER_NAME": "hohihu",
-      "GIT_COMMITTER_EMAIL": "ndz5496@gmail.com"
+      "GIT_COMMITTER_EMAIL": "ndz5496@gmail.com",
+      "EMAIL": "ndz5496@gmail.com"
     }
-  }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true
+  },
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
 }

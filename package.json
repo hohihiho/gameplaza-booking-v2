@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "./scripts/dev-with-browser.sh",
     "dev:no-browser": "next dev -H 0.0.0.0",
+    "prebuild": "git config --global user.name 'hohihu' && git config --global user.email 'ndz5496@gmail.com' || true",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
