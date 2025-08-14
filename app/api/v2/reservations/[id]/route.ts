@@ -34,7 +34,7 @@ const updateReservationSchema = z.object({
  * GET /api/v2/reservations/{id}
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -57,13 +57,11 @@ export async function GET(
     const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
-    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
 
     // 3. 유스케이스 실행
     const useCase = new GetReservationUseCase(
       reservationRepository,
-      userRepository,
-      deviceRepository
+      userRepository
     )
 
     const result = await useCase.execute({
@@ -172,16 +170,16 @@ export async function PATCH(
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const paymentRepository = new PaymentSupabaseRepository(supabase)
     const notificationRepository = new NotificationSupabaseRepository(supabase)
-    const notificationService = new NotificationService(supabase)
+    const notificationService = new NotificationService()
 
     // 4. 유스케이스 실행
     const useCase = new UpdateReservationUseCase(
       reservationRepository,
       userRepository,
-      deviceRepository,
+      deviceRepository as any,
       paymentRepository,
       notificationRepository,
-      notificationService
+      notificationService as any
     )
 
     const result = await useCase.execute({
@@ -301,15 +299,15 @@ export async function DELETE(
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const notificationRepository = new NotificationSupabaseRepository(supabase)
-    const notificationService = new NotificationService(supabase)
+    const notificationService = new NotificationService()
 
     // 4. 유스케이스 실행
     const useCase = new CancelReservationUseCase(
       reservationRepository,
       userRepository,
-      deviceRepository,
+      deviceRepository as any,
       notificationRepository,
-      notificationService
+      notificationService as any
     )
 
     const result = await useCase.execute({

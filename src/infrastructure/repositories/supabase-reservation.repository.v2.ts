@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { ReservationRepository } from '../../domain/repositories/reservation.repository.interface'
+import { ReservationRepository, ReservationListResult, ReservationFilterOptions } from '../../domain/repositories/reservation.repository.interface'
 import { Reservation } from '../../domain/entities/reservation'
 import { KSTDateTime } from '../../domain/value-objects/kst-datetime'
 import { TimeSlot } from '../../domain/value-objects/time-slot'
@@ -42,8 +42,8 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
     return this.toDomain(data)
   }
 
-  async findByUserId(userId: string): Promise<Reservation[]> {
-    const { data, error } = await this.supabase
+  async findByUserId(userId: string, options?: ReservationFilterOptions): Promise<ReservationListResult> {
+    const { data, error, count } = await this.supabase
       .from('reservations')
       .select(`
         *,
@@ -55,7 +55,7 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
             name
           )
         )
-      `)
+      `, { count: 'exact' })
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false })
@@ -64,7 +64,12 @@ export class SupabaseReservationRepositoryV2 implements ReservationRepository {
       throw new Error(`Failed to find reservations: ${error.message}`)
     }
 
-    return (data || []).map(record => this.toDomain(record))
+    const reservations = (data || []).map(record => this.toDomain(record))
+    
+    return {
+      reservations,
+      totalCount: count || 0
+    }
   }
 
   async findByDeviceId(deviceId: string): Promise<Reservation[]> {

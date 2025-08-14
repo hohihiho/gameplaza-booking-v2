@@ -312,20 +312,7 @@ async function generateChartDataFromDomain(
   }
 }
 
-/**
- * 일별/월별 예약 추이 데이터 생성
- */
-function generateMonthlyData(reservations: any[], startDate: Date, endDate: Date) {
-  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  
-  // 12개월 이상의 기간이면 월별 차트 생성
-  if (daysDiff >= 300) { // 약 10개월 이상
-    return generateMonthlyChart(reservations, startDate, endDate)
-  } else {
-    // 짧은 기간은 일별 차트 생성
-    return generateDailyChart(reservations, startDate, endDate)
-  }
-}
+// 미사용 함수 제거 (필요시 복원 가능)
 
 /**
  * 일별 차트 데이터 생성

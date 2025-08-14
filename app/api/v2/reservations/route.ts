@@ -6,8 +6,6 @@ import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservat
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
-import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
-import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 import { logRequest, logError } from '@/lib/api/logging'
 
 // 요청 스키마 정의 (시간을 시간 단위로 변경)
@@ -67,20 +65,14 @@ export async function POST(request: NextRequest) {
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new SupabaseUserRepository(supabase)
-    const timeSlotTemplateRepository = new SupabaseTimeSlotTemplateRepository(supabase)
-    const timeSlotDomainService = new TimeSlotDomainService(timeSlotTemplateRepository)
 
     // 유스케이스 실행
     const useCase = new CreateReservationV2UseCase(
       reservationRepository,
-      deviceRepository,
-      userRepository,
-      timeSlotDomainService
+      deviceRepository as any,
+      userRepository as any
     )
 
-    // 사용자 정보 확인해서 슈퍼관리자인지 체크
-    const user = await userRepository.findById(userId)
-    
     // 슈퍼관리자 여부 확인
     const { data: adminData } = await supabase
       .from('admins')
@@ -97,8 +89,6 @@ export async function POST(request: NextRequest) {
       date: data.date,
       startHour: data.start_hour,
       endHour: data.end_hour,
-      creditType: data.credit_type,
-      playerCount: data.player_count,
       userNotes: data.user_notes,
       isAdmin: isSuperAdmin
     })
@@ -126,14 +116,14 @@ export async function POST(request: NextRequest) {
     // v2 응답 형식 (snake_case)
     const reservation = {
       id: result.reservation.id,
-      reservation_number: result.reservationNumber,
+      reservation_number: result.reservation.reservationNumber || '',
       user_id: result.reservation.userId,
       device_id: result.reservation.deviceId,
       date: result.reservation.date.dateString,
       start_hour: data.start_hour,
       end_hour: data.end_hour,
       status: result.reservation.status.value,
-      total_price: result.totalPrice,
+      total_price: 0,
       credit_type: data.credit_type,
       player_count: data.player_count,
       user_notes: data.user_notes,

@@ -25,7 +25,7 @@ export const POST = createApiHandler(
     }
 
     // 관리자 권한 확인
-    if (!isAdmin(request)) {
+    if (!isAdmin(user)) {
       return NextResponse.json(
         { message: '관리자 권한이 필요합니다' },
         { status: 401 }

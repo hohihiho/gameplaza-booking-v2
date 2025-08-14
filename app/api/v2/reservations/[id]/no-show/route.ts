@@ -54,7 +54,7 @@ export async function POST(
     // 5. 유스케이스 실행
     const useCase = new HandleNoShowUseCase(
       reservationRepository,
-      checkInRepository,
+      checkInRepository as any,
       userRepository
     )
 

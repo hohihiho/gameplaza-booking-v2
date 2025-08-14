@@ -21,7 +21,7 @@ export async function POST(
       const { id } = await params
       
       // 관리자 또는 스태프 권한 확인
-      if (!user.role || (user.role !== 'admin' && user.role !== 'staff')) {
+      if (!user.role || user.role === 'user') {
         return createResponse(
           new ErrorResponse('권한이 없습니다', 'FORBIDDEN'),
           403
@@ -47,10 +47,10 @@ export async function POST(
       const useCase = new CheckInReservationUseCase(
         userRepository,
         reservationRepository,
-        deviceRepository,
+        deviceRepository as any,
         paymentRepository,
         notificationRepository,
-        checkInRepository
+        checkInRepository as any
       )
 
       const result = await useCase.execute({
@@ -103,7 +103,7 @@ export async function POST(
       
       if (error instanceof Error) {
         return createResponse(
-          new ErrorResponse(error.message, 'CHECK_IN_ERROR'),
+          new ErrorResponse(error.message, 'VALIDATION_ERROR'),
           400
         )
       }

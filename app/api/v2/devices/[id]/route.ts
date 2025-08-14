@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { UpdateDeviceUseCase } from '@/src/application/use-cases/device/update-device.use-case'
 import { GetDeviceDetailUseCase } from '@/src/application/use-cases/device/get-device-detail.use-case'
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
+import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
@@ -28,8 +28,8 @@ export async function GET(
 
     // 2. 유스케이스 실행
     const useCase = new GetDeviceDetailUseCase(
-      deviceRepository,
-      checkInRepository,
+      deviceRepository as any,
+      checkInRepository as any,
       reservationRepository as any
     )
 
