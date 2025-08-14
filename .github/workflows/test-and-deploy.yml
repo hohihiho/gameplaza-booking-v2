@@ -151,7 +151,7 @@ jobs:
         run: npm run test:e2e -- --project=${{ matrix.browser }}
 
       - name: 테스트 결과 업로드
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report-${{ matrix.browser }}
@@ -240,7 +240,7 @@ jobs:
           format: 'HTML'
 
       - name: 스캔 결과 업로드
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: reports/
@@ -324,7 +324,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 테스트 결과 수집
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: 리포트 생성
         run: |
@@ -332,7 +332,7 @@ jobs:
           npm run generate:test-report
 
       - name: 리포트 업로드
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-summary-report
           path: reports/test-summary.html

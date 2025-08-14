@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   COVERAGE_THRESHOLD: 80
 
 jobs:
@@ -61,7 +61,7 @@ jobs:
           coverage-badges-cli --output ./badges/coverage.svg
           
       - name: 💾 Upload coverage artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: |
@@ -140,7 +140,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           
       - name: 📊 Upload E2E artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: e2e-artifacts-${{ matrix.browser }}
@@ -189,7 +189,7 @@ jobs:
         run: npx playwright test --project="${{ matrix.device }}" --grep="mobile"
         
       - name: 📊 Upload mobile test artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: mobile-test-artifacts-${{ matrix.device }}
@@ -235,7 +235,7 @@ jobs:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
           
       - name: 📈 Upload Lighthouse artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lighthouse-report
           path: .lighthouseci/
@@ -288,7 +288,7 @@ jobs:
           cache: 'npm'
           
       - name: 📥 Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: 📊 Generate unified test report
         run: |
@@ -322,7 +322,7 @@ jobs:
           done
           
       - name: 📊 Upload test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-execution-report
           path: test-reports/

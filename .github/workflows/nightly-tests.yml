@@ -7,7 +7,7 @@ on:
   workflow_dispatch: # 수동 실행 가능
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   # 전체 회귀 테스트
@@ -85,7 +85,7 @@ jobs:
           echo "" >> nightly-reports/summary.md
           
       - name: 📊 Upload nightly report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nightly-test-report-${{ github.run_number }}
           path: |
@@ -202,7 +202,7 @@ jobs:
           fi
           
       - name: 📊 Upload load test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: load-test-results
           path: |
@@ -257,7 +257,7 @@ jobs:
           fi
           
       - name: 📊 Upload security report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-audit-report
           path: |
@@ -328,7 +328,7 @@ jobs:
     
     steps:
       - name: 📥 Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: 📊 Generate comprehensive summary
         run: |
@@ -359,7 +359,7 @@ jobs:
           EOF
           
       - name: 📊 Upload final summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nightly-summary-${{ github.run_number }}
           path: final-reports/
