@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { auth } from '@/auth';
-import { authMiddleware as v2AuthMiddleware } from '@/src/infrastructure/middleware/auth.middleware';
-import { rateLimit, rateLimitConfigs } from '@/lib/security/api-security';
-import { withAuthHeaders } from '@/lib/auth/nextauth-middleware';
 
 /**
  * 통합 미들웨어
@@ -24,87 +20,8 @@ const CANARY_COOKIE = 'x-api-version';
 const CANARY_HEADER = 'x-api-version';
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // 보안 검사: 의심스러운 요청 차단
-  if (isBlockedRequest(request)) {
-    return new NextResponse('Forbidden', { status: 403 });
-  }
-  
-  // Rate limiting 적용
-  const rateLimitResponse = applyRateLimit(request);
-  if (rateLimitResponse) {
-    return rateLimitResponse;
-  }
-  
-  // v2 API 인증 처리
-  if (pathname.startsWith('/api/v2/auth/')) {
-    // Google 로그인과 토큰 갱신은 인증 불필요
-    if (pathname === '/api/v2/auth/google' || pathname === '/api/v2/auth/refresh') {
-      return NextResponse.next();
-    }
-    
-    // 프로필 조회와 로그아웃은 인증 필요
-    if (pathname === '/api/v2/auth/profile' || pathname === '/api/v2/auth/logout') {
-      const authMiddlewareInstance = v2AuthMiddleware.middleware({ requireAuth: true });
-      return authMiddlewareInstance(request);
-    }
-  }
-  
-  // v2 예약 관리 API 인증 처리
-  if (pathname.startsWith('/api/v2/reservations/')) {
-    // 예약 승인/거절/노쇼는 관리자 권한 필요
-    if (pathname.endsWith('/approve') || pathname.endsWith('/reject') || pathname.endsWith('/no-show')) {
-      const authMiddlewareInstance = v2AuthMiddleware.middleware({ 
-        requireAuth: true,
-        requireRoles: ['admin'] 
-      });
-      return authMiddlewareInstance(request);
-    }
-  }
-  
-  // v2 체크인 API 인증 처리 (check-ins와 checkins 모두 지원)
-  if (pathname.startsWith('/api/v2/check-ins/') || pathname.startsWith('/api/v2/checkins/')) {
-    // 모든 체크인 관련 작업은 관리자 권한 필요
-    const authMiddlewareInstance = v2AuthMiddleware.middleware({ 
-      requireAuth: true,
-      requireRoles: ['admin'] 
-    });
-    return authMiddlewareInstance(request);
-  }
-  
-  // v2 기기 관리 API 인증 처리
-  if (pathname.startsWith('/api/v2/devices/')) {
-    // GET 요청은 인증 불필요, 나머지는 관리자 권한 필요
-    if (request.method !== 'GET') {
-      const authMiddlewareInstance = v2AuthMiddleware.middleware({ 
-        requireAuth: true,
-        requireRoles: ['admin'] 
-      });
-      return authMiddlewareInstance(request);
-    }
-  }
-  
-  // API v2 canary 라우팅 처리
-  if (pathname.startsWith('/api/') && !pathname.includes('/api/v2/')) {
-    const canaryResponse = await handleCanaryRouting(request);
-    if (canaryResponse) return canaryResponse;
-  }
-  
-  // Auth.js v5 미들웨어 실행 - 에러 처리 추가
-  try {
-    const authResponse = await auth(request as any);
-    
-    // 관리자 페이지나 API 요청인 경우 권한 정보를 헤더에 추가
-    if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-      return await withAuthHeaders(request, authResponse || NextResponse.next());
-    }
-    
-    return authResponse || NextResponse.next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    return NextResponse.next();
-  }
+  // 임시로 모든 미들웨어 로직 비활성화
+  return NextResponse.next();
 }
 
 /**
