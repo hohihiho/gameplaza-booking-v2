@@ -28,12 +28,12 @@ export default function DebugReservationsPage() {
         try {
           debugResults.api.parsed = JSON.parse(apiText);
         } catch (e) {
-          debugResults.api.parseError = e.message;
+          debugResults.api.parseError = e instanceof Error ? e.message : String(e);
         }
         
         console.log('API 응답:', debugResults.api);
       } catch (error) {
-        debugResults.api = { error: error.message };
+        debugResults.api = { error: error instanceof Error ? error.message : String(error) };
       }
 
       // 2. 직접 Supabase 조회 (Admin Client)
@@ -94,7 +94,7 @@ export default function DebugReservationsPage() {
         debugResults.sampleDevices = { data: sampleDevices, error: devicesError };
         
       } catch (error) {
-        debugResults.supabase = { error: error.message };
+        debugResults.supabase = { error: error instanceof Error ? error.message : String(error) };
       }
 
       // 3. NextAuth 세션 확인
@@ -105,12 +105,12 @@ export default function DebugReservationsPage() {
         debugResults.session = session;
         console.log('NextAuth 세션:', session);
       } catch (error) {
-        debugResults.session = { error: error.message };
+        debugResults.session = { error: error instanceof Error ? error.message : String(error) };
       }
 
     } catch (error) {
       console.error('Debug error:', error);
-      debugResults.error = error.message;
+      debugResults.error = error instanceof Error ? error.message : String(error);
     }
 
     setResults(debugResults);

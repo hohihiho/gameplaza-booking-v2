@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, Calendar, ChevronRight } from 'lucide-react';
+import { Search, User, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/lib/hooks/use-debounce';
 

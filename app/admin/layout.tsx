@@ -23,7 +23,6 @@ import {
   BarChart3,
   Database,
   Download,
-  UserCog,
   ShieldAlert
 } from 'lucide-react';
 

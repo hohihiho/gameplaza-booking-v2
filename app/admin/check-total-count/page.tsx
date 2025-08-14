@@ -55,7 +55,7 @@ export default function CheckTotalCountPage() {
 
     } catch (error) {
       console.error('Count check error:', error);
-      counts.error = error.message;
+      counts.error = error instanceof Error ? error.message : String(error);
     }
 
     setResults(counts);

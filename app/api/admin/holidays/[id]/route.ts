@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 // DELETE /api/admin/holidays/[id] - 공휴일 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // 관리자 권한 확인
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -33,7 +35,7 @@ export async function DELETE(
       );
     }
 
-    const success = await HolidayService.deleteHoliday(params.id);
+    const success = await HolidayService.deleteHoliday(id);
 
     if (!success) {
       return NextResponse.json(

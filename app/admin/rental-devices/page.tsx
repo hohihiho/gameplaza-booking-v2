@@ -661,7 +661,7 @@ export default function RentalDevicesPage() {
                       credit_types: selectedDevice.rental_settings?.credit_types || ['freeplay'],
                       max_players: selectedDevice.rental_settings?.max_players || 1,
                       ...selectedDevice.rental_settings,
-                      max_rental_units: newValue
+                      max_rental_units: newValue === null ? undefined : newValue
                     }
                   };
                   setSelectedDevice(updatedDevice);
