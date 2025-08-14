@@ -16,17 +16,61 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
     
-    // 1. 종료된 예약의 기기 상태 업데이트 함수 호출
-    const { data: _updateResult, error: updateError } = await supabase
-      .rpc('update_device_status_on_rental_end');
+    // 1. 현재 시간 기준으로 종료되어야 할 예약들 찾기
+    const now = new Date().toISOString();
     
-    if (updateError) {
-      console.error('Error updating device status:', updateError);
+    // 체크인된 상태이면서 종료 시간이 지난 예약들 조회
+    const { data: expiredReservations, error: fetchError } = await supabase
+      .from('reservations')
+      .select('id, device_id, status, end_time')
+      .eq('status', 'checked_in')
+      .lt('end_time', now);
+    
+    if (fetchError) {
+      console.error('Error fetching expired reservations:', fetchError);
       return NextResponse.json({ 
-        error: 'Failed to update device status',
-        details: updateError.message 
+        error: 'Failed to fetch expired reservations',
+        details: fetchError.message 
       }, { status: 500 });
     }
+    
+    let updatedCount = 0;
+    let errorCount = 0;
+    
+    // 2. 각 예약에 대해 처리
+    for (const reservation of expiredReservations || []) {
+      // 예약 상태를 completed로 변경
+      const { error: reservationError } = await supabase
+        .from('reservations')
+        .update({ status: 'completed' })
+        .eq('id', reservation.id);
+      
+      if (reservationError) {
+        console.error(`Error updating reservation ${reservation.id}:`, reservationError);
+        errorCount++;
+        continue;
+      }
+      
+      // 기기가 할당된 경우 기기 상태를 available로 변경
+      if (reservation.device_id) {
+        const { error: deviceError } = await supabase
+          .from('devices')
+          .update({ status: 'available' })
+          .eq('id', reservation.device_id)
+          .eq('status', 'in_use'); // in_use 상태인 경우만 변경
+        
+        if (deviceError) {
+          console.error(`Error updating device ${reservation.device_id}:`, deviceError);
+          errorCount++;
+        } else {
+          updatedCount++;
+        }
+      } else {
+        updatedCount++;
+      }
+    }
+    
+    console.log(`Updated ${updatedCount} reservations, ${errorCount} errors`);
     
     // 2. Supabase 활성 상태 유지를 위한 간단한 쿼리
     const { count, error: pingError } = await supabase
@@ -41,7 +85,9 @@ export async function GET(request: NextRequest) {
       success: true,
       message: 'Device status updated successfully',
       timestamp: new Date().toISOString(),
-      devicesChecked: count || 0
+      devicesChecked: count || 0,
+      reservationsProcessed: updatedCount,
+      errors: errorCount
     });
     
   } catch (error) {

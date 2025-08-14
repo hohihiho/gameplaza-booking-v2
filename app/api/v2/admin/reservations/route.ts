@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
 import { withAuth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase'
+import { ScheduleService } from '@/lib/services/schedule.service'
 
 // 관리자용 예약 목록 조회 (v2)
 export const GET = withAuth(
@@ -218,9 +219,28 @@ export const PATCH = withAuth(
         )
       }
 
-      // TODO: 상태 변경에 따른 추가 처리
-      // - 승인 시: 스케줄 업데이트, 푸시 알림
-      // - 거절/취소 시: 스케줄 삭제, 푸시 알림
+      // 상태 변경에 따른 추가 처리
+      if (status === 'approved') {
+        // 승인 시: 스케줄 자동 생성
+        try {
+          console.log(`예약 승인됨 - 스케줄 생성 시작: ${id}`)
+          await ScheduleService.handleReservationApproved(id)
+          console.log(`스케줄 생성 완료: ${id}`)
+        } catch (scheduleError) {
+          console.error('스케줄 생성 실패:', scheduleError)
+          // 스케줄 생성 실패해도 예약 승인은 유지
+        }
+      } else if (status === 'rejected' || status === 'cancelled') {
+        // 거절/취소 시: 스케줄 삭제 처리
+        try {
+          console.log(`예약 취소됨 - 스케줄 정리 시작: ${id}`)
+          await ScheduleService.checkAndDeleteAutoSchedules(data.date)
+          console.log(`스케줄 정리 완료: ${id}`)
+        } catch (scheduleError) {
+          console.error('스케줄 정리 실패:', scheduleError)
+          // 스케줄 정리 실패해도 예약 취소는 유지
+        }
+      }
 
       // createResponse는 이미 success: true와 data를 감싸므로 직접 데이터만 전달
       return createResponse({

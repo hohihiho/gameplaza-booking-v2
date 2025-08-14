@@ -95,6 +95,8 @@ module.exports = {
         'float': 'float 3s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite',
         'gradient': 'gradient 15s ease infinite',
+        'shimmer': 'shimmer 2s ease-in-out infinite',
+        'wave': 'wave 1.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -120,6 +122,15 @@ module.exports = {
         gradient: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        wave: {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(100%)' },
         }
       },
       // 그림자 효과

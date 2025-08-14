@@ -8,8 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { createClient } from '@/lib/supabase';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import PrivacyContent from '../../components/legal/PrivacyContent';
-import TermsContent from '../../components/legal/TermsContent';
+import DynamicTermsContent from '../../components/legal/DynamicTermsContent';
 import useModal from '@/hooks/useModal';
 import useToast from '@/hooks/useToast';
 
@@ -451,7 +450,7 @@ export default function SignupPage() {
               </div>
               
               <div className="flex-1 overflow-y-auto px-6 pb-6">
-                <TermsContent />
+                <DynamicTermsContent type="terms_of_service" />
               </div>
               
               <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">
@@ -499,7 +498,7 @@ export default function SignupPage() {
               </div>
               
               <div className="flex-1 overflow-y-auto px-6 pb-6">
-                <PrivacyContent />
+                <DynamicTermsContent type="privacy_policy" />
               </div>
               
               <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-6">

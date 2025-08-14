@@ -6,6 +6,7 @@ import BottomTabBar from './BottomTabBar';
 import { ToastContainer } from './mobile';
 import { useProfileCheck } from '@/app/hooks/useProfileCheck';
 import ServiceWorkerRegistration from './ServiceWorkerRegistration';
+import PWAInstallButton from './PWAInstallButton';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -97,6 +98,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       
       {/* Service Worker 등록 */}
       <ServiceWorkerRegistration />
+      
+      {/* PWA 설치 플로팅 버튼 - 하단 탭바 위에 위치 */}
+      <PWAInstallButton variant="floating" />
     </div>
   );
 }

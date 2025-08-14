@@ -159,31 +159,36 @@ export default function QuickReservationWidget() {
               transition={{ duration: 0.6 }}
               className="space-y-2 xs:space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 xl:space-y-7 text-center lg:text-left"
             >
-              {/* 메인 헤드라인 */}
-              <div className="space-y-2">
+              {/* 메인 헤드라인 - 시각적 계층 구조 개선 */}
+              <div className="space-y-3">
                 <motion.p 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="hero-subtitle text-purple-200 text-sm xs:text-base sm:text-lg md:text-xl font-semibold"
+                  className="hero-subtitle text-purple-200/90 text-xs xs:text-sm sm:text-base md:text-lg font-medium tracking-wide"
                 >
                   광주 최고의 리듬게임 전문 오락실
                 </motion.p>
-                <h1 className="hero-title text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-white leading-tight break-keep">
-                  <span className="relative">
-                    <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 bg-clip-text text-transparent drop-shadow-2xl">
+                <h1 className="hero-title text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-[0.9] break-keep">
+                  <span className="relative block">
+                    <span className="bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent drop-shadow-2xl">
                       게임플라자
                     </span>
-                    {/* 강화된 글로우 효과 - 접근성을 위해 aria-hidden 추가 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent blur-md opacity-80 -z-10" aria-hidden="true">
-                      게임플라자
-                    </div>
-                    {/* 추가 하이라이트 - 접근성을 위해 aria-hidden 추가 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent blur-lg opacity-40 -z-20" aria-hidden="true">
+                    {/* 단순화된 글로우 효과 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-300 to-cyan-300 bg-clip-text text-transparent blur-sm opacity-50 -z-10" aria-hidden="true">
                       게임플라자
                     </div>
                   </span>
                 </h1>
+                {/* 핵심 가치 제안 강화 */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="text-white/80 text-sm xs:text-base sm:text-lg md:text-xl font-medium max-w-md lg:max-w-lg"
+                >
+                  실시간 예약 • 즉시 확인 • 간편 결제
+                </motion.p>
               </div>
               
               {/* 모바일용 간단한 상태 정보 */}

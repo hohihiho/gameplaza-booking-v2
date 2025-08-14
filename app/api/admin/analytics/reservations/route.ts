@@ -1,35 +1,12 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth';
 
 import { createAdminClient } from '@/lib/supabase';
 
-export async function GET(request: Request) {
-  try {
-    const session = await auth();
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 관리자 권한 확인
-    const supabaseAdmin = createAdminClient();
-    const { data: userData } = await supabaseAdmin.from('users')
-      .select('id')
-      .eq('email', session.user.email)
-      .single();
-
-    if (!userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const { data: adminData } = await supabaseAdmin.from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userData.id)
-      .single();
-
-    if (!adminData) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+export const GET = withAuth(
+  async (request: NextRequest, { user: _user }) => {
+    try {
+      const supabaseAdmin = createAdminClient();
 
     // URL 파라미터 가져오기
     const { searchParams } = new URL(request.url);
@@ -127,9 +104,9 @@ export async function GET(request: Request) {
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
-    // 1. 요약 통계 - 모든 상태를 포함해서 가져옴
+    // 1. 요약 통계 - 모든 상태를 포함해서 가져옴 (테스트 데이터 제외)
     const { data: allReservations, error: allReservationsError } = await supabaseAdmin.from('reservations')
-      .select('status, created_at')
+      .select('status, created_at, reservation_number')
       .gte('date', startDateStr)
       .lte('date', endDateStr);
 
@@ -176,7 +153,7 @@ export async function GET(request: Request) {
       const lastMonthEnd = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
       
       const { data: lastMonthReservations } = await supabaseAdmin.from('reservations')
-        .select('status')
+        .select('status, reservation_number')
         .gte('date', lastMonthStart.toISOString().split('T')[0])
         .lte('date', lastMonthEnd.toISOString().split('T')[0]);
       
@@ -190,9 +167,20 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. 시간대별 분포 (취소/거절 제외) - start_time과 end_time 모두 가져옴
+    // 2. 시간대별 분포 (취소/거절 제외) - start_time, end_time, credit_type, player_count, total_amount, device_type 모두 가져옴
     const { data: hourlyData } = await supabaseAdmin.from('reservations')
-      .select('start_time, end_time')
+      .select(`
+        start_time, 
+        end_time, 
+        credit_type, 
+        player_count, 
+        total_amount,
+        devices!device_id (
+          device_types!device_type_id (
+            name
+          )
+        )
+      `)
       .gte('date', startDateStr)
       .lte('date', endDateStr)
       .in('status', ['approved', 'checked_in', 'completed', 'no_show']);
@@ -280,32 +268,49 @@ export async function GET(request: Request) {
     const dailyReservations: any[] = [];
     
     if (range === 'week' || range === 'month') {
-      // 일별 집계
+      // 일별 집계 - 영업일 기준으로 수정
       const current = new Date(startDate);
       while (current <= endDate) {
         const dateStr = current.toISOString().split('T')[0];
+        const nextDay = new Date(current);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split('T')[0];
         
-        const { data: dayData } = await supabaseAdmin.from('reservations')
-          .select('status, start_time')
-          .eq('date', dateStr);
+        // 해당 영업일 예약 = 당일 07시 이후 + 다음날 00~05시 (테스트 데이터 제외)
+        const { data: dayTimeData } = await supabaseAdmin.from('reservations')
+          .select('status, start_time, reservation_number')
+          .eq('date', dateStr)
+          .gte('start_time', '07:00:00');
+          
+        const { data: nightTimeData } = await supabaseAdmin.from('reservations')
+          .select('status, start_time, reservation_number')
+          .eq('date', nextDayStr)
+          .lte('start_time', '05:59:59');
+        
+        // 영업일 전체 데이터 합치기
+        const dayData = [...(dayTimeData || []), ...(nightTimeData || [])];
         
         const total = dayData?.filter(r => !['pending', 'rejected', 'cancelled'].includes(r.status)).length || 0;
         const completed = dayData?.filter(r => r.status === 'completed').length || 0;
+        
+        // 조기: 07~14시 시간대
         const earlyBird = dayData?.filter(r => {
           const hour = parseInt(r.start_time.split(':')[0]);
-          return hour >= 0 && hour < 12 && !['pending', 'rejected', 'cancelled'].includes(r.status);
+          return hour >= 7 && hour <= 14 && !['pending', 'rejected', 'cancelled'].includes(r.status);
         }).length || 0;
+        
+        // 밤샘: 00~05시 시간대 (다음날 새벽)
         const lateBird = dayData?.filter(r => {
           const hour = parseInt(r.start_time.split(':')[0]);
-          return hour >= 20 && !['pending', 'rejected', 'cancelled'].includes(r.status);
+          return hour >= 0 && hour <= 5 && !['pending', 'rejected', 'cancelled'].includes(r.status);
         }).length || 0;
         
         dailyReservations.push({
           date: dateStr,
           total,
           completed,
-          earlyBird,
-          lateBird
+          earlyBird, // 조기 시간대
+          lateBird   // 밤샘 시간대
         });
         
         current.setDate(current.getDate() + 1);
@@ -379,31 +384,89 @@ export async function GET(request: Request) {
       .order('start_time');
 
     const hourlyDistribution: any[] = [];
-    const hourCounts = new Map();
+    const timeslotCounts = new Map();
+    const timeslotDetails = new Map(); // 추가 세부 정보 저장
 
-    // 시간대별로 예약 집계
-    hourlyData?.forEach(reservation => {
-      const startHour = parseInt(reservation.start_time.split(':')[0]);
-      const endHour = parseInt(reservation.end_time.split(':')[0]);
-      
-      // 시작 시간부터 종료 시간까지 각 시간대에 카운트
-      for (let hour = startHour; hour < endHour; hour++) {
-        hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+    // 고유한 시간대 추출 (중복 제거)
+    const uniqueTimeSlots = new Map();
+    timeSlots?.forEach(slot => {
+      const key = `${slot.start_time}-${slot.end_time}`;
+      if (!uniqueTimeSlots.has(key)) {
+        uniqueTimeSlots.set(key, {
+          start_time: slot.start_time,
+          end_time: slot.end_time
+        });
+        // 초기 데이터 설정
+        timeslotDetails.set(key, {
+          totalRevenue: 0,
+          playerCounts: { 1: 0, 2: 0 },
+          creditTypes: { fixed: 0, freeplay: 0, unlimited: 0 },
+          devices: new Map()
+        });
       }
     });
 
-    // 타임슬롯 기준으로 정렬된 결과 생성
-    timeSlots?.forEach(slot => {
-      const hour = parseInt(slot.start_time.split(':')[0]);
-      const count = hourCounts.get(hour) || 0;
+    // 예약을 시간대별로 집계 (예약의 전체 시간대와 매칭)
+    hourlyData?.forEach((reservation: any) => {
+      const reservationKey = `${reservation.start_time}-${reservation.end_time}`;
+      
+      // 기본 카운트
+      timeslotCounts.set(reservationKey, (timeslotCounts.get(reservationKey) || 0) + 1);
+      
+      // 세부 정보 채우기
+      const details = timeslotDetails.get(reservationKey);
+      if (details) {
+        details.totalRevenue += reservation.total_amount || 0;
+        details.playerCounts[reservation.player_count] = (details.playerCounts[reservation.player_count] || 0) + 1;
+        details.creditTypes[reservation.credit_type] = (details.creditTypes[reservation.credit_type] || 0) + 1;
+        
+        const deviceName = reservation.devices?.device_types?.name || '알 수 없음';
+        details.devices.set(deviceName, (details.devices.get(deviceName) || 0) + 1);
+      }
+    });
+
+    // 고유한 시간대 기준으로 결과 생성
+    Array.from(uniqueTimeSlots.values()).forEach(slot => {
+      const key = `${slot.start_time}-${slot.end_time}`;
+      const count = timeslotCounts.get(key) || 0;
+      const details = timeslotDetails.get(key);
+      
+      // 시간 표시 형식 변환 (00:00:00 -> 0시, 07:00:00 -> 7시)
+      const startHour = parseInt(slot.start_time.split(':')[0]);
+      const endHour = parseInt(slot.end_time.split(':')[0]);
+      
+      // 밤샘 시간대는 24시간 표기로 변환
+      const displayStartHour = startHour === 0 ? 24 : startHour;
+      const displayEndHour = endHour <= 5 && endHour > 0 ? endHour + 24 : endHour;
+      
+      // 가장 인기 있는 기기 찾기
+      let popularDevice = '알 수 없음';
+      let maxDeviceCount = 0;
+      if (details) {
+        details.devices.forEach((deviceCount, deviceName) => {
+          if (deviceCount > maxDeviceCount) {
+            maxDeviceCount = deviceCount;
+            popularDevice = deviceName;
+          }
+        });
+      }
       
       hourlyDistribution.push({
-        hour,
+        hour: startHour,
         count,
-        label: slot.start_time.substring(0, 5),
+        label: `${displayStartHour}-${displayEndHour}시`,
+        timeSlot: `${slot.start_time.substring(0, 5)}-${slot.end_time.substring(0, 5)}`,
+        totalRevenue: details?.totalRevenue || 0,
+        avgRevenue: count > 0 ? Math.round((details?.totalRevenue || 0) / count) : 0,
+        playerCounts: details?.playerCounts || { 1: 0, 2: 0 },
+        creditTypes: details?.creditTypes || { fixed: 0, freeplay: 0, unlimited: 0 },
+        popularDevice: maxDeviceCount > 0 ? popularDevice : '알 수 없음',
         percentage: 0
       });
     });
+
+    // 시작 시간으로 정렬
+    hourlyDistribution.sort((a, b) => a.hour - b.hour);
 
     // 퍼센트 계산
     const totalHourly = hourlyData?.length || 0;
@@ -526,11 +589,13 @@ export async function GET(request: Request) {
     
     return NextResponse.json(responseData);
 
-  } catch (error) {
-    console.error('Analytics API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+    } catch (error) {
+      console.error('Analytics API error:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
+  },
+  { requireAdmin: true }
+)

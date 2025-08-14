@@ -17,7 +17,7 @@ export interface CreateReservationRequest {
   startHour: number // 0-29
   endHour: number // 1-30
   userNotes?: string
-  isAdmin?: boolean // 관리자 여부
+  isAdmin?: boolean // 슈퍼관리자 여부
   createdByUserId?: string // 실제 예약 생성자 (onBehalf인 경우)
 }
 
@@ -79,7 +79,7 @@ export class CreateReservationV2UseCase {
     // 6. 비즈니스 규칙 검증
 
     // 6-1. 특별 운영 시간대 24시간 규칙 검증 (밤샘/조기개장만)
-    // 관리자는 24시간 제한 해제
+    // 슈퍼관리자는 24시간 제한 해제
     if (!request.isAdmin) {
       const specialHoursValidation = ReservationRulesService.validateSpecialOperatingHours(reservation)
       if (!specialHoursValidation.isValid) {
@@ -105,7 +105,7 @@ export class CreateReservationV2UseCase {
     // 8. 사용자 시간 충돌 검증 제거 - 같은 시간대 여러 기기 예약 가능
     // await this.validateNoUserTimeConflict(reservation) // 비활성화
 
-    // 9. 동시 예약 개수 제한 검증 (관리자는 제외)
+    // 9. 동시 예약 개수 제한 검증 (슈퍼관리자는 제외)
     if (!request.isAdmin) {
       await this.validateReservationLimit(request.userId)
     }

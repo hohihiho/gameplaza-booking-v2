@@ -78,9 +78,18 @@ export async function POST(request: NextRequest) {
       timeSlotDomainService
     )
 
-    // 사용자 정보 확인해서 관리자인지 체크
+    // 사용자 정보 확인해서 슈퍼관리자인지 체크
     const user = await userRepository.findById(userId)
-    const isAdmin = user?.role === 'admin'
+    
+    // 슈퍼관리자 여부 확인
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userId)
+      .eq('is_super_admin', true)
+      .single()
+    
+    const isSuperAdmin = !!adminData
     
     const result = await useCase.execute({
       userId: userId,
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
       creditType: data.credit_type,
       playerCount: data.player_count,
       userNotes: data.user_notes,
-      isAdmin: isAdmin
+      isAdmin: isSuperAdmin
     })
 
     // 실시간 업데이트를 위한 브로드캐스트

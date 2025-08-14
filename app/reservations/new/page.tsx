@@ -429,21 +429,40 @@ export default function NewReservationPage() {
             </div>
           </div>
           
-          {/* 진행 상태 */}
+          {/* 진행 상태 - 향상된 단계 표시 */}
           <div className="px-5 pb-2">
             <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${(currentStep / 4) * 100}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
+              <div className="space-y-3">
+                {/* 진행률 바 */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
+                      initial={{ width: '0%' }}
+                      animate={{ width: `${(currentStep / 4) * 100}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 font-medium min-w-[40px] text-right">
+                    {currentStep}/4
+                  </span>
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium min-w-[40px] text-right">
-                  {currentStep}/4
-                </span>
+                
+                {/* 단계 라벨 */}
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span className={currentStep >= 1 ? 'text-indigo-600 dark:text-indigo-400 font-medium' : ''}>
+                    날짜
+                  </span>
+                  <span className={currentStep >= 2 ? 'text-indigo-600 dark:text-indigo-400 font-medium' : ''}>
+                    기기
+                  </span>
+                  <span className={currentStep >= 3 ? 'text-indigo-600 dark:text-indigo-400 font-medium' : ''}>
+                    시간
+                  </span>
+                  <span className={currentStep >= 4 ? 'text-indigo-600 dark:text-indigo-400 font-medium' : ''}>
+                    확인
+                  </span>
+                </div>
               </div>
             </div>
           </div>

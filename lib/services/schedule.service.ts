@@ -74,31 +74,11 @@ export class ScheduleService {
   }
 
   /**
-   * 밤샘영업 시간 계산 - 해당 예약의 종료시간을 그대로 사용
+   * 밤샘영업 시간 계산 - 기획서에 따라 무조건 29시(05:00)로 통일
    */
-  static async calculateOvernightCloseTime(reservationId: string): Promise<string | null> {
-    try {
-      console.log(`밤샘영업 시간 계산 시작 - 예약ID: ${reservationId}`);
-      
-      const supabaseAdmin = createAdminClient();
-      const { data: reservation, error } = await supabaseAdmin
-        .from('reservations')
-        .select('end_time')
-        .eq('id', reservationId)
-        .single();
-
-      console.log('밤샘영업 예약 조회 결과:', { reservation, error });
-
-      if (error || !reservation || !reservation.end_time) {
-        return null;
-      }
-
-      console.log(`밤샘영업 종료 시간: ${reservation.end_time}`);
-      return reservation.end_time;
-    } catch (error) {
-      console.error('밤샘영업 시간 계산 오류:', error);
-      return null;
-    }
+  static getOvernightCloseTime(): string {
+    // 기획서: 밤샘영업은 무조건 29시(05:00)로 통일
+    return '05:00:00';
   }
 
   /**
@@ -256,56 +236,89 @@ export class ScheduleService {
 
       console.log(`조기영업 예약: ${earlyReservations.length}개, 밤샘영업 예약: ${overnightReservations.length}개`);
 
-      // 조기영업 스케줄 삭제 검사
+      // 조기영업 스케줄 처리 (예약으로 생성된 것만)
       if (earlyReservations.length === 0) {
+        // 예약이 없으면 예약으로 생성된 조기영업 스케줄만 삭제
         const { data: earlySchedules } = await supabaseAdmin
           .from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'early_open')
-          .eq('is_auto_generated', true);
+          .eq('is_auto_generated', true)
+          .eq('source_type', 'reservation_auto'); // 예약으로 생성된 것만
 
         if (earlySchedules && earlySchedules.length > 0) {
-          console.log('조기영업 자동 스케줄 삭제 중...');
+          console.log('예약으로 생성된 조기영업 자동 스케줄 삭제 중...');
           const { error: deleteError } = await supabaseAdmin
             .from('schedule_events')
             .delete()
             .eq('date', date)
             .eq('type', 'early_open')
-            .eq('is_auto_generated', true);
+            .eq('is_auto_generated', true)
+            .eq('source_type', 'reservation_auto'); // 예약으로 생성된 것만
 
           if (deleteError) {
             console.error('조기영업 스케줄 삭제 실패:', deleteError);
           } else {
-            console.log(`${date} 조기영업 자동 스케줄 삭제 완료`);
+            console.log(`${date} 예약으로 생성된 조기영업 자동 스케줄 삭제 완료`);
+          }
+        }
+      } else {
+        // 예약이 있으면 시간 재조정
+        console.log('조기영업 예약이 남아있어 시간 재조정 중...');
+        const newStartTime = await this.calculateEarlyOpenTime(date);
+        if (newStartTime) {
+          const { error: updateError } = await supabaseAdmin
+            .from('schedule_events')
+            .update({
+              start_time: newStartTime,
+              updated_at: new Date().toISOString()
+            })
+            .eq('date', date)
+            .eq('type', 'early_open')
+            .eq('is_auto_generated', true)
+            .eq('source_type', 'reservation_auto'); // 예약으로 생성된 것만
+
+          if (updateError) {
+            console.error('조기영업 시간 재조정 실패:', updateError);
+          } else {
+            console.log(`${date} 조기영업 시간 재조정 완료: ${newStartTime}`);
           }
         }
       }
 
-      // 밤샘영업 스케줄 삭제 검사
+      // 밤샘영업 스케줄 처리 (예약으로 생성된 것만)
       if (overnightReservations.length === 0) {
+        // 예약이 없으면 예약으로 생성된 밤샘영업 스케줄만 삭제 (주말/공휴일 밤샘영업은 유지)
         const { data: overnightSchedules } = await supabaseAdmin
           .from('schedule_events')
           .select('id')
           .eq('date', date)
           .eq('type', 'overnight')
-          .eq('is_auto_generated', true);
+          .eq('is_auto_generated', true)
+          .eq('source_type', 'reservation_auto'); // 예약으로 생성된 것만
 
         if (overnightSchedules && overnightSchedules.length > 0) {
-          console.log('밤샘영업 자동 스케줄 삭제 중...');
+          console.log('예약으로 생성된 밤샘영업 자동 스케줄 삭제 중...');
           const { error: deleteError } = await supabaseAdmin
             .from('schedule_events')
             .delete()
             .eq('date', date)
             .eq('type', 'overnight')
-            .eq('is_auto_generated', true);
+            .eq('is_auto_generated', true)
+            .eq('source_type', 'reservation_auto'); // 예약으로 생성된 것만
 
           if (deleteError) {
             console.error('밤샘영업 스케줄 삭제 실패:', deleteError);
           } else {
-            console.log(`${date} 밤샘영업 자동 스케줄 삭제 완료`);
+            console.log(`${date} 예약으로 생성된 밤샘영업 자동 스케줄 삭제 완료`);
           }
+        } else {
+          console.log(`${date} 예약으로 생성된 밤샘영업 없음 (주말/공휴일 밤샘영업은 유지됨)`);
         }
+      } else {
+        // 밤샘영업은 시간이 고정이므로 재조정 불필요
+        console.log('밤샘영업 예약이 남아있어 스케줄 유지');
       }
 
     } catch (error) {
@@ -402,7 +415,7 @@ export class ScheduleService {
           source_type: 'manual',
           source_reference: null,
           affects_reservation: false,
-          description: '주말 정기 밤샘영업'
+          description: null
         });
       
       if (error) {

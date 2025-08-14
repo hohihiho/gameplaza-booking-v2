@@ -10,56 +10,101 @@ export const GET = withAuth(
     try {
     console.log('Dashboard API: Starting request')
     const supabase = createAdminClient()
-    console.log('Dashboard API: Created Supabase client')
     
-    // 단계별로 서비스 테스트 - 먼저 간단한 데이터베이스 조회부터
-    console.log('Dashboard API: Testing basic queries')
+    // 오늘 영업일 날짜 (KST 기준, 06시 이전은 전날 영업일)
+    const kstOffset = 9 * 60 * 60 * 1000 // 9시간을 밀리초로
+    const now = new Date()
+    const kstNow = new Date(now.getTime() + kstOffset)
     
-    // 1. 기본 예약 수 조회
-    const { data: reservationCount, error: resError } = await supabase
-      .from('reservations')
-      .select('id', { count: 'exact' })
+    // 현재 시간이 06시 이전이면 전날을 영업일로 간주
+    const currentHour = kstNow.getHours()
+    const businessDay = new Date(kstNow)
+    if (currentHour < 6) {
+      businessDay.setDate(businessDay.getDate() - 1)
+    }
+    const todayStr = businessDay.toISOString().split('T')[0]
+
+    // 어제 영업일
+    const yesterday = new Date(businessDay)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
     
-    console.log('Reservation count query:', { count: reservationCount?.length, error: resError })
-    
-    // 2. 기본 기기 수 조회
-    const { data: deviceCount, error: devError } = await supabase
-      .from('devices')
-      .select('id', { count: 'exact' })
-    
-    console.log('Device count query:', { count: deviceCount?.length, error: devError })
-    
-    // 3. 오늘 예약 조회 (간단한 버전)
-    const today = new Date().toISOString().split('T')[0]
-    const { data: todayReservations, error: todayError } = await supabase
-      .from('reservations')
-      .select('id, status, date')
-      .eq('date', today)
-    
-    console.log('Today reservations query:', { count: todayReservations?.length, error: todayError, today })
-    
-    // 전체 예약 수도 확인
-    const { data: allReservations, error: allError } = await supabase
-      .from('reservations')
-      .select('id, date, status')
-      .limit(10)
-    
-    console.log('All reservations sample:', { count: allReservations?.length, error: allError, data: allReservations })
-    
-    // 4. 오늘 매출 조회 (완료된 예약만)
-    const { data: todayRevenue, error: revenueError } = await supabase
-      .from('reservations')
-      .select('total_amount')
-      .eq('date', today)
-      .eq('status', 'completed')
-    
-    console.log('Today revenue query:', { 
-      count: todayRevenue?.length, 
-      error: revenueError,
-      data: todayRevenue?.map(r => ({ total_amount: r.total_amount }))
+    console.log('Business day calculation:', { 
+      kstNow: kstNow.toISOString(), 
+      currentHour, 
+      todayStr, 
+      yesterdayStr 
     })
+
+    // 1. 오늘 영업일 예약 조회 (조기/밤샘 시스템 적용)
+    // 당일 07시 이후 + 다음날 00~05시 밤샘 예약 포함
+    const todayBusinessDate = new Date(businessDay)
+    const tomorrowStr = new Date(todayBusinessDate.getTime() + 24*60*60*1000).toISOString().split('T')[0]
     
-    // 5. 최근 예약 5건 조회
+    const { data: todayDayReservations } = await supabase
+      .from('reservations')
+      .select('id, status, date, total_amount, start_time')
+      .eq('date', todayStr)
+      .gte('start_time', '07:00:00')
+    
+    const { data: todayNightReservations } = await supabase
+      .from('reservations')
+      .select('id, status, date, total_amount, start_time')
+      .eq('date', tomorrowStr)
+      .lte('start_time', '05:59:59')
+    
+    // 오늘 영업일 전체 예약 = 당일 07시이후 + 다음날 00~05시
+    const todayReservations = [...(todayDayReservations || []), ...(todayNightReservations || [])]
+    
+    // 2. 어제 영업일 예약 조회 (트렌드 계산용, 테스트 데이터 제외)
+    // 어제 07시 이후 + 오늘 00~05시 밤샘 예약 포함
+    const { data: yesterdayDayReservations } = await supabase
+      .from('reservations')
+      .select('id, status, total_amount, reservation_number, start_time')
+      .eq('date', yesterdayStr)
+      .gte('start_time', '07:00:00')
+    
+    const { data: yesterdayNightReservations } = await supabase
+      .from('reservations')
+      .select('id, status, total_amount, reservation_number, start_time')
+      .eq('date', todayStr)
+      .lte('start_time', '05:59:59')
+    
+    // 어제 영업일 전체 예약 = 어제 07시이후 + 오늘 00~05시
+    const yesterdayReservations = [...(yesterdayDayReservations || []), ...(yesterdayNightReservations || [])]
+    
+    // 3. 전체 대기승인 예약 조회 (테스트 데이터 제외)
+    const { data: allPendingReservations, error: pendingError } = await supabase
+      .from('reservations')
+      .select('id, reservation_number')
+      .eq('status', 'pending')
+    
+    // 4. 체크인 대기중인 예약 조회 (승인됐지만 아직 체크인 안한 예약)
+    const currentTime = `${String(kstNow.getHours()).padStart(2, '0')}:${String(kstNow.getMinutes()).padStart(2, '0')}:00`
+    
+    const { data: waitingCheckIn, error: waitingError } = await supabase
+      .from('reservations')
+      .select('id, date, start_time, reservation_number')
+      .eq('status', 'approved')
+      .eq('date', todayStr)
+      .lte('start_time', currentTime)
+    
+    // 5. 결제 대기중인 예약 조회 (테스트 데이터 제외)
+    const { data: pendingPaymentReservations, error: paymentError } = await supabase
+      .from('reservations')
+      .select('id, reservation_number')
+      .eq('status', 'checked_in')
+      .eq('payment_status', 'pending')
+    
+    // 6. 기기 현황 조회
+    const { data: totalDevices, count: totalDeviceCount } = await supabase
+      .from('devices')
+      .select('id, status', { count: 'exact' })
+    
+    const availableDevices = totalDevices?.filter(d => d.status === 'available')?.length || 0
+    const maintenanceDevices = totalDevices?.filter(d => d.status === 'maintenance')?.length || 0
+    
+    // 7. 최근 예약 5건 조회 (테스트 데이터 제외)
     const { data: recentReservations, error: recentError } = await supabase
       .from('reservations')
       .select(`
@@ -69,6 +114,7 @@ export const GET = withAuth(
         start_time,
         end_time,
         created_at,
+        reservation_number,
         users!inner(name, nickname),
         devices!inner(
           device_number,
@@ -81,51 +127,28 @@ export const GET = withAuth(
       .order('created_at', { ascending: false })
       .limit(5)
     
-    console.log('Recent reservations query:', { count: recentReservations?.length, error: recentError })
-    
-    // 6. 전체 대기승인 예약 조회 (날짜 상관없이)
-    const { data: allPendingReservations, error: pendingError } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('status', 'pending')
-    
-    console.log('All pending reservations query:', { count: allPendingReservations?.length, error: pendingError })
-
-    // 7. 체크인 대기중인 예약 조회 (승인됐지만 아직 체크인 안한 예약)
-    // 오늘 날짜의 예약 중 현재 시간 기준으로 체크인 가능한 예약만 조회
-    const now = new Date()
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`
-    
-    const { data: waitingCheckIn, error: waitingError } = await supabase
-      .from('reservations')
-      .select('id, date, start_time')
-      .eq('status', 'approved')
-      .eq('date', today) // 오늘 날짜만
-      .lte('start_time', currentTime) // 현재 시간 이전에 시작하는 예약만
-    
-    console.log('Waiting check-in query:', { 
-      count: waitingCheckIn?.length, 
-      error: waitingError,
-      today,
-      currentTime
-    })
-
-    // 8. 결제 대기중인 예약 조회 (체크인했지만 결제 안된 예약)
-    const { data: pendingPaymentReservations, error: paymentError } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('status', 'checked_in')
-      .eq('payment_status', 'pending')
-    
-    console.log('Pending payment reservations query:', { count: pendingPaymentReservations?.length, error: paymentError })
-
-    // 기본 통계 계산
+    // 통계 계산
     const totalReservations = todayReservations?.length || 0
-    const pendingReservations = allPendingReservations?.length || 0 // 전체 대기승인 개수
+    const pendingReservations = allPendingReservations?.length || 0
     const usingCount = todayReservations?.filter(r => r.status === 'checked_in').length || 0
-    const todayRevenueAmount = todayRevenue?.reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0
+    const todayRevenueAmount = todayReservations
+      ?.filter(r => r.status === 'completed')
+      ?.reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0
     const waitingCheckInCount = waitingCheckIn?.length || 0
     const pendingPaymentCount = pendingPaymentReservations?.length || 0
+    
+    // 트렌드 계산
+    const yesterdayCount = yesterdayReservations?.length || 0
+    const reservationTrend = yesterdayCount > 0
+      ? Math.round((totalReservations - yesterdayCount) / yesterdayCount * 100)
+      : totalReservations > 0 ? 100 : 0
+      
+    const yesterdayRevenue = yesterdayReservations
+      ?.filter(r => r.status === 'completed')
+      ?.reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0
+    const revenueTrend = yesterdayRevenue > 0
+      ? Math.round((todayRevenueAmount - yesterdayRevenue) / yesterdayRevenue * 100)
+      : todayRevenueAmount > 0 ? 100 : 0
     
     // 최근 예약 데이터 형식화
     const formattedRecentReservations = recentReservations?.map(r => {
@@ -144,8 +167,7 @@ export const GET = withAuth(
       if (diffMins < 60) {
         createdAtText = `${diffMins}분 전`
       } else if (diffHours < 24) {
-        createdAtText =
- `${diffHours}시간 전`
+        createdAtText = `${diffHours}시간 전`
       } else {
         const diffDays = Math.floor(diffHours / 24)
         createdAtText = `${diffDays}일 전`
@@ -167,25 +189,40 @@ export const GET = withAuth(
       }
     }) || []
     
+    console.log('Dashboard statistics:', {
+      todayStr,
+      totalReservations,
+      pendingReservations,
+      usingCount,
+      todayRevenueAmount,
+      waitingCheckInCount,
+      pendingPaymentCount,
+      reservationTrend,
+      revenueTrend,
+      totalDeviceCount,
+      availableDevices,
+      maintenanceDevices
+    })
+    
     return NextResponse.json({
       stats: {
         revenue: {
           value: todayRevenueAmount,
-          trend: 0
+          trend: revenueTrend
         },
         reservations: {
           total: totalReservations,
           pending: pendingReservations,
-          trend: 0
+          trend: reservationTrend
         },
         currentlyUsing: {
           using: usingCount,
-          waiting: waitingCheckInCount // 체크인 대기중인 예약 수
+          waiting: waitingCheckInCount
         },
         devices: {
-          available: deviceCount?.length || 0,
-          total: deviceCount?.length || 0,
-          maintenance: 0
+          available: availableDevices,
+          total: totalDeviceCount || 0,
+          maintenance: maintenanceDevices
         }
       },
       recentReservations: formattedRecentReservations,

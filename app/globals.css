@@ -27,11 +27,14 @@
   --focus-ring-width: 3px; /* 더 두꺼운 링 */
   --focus-ring-offset: 2px;
   
-  /* 상태별 색상 - WCAG AA 준수 */
-  --color-success: #059669; /* emerald-600 - 대비율 5.1:1 */
-  --color-warning: #d97706; /* amber-600 - 대비율 4.8:1 */
-  --color-error: #dc2626; /* red-600 - 대비율 5.9:1 */
-  --color-info: #0284c7; /* sky-600 - 대비율 5.2:1 */
+  /* 상태별 색상 - WCAG AA 강화 */
+  --color-success: #047857; /* emerald-700 - 대비율 5.8:1 */
+  --color-warning: #c2670b; /* amber-700 - 대비율 5.4:1 */
+  --color-error: #b91c1c; /* red-700 - 대비율 6.8:1 */
+  --color-info: #0369a1; /* sky-700 - 대비율 6.1:1 */
+  
+  /* 보조 텍스트 대비 강화 */
+  --color-text-muted: #4b5563; /* gray-600 - 대비율 5.2:1 */
 }
 
 /* 다크 모드 색상 - WCAG 2.1 AA 준수 */
@@ -408,9 +411,19 @@
     @apply absolute -inset-2;
   }
   
-  /* 터치 피드백 개선 */
+  /* 터치 피드백 개선 - 더 자연스러운 반응 */
   .touch-feedback {
-    @apply transition-all duration-75 active:scale-95 active:opacity-80;
+    @apply transition-all duration-100 active:scale-[0.97] active:opacity-90;
+    transform-origin: center;
+  }
+  
+  /* 터치 영역별 차별화된 피드백 */
+  .touch-feedback-light {
+    @apply transition-all duration-75 active:scale-[0.98] active:opacity-95;
+  }
+  
+  .touch-feedback-strong {
+    @apply transition-all duration-125 active:scale-95 active:opacity-85;
   }
   
   /* 리스트 아이템 터치 최적화 */
@@ -682,13 +695,28 @@
     @apply p-4 border border-gray-200 dark:border-gray-700 rounded-lg;
   }
   
-  /* 이미지 레이지 로딩 */
+  /* 이미지 레이지 로딩 강화 */
   .lazy-image {
-    @apply bg-gray-100 dark:bg-gray-800;
+    @apply bg-gray-100 dark:bg-gray-800 transition-all duration-300;
+    min-height: 120px; /* 레이아웃 시프트 방지 */
   }
   
   .lazy-image[data-loaded="true"] {
     @apply bg-transparent;
+  }
+  
+  .lazy-image[data-loading="true"] {
+    @apply animate-pulse;
+  }
+  
+  /* 저해상도 placeholder 지원 */
+  .lazy-image[data-blur="true"] {
+    filter: blur(5px);
+    transition: filter 0.3s ease;
+  }
+  
+  .lazy-image[data-loaded="true"][data-blur="true"] {
+    filter: blur(0);
   }
   
   /* 로딩 상태 최적화 */

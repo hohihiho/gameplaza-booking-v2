@@ -115,7 +115,24 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
 # Cron Job
 CRON_SECRET=your_cron_secret
+
+# 한국 공휴일 API (선택사항)
+# https://www.data.go.kr/data/15012690/openapi.do
+NEXT_PUBLIC_HOLIDAY_API_KEY=your_holiday_api_key
 ```
+
+### 공휴일 동기화 설정
+
+한국천문연구원 공공데이터 API를 사용한 공휴일 자동 동기화:
+
+1. [공공데이터포털](https://www.data.go.kr) 회원가입
+2. [한국천문연구원 특일 정보](https://www.data.go.kr/data/15012690/openapi.do) 활용신청
+3. 마이페이지에서 **일반 인증키(Encoding)** 복사
+4. `.env.local`에 추가:
+   ```
+   NEXT_PUBLIC_HOLIDAY_API_KEY=발급받은_인증키
+   ```
+5. 관리자 페이지 → 운영 일정 → "공휴일 동기화" 버튼 클릭
 
 ### 설치 및 실행
 

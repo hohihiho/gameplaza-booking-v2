@@ -74,7 +74,7 @@ export default function AdminLayout({
     { href: '/admin/rental-devices', label: '대여기기관리', icon: Clock },
     { href: '/admin/reservations', label: '예약 관리', icon: Calendar },
     { href: '/admin/users', label: '회원 관리', icon: Users },
-    { href: '/admin/admins', label: '관리자 관리', icon: UserCog },
+    // { href: '/admin/admins', label: '관리자 관리', icon: UserCog }, // 당분간 숨김
     { href: '/admin/banned-words', label: '금지어 관리', icon: ShieldAlert },
     { href: '/admin/schedule', label: '운영 일정', icon: CalendarDays },
     { href: '/admin/analytics/reservations', label: '통계 분석', icon: BarChart3 },

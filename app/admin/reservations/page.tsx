@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from '@/hooks/useToast';
 // Supabase Auth는 사용하지 않음 - NextAuth 사용
 import { 
   Calendar,
@@ -22,7 +23,10 @@ import {
   MessageSquare,
   MessageCircle,
   Eye,
-  X
+  X,
+  Square,
+  CheckSquare,
+  Trash2
 } from 'lucide-react';
 import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime';
 
@@ -118,6 +122,12 @@ export default function ReservationManagementPage() {
   const [rejectingReservationId, setRejectingReservationId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   // NextAuth 세션 정보는 API가 자동으로 처리
+  
+  // 복수 선택 상태
+  const [selectedReservationIds, setSelectedReservationIds] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
+  const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
@@ -484,8 +494,15 @@ export default function ReservationManagementPage() {
     if (allReservations.length > 0) {
       filterReservations();
     }
+    // 필터링 시 선택 해제
+    clearSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus, searchQuery, selectedDate, allReservations]);
+
+  // 선택된 항목이 있을 때 일괄 처리 버튼 표시
+  useEffect(() => {
+    setShowBulkActions(selectedReservationIds.length > 0);
+  }, [selectedReservationIds]);
 
   // 필터링 함수
   const filterReservations = () => {
@@ -632,9 +649,12 @@ export default function ReservationManagementPage() {
       counts.pending = (counts.pending || 1) - 1;
       counts.approved = (counts.approved || 0) + 1;
       setTabCounts(counts);
+      
+      // 성공 토스트 표시
+      toast.success('예약이 승인되었습니다');
     } catch (error) {
       console.error('예약 승인 실패:', error);
-      alert('예약 승인에 실패했습니다.');
+      toast.error('예약 승인에 실패했습니다');
     } finally {
       setIsLoading(false);
     }
@@ -645,11 +665,165 @@ export default function ReservationManagementPage() {
     setShowRejectModal(true);
   };
 
-  const confirmReject = async () => {
-    if (!rejectReason.trim()) {
-      alert('거절 사유를 입력해주세요.');
-      return;
+  // 복수 선택 관련 함수들
+  const handleSelectReservation = (reservationId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedReservationIds(prev => [...prev, reservationId]);
+    } else {
+      setSelectedReservationIds(prev => prev.filter(id => id !== reservationId));
     }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pendingIds = reservations
+        .filter(r => r.status === 'pending')
+        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+        .map(r => r.id);
+      setSelectedReservationIds(pendingIds);
+    } else {
+      setSelectedReservationIds([]);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedReservationIds([]);
+    setShowBulkActions(false);
+    setBulkAction(null);
+  };
+
+  // 복수 승인 처리
+  const handleBulkApprove = async () => {
+    if (selectedReservationIds.length === 0) return;
+
+    try {
+      setIsLoading(true);
+      
+      // 각 예약을 순차적으로 승인 처리
+      const promises = selectedReservationIds.map(async (reservationId) => {
+        const response = await fetch('/api/v2/admin/reservations', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            id: reservationId,
+            status: 'approved',
+            reviewedBy: '관리자'
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`예약 ${reservationId} 승인 실패`);
+        }
+        return reservationId;
+      });
+
+      await Promise.all(promises);
+
+      // 로컬 상태 업데이트
+      const updatedReservations = allReservations.map(r => 
+        selectedReservationIds.includes(r.id)
+          ? { 
+              ...r, 
+              status: 'approved' as const, 
+              reviewed_at: new Date().toISOString(),
+              reviewed_by: '관리자'
+            }
+          : r
+      );
+      setAllReservations(updatedReservations);
+      
+      // 탭 개수 업데이트
+      const counts = { ...tabCounts };
+      counts.pending = (counts.pending || selectedReservationIds.length) - selectedReservationIds.length;
+      counts.approved = (counts.approved || 0) + selectedReservationIds.length;
+      setTabCounts(counts);
+      
+      clearSelection();
+      toast.success(`${selectedReservationIds.length}건의 예약이 승인되었습니다`);
+    } catch (error) {
+      console.error('복수 승인 실패:', error);
+      toast.error('일부 예약 승인에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 복수 거절 처리
+  const handleBulkReject = () => {
+    setShowBulkRejectModal(true);
+  };
+
+  const confirmBulkReject = async () => {
+    if (selectedReservationIds.length === 0) return;
+
+    const finalReason = rejectReason.trim() || '기타';
+
+    try {
+      setIsLoading(true);
+      
+      // 각 예약을 순차적으로 거절 처리
+      const promises = selectedReservationIds.map(async (reservationId) => {
+        const response = await fetch('/api/v2/admin/reservations', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            id: reservationId,
+            status: 'rejected',
+            reviewedBy: '관리자',
+            notes: `취소 사유: ${finalReason}`,
+            rejection_reason: finalReason
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`예약 ${reservationId} 거절 실패`);
+        }
+        return reservationId;
+      });
+
+      await Promise.all(promises);
+
+      // 로컬 상태 업데이트
+      const updatedReservations = allReservations.map(r => 
+        selectedReservationIds.includes(r.id)
+          ? { 
+              ...r, 
+              status: 'rejected' as const, 
+              reviewed_at: new Date().toISOString(),
+              reviewed_by: '관리자',
+              notes: `취소 사유: ${finalReason}`
+            }
+          : r
+      );
+      setAllReservations(updatedReservations);
+      
+      // 탭 개수 업데이트
+      const counts = { ...tabCounts };
+      counts.pending = (counts.pending || selectedReservationIds.length) - selectedReservationIds.length;
+      counts.cancelled = (counts.cancelled || 0) + selectedReservationIds.length;
+      setTabCounts(counts);
+      
+      setShowBulkRejectModal(false);
+      setRejectReason('');
+      clearSelection();
+      toast.success(`${selectedReservationIds.length}건의 예약이 취소되었습니다`);
+    } catch (error) {
+      console.error('복수 거절 실패:', error);
+      toast.error('일부 예약 취소에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmReject = async () => {
+    // 사유가 비어있으면 기타로 설정
+    const finalReason = rejectReason.trim() || '기타';
 
     try {
       setIsLoading(true);
@@ -667,8 +841,8 @@ export default function ReservationManagementPage() {
           id: rejectingReservationId,
           status: 'rejected',
           reviewedBy: '관리자',
-          notes: `취소 사유: ${rejectReason}`,
-          rejection_reason: rejectReason
+          notes: `취소 사유: ${finalReason}`,
+          rejection_reason: finalReason
         }),
       });
 
@@ -685,7 +859,7 @@ export default function ReservationManagementPage() {
               status: 'rejected' as const, 
               reviewed_at: new Date().toISOString(),
               reviewed_by: '관리자',
-              notes: `취소 사유: ${rejectReason}`
+              notes: `취소 사유: ${finalReason}`
             }
           : r
       );
@@ -700,9 +874,12 @@ export default function ReservationManagementPage() {
       setShowRejectModal(false);
       setRejectingReservationId(null);
       setRejectReason('');
+      
+      // 성공 토스트 표시
+      toast.success('예약이 취소되었습니다');
     } catch (error) {
       console.error('예약 취소 실패:', error);
-      alert('예약 취소에 실패했습니다.');
+      toast.error('예약 취소에 실패했습니다');
     } finally {
       setIsLoading(false);
     }
@@ -734,12 +911,12 @@ export default function ReservationManagementPage() {
                       });
                       const result = await response.json();
                       if (result.success) {
-                        alert(`${result.summary.created}개의 조기영업 일정이 생성되었습니다.`);
+                        toast.success(`${result.summary.created}개의 조기영업 일정이 생성되었습니다`);
                       } else {
-                        alert(result.message || '일정 생성에 실패했습니다.');
+                        toast.error(result.message || '일정 생성에 실패했습니다');
                       }
                     } catch (error) {
-                      alert('오류가 발생했습니다.');
+                      toast.error('오류가 발생했습니다');
                       console.error(error);
                     }
                   }
@@ -859,6 +1036,71 @@ export default function ReservationManagementPage() {
             </div>
           </div>
 
+          {/* 대기 중인 예약에서만 일괄 처리 도구 표시 */}
+          {selectedStatus === 'pending' && reservations.some(r => r.status === 'pending') && (
+            <div className="py-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                {/* 전체 선택 체크박스 */}
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={
+                        reservations
+                          .filter(r => r.status === 'pending')
+                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                          .length > 0 &&
+                        reservations
+                          .filter(r => r.status === 'pending')
+                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                          .every(r => selectedReservationIds.includes(r.id))
+                      }
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      전체 선택 (현재 페이지)
+                    </span>
+                  </label>
+                  {selectedReservationIds.length > 0 && (
+                    <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                      {selectedReservationIds.length}개 선택됨
+                    </span>
+                  )}
+                </div>
+
+                {/* 일괄 처리 버튼들 */}
+                {showBulkActions && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleBulkApprove}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      일괄 승인 ({selectedReservationIds.length})
+                    </button>
+                    <button
+                      onClick={handleBulkReject}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      일괄 거절 ({selectedReservationIds.length})
+                    </button>
+                    <button
+                      onClick={clearSelection}
+                      className="flex items-center gap-1 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      선택 해제
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 페이지네이션 (상단) */}
           {reservations.length > itemsPerPage && (
             <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
@@ -912,9 +1154,19 @@ export default function ReservationManagementPage() {
                 {/* 모바일: 카드 레이아웃 */}
                 <div className="md:hidden">
                   <div className="px-4 py-4">
-                    {/* 상단: 상태와 액션 버튼 */}
+                    {/* 상단: 체크박스, 상태와 액션 버튼 */}
                     <div className="flex items-center justify-between mb-3">
-                      {getStatusBadge(reservation.status)}
+                      <div className="flex items-center gap-2">
+                        {reservation.status === 'pending' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedReservationIds.includes(reservation.id)}
+                            onChange={(e) => handleSelectReservation(reservation.id, e.target.checked)}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        )}
+                        {getStatusBadge(reservation.status)}
+                      </div>
                       <div className="flex items-center gap-1.5" style={{ paddingRight: '8px' }}>
                         {reservation.status === 'pending' && (
                           <>
@@ -1036,6 +1288,18 @@ export default function ReservationManagementPage() {
                 <div className="hidden md:block">
                   <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-6 flex-1">
+                      {/* 체크박스 */}
+                      {reservation.status === 'pending' && (
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedReservationIds.includes(reservation.id)}
+                            onChange={(e) => handleSelectReservation(reservation.id, e.target.checked)}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </div>
+                      )}
+                      
                       {/* 예약자 정보 */}
                       <div className="flex items-center gap-3 min-w-[200px]">
                         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -1378,7 +1642,7 @@ export default function ReservationManagementPage() {
             </div>
             
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-              예약을 취소하는 사유를 선택해주세요.
+              예약을 취소하는 사유를 선택해주세요. (선택사항)
             </p>
 
             <div className="mb-4 sm:mb-6 space-y-3">
@@ -1456,10 +1720,127 @@ export default function ReservationManagementPage() {
               </button>
               <button
                 onClick={confirmReject}
-                disabled={isLoading || !rejectReason.trim()}
+                disabled={isLoading}
                 className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? '처리 중...' : '예약 취소'}
+              </button>
+            </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 복수 취소 사유 입력 모달 */}
+      <AnimatePresence>
+        {showBulkRejectModal && (
+          <motion.div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowBulkRejectModal(false);
+              setRejectReason('');
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">일괄 예약 취소</h2>
+            </div>
+            
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
+              선택한 {selectedReservationIds.length}개의 예약을 일괄 취소합니다. 취소 사유를 선택해주세요. (선택사항)
+            </p>
+
+            <div className="mb-4 sm:mb-6 space-y-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                취소 사유
+              </label>
+              
+              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <input
+                  type="radio"
+                  name="bulkRejectReason"
+                  value="대여 인원 부족"
+                  checked={rejectReason === '대여 인원 부족'}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="mr-3 text-red-600 focus:ring-red-500"
+                />
+                <span className="text-sm dark:text-white">대여 인원 부족</span>
+              </label>
+              
+              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <input
+                  type="radio"
+                  name="bulkRejectReason"
+                  value="회원 요청"
+                  checked={rejectReason === '회원 요청'}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="mr-3 text-red-600 focus:ring-red-500"
+                />
+                <span className="text-sm dark:text-white">회원 요청</span>
+              </label>
+              
+              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <input
+                  type="radio"
+                  name="bulkRejectReason"
+                  value="기타"
+                  checked={rejectReason === '기타' || (!['대여 인원 부족', '회원 요청'].includes(rejectReason) && rejectReason !== '')}
+                  onChange={() => setRejectReason('기타')}
+                  className="mr-3 text-red-600 focus:ring-red-500"
+                />
+                <span className="text-sm dark:text-white">기타 (직접 입력)</span>
+              </label>
+              
+              {(rejectReason === '기타' || (!['대여 인원 부족', '회원 요청', ''].includes(rejectReason))) && (
+                <textarea
+                  value={rejectReason === '기타' ? '' : rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="취소 사유를 입력해주세요"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  rows={3}
+                  autoFocus
+                />
+              )}
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 sm:mb-6">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+                  취소 사유는 고객에게 알림으로 전송됩니다. 선택한 모든 예약에 동일한 사유가 적용됩니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBulkRejectModal(false);
+                  setRejectReason('');
+                }}
+                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmBulkReject}
+                disabled={isLoading}
+                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? '처리 중...' : `${selectedReservationIds.length}개 일괄 취소`}
               </button>
             </div>
             </motion.div>

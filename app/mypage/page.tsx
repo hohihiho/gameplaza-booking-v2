@@ -10,6 +10,7 @@ import { User, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsAdmin } from '@/app/hooks/useIsAdmin';
 import NotificationSettings from '@/app/components/notification-settings';
+import PWAInstallButton from '@/app/components/PWAInstallButton';
 
 export default function MyPage() {
   const { data: session } = useSession();
@@ -426,6 +427,16 @@ export default function MyPage() {
             내 예약 내역 보기
             <ChevronRight className="w-4 h-4" />
           </motion.button>
+        </motion.section>
+
+        {/* PWA 앱 설치 카드 */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="mb-6"
+        >
+          <PWAInstallButton variant="card" />
         </motion.section>
 
         {/* 알림 설정 */}

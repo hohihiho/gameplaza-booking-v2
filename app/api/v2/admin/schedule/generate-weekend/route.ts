@@ -1,29 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { auth } from '@/auth'
+import { createAdminClient } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/services/schedule.service'
 
 export async function POST(request: NextRequest) {
   try {
     // 인증 확인
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    const session = await auth()
+    
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: '인증이 필요합니다' },
         { status: 401 }
       )
     }
 
+    const supabase = createAdminClient()
+    
+    // 사용자 ID 조회
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single()
+    
+    if (!userData) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다' },
+        { status: 404 }
+      )
+    }
+
     // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('user_id', userData.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (adminError || !adminUser) {
       return NextResponse.json(
         { error: '관리자 권한이 필요합니다' },
         { status: 403 }
@@ -55,10 +70,10 @@ export async function POST(request: NextRequest) {
 // 현재 상태 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    // 인증 확인
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) {
       return NextResponse.json(
         { error: '인증이 필요합니다' },
         { status: 401 }
@@ -70,7 +85,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(today)
     endDate.setDate(today.getDate() + 21) // 3주 후
 
-    const { data: schedules, error } = await supabase
+    const { data: schedules, error } = await adminSupabase
       .from('schedule_events')
       .select('*')
       .eq('type', 'overnight')

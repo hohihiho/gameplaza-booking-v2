@@ -23,7 +23,8 @@ import {
   XCircle,
   Loader2,
   X,
-  CalendarPlus
+  CalendarPlus,
+  RefreshCw
 } from 'lucide-react';
 
 type ScheduleEvent = {
@@ -82,15 +83,27 @@ const eventTypeConfig = {
   }
 };
 
+interface Holiday {
+  id?: string;
+  name: string;
+  date: string;
+  type: 'official' | 'temporary' | 'substitute';
+  is_red_day: boolean;
+}
+
 export default function ScheduleManagementPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDateEventsModal, setShowDateEventsModal] = useState(false);
   const [isGeneratingWeekend, setIsGeneratingWeekend] = useState(false);
+  const [isSyncingHolidays, setIsSyncingHolidays] = useState(false);
+  const [isSyncingReservations, setIsSyncingReservations] = useState(false);
 
   // 24시간 표시 형식 변환 함수
   const formatTime24Hour = (time: string) => {
@@ -104,6 +117,64 @@ export default function ScheduleManagementPage() {
     }
     return `${hour}:${minute}`;
   };
+
+  // 공휴일 데이터 불러오기
+  const loadHolidays = async () => {
+    try {
+      const year = selectedMonth.getFullYear();
+      const month = selectedMonth.getMonth() + 1;
+      
+      const response = await fetch(`/api/admin/holidays?year=${year}&month=${month}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setHolidays(data.holidays || []);
+        if (data.lastSyncTime) {
+          setLastSyncTime(new Date(data.lastSyncTime));
+        }
+      }
+    } catch (error) {
+      console.error('공휴일 로드 실패:', error);
+    }
+  };
+
+  // 공휴일 동기화
+  const syncHolidays = async () => {
+    try {
+      setIsSyncingHolidays(true);
+      const year = selectedMonth.getFullYear();
+      
+      const response = await fetch('/api/admin/holidays/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ year }),
+      });
+      
+      console.log('동기화 API 응답 상태:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('동기화 API 에러 응답:', errorData);
+        throw new Error(`동기화 실패: ${response.status} - ${errorData}`);
+      }
+      
+      const result = await response.json();
+      console.log('동기화 결과:', result);
+      alert(`공휴일 동기화 완료!\n생성: ${result.result.created}개\n업데이트: ${result.result.updated}개`);
+      await loadHolidays();
+    } catch (error) {
+      console.error('공휴일 동기화 실패:', error);
+      alert('공휴일 동기화에 실패했습니다');
+    } finally {
+      setIsSyncingHolidays(false);
+    }
+  };
+
 
   // 일정 데이터 불러오기
   const loadEvents = async () => {
@@ -153,6 +224,7 @@ export default function ScheduleManagementPage() {
   // 선택된 월이 변경될 때마다 데이터 다시 로드
   useEffect(() => {
     loadEvents();
+    loadHolidays();
   }, [selectedMonth]);
 
   // 캘린더 데이터 생성
@@ -198,6 +270,11 @@ export default function ScheduleManagementPage() {
       
       return checkDate >= eventStart && checkDate <= eventEnd;
     });
+  };
+
+  // 특정 날짜의 공휴일 가져오기
+  const getHolidayForDate = (date: string) => {
+    return holidays.find(holiday => holiday.date === date);
   };
 
   const handleSaveEvent = async (eventData: Partial<ScheduleEvent>) => {
@@ -294,6 +371,38 @@ export default function ScheduleManagementPage() {
 
   const calendarDays = generateCalendarDays();
 
+  // 예약 스케줄 동기화 함수
+  const handleSyncReservationSchedules = async () => {
+    if (!confirm('앞으로 3주간의 예약을 기반으로 조기/밤샘영업 스케줄을 동기화하시겠습니까?\n\n기존 자동생성 스케줄이 업데이트되고, 예약이 없는 스케줄은 삭제됩니다.')) {
+      return;
+    }
+    
+    try {
+      setIsSyncingReservations(true);
+      
+      const response = await fetch('/api/admin/schedule/sync-reservations', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '예약 스케줄 동기화에 실패했습니다');
+      }
+      
+      const result = await response.json();
+      alert(`예약 스케줄 동기화 완료!\n\n처리된 예약: ${result.result.processed}개\n정리된 날짜: ${result.result.cleaned}개\n오류: ${result.result.errors}개\n기간: ${result.result.dateRange}`);
+      
+      // 데이터 새로고침
+      await loadEvents();
+    } catch (error) {
+      console.error('예약 스케줄 동기화 실패:', error);
+      alert(error instanceof Error ? error.message : '예약 스케줄 동기화에 실패했습니다');
+    } finally {
+      setIsSyncingReservations(false);
+    }
+  };
+
   // 주말 밤샘영업 자동 생성 함수
   const handleGenerateWeekendSchedules = async () => {
     if (!confirm('향후 3주간의 주말 밤샘영업 일정을 자동으로 생성하시겠습니까?\n\n금요일, 토요일 밤샘영업이 생성됩니다.')) {
@@ -388,8 +497,27 @@ export default function ScheduleManagementPage() {
               {calendarDays.map((date, index) => {
                 const dateStr = formatDate(date);
                 const dayEvents = dateStr ? getEventsForDate(dateStr) : [];
+                const holiday = dateStr ? getHolidayForDate(dateStr) : null;
                 const isCurrentMonth = date.getMonth() === selectedMonth.getMonth();
                 const isToday = formatDate(new Date()) === dateStr;
+                const dayOfWeek = date.getDay();
+                const isSunday = dayOfWeek === 0;
+                const isSaturday = dayOfWeek === 6;
+                
+                // 날짜 색상 결정 (글씨만 빨간색)
+                let dateColor = '';
+                if (holiday?.is_red_day) {
+                  // 공휴일
+                  if (holiday.type === 'temporary') {
+                    dateColor = 'text-orange-600 font-bold'; // 임시공휴일
+                  } else {
+                    dateColor = 'text-red-600 font-bold'; // 공식 공휴일
+                  }
+                } else if (isSunday) {
+                  dateColor = 'text-red-600'; // 일요일
+                } else if (isSaturday) {
+                  dateColor = 'text-blue-600'; // 토요일
+                }
                 
                 return (
                   <motion.div
@@ -415,8 +543,16 @@ export default function ScheduleManagementPage() {
                         }
                       }
                     }}
+                    title={holiday ? holiday.name : ''}
                   >
-                    <div className="text-sm font-medium mb-1">{date.getDate()}</div>
+                    <div className={`text-sm font-medium mb-1 ${isCurrentMonth ? dateColor : ''}`}>
+                      {date.getDate()}
+                      {holiday && (
+                        <span className="ml-1 text-xs">
+                          {holiday.type === 'temporary' && '🟠'}
+                        </span>
+                      )}
+                    </div>
                     <div className="space-y-1">
                       {dayEvents.slice(0, 2).map(event => {
                         const config = eventTypeConfig[event.type];
@@ -465,6 +601,24 @@ export default function ScheduleManagementPage() {
             </button>
             
             <button
+              onClick={syncHolidays}
+              disabled={isSyncingHolidays}
+              className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+            >
+              {isSyncingHolidays ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>동기화 중...</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-5 h-5" />
+                  <span>공휴일 동기화</span>
+                </>
+              )}
+            </button>
+            
+            <button
               onClick={handleGenerateWeekendSchedules}
               disabled={isGeneratingWeekend}
               className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
@@ -481,6 +635,50 @@ export default function ScheduleManagementPage() {
                 </>
               )}
             </button>
+            
+            <button
+              onClick={handleSyncReservationSchedules}
+              disabled={isSyncingReservations}
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+            >
+              {isSyncingReservations ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>동기화 중...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-5 h-5" />
+                  <span>예약 스케줄 동기화</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* 공휴일 동기화 상태 */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="font-medium dark:text-white mb-3">공휴일 정보</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">공식 공휴일</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-orange-600 rounded-full"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">임시 공휴일</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-red-600 border-dashed rounded-full"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">대체 공휴일</span>
+              </div>
+              {lastSyncTime && (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    마지막 동기화: {lastSyncTime.toLocaleString('ko-KR')}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 이벤트 타입별 범례 */}
@@ -732,6 +930,7 @@ export default function ScheduleManagementPage() {
               <li>• 밤샘 영업은 다음날 새벽까지 운영 시간을 연장합니다</li>
               <li>• 조기 마감은 영업 시간을 단축합니다</li>
               <li>• 주말 밤샘영업 자동 생성: 금요일, 토요일 밤 → 29시(05:00)까지 영업</li>
+              <li>• 예약 스케줄 동기화: 승인된 예약을 기반으로 조기/밤샘영업 자동 생성/삭제</li>
             </ul>
           </div>
         </div>
@@ -1120,11 +1319,7 @@ function EventForm({
         {onDelete && event.id && (
           <button
             type="button"
-            onClick={() => {
-              if (confirm('이 일정을 삭제하시겠습니까?')) {
-                onDelete(event.id!);
-              }
-            }}
+            onClick={() => onDelete(event.id!)}
             className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <Trash2 className="w-4 h-4" />

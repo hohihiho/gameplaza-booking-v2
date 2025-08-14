@@ -193,15 +193,31 @@ export async function GET(request: NextRequest) {
           }
         })
         
+        // 밤샘 시간대를 24-29시로 변환하는 함수
+        const formatTimeForDisplay = (time: string, isOvernight: boolean) => {
+          const hour = parseInt(time.split(':')[0])
+          const minute = time.split(':')[1]
+          
+          // 밤샘 시간대이고 0-5시 사이인 경우 24-29시로 변환
+          if (isOvernight && hour >= 0 && hour <= 5) {
+            return `${hour + 24}:${minute}`
+          }
+          return `${hour.toString().padStart(2, '0')}:${minute}`
+        }
+        
+        const isOvernight = slot.slot_type === 'overnight'
+        const displayStartTime = formatTimeForDisplay(slot.start_time, isOvernight)
+        const displayEndTime = formatTimeForDisplay(slot.end_time, isOvernight)
+        
         return {
           id: slot.id,
           timeSlot: {
             id: slot.id,
-            name: `${slot.start_time.slice(0,5)}-${slot.end_time.slice(0,5)}`,
+            name: `${displayStartTime.slice(0,5)}-${displayEndTime.slice(0,5)}`,
             description: slot.slot_type === 'overnight' ? '밤샘대여' : slot.slot_type === 'early' ? '조기대여' : '일반대여',
             startHour: parseInt(slot.start_time.split(':')[0]),
             endHour: parseInt(slot.end_time.split(':')[0]),
-            displayTime: `${slot.start_time.slice(0,5)} - ${slot.end_time.slice(0,5)}`,
+            displayTime: `${displayStartTime.slice(0,5)} - ${displayEndTime.slice(0,5)}`,
             duration: 0, // 계산 필요시 추가
             type: slot.slot_type
           },
