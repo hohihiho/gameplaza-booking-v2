@@ -6,27 +6,44 @@ CREATE OR REPLACE FUNCTION update_reservation_status()
 RETURNS void AS $$
 DECLARE
   current_kst TIMESTAMP;
+  completed_device_ids UUID[];
 BEGIN
   -- 현재 KST 시간 계산 (UTC + 9시간)
   current_kst := NOW() AT TIME ZONE 'Asia/Seoul';
   
-  -- 종료 시간이 지난 승인된 예약을 완료 상태로 변경
+  -- 체크인된 예약 중 시작 시간이 된 예약을 in_use(대여중)로 변경
   UPDATE reservations
   SET 
-    status = 'completed',
+    status = 'in_use',
+    actual_start_time = (current_kst::time)::text,
     updated_at = NOW()
   WHERE 
-    status = 'approved'
-    AND (date::date + end_time::time) < current_kst;
+    status = 'checked_in'
+    AND date = current_kst::date
+    AND (date::date + start_time::time) <= current_kst;
   
-  -- 시작 시간 30분이 지났는데 체크인하지 않은 예약을 no_show로 변경
-  UPDATE reservations
-  SET 
-    status = 'no_show',
-    updated_at = NOW()
-  WHERE 
-    status = 'approved'
-    AND (date::date + start_time::time + INTERVAL '30 minutes') < current_kst;
+  -- 종료 시간이 지난 대여중 예약을 완료 상태로 변경하고 기기 ID 수집
+  WITH completed AS (
+    UPDATE reservations
+    SET 
+      status = 'completed',
+      actual_end_time = (current_kst::time)::text,
+      updated_at = NOW()
+    WHERE 
+      status = 'in_use'
+      AND (date::date + end_time::time) < current_kst
+    RETURNING device_id
+  )
+  SELECT array_agg(device_id) INTO completed_device_ids FROM completed;
+  
+  -- 완료된 예약의 기기 상태를 사용 가능으로 변경
+  IF completed_device_ids IS NOT NULL AND array_length(completed_device_ids, 1) > 0 THEN
+    UPDATE devices
+    SET 
+      status = 'available',
+      updated_at = NOW()
+    WHERE id = ANY(completed_device_ids);
+  END IF;
   
   -- 24시간이 지난 pending 예약을 자동 취소
   UPDATE reservations
@@ -44,14 +61,15 @@ CREATE OR REPLACE VIEW reservations_with_auto_status AS
 SELECT 
   r.*,
   CASE 
-    -- 종료 시간이 지난 경우 자동으로 completed 표시
-    WHEN r.status = 'approved' 
+    -- 체크인된 예약 중 시작 시간이 된 경우 in_use 표시
+    WHEN r.status = 'checked_in' 
+      AND r.date = (NOW() AT TIME ZONE 'Asia/Seoul')::date
+      AND (r.date::date + r.start_time::time) <= (NOW() AT TIME ZONE 'Asia/Seoul')
+      THEN 'in_use'::text
+    -- 종료 시간이 지난 대여중 예약은 completed 표시
+    WHEN r.status = 'in_use' 
       AND (r.date::date + r.end_time::time) < (NOW() AT TIME ZONE 'Asia/Seoul')
       THEN 'completed'::text
-    -- 시작 시간 30분이 지났는데 체크인 안 한 경우 no_show 표시
-    WHEN r.status = 'approved' 
-      AND (r.date::date + r.start_time::time + INTERVAL '30 minutes') < (NOW() AT TIME ZONE 'Asia/Seoul')
-      THEN 'no_show'::text
     -- 24시간이 지난 pending은 cancelled 표시
     WHEN r.status = 'pending' 
       AND r.created_at < ((NOW() AT TIME ZONE 'Asia/Seoul') - INTERVAL '24 hours')

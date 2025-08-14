@@ -31,14 +31,34 @@ serve(async (req) => {
 
     console.log(`상태 업데이트 시작 - KST: ${currentDate} ${currentTime}`)
 
-    // 1. 종료 시간이 지난 예약 완료 처리
+    // 1. 체크인된 예약 중 시작 시간이 된 예약을 in_use(대여중)로 변경
+    const { data: inUseReservations, error: inUseError } = await supabase
+      .from('reservations')
+      .update({ 
+        status: 'in_use',
+        actual_start_time: currentTime,
+        updated_at: new Date().toISOString()
+      })
+      .eq('status', 'checked_in')
+      .eq('date', currentDate)
+      .lte('start_time', currentTime)
+      .select()
+
+    if (inUseError) {
+      console.error('대여중 처리 실패:', inUseError)
+    } else {
+      console.log(`${inUseReservations?.length || 0}개 예약 대여중 처리`)
+    }
+
+    // 2. 종료 시간이 지난 대여중 예약을 완료 처리
     const { data: completedReservations, error: completeError } = await supabase
       .from('reservations')
       .update({ 
         status: 'completed',
+        actual_end_time: currentTime,
         updated_at: new Date().toISOString()
       })
-      .eq('status', 'approved')
+      .eq('status', 'in_use')
       .or(`date.lt.${currentDate},and(date.eq.${currentDate},end_time.lt.${currentTime})`)
       .select()
 
@@ -46,27 +66,18 @@ serve(async (req) => {
       console.error('완료 처리 실패:', completeError)
     } else {
       console.log(`${completedReservations?.length || 0}개 예약 완료 처리`)
-    }
-
-    // 2. 시작 시간 30분 지났는데 체크인 안 한 예약 no_show 처리
-    const thirtyMinutesAgo = new Date(kstTime.getTime() - 30 * 60 * 1000)
-    const thirtyMinutesAgoTime = thirtyMinutesAgo.toTimeString().slice(0, 5)
-
-    const { data: noShowReservations, error: noShowError } = await supabase
-      .from('reservations')
-      .update({ 
-        status: 'no_show',
-        updated_at: new Date().toISOString()
-      })
-      .eq('status', 'approved')
-      .eq('date', currentDate)
-      .lt('start_time', thirtyMinutesAgoTime)
-      .select()
-
-    if (noShowError) {
-      console.error('No-show 처리 실패:', noShowError)
-    } else {
-      console.log(`${noShowReservations?.length || 0}개 예약 no-show 처리`)
+      
+      // 완료된 예약의 기기 상태를 사용 가능으로 변경
+      if (completedReservations && completedReservations.length > 0) {
+        const deviceIds = completedReservations.map(r => r.device_id)
+        await supabase
+          .from('devices')
+          .update({ 
+            status: 'available',
+            updated_at: new Date().toISOString()
+          })
+          .in('id', deviceIds)
+      }
     }
 
     // 3. 24시간이 지난 pending 예약 자동 취소
@@ -100,8 +111,8 @@ serve(async (req) => {
       success: true,
       timestamp: kstTime.toISOString(),
       updated: {
+        in_use: inUseReservations?.length || 0,
         completed: completedReservations?.length || 0,
-        no_show: noShowReservations?.length || 0,
         cancelled: cancelledReservations?.length || 0
       }
     }

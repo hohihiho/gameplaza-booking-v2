@@ -207,29 +207,26 @@ export async function GET(request: NextRequest) {
       const currentDate = kstTime.toISOString().split('T')[0]
       const currentTime = kstTime.toTimeString().slice(0, 5)
 
-      // 종료 시간이 지난 예약 완료 처리
+      // 1. 체크인된 예약 중 시작 시간이 된 예약을 in_use(대여중)로 변경
+      await supabase
+        .from('reservations')
+        .update({ 
+          status: 'in_use',
+          updated_at: new Date().toISOString()
+        })
+        .eq('status', 'checked_in')
+        .eq('date', currentDate)
+        .lte('start_time', currentTime)
+
+      // 2. 종료 시간이 지난 대여중 예약을 완료 처리
       await supabase
         .from('reservations')
         .update({ 
           status: 'completed',
           updated_at: new Date().toISOString()
         })
-        .eq('status', 'approved')
+        .eq('status', 'in_use')
         .or(`date.lt.${currentDate},and(date.eq.${currentDate},end_time.lt.${currentTime})`)
-
-      // 시작 시간 30분 지났는데 체크인 안 한 예약 no_show 처리
-      const thirtyMinutesAgo = new Date(kstTime.getTime() - 30 * 60 * 1000)
-      const thirtyMinutesAgoTime = thirtyMinutesAgo.toTimeString().slice(0, 5)
-
-      await supabase
-        .from('reservations')
-        .update({ 
-          status: 'no_show',
-          updated_at: new Date().toISOString()
-        })
-        .eq('status', 'approved')
-        .eq('date', currentDate)
-        .lt('start_time', thirtyMinutesAgoTime)
 
     } catch (updateError) {
       console.error('자동 상태 업데이트 실패:', updateError)
