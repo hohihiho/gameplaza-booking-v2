@@ -56,6 +56,19 @@ const formatTime24Plus = (timeStr: string | null | undefined) => {
   return `${hour}:${minute}`;
 };
 
+// 24시간 표시 형식 변환 함수 (히어로 섹션과 동일)
+const formatTime24Hour = (time: string) => {
+  if (!time) return '';
+  const [hour, minute] = time.split(':');
+  const hourNum = parseInt(hour || '0');
+  
+  // 0~5시를 24~29시로 변환
+  if (hourNum >= 0 && hourNum <= 5) {
+    return `${hourNum + 24}:${minute}`;
+  }
+  return `${hour}:${minute}`;
+};
+
 // 영업시간 기준으로 오늘 날짜 계산 (06:00 기점으로 날짜 변경)
 const getBusinessToday = () => {
   const now = new Date();
@@ -512,7 +525,7 @@ export default function SchedulePage() {
                 <div className="text-center">
                   <div className="text-xs text-white/80 mb-1">2층</div>
                   <div className="text-lg md:text-xl font-bold text-white">
-                    {todaySchedule ? `${todaySchedule.floor2Start}-${todaySchedule.floor2End}` : '...'}
+                    {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)}-${formatTime24Hour(todaySchedule.floor2End)}` : '...'}
                   </div>
                 </div>
               </div>
@@ -614,7 +627,9 @@ export default function SchedulePage() {
                         밤샘 영업 (익일 새벽 5시까지)
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">12:00 - 29:00</span>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                      12:00 - {formatTime24Hour('05:00')}
+                    </span>
                   </div>
                 </div>
               </div>
