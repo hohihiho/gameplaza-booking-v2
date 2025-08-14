@@ -80,24 +80,6 @@ serve(async (req) => {
       }
     }
 
-    // 3. 24시간이 지난 pending 예약 자동 취소
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    
-    const { data: cancelledReservations, error: cancelError } = await supabase
-      .from('reservations')
-      .update({ 
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
-      .eq('status', 'pending')
-      .lt('created_at', oneDayAgo.toISOString())
-      .select()
-
-    if (cancelError) {
-      console.error('자동 취소 처리 실패:', cancelError)
-    } else {
-      console.log(`${cancelledReservations?.length || 0}개 예약 자동 취소`)
-    }
 
     // 4. 데이터베이스 함수 호출 (선택적)
     const { error: functionError } = await supabase.rpc('trigger_status_update')
@@ -112,8 +94,7 @@ serve(async (req) => {
       timestamp: kstTime.toISOString(),
       updated: {
         in_use: inUseReservations?.length || 0,
-        completed: completedReservations?.length || 0,
-        cancelled: cancelledReservations?.length || 0
+        completed: completedReservations?.length || 0
       }
     }
 

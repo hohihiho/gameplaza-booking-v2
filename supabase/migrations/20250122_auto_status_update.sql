@@ -44,15 +44,6 @@ BEGIN
       updated_at = NOW()
     WHERE id = ANY(completed_device_ids);
   END IF;
-  
-  -- 24시간이 지난 pending 예약을 자동 취소
-  UPDATE reservations
-  SET 
-    status = 'cancelled',
-    updated_at = NOW()
-  WHERE 
-    status = 'pending'
-    AND created_at < (current_kst - INTERVAL '24 hours');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,10 +61,6 @@ SELECT
     WHEN r.status = 'in_use' 
       AND (r.date::date + r.end_time::time) < (NOW() AT TIME ZONE 'Asia/Seoul')
       THEN 'completed'::text
-    -- 24시간이 지난 pending은 cancelled 표시
-    WHEN r.status = 'pending' 
-      AND r.created_at < ((NOW() AT TIME ZONE 'Asia/Seoul') - INTERVAL '24 hours')
-      THEN 'cancelled'::text
     ELSE r.status
   END AS display_status
 FROM reservations r;
