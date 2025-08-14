@@ -5,10 +5,12 @@ import { v4 as uuidv4 } from 'uuid'
 
 // 환경 변수 검증
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.error('Missing required environment variables: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+  console.warn('Missing required environment variables: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+  // 빌드 시점에는 환경 변수가 없을 수 있으므로 error 대신 warn 사용
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',

@@ -94,8 +94,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https: http: https://lh3.googleusercontent.com https://rupeyejnfurlcpgneekg.supabase.co",
               // 테스트 환경에서 test.supabase.co 허용
               process.env.NODE_ENV === 'test' 
-                ? "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://test.supabase.co https://www.google-analytics.com"
-                : "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://www.google-analytics.com",
+                ? "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://test.supabase.co https://www.google-analytics.com https://cdn.jsdelivr.net"
+                : "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://www.google-analytics.com https://cdn.jsdelivr.net",
               "frame-src 'self' https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
