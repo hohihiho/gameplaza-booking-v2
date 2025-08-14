@@ -9,11 +9,5 @@
       "GIT_COMMITTER_NAME": "hohihu",
       "GIT_COMMITTER_EMAIL": "ndz5496@gmail.com"
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/reservation-reminder",
-      "schedule": "0 9 * * *"
-    }
-  ]
+  }
 }

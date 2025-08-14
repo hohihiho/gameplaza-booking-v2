@@ -15,6 +15,44 @@ export const GET = withAuth(
       const status = searchParams.get('status')
       const date = searchParams.get('date')
       
+      // 자동 상태 업데이트 실행 (크론잡 없이 조회 시점에 실행)
+      try {
+        const now = new Date()
+        const kstOffset = 9 * 60 * 60 * 1000
+        const kstTime = new Date(now.getTime() + kstOffset)
+        const currentDate = kstTime.toISOString().split('T')[0]
+        const currentTime = kstTime.toTimeString().slice(0, 5)
+
+        // 종료 시간이 지난 예약 완료 처리
+        await supabaseAdmin
+          .from('reservations')
+          .update({ 
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('status', 'approved')
+          .or(`date.lt.${currentDate},and(date.eq.${currentDate},end_time.lt.${currentTime})`)
+
+        // 시작 시간 30분 지났는데 체크인 안 한 예약 no_show 처리
+        const thirtyMinutesAgo = new Date(kstTime.getTime() - 30 * 60 * 1000)
+        const thirtyMinutesAgoTime = thirtyMinutesAgo.toTimeString().slice(0, 5)
+
+        await supabaseAdmin
+          .from('reservations')
+          .update({ 
+            status: 'no_show',
+            updated_at: new Date().toISOString()
+          })
+          .eq('status', 'approved')
+          .eq('date', currentDate)
+          .lt('start_time', thirtyMinutesAgoTime)
+
+        console.log('자동 상태 업데이트 완료')
+      } catch (updateError) {
+        console.error('자동 상태 업데이트 실패:', updateError)
+        // 업데이트 실패해도 조회는 계속 진행
+      }
+      
       // 전체 예약 수 확인 (디버깅용)
       const { count: totalCount, error: countError } = await supabaseAdmin
         .from('reservations')

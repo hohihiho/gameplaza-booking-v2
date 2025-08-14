@@ -28,6 +28,8 @@
     "seed:superadmin": "tsx scripts/seed-database.ts superadmin",
     "backup": "node scripts/backup-database.js",
     "backup:status": "node scripts/backup-database.js status",
+    "supabase:deploy-function": "supabase functions deploy auto-update-status",
+    "supabase:run-migration": "supabase db push",
     "restore": "node scripts/restore-database.js",
     "fix": "./scripts/quick-fix.sh",
     "fix:port": "./scripts/quick-fix.sh port"
