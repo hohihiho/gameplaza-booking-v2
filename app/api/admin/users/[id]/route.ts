@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase';
 import { withAuth } from '@/lib/auth/middleware';
 
-async function handler(req: NextRequest, { params }: { params: { id: string } }) {
+async function handler(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createServiceRoleClient();
   const userId = params.id;
 

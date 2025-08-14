@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     // 현재 사용자 확인 (관리자만 접근 가능)
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       return NextResponse.json(

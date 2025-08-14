@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth'
  * POST /api/admin/schedule/check-missing - 누락된 일정 자동 생성
  */
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 관리자 권한 확인
     const user = await getCurrentUser()
@@ -132,7 +132,7 @@ export async function POST(_request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await _request.json()
     const { autoFix = true } = body // 자동 수정 여부
     
     if (!autoFix) {
@@ -142,7 +142,7 @@ export async function POST(_request: NextRequest) {
     }
     
     // GET과 동일한 로직으로 누락 일정 찾기
-    const getResponse = await GET(request)
+    const getResponse = await GET(_request)
     const getResult = await getResponse.json()
     
     if (getResult.missing?.length === 0) {
