@@ -89,6 +89,8 @@ export async function POST(request: NextRequest) {
       date: data.date,
       startHour: data.start_hour,
       endHour: data.end_hour,
+      creditType: data.credit_type,
+      playerCount: data.player_count,
       userNotes: data.user_notes,
       isAdmin: isSuperAdmin
     })

@@ -4,8 +4,6 @@ import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservat
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
-import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
-import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
 
 // 테스트용 엔드포인트 - 인증 없이 예약 생성 테스트
 export async function POST(request: NextRequest) {
@@ -30,15 +28,12 @@ export async function POST(request: NextRequest) {
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new SupabaseUserRepository(supabase)
-    const timeSlotTemplateRepository = new SupabaseTimeSlotTemplateRepository(supabase)
-    const timeSlotDomainService = new TimeSlotDomainService(timeSlotTemplateRepository)
     
     // UseCase 실행
     const useCase = new CreateReservationV2UseCase(
       reservationRepository,
-      deviceRepository,
-      userRepository,
-      timeSlotDomainService
+      deviceRepository as any,
+      userRepository as any
     )
     
     console.log('테스트 예약 생성 시도:', {

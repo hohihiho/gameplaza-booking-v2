@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
     
     // 3. 미래 예약만 필터링
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0]!
     const futureReservations = activeReservations?.filter(r => r.date >= today) || []
     
     return NextResponse.json({ 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ScheduleService } from '@/lib/services/schedule.service'
 
 // 테스트용 엔드포인트 - 주말 밤샘영업 생성
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const result = await ScheduleService.generateWeekendOvernightSchedules()
     

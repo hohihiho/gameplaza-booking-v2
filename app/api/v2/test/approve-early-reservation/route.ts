@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 // 테스트용 엔드포인트 - 조기예약 승인 테스트
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = createServiceRoleClient()
     
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     await ScheduleService.handleReservationApproved(reservation.id)
     
     // 4. 생성된 스케줄 확인
-    const { data: schedules, error: scheduleError } = await supabase
+    const { data: schedules } = await supabase
       .from('schedule_events')
       .select('*')
       .eq('date', testDate)

@@ -16,6 +16,8 @@ export interface CreateReservationRequest {
   date: string // YYYY-MM-DD
   startHour: number // 0-29
   endHour: number // 1-30
+  creditType?: 'fixed' | 'freeplay' | 'unlimited'
+  playerCount?: 1 | 2
   userNotes?: string
   isAdmin?: boolean // 슈퍼관리자 여부
   createdByUserId?: string // 실제 예약 생성자 (onBehalf인 경우)

@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
-import { GetAvailableTimeSlotsUseCase } from '@/src/application/use-cases/time-slot'
-import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
-import { SupabaseTimeSlotScheduleRepository } from '@/src/infrastructure/repositories/supabase-time-slot-schedule.repository'
-import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
-import { SupabaseDeviceRepository } from '@/src/infrastructure/repositories/supabase-device.repository'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { z } from 'zod'
@@ -129,14 +123,15 @@ export async function GET(request: NextRequest) {
     let earlySlotReservationCount = 0  // 조기 시간대 예약 수
     let overnightSlotReservationCount = 0  // 밤샘 시간대 예약 수
     
-    ;(reservations || []).forEach(reservation => {
-      if (reservation.devices?.device_type_id === device.device_type_id) {
+    ;(reservations || []).forEach((reservation: any) => {
+      const resDevice = Array.isArray(reservation.devices) ? reservation.devices[0] : reservation.devices
+      if (resDevice?.device_type_id === device.device_type_id) {
         const timeKey = `${reservation.start_time}-${reservation.end_time}`
         if (!deviceReservationMap.has(timeKey)) {
           deviceReservationMap.set(timeKey, [])
         }
         deviceReservationMap.get(timeKey).push({
-          device_number: reservation.devices.device_number,
+          device_number: resDevice.device_number,
           reservation_status: reservation.status
         })
         
@@ -170,23 +165,25 @@ export async function GET(request: NextRequest) {
         const slotStart = slot.start_time
         const slotEnd = slot.end_time
         
-        ;(reservations || []).forEach(reservation => {
-          if (reservation.devices?.device_type_id === device.device_type_id) {
+        ;(reservations || []).forEach((reservation: any) => {
+          const resDevice = Array.isArray(reservation.devices) ? reservation.devices[0] : reservation.devices
+          if (resDevice?.device_type_id === device.device_type_id) {
             // 시간 겹침 확인: 예약 시작 < 슬롯 종료 AND 예약 종료 > 슬롯 시작
             if (reservation.start_time < slotEnd && reservation.end_time > slotStart) {
-              overlappingDevices.add(reservation.devices.device_number)
+              overlappingDevices.add(resDevice.device_number)
             }
           }
         })
         
         // 겹치는 기기들의 예약 상태 정보 생성
         const overlappingDeviceStatus = Array.from(overlappingDevices).map(deviceNum => {
-          const reservation = reservations?.find(r => 
-            r.devices?.device_number === deviceNum && 
-            r.devices?.device_type_id === device.device_type_id &&
-            r.start_time < slotEnd && 
-            r.end_time > slotStart
-          )
+          const reservation = reservations?.find((r: any) => {
+            const resDevice = Array.isArray(r.devices) ? r.devices[0] : r.devices
+            return resDevice?.device_number === deviceNum && 
+              resDevice?.device_type_id === device.device_type_id &&
+              r.start_time < slotEnd && 
+              r.end_time > slotStart
+          })
           return {
             device_number: deviceNum,
             reservation_status: reservation?.status || 'unknown'
@@ -195,8 +192,8 @@ export async function GET(request: NextRequest) {
         
         // 밤샘 시간대를 24-29시로 변환하는 함수
         const formatTimeForDisplay = (time: string, isOvernight: boolean) => {
-          const hour = parseInt(time.split(':')[0])
-          const minute = time.split(':')[1]
+          const hour = parseInt(time.split(':')[0]!)
+          const minute = time.split(':')[1]!
           
           // 밤샘 시간대이고 0-5시 사이인 경우 24-29시로 변환
           if (isOvernight && hour >= 0 && hour <= 5) {

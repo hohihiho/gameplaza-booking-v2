@@ -312,31 +312,6 @@ async function generateChartDataFromDomain(
   }
 }
 
-// 미사용 함수 제거 (필요시 복원 가능)
-
-/**
- * 일별 차트 데이터 생성
- */
-function generateDailyChart(reservations: any[], startDate: Date, endDate: Date) {
-  const data = []
-  const current = new Date(startDate)
-  
-  while (current <= endDate) {
-    const dateStr = current.toISOString().split('T')[0]
-    const dayReservations = reservations.filter(r => r.date.dateString === dateStr)
-    
-    data.push({
-      date: dateStr,
-      reservations: dayReservations.length,
-      completed: dayReservations.filter(r => r.status.value === 'completed').length
-    })
-    
-    current.setDate(current.getDate() + 1)
-  }
-  
-  return data
-}
-
 /**
  * 도메인에서 월별 데이터 생성
  */
@@ -457,9 +432,10 @@ async function generateDeviceUsageFromDomain(reservations: any[]) {
   const deviceNames: { [key: string]: string } = {}
   devices?.forEach(device => {
     if (device.device_types) {
-      const deviceName = device.device_types.model_name 
-        ? `${device.device_types.name} ${device.device_types.model_name}` 
-        : device.device_types.name
+      const deviceType = Array.isArray(device.device_types) ? device.device_types[0] : device.device_types
+      const deviceName = deviceType?.model_name 
+        ? `${deviceType.name} ${deviceType.model_name}` 
+        : deviceType?.name || 'Unknown Device'
       deviceNames[device.id] = deviceName
     }
   })
@@ -560,132 +536,7 @@ function generateWeekdayPatternFromDomain(reservations: any[]) {
   }))
 }
 
-/**
- * 기기별 사용 데이터 생성
- */
-function generateDeviceUsage(reservations: any[], rawReservations: any[] = []) {
-  const deviceTypeCount: { [key: string]: number } = {}
-  const deviceTypeNames: { [key: string]: string } = {}
-  
-  // Raw 데이터에서 기기 타입별로 집계
-  rawReservations.forEach(reservation => {
-    if (reservation.devices && reservation.devices.device_types) {
-      const deviceType = reservation.devices.device_types
-      const deviceTypeName = deviceType.model_name 
-        ? `${deviceType.name} ${deviceType.model_name}` 
-        : deviceType.name
-      const deviceTypeId = deviceType.id // 기기 타입 ID로 그룹핑
-      
-      deviceTypeNames[deviceTypeId] = deviceTypeName
-      deviceTypeCount[deviceTypeId] = (deviceTypeCount[deviceTypeId] || 0) + 1
-    }
-  })
-  
-  const totalReservations = rawReservations.length
-  
-  return Object.entries(deviceTypeCount)
-    .map(([deviceTypeId, count]) => ({ 
-      deviceId: deviceTypeId, // 기기 타입 ID를 고유 식별자로 사용
-      name: deviceTypeNames[deviceTypeId] || `기기 타입 ${deviceTypeId}`,
-      count,
-      device: deviceTypeNames[deviceTypeId] || `기기 타입 ${deviceTypeId}`, // 프론트엔드 호환성
-      avgTime: 2.5, // 임시 평균 시간
-      percentage: totalReservations > 0 ? Math.round((count as number / totalReservations) * 100) : 0
-     }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5) // 상위 5개만
-}
-
-/**
- * 선호 시간대 데이터 생성
- */
-function generatePreferredHours(reservations: any[], rawReservations: any[] = []) {
-  const hourRangeCount: { [key: string]: { hour: number, count: number } } = {}
-  
-  console.log('선호 시간대 디버깅 - Raw 예약 수:', rawReservations.length)
-  
-  // Raw 데이터에서 시간 범위 정보 추출
-  rawReservations.forEach((reservation, index) => {
-    if (reservation.start_time && reservation.end_time) {
-      const startHour = parseInt(reservation.start_time.split(':')[0])
-      const endHour = parseInt(reservation.end_time.split(':')[0])
-      
-      // 24시간 체계 변환
-      let displayStartHour = startHour
-      let displayEndHour = endHour
-      
-      // 밤샘 예약 처리 (0~5시를 24~29시로 변환)
-      if (startHour >= 0 && startHour <= 5 && endHour >= 0 && endHour <= 5) {
-        displayStartHour = startHour === 0 ? 24 : startHour + 24
-        displayEndHour = endHour + 24
-      } else if (startHour >= 22 && startHour <= 23 && endHour >= 0 && endHour <= 5) {
-        displayEndHour = endHour + 24
-      }
-      
-      const timeRangeKey = `${displayStartHour}-${displayEndHour}`
-      
-      // 디버깅 로그 (처음 5개만)
-      if (index < 5) {
-        console.log(`예약 ${index}: ${reservation.start_time}-${reservation.end_time} → ${timeRangeKey}`)
-      }
-      
-      if (!hourRangeCount[timeRangeKey]) {
-        hourRangeCount[timeRangeKey] = {
-          hour: displayStartHour,
-          count: 0
-        }
-      }
-      hourRangeCount[timeRangeKey].count += 1
-    }
-  })
-  
-  console.log('시간대별 집계 결과:', hourRangeCount)
-  
-  const totalReservations = rawReservations.length
-  
-  const result = Object.entries(hourRangeCount)
-    .map(([timeRangeKey, data]) => {
-      const [startHour, endHour] = timeRangeKey.split('-').map(Number)
-      return {
-        timeRangeKey, // 고유 식별자 추가
-        hour: data.hour,
-        count: data.count,
-        label: `${startHour}~${endHour}시`,
-        timeRange: `${startHour}~${endHour}시`,
-        percentage: totalReservations > 0 ? Math.round((data.count / totalReservations) * 100) : 0
-      }
-    })
-    .sort((a, b) => a.hour - b.hour)
-  
-  console.log('최종 선호 시간대 결과:', result)
-  return result
-}
-
-/**
- * 요일별 패턴 데이터 생성
- */
-function generateWeekdayPattern(reservations: any[], rawReservations: any[] = []) {
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토']
-  const weekdayCount: { [key: number]: number } = {}
-  
-  // Raw 데이터에서 날짜 정보 추출
-  rawReservations.forEach(reservation => {
-    if (reservation.date) {
-      const date = new Date(reservation.date)
-      const dayOfWeek = date.getDay()
-      weekdayCount[dayOfWeek] = (weekdayCount[dayOfWeek] || 0) + 1
-    }
-  })
-  
-  const totalReservations = rawReservations.length
-  
-  return weekdays.map((name, index) => ({
-    dayIndex: index, // 고유 식별자 추가
-    name,
-    count: weekdayCount[index] || 0,
-    percentage: totalReservations > 0 ? Math.round(((weekdayCount[index] || 0) / totalReservations) * 100) : 0
-  }))
-}
+// 미사용 함수들 제거됨 - generateDeviceUsage, generatePreferredHours, generateWeekdayPattern은 도메인 버전으로 대체
 
 // OPTIONS 요청 처리 (CORS)
 export async function OPTIONS() {

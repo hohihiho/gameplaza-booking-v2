@@ -1,3 +1,5 @@
+'use client'
+
 export default function TestPage() {
   console.log('Test page is rendering');
   

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!dateStr) {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    dateStr = tomorrow.toISOString().split('T')[0]
+    dateStr = tomorrow.toISOString().split('T')[0]!
   }
   
   const { data: reservations } = await supabase
@@ -40,8 +40,12 @@ export async function GET(request: NextRequest) {
     .in('status', ['pending', 'approved', 'checked_in'])
     
   // 비트매니아 조기 시간대 예약만 필터링
-  const beatmaniaEarlyReservations = (reservations || []).filter(res => {
-    if (res.devices?.device_types?.id !== deviceType?.id) return false
+  const beatmaniaEarlyReservations = (reservations || []).filter((res: any) => {
+    const device = Array.isArray(res.devices) ? res.devices[0] : res.devices
+    const resDeviceType = Array.isArray(device?.device_types) 
+      ? device?.device_types[0] 
+      : device?.device_types
+    if (resDeviceType?.id !== deviceType?.id) return false
     const startHour = parseInt(res.start_time.split(':')[0])
     return startHour >= 7 && startHour < 22
   })
