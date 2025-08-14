@@ -1,3 +1,6 @@
+// DB 환경 체크 (개발 환경에서 프로덕션 DB 사용 방지)
+// 빌드 시점이 아닌 서버 시작 시점에 체크하도록 변경
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {

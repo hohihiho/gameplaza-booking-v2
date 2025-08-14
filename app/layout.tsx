@@ -7,6 +7,12 @@ import { Providers } from './providers'
 import ServiceWorkerRegister from './components/service-worker-register'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 // import DynamicFavicon from './components/DynamicFavicon'
+import { checkDatabaseEnvironment } from '@/lib/server/check-db-env'
+
+// 서버 시작 시 DB 환경 체크
+if (typeof window === 'undefined') {
+  checkDatabaseEnvironment();
+}
 
 const orbitron = Orbitron({ 
   subsets: ['latin'],

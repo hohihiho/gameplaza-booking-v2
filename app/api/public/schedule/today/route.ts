@@ -54,7 +54,7 @@ export async function GET() {
       floor1Start: isWeekend ? '11:00' : '12:00',
       floor1End: '22:00',
       floor2Start: isWeekend ? '11:00' : '12:00',
-      floor2End: isWeekend ? '22:00' : '24:00',
+      floor2End: isWeekend ? '22:00' : '05:00',
       floor1EventType: null,
       floor2EventType: null
     };
