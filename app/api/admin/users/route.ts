@@ -97,7 +97,7 @@ export async function GET(_req: NextRequest) {
         .eq('user_id', user.id)
         .order('date', { ascending: false })
         .limit(1)
-        .single();
+        .single() as { data: any };
 
       // 노쇼 카운트
       const { count: noShowCount } = await supabase
@@ -116,8 +116,8 @@ export async function GET(_req: NextRequest) {
         recent_reservation: recentReservation ? {
           date: recentReservation.date,
           status: recentReservation.status,
-          device_name: recentReservation.devices?.device_types?.name 
-            ? `${recentReservation.devices.device_types.name} ${recentReservation.devices.device_number}번`
+          device_name: (recentReservation as any).devices?.device_types?.name 
+            ? `${(recentReservation as any).devices.device_types.name} ${(recentReservation as any).devices.device_number}번`
             : '기기 정보 없음'
         } : null,
         // 기존 필드와의 호환성을 위해
