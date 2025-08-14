@@ -16,7 +16,7 @@
     "autoAlias": true
   },
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "./scripts/vercel-build.sh",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": ".next"
