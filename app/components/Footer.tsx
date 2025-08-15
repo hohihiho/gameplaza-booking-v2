@@ -32,15 +32,6 @@ export default function Footer() {
           </Link>
         </div>
         
-        {/* 연락처 정보 */}
-        <div className="text-center mb-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            개인정보보호책임자: 장세희
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            문의: ndz5496@gmail.com
-          </p>
-        </div>
         
         {/* 저작권 */}
         <div className="text-center">

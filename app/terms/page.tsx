@@ -10,7 +10,7 @@ export default function TermsPage() {
       <div className="fixed top-4 left-4 z-50">
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           홈으로
