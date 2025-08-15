@@ -96,7 +96,10 @@ export default function RootLayout({
         <meta name="privacy-policy-url" content="https://gameplaza-v2.vercel.app/privacy" />
         <meta name="terms-of-service-url" content="https://gameplaza-v2.vercel.app/terms" />
       </head>
-      <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
+      <body 
+        className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}
+        suppressHydrationWarning={true}
+      >
         {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}
         <a 
           href="#main-content" 
