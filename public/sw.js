@@ -58,6 +58,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  
+  // chrome-extension 스킴 요청은 무시
+  if (url.protocol === 'chrome-extension:') {
+    return;
+  }
 
   // Auth API는 캐싱하지 않음
   if (url.pathname.startsWith('/api/auth/')) {
@@ -70,12 +75,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // 성공적인 응답은 캐시에 저장 (POST 요청 제외)
-          if (response && response.status === 200 && request.method === 'GET') {
+          // 성공적인 응답은 캐시에 저장 (POST 요청과 chrome-extension 제외)
+          if (response && response.status === 200 && request.method === 'GET' && !request.url.startsWith('chrome-extension://')) {
             const responseToCache = response.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
                 cache.put(request, responseToCache);
+              })
+              .catch((error) => {
+                console.warn('Cache put failed:', error);
               });
           }
           return response;
@@ -100,12 +108,15 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
           return fetch(request).then((response) => {
-            // 정적 자산은 캐시에 저장
-            if (response && response.status === 200) {
+            // 정적 자산은 캐시에 저장 (chrome-extension 스킴 제외)
+            if (response && response.status === 200 && !request.url.startsWith('chrome-extension://')) {
               const responseToCache = response.clone();
               caches.open(CACHE_NAME)
                 .then((cache) => {
                   cache.put(request, responseToCache);
+                })
+                .catch((error) => {
+                  console.warn('Cache put failed:', error);
                 });
             }
             return response;

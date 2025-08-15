@@ -27,9 +27,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       allowDangerousEmailAccountLinking: true
     })
   ],
-  debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
+  debug: true, // 디버깅을 위해 임시로 활성화
   callbacks: {
     async signIn({ user, account }) {
+      console.log('=== SignIn Callback ===');
+      console.log('Provider:', account?.provider);
+      console.log('User email:', user?.email);
+      
       // Google 로그인 성공 후
       if (account?.provider === 'google' && user?.email) {
         try {
