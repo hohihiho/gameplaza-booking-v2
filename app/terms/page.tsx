@@ -5,7 +5,31 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <>
+      {/* JSON-LD 구조화 데이터 추가 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "서비스 이용약관",
+            "alternateName": "Terms of Service",
+            "url": "https://gameplaza-v2.vercel.app/terms",
+            "description": "광주 게임플라자의 서비스 이용약관",
+            "inLanguage": "ko-KR",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "광주 게임플라자",
+              "url": "https://gameplaza-v2.vercel.app"
+            },
+            "datePublished": "2025-08-15",
+            "dateModified": "2025-08-15"
+          })
+        }}
+      />
+      
+      <div className="min-h-screen bg-white text-gray-900">
       {/* 홈으로 버튼 - 상단 고정 */}
       <div className="fixed top-4 left-4 z-50">
         <Link 
@@ -20,14 +44,24 @@ export default function TermsPage() {
       {/* 내용 */}
       <div className="max-w-4xl mx-auto px-6 py-16">
         <div className="prose prose-slate max-w-none !text-gray-900 prose-headings:!text-gray-900 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-strong:!text-black prose-a:!text-blue-600">
-          <h1>서비스 이용약관</h1>
+          <h1>
+            서비스 이용약관
+            <br />
+            <span className="text-2xl text-gray-600 font-normal">Terms of Service</span>
+          </h1>
           
           <p><strong>버전: 1.0</strong><br />
           <strong>시행일: 2025. 8. 15.</strong></p>
           
+          <br />
+          
           <p>광주 게임플라자(이하 "회사")가 제공하는 게임기기 예약 서비스(이하 "서비스")를 이용함에 있어 회사와 이용자의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.</p>
           
+          <br />
+          
           <h2>제1장 총칙</h2>
+          
+          <br />
           
           <h3>제1조 (목적)</h3>
           <p>이 약관은 광주 게임플라자가 제공하는 게임기기 예약 서비스를 이용함에 있어 회사와 이용자의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.</p>
@@ -43,6 +77,8 @@ export default function TermsPage() {
             <li>"체크인"이란 예약한 시간에 실제로 도착하여 이용을 시작하는 것을 말합니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제3조 (약관의 효력 및 변경)</h3>
           <ol>
             <li>이 약관은 서비스 화면에 게시하거나 기타의 방법으로 회원에게 공지함으로써 효력이 발생합니다.</li>
@@ -51,7 +87,11 @@ export default function TermsPage() {
             <li>회원이 변경된 약관에 동의하지 않는 경우 서비스 이용을 중단하고 탈퇴할 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h2>제2장 회원가입 및 서비스 이용</h2>
+          
+          <br />
           
           <h3>제4조 (회원가입)</h3>
           <ol>
@@ -67,11 +107,15 @@ export default function TermsPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h3>제5조 (회원정보의 변경)</h3>
           <ol>
             <li>회원은 서비스 이용 중 본인의 정보가 변경된 경우 즉시 수정해야 합니다.</li>
             <li>회원정보 미변경으로 인한 불이익은 회원이 부담합니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제6조 (회원탈퇴 및 자격 상실)</h3>
           <ol>
@@ -86,7 +130,11 @@ export default function TermsPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제3장 예약 서비스</h2>
+          
+          <br />
           
           <h3>제7조 (예약 규정)</h3>
           <ol>
@@ -94,11 +142,15 @@ export default function TermsPage() {
             <li>예약은 선착순으로 진행되며, 1인당 예약 가능한 횟수와 시간이 제한될 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제8조 (예약 취소)</h3>
           <ol>
             <li>예약 취소는 예약 시간 24시간 전까지 가능합니다.</li>
             <li>무단 불참(노쇼) 시 향후 예약에 제한이 있을 수 있습니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제9조 (체크인 및 이용)</h3>
           <ol>
@@ -106,10 +158,14 @@ export default function TermsPage() {
             <li>체크인하지 않은 예약은 노쇼로 처리될 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제10조 (노쇼 관리)</h3>
           <p>무단 불참(노쇼)이 반복되는 경우, 회사는 관리자 재량으로 해당 회원의 예약 권한을 제한할 수 있습니다.</p>
           
           <h2>제4장 서비스 이용</h2>
+          
+          <br />
           
           <h3>제11조 (서비스의 제공)</h3>
           <ol>
@@ -125,6 +181,8 @@ export default function TermsPage() {
             <li>서비스는 연중무휴, 24시간 제공을 원칙으로 합니다. 단, 시설 점검 등의 사유로 일시 중단될 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제12조 (서비스의 변경 및 중단)</h3>
           <ol>
             <li>회사는 운영상, 기술상의 필요에 따라 서비스를 변경할 수 있습니다.</li>
@@ -137,6 +195,8 @@ export default function TermsPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h3>제13조 (정보의 제공 및 광고)</h3>
           <ol>
             <li>회사는 서비스 이용에 필요한 정보를 공지사항, 이메일 등의 방법으로 회원에게 제공할 수 있습니다.</li>
@@ -144,7 +204,11 @@ export default function TermsPage() {
             <li>회원은 회사가 제공하는 광고에 대한 수신 거부 의사를 밝힐 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h2>제5장 계약 당사자의 의무</h2>
+          
+          <br />
           
           <h3>제14조 (회사의 의무)</h3>
           <ol>
@@ -153,6 +217,8 @@ export default function TermsPage() {
             <li>회사는 회원의 개인정보를 보호하기 위해 보안시스템을 구축하며 개인정보처리방침을 공시하고 준수합니다.</li>
             <li>회사는 회원으로부터 제기되는 의견이나 불만이 정당하다고 인정할 경우 이를 처리합니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제15조 (회원의 의무)</h3>
           <ol>
@@ -172,7 +238,11 @@ export default function TermsPage() {
             <li>회원은 게임기기를 소중히 다루어야 하며, 고의 또는 과실로 인한 파손 시 배상책임이 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h2>제6장 손해배상 및 면책</h2>
+          
+          <br />
           
           <h3>제16조 (손해배상)</h3>
           <ol>
@@ -180,6 +250,8 @@ export default function TermsPage() {
             <li>회사는 회원의 귀책사유로 인한 서비스 이용의 장애에 대하여 책임을 지지 않습니다.</li>
             <li>회원이 서비스를 이용하여 기대하는 수익을 얻지 못한 것에 대하여 책임을 지지 않습니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제17조 (면책조항)</h3>
           <ol>
@@ -189,7 +261,11 @@ export default function TermsPage() {
             <li>회사는 회원 간 또는 회원과 제3자 상호간에 서비스를 매개로 하여 발생한 분쟁에 대해 책임을 지지 않습니다.</li>
           </ol>
           
+          <br />
+          
           <h2>제7장 기타</h2>
+          
+          <br />
           
           <h3>제18조 (개인정보보호)</h3>
           <p>회사는 회원의 개인정보를 보호하기 위하여 관련 법령이 정하는 바를 준수하며, 개인정보의 보호 및 사용에 대해서는 관련법령 및 회사의 개인정보처리방침을 적용합니다.</p>
@@ -200,11 +276,15 @@ export default function TermsPage() {
             <li>회사는 불특정다수 회원에 대한 통지의 경우 서비스 공지사항에 게시함으로써 개별 통지에 갈음할 수 있습니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제20조 (재판권 및 준거법)</h3>
           <ol>
             <li>이 약관에 명시되지 않은 사항은 관련 법령 또는 상관례에 따릅니다.</li>
             <li>서비스 이용으로 발생한 분쟁에 대해 소송이 제기되는 경우 회사의 본사 소재지를 관할하는 법원을 관할 법원으로 합니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제21조 (저작권)</h3>
           <ol>
@@ -212,10 +292,13 @@ export default function TermsPage() {
             <li>회원은 서비스를 이용함으로써 얻은 정보를 회사의 사전 승낙 없이 복제, 송신, 출판, 배포, 방송 등 기타 방법으로 이용하거나 제3자에게 이용하게 하여서는 안 됩니다.</li>
           </ol>
           
+          <br />
+          
           <h3>제22조 (약관의 시행)</h3>
           <p>이 약관은 2025년 8월 15일부터 시행됩니다.</p>
         </div>
       </div>
     </div>
+    </>
   );
 }

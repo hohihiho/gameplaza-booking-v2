@@ -298,7 +298,7 @@ export default function GuidePage() {
                   <h2 className="text-xl font-bold">예약 시스템</h2>
                 </div>
                 <p className="mb-4 text-white/90">
-                  인기 게임기를 확실하게 이용하고 싶으신가요? 웹 예약 시스템을 통해 원하는 시간에 게임을 즐기세요!
+                  기기 대여 예약을 하고싶다면?
                 </p>
                 <Link href="/reservations/new">
                   <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors font-semibold">

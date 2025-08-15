@@ -21,9 +21,10 @@ const orbitron = Orbitron({
 })
 
 export const metadata: Metadata = {
-  title: '광주 게임플라자',
-  description: '광주 게임플라자 예약 시스템',
+  title: '광주 게임플라자 - Gwangju Game Plaza',
+  description: '광주 게임플라자 예약 시스템 - Gwangju Game Plaza Reservation System. Privacy Policy and Terms of Service available.',
   manifest: '/manifest.json',
+  keywords: ['게임플라자', 'game plaza', 'privacy policy', '개인정보처리방침', 'terms of service', '이용약관'],
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -33,15 +34,28 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: '광주 게임플라자',
-    description: '광주 게임플라자 리듬게임 기기 예약 시스템',
+    title: '광주 게임플라자 - Gwangju Game Plaza',
+    description: '광주 게임플라자 리듬게임 기기 예약 시스템 - Privacy Policy and Terms available',
     type: 'website',
     locale: 'ko_KR',
+    url: 'https://gameplaza-v2.vercel.app',
+    siteName: 'Gwangju Game Plaza',
   },
   twitter: {
     card: 'summary',
-    title: '광주 게임플라자',
+    title: '광주 게임플라자 - Gwangju Game Plaza',
     description: '광주 게임플라자 리듬게임 기기 예약 시스템',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   icons: {
     icon: [
@@ -77,6 +91,57 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="게임플라자" />
         <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* 개인정보처리방침 및 약관 메타 태그 - Google Play Console 봇 인식용 */}
+        <meta name="privacy-policy" content="/privacy" />
+        <meta name="terms-of-service" content="/terms" />
+        <link rel="privacy-policy" href="/privacy" />
+        <link rel="terms-of-service" href="/terms" />
+        
+        {/* JSON-LD 구조화 데이터 */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "광주 게임플라자",
+              "alternateName": "Gwangju Game Plaza",
+              "url": "https://gameplaza-v2.vercel.app",
+              "description": "광주 게임플라자 예약 시스템",
+              "inLanguage": "ko-KR",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://gameplaza-v2.vercel.app/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              },
+              "mainEntity": {
+                "@type": "Organization",
+                "name": "광주 게임플라자",
+                "url": "https://gameplaza-v2.vercel.app",
+                "logo": "https://gameplaza-v2.vercel.app/icons/icon-512x512.svg",
+                "contactPoint": {
+                  "@type": "ContactPoint",
+                  "email": "ndz5496@gmail.com",
+                  "contactType": "customer service"
+                }
+              },
+              "hasPart": [
+                {
+                  "@type": "WebPage",
+                  "name": "Privacy Policy",
+                  "url": "https://gameplaza-v2.vercel.app/privacy"
+                },
+                {
+                  "@type": "WebPage", 
+                  "name": "Terms of Service",
+                  "url": "https://gameplaza-v2.vercel.app/terms"
+                }
+              ]
+            })
+          }}
+        />
+        
         {/* Google Search Console 소유권 확인용 - 필요시 추가 */}
         {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" /> */}
       </head>

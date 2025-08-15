@@ -180,15 +180,6 @@ export default function QuickReservationWidget() {
                     </div>
                   </span>
                 </h1>
-                {/* 핵심 가치 제안 강화 */}
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                  className="text-white/80 text-sm xs:text-base sm:text-lg md:text-xl font-medium max-w-md lg:max-w-lg"
-                >
-                  실시간 예약 • 즉시 확인 • 간편 결제
-                </motion.p>
               </div>
               
               {/* 모바일용 간단한 상태 정보 */}

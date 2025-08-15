@@ -2,10 +2,54 @@
 
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { Metadata } from 'next';
+
+// 메타데이터 export (서버 컴포넌트가 아니므로 별도 파일로 분리 필요하지만 임시로 주석 처리)
+/*
+export const metadata: Metadata = {
+  title: '개인정보처리방침 - Privacy Policy | 광주 게임플라자',
+  description: '광주 게임플라자의 개인정보처리방침입니다. Privacy Policy for Gwangju Game Plaza.',
+  keywords: ['개인정보처리방침', 'privacy policy', '개인정보보호', 'data protection'],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: '개인정보처리방침 - Privacy Policy | 광주 게임플라자',
+    description: '광주 게임플라자의 개인정보처리방침입니다.',
+    type: 'article',
+    locale: 'ko_KR',
+  }
+}
+*/
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <>
+      {/* JSON-LD 구조화 데이터 추가 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "개인정보처리방침",
+            "alternateName": "Privacy Policy",
+            "url": "https://gameplaza-v2.vercel.app/privacy",
+            "description": "광주 게임플라자의 개인정보처리방침",
+            "inLanguage": "ko-KR",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "광주 게임플라자",
+              "url": "https://gameplaza-v2.vercel.app"
+            },
+            "datePublished": "2025-08-15",
+            "dateModified": "2025-08-15"
+          })
+        }}
+      />
+      
+      <div className="min-h-screen bg-white text-gray-900">
       {/* 홈으로 버튼 - 상단 고정 */}
       <div className="fixed top-4 left-4 z-50">
         <Link 
@@ -20,20 +64,34 @@ export default function PrivacyPage() {
       {/* 내용 */}
       <div className="max-w-4xl mx-auto px-6 py-16">
         <div className="prose prose-slate max-w-none !text-gray-900 prose-headings:!text-gray-900 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-strong:!text-black prose-a:!text-blue-600">
-          <h1>개인정보 처리방침</h1>
+          <h1>
+            개인정보 처리방침
+            <br />
+            <span className="text-2xl text-gray-600 font-normal">Privacy Policy</span>
+          </h1>
           
           <p><strong>버전: 1.0</strong><br />
           <strong>시행일: 2025. 8. 15.</strong></p>
           
+          <br />
+          
           <p>광주 게임플라자(이하 "회사")는 「개인정보 보호법」 제30조에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
           
+          <br />
+          
           <h2>제1장 총칙</h2>
+          
+          <br />
           
           <h3>제1조 (목적)</h3>
           <p>이 개인정보 처리방침은 회사가 제공하는 게임기기 예약 서비스를 이용하는 이용자의 개인정보를 보호하고, 개인정보와 관련한 이용자의 고충을 신속하고 원활하게 처리할 수 있도록 하는 것을 목적으로 합니다.</p>
           
+          <br />
+          
           <h3>제2조 (개인정보의 처리 목적)</h3>
           <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 개인정보 보호법 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행합니다.</p>
+          
+          <br />
           
           <ol>
             <li><strong>회원 가입 및 관리</strong>
@@ -67,10 +125,16 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제2장 개인정보의 수집 및 이용</h2>
+          
+          <br />
           
           <h3>제3조 (수집하는 개인정보의 항목)</h3>
           <p>회사는 다음의 개인정보 항목을 수집합니다.</p>
+          
+          <br />
           
           <ol>
             <li><strong>회원가입 시 수집항목</strong>
@@ -91,6 +155,8 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h3>제4조 (개인정보의 수집 방법)</h3>
           <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
           <ul>
@@ -98,6 +164,8 @@ export default function PrivacyPage() {
             <li>구글 OAuth 인증</li>
             <li>생성정보 수집 툴을 통한 수집</li>
           </ul>
+          
+          <br />
           
           <h3>제5조 (개인정보의 보유 및 이용 기간)</h3>
           <p>회사는 법령에 따른 개인정보 보유·이용기간 또는 이용자로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.</p>
@@ -128,7 +196,11 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제3장 개인정보의 제공 및 위탁</h2>
+          
+          <br />
           
           <h3>제6조 (개인정보의 제3자 제공)</h3>
           <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
@@ -136,6 +208,8 @@ export default function PrivacyPage() {
             <li>이용자들이 사전에 동의한 경우</li>
             <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
           </ul>
+          
+          <br />
           
           <h3>제7조 (개인정보처리의 위탁)</h3>
           <p>회사는 원활한 개인정보 업무처리를 위하여 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.</p>
@@ -157,7 +231,11 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제4장 이용자의 권리와 의무</h2>
+          
+          <br />
           
           <h3>제8조 (이용자 및 법정대리인의 권리와 그 행사방법)</h3>
           <ol>
@@ -167,6 +245,8 @@ export default function PrivacyPage() {
             <li>개인정보 열람 및 처리정지 요구는 개인정보보호법 제35조 제4항, 제37조 제2항에 의하여 이용자의 권리가 제한될 수 있습니다.</li>
             <li>개인정보의 정정 및 삭제 요구는 다른 법령에서 그 개인정보가 수집 대상으로 명시되어 있는 경우에는 그 삭제를 요구할 수 없습니다.</li>
           </ol>
+          
+          <br />
           
           <h3>제9조 (개인정보의 파기)</h3>
           <ol>
@@ -180,7 +260,11 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제5장 개인정보의 안전성 확보조치</h2>
+          
+          <br />
           
           <h3>제10조 (개인정보의 안전성 확보조치)</h3>
           <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.</p>
@@ -209,7 +293,11 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h2>제6장 기타</h2>
+          
+          <br />
           
           <h3>제11조 (개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항)</h3>
           <ol>
@@ -232,6 +320,8 @@ export default function PrivacyPage() {
             </li>
           </ol>
           
+          <br />
+          
           <h3>제12조 (추가적인 이용·제공 판단기준)</h3>
           <p>회사는 ｢개인정보 보호법｣ 제15조제3항 및 제17조제4항에 따라 ｢개인정보 보호법 시행령｣ 제14조의2에 따른 사항을 고려하여 정보주체의 동의 없이 개인정보를 추가적으로 이용·제공할 수 있습니다.</p>
           
@@ -242,6 +332,8 @@ export default function PrivacyPage() {
             <li>개인정보의 추가적인 이용·제공이 정보주체의 이익을 부당하게 침해하는지 여부</li>
             <li>가명처리 또는 암호화 등 안전성 확보에 필요한 조치를 하였는지 여부</li>
           </ul>
+          
+          <br />
           
           <h3>제13조 (개인정보 보호책임자)</h3>
           <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
@@ -256,6 +348,8 @@ export default function PrivacyPage() {
           
           <p>이용자는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자로 문의하실 수 있습니다. 회사는 이용자의 문의에 대해 지체없이 답변 및 처리해드릴 것입니다.</p>
           
+          <br />
+          
           <h3>제14조 (개인정보 열람청구)</h3>
           <p>이용자는 ｢개인정보 보호법｣ 제35조에 따른 개인정보의 열람 청구를 아래의 부서에 할 수 있습니다. 회사는 정보주체의 개인정보 열람청구가 신속하게 처리되도록 노력하겠습니다.</p>
           
@@ -265,6 +359,8 @@ export default function PrivacyPage() {
             <li>담당자: 장세희</li>
             <li>이메일: ndz5496@gmail.com</li>
           </ul>
+          
+          <br />
           
           <h3>제15조 (권익침해 구제방법)</h3>
           <p>이용자는 개인정보침해로 인한 구제를 받기 위하여 개인정보분쟁조정위원회, 한국인터넷진흥원 개인정보침해신고센터 등에 분쟁해결이나 상담 등을 신청할 수 있습니다. 이 밖에 기타 개인정보침해의 신고, 상담에 대하여는 아래의 기관에 문의하시기 바랍니다.</p>
@@ -280,6 +376,8 @@ export default function PrivacyPage() {
           
           <p>※ 행정심판에 대해 자세한 사항은 중앙행정심판위원회(www.simpan.go.kr) 홈페이지를 참고하시기 바랍니다.</p>
           
+          <br />
+          
           <h3>제16조 (개인정보 처리방침 변경)</h3>
           <p>이 개인정보처리방침은 2025년 8월 15일부터 적용됩니다.</p>
           
@@ -290,5 +388,6 @@ export default function PrivacyPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
