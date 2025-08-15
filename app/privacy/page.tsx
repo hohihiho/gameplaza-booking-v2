@@ -2,687 +2,301 @@
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Shield, Database, Lock, UserCheck, AlertCircle, Mail, Phone, FileText } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPage() {
   const searchParams = useSearchParams();
   const isModal = searchParams.get('modal') === 'true';
 
   return (
-    <div className={isModal ? "bg-white dark:bg-gray-900" : "min-h-screen bg-gray-50 dark:bg-gray-950"}>
+    <div className={isModal ? "bg-white dark:bg-gray-900 p-6" : "min-h-screen bg-white dark:bg-gray-900"}>
       {/* 헤더 - 모달일 때는 숨김 */}
       {!isModal && (
-        <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 py-16 px-5 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-black/10 to-transparent" />
-          <div className="relative max-w-6xl mx-auto">
+        <div className="border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-4xl mx-auto px-6 py-4">
             <Link 
               href="/" 
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
+              className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               홈으로
             </Link>
-            
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              개인정보처리방침
-            </h1>
-            <p className="text-lg text-indigo-100">
-              시행일: 2025년 2월 1일 | 버전: 2.0
-            </p>
           </div>
-        </section>
+        </div>
       )}
 
       {/* 내용 */}
-      <section className={isModal ? "px-5 py-8" : "max-w-4xl mx-auto px-5 py-12"}>
-        <div className={isModal ? "space-y-10" : "bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800 space-y-10"}>
+      <div className={isModal ? "" : "max-w-4xl mx-auto px-6 py-8"}>
+        <div className="prose prose-gray dark:prose-invert max-w-none">
+          <h1>개인정보 처리방침</h1>
           
-          {/* 서문 */}
-          <div className="p-6 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800">
-            <div className="flex items-start gap-3">
-              <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mt-1" />
-              <div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">개인정보보호 원칙</h3>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  광주 게임플라자(이하 "회사")는 이용자의 개인정보를 중요시하며, 「개인정보보호법」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 준수하고 있습니다. 
-                  본 개인정보처리방침을 통해 이용자가 제공하는 개인정보가 어떠한 용도와 방식으로 이용되고 있으며, 개인정보보호를 위해 어떠한 조치가 취해지고 있는지 알려드립니다.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 1. 수집하는 개인정보 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Database className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제1조 (수집하는 개인정보의 항목 및 수집방법)
-            </h2>
-            
-            <div className="space-y-6 text-gray-700 dark:text-gray-300">
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold text-lg mb-3">① 회원가입 시 수집항목</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="font-medium text-indigo-600 dark:text-indigo-400">필수항목</p>
-                    <ul className="list-disc pl-6 mt-2 space-y-1">
-                      <li>이메일 주소 (Google OAuth 인증 시 자동 수집)</li>
-                      <li>이름 (Google 계정에서 제공)</li>
-                      <li>닉네임 (서비스 내 활동명)</li>
-                      <li>휴대전화번호 (본인확인 및 예약 알림용)</li>
-                      <li>생년월일 (연령 확인용)</li>
-                      <li>Google 계정 고유 식별자 (UID)</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <p className="font-medium text-indigo-600 dark:text-indigo-400">선택항목</p>
-                    <ul className="list-disc pl-6 mt-2 space-y-1">
-                      <li>프로필 사진 (Google 계정에서 제공 시)</li>
-                      <li>마케팅 수신 동의 여부</li>
-                      <li>선호 게임 장르</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold text-lg mb-3">② 서비스 이용 과정에서 자동 수집되는 정보</h3>
-                <ul className="list-disc pl-6 space-y-1">
-                  <li>서비스 이용 기록 (예약 내역, 체크인 시간, 이용 시간)</li>
-                  <li>접속 로그 (IP 주소, 접속 시간, 접속 기기 정보)</li>
-                  <li>쿠키 (Cookie) 정보</li>
-                  <li>브라우저 종류 및 버전</li>
-                  <li>운영체제 (OS) 정보</li>
-                  <li>기기 고유 식별자 (디바이스 ID)</li>
-                  <li>위치 정보 (선택적, 동의 시)</li>
-                </ul>
-              </div>
-
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold text-lg mb-3">③ 결제 정보 (향후 유료 서비스 도입 시)</h3>
-                <ul className="list-disc pl-6 space-y-1">
-                  <li>결제 수단 정보 (카드번호 마지막 4자리)</li>
-                  <li>결제 내역</li>
-                  <li>환불 계좌 정보 (필요 시)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. 개인정보 수집 목적 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <UserCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제2조 (개인정보의 수집 및 이용목적)
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-3 text-indigo-600 dark:text-indigo-400">회원관리</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• 회원제 서비스 이용에 따른 본인확인</li>
-                  <li>• 개인 식별 및 부정이용 방지</li>
-                  <li>• 가입 및 가입횟수 제한</li>
-                  <li>• 만 14세 미만 아동 가입 제한</li>
-                  <li>• 분쟁 조정을 위한 기록 보존</li>
-                </ul>
-              </div>
-              
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-3 text-indigo-600 dark:text-indigo-400">서비스 제공</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• 게임기기 예약 서비스 제공</li>
-                  <li>• 예약 확인 및 변경 알림</li>
-                  <li>• 체크인/체크아웃 관리</li>
-                  <li>• 이용 통계 및 패턴 분석</li>
-                  <li>• 맞춤형 서비스 제공</li>
-                </ul>
-              </div>
-              
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-3 text-indigo-600 dark:text-indigo-400">마케팅 활용</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• 이벤트 및 프로모션 안내</li>
-                  <li>• 신규 서비스 안내</li>
-                  <li>• 맞춤형 광고 제공</li>
-                  <li>• 서비스 이용 통계 분석</li>
-                  <li>• 고객 만족도 조사</li>
-                </ul>
-              </div>
-              
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-3 text-indigo-600 dark:text-indigo-400">법적 의무 준수</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• 관련 법령에 따른 의무 이행</li>
-                  <li>• 법적 분쟁 대응</li>
-                  <li>• 수사기관 요청 협조</li>
-                  <li>• 정산 및 세무 처리</li>
-                  <li>• 소비자 보호 의무 이행</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. 개인정보 보유 기간 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제3조 (개인정보의 보유 및 이용기간)
-            </h2>
-            
-            <div className="space-y-4 text-gray-700 dark:text-gray-300">
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <p className="font-medium mb-2">원칙</p>
-                <p>회사는 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-bold text-lg">① 회사 내부 방침에 의한 정보 보유</h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b dark:border-gray-700">
-                      <th className="text-left py-2">보유 정보</th>
-                      <th className="text-left py-2">보유 기간</th>
-                      <th className="text-left py-2">보유 사유</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">회원 정보</td>
-                      <td className="py-2">회원 탈퇴 후 30일</td>
-                      <td className="py-2">재가입 제한 및 부정이용 방지</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">예약 이력</td>
-                      <td className="py-2">1년</td>
-                      <td className="py-2">서비스 개선 및 통계 분석</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">불량 이용 기록</td>
-                      <td className="py-2">3년</td>
-                      <td className="py-2">부정 이용 방지</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-bold text-lg">② 관련 법령에 의한 정보 보유</h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b dark:border-gray-700">
-                      <th className="text-left py-2">보유 정보</th>
-                      <th className="text-left py-2">근거 법령</th>
-                      <th className="text-left py-2">보유 기간</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">계약 또는 청약철회 기록</td>
-                      <td className="py-2">전자상거래법</td>
-                      <td className="py-2">5년</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">대금결제 및 재화 공급 기록</td>
-                      <td className="py-2">전자상거래법</td>
-                      <td className="py-2">5년</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">소비자 불만/분쟁 처리 기록</td>
-                      <td className="py-2">전자상거래법</td>
-                      <td className="py-2">3년</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">웹사이트 방문 기록</td>
-                      <td className="py-2">통신비밀보호법</td>
-                      <td className="py-2">3개월</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">본인확인 정보</td>
-                      <td className="py-2">정보통신망법</td>
-                      <td className="py-2">6개월</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. 개인정보 제3자 제공 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <AlertCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제4조 (개인정보의 제3자 제공)
-            </h2>
-            
-            <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-              <p className="font-medium text-red-700 dark:text-red-400 mb-2">원칙적 금지</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다.
-              </p>
-            </div>
-
-            <div className="space-y-3 text-gray-700 dark:text-gray-300">
-              <p className="font-medium">다만, 아래의 경우에는 예외로 합니다:</p>
-              <ol className="list-decimal pl-6 space-y-2">
-                <li>
-                  <strong>이용자의 사전 동의를 받은 경우</strong>
-                  <ul className="list-disc pl-6 mt-1 text-sm">
-                    <li>제공받는 자, 제공 목적, 제공 항목, 보유 기간을 명시하여 동의</li>
-                  </ul>
-                </li>
-                <li>
-                  <strong>법령의 규정에 의한 경우</strong>
-                  <ul className="list-disc pl-6 mt-1 text-sm">
-                    <li>수사기관의 적법한 절차에 따른 요청</li>
-                    <li>법원의 제출 명령</li>
-                    <li>기타 관계 법령에서 정한 절차에 따른 요청</li>
-                  </ul>
-                </li>
-                <li>
-                  <strong>서비스 제공을 위한 필수적인 경우</strong>
-                  <ul className="list-disc pl-6 mt-1 text-sm">
-                    <li>결제 대행사: 결제 정보 (PG사)</li>
-                    <li>본인인증 업체: 휴대폰 번호, 이름</li>
-                    <li>알림 서비스: 휴대폰 번호 (SMS 발송)</li>
-                  </ul>
-                </li>
-              </ol>
-            </div>
-          </div>
-
-          {/* 5. 개인정보 처리 위탁 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              제5조 (개인정보 처리의 위탁)
-            </h2>
-            
-            <div className="space-y-3 text-gray-700 dark:text-gray-300">
-              <p>회사는 서비스 향상을 위해 다음과 같이 개인정보를 위탁하고 있습니다:</p>
-              
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                    <th className="text-left py-3 px-4">수탁업체</th>
-                    <th className="text-left py-3 px-4">위탁업무</th>
-                    <th className="text-left py-3 px-4">보유기간</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b dark:border-gray-700">
-                    <td className="py-3 px-4">Google</td>
-                    <td className="py-3 px-4">OAuth 인증, 계정 연동</td>
-                    <td className="py-3 px-4">회원 탈퇴 시까지</td>
-                  </tr>
-                  <tr className="border-b dark:border-gray-700">
-                    <td className="py-3 px-4">Supabase</td>
-                    <td className="py-3 px-4">데이터베이스 관리, 인증</td>
-                    <td className="py-3 px-4">회원 탈퇴 시까지</td>
-                  </tr>
-                  <tr className="border-b dark:border-gray-700">
-                    <td className="py-3 px-4">Vercel</td>
-                    <td className="py-3 px-4">웹 호스팅, CDN</td>
-                    <td className="py-3 px-4">서비스 이용 시까지</td>
-                  </tr>
-                  <tr className="border-b dark:border-gray-700">
-                    <td className="py-3 px-4">알림 서비스 제공업체</td>
-                    <td className="py-3 px-4">SMS, 푸시 알림 발송</td>
-                    <td className="py-3 px-4">알림 발송 완료 시까지</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                ※ 위탁업체가 변경될 경우 개인정보처리방침을 통해 고지하겠습니다.
-              </p>
-            </div>
-          </div>
-
-          {/* 6. 개인정보 파기 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              제6조 (개인정보의 파기절차 및 방법)
-            </h2>
-            
-            <div className="space-y-4 text-gray-700 dark:text-gray-300">
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold mb-2">① 파기절차</h3>
-                <ol className="list-decimal pl-6 space-y-1 text-sm">
-                  <li>이용자의 개인정보는 목적이 달성된 후 별도의 DB로 옮겨져 일정 기간 저장된 후 파기</li>
-                  <li>별도 DB로 옮겨진 개인정보는 법률에 의한 경우가 아니고서는 다른 목적으로 이용되지 않음</li>
-                  <li>파기 사유가 발생한 경우 파기 계획을 수립하여 파기</li>
-                </ol>
-              </div>
-
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold mb-2">② 파기방법</h3>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>전자적 파일:</strong> 복구 불가능한 방법으로 영구 삭제</li>
-                  <li><strong>종이 문서:</strong> 분쇄기로 분쇄하거나 소각</li>
-                  <li><strong>데이터베이스:</strong> 로우 레벨 포맷(Low Level Format)</li>
-                  <li><strong>백업 데이터:</strong> 별도 관리 후 주기적 삭제</li>
-                </ul>
-              </div>
-
-              <div className="border-l-4 border-indigo-500 pl-4">
-                <h3 className="font-bold mb-2">③ 파기시점</h3>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li>회원 탈퇴 요청 시: 즉시 또는 30일 이내</li>
-                  <li>동의 철회 시: 지체 없이 파기</li>
-                  <li>목적 달성 시: 해당 개인정보 수집 시 동의받은 보유기간 경과 후</li>
-                  <li>사업 폐지: 사업 폐지일로부터 30일 이내</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* 7. 이용자 권리 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              제7조 (이용자 및 법정대리인의 권리와 행사방법)
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                <h3 className="font-bold mb-3 text-green-700 dark:text-green-400">이용자의 권리</h3>
-                <ul className="text-sm space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>개인정보 열람 요구</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>오류 정정 요구</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>삭제 요구</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>처리정지 요구</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>동의 철회</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h3 className="font-bold mb-3 text-blue-700 dark:text-blue-400">권리 행사 방법</h3>
-                <ul className="text-sm space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
-                    <span>마이페이지에서 직접 열람/수정</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
-                    <span>고객센터 이메일 요청</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
-                    <span>개인정보보호 담당자 연락</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
-                    <span>서면, 전화 요청</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                <strong>※ 만 14세 미만 아동의 경우:</strong> 법정대리인이 아동의 개인정보 열람, 정정, 삭제, 처리정지를 요구할 수 있습니다.
-              </p>
-            </div>
-          </div>
-
-          {/* 8. 개인정보 보호 조치 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              제8조 (개인정보의 안전성 확보조치)
-            </h2>
-            
-            <div className="space-y-4 text-gray-700 dark:text-gray-300">
-              <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다:</p>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h3 className="font-bold text-indigo-600 dark:text-indigo-400">기술적 조치</h3>
-                  <ul className="text-sm space-y-1">
-                    <li>• SSL 인증서를 통한 데이터 암호화</li>
-                    <li>• 비밀번호 단방향 암호화 저장</li>
-                    <li>• 침입차단시스템(방화벽) 운영</li>
-                    <li>• 백신 프로그램 운영 및 정기 업데이트</li>
-                    <li>• 접속기록 보관 및 위변조 방지</li>
-                    <li>• 개인정보 암호화 저장</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="font-bold text-indigo-600 dark:text-indigo-400">관리적 조치</h3>
-                  <ul className="text-sm space-y-1">
-                    <li>• 개인정보 취급 직원 최소화</li>
-                    <li>• 정기적인 직원 교육 실시</li>
-                    <li>• 내부관리계획 수립 및 시행</li>
-                    <li>• 개인정보 접근 권한 관리</li>
-                    <li>• 보안서약서 징구</li>
-                    <li>• 정기적인 자체 감사 실시</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="font-bold text-indigo-600 dark:text-indigo-400">물리적 조치</h3>
-                  <ul className="text-sm space-y-1">
-                    <li>• 전산실 출입통제</li>
-                    <li>• 문서보관 장소 시건 장치</li>
-                    <li>• CCTV 설치 및 운영</li>
-                    <li>• 비인가자 출입 통제</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="font-bold text-indigo-600 dark:text-indigo-400">기타 조치</h3>
-                  <ul className="text-sm space-y-1">
-                    <li>• 정기적인 취약점 점검</li>
-                    <li>• 개인정보 유출 대응 매뉴얼</li>
-                    <li>• 개인정보보호 인증 획득</li>
-                    <li>• 정기 모니터링 실시</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 9. 쿠키 정책 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              제9조 (쿠키의 운영 및 관리)
-            </h2>
-            
-            <div className="space-y-4 text-gray-700 dark:text-gray-300">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-bold mb-2">쿠키란?</h3>
-                  <p className="text-sm">
-                    웹사이트 방문 시 브라우저에 저장되는 작은 텍스트 파일로, 
-                    사용자의 환경설정, 로그인 상태 등을 저장하여 편리한 서비스를 제공합니다.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-bold mb-2">쿠키 사용 목적</h3>
-                  <ul className="text-sm space-y-1">
-                    <li>• 로그인 상태 유지</li>
-                    <li>• 사용자 환경 설정 저장</li>
-                    <li>• 이용 패턴 분석</li>
-                    <li>• 맞춤형 서비스 제공</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-2">쿠키 관리 방법</h3>
-                <p className="text-sm mb-2">
-                  브라우저 설정을 통해 쿠키를 관리할 수 있습니다:
-                </p>
-                <ul className="text-sm space-y-1">
-                  <li>• Chrome: 설정 → 개인정보 및 보안 → 쿠키 및 기타 사이트 데이터</li>
-                  <li>• Safari: 환경설정 → 개인정보 보호 → 쿠키 및 웹사이트 데이터</li>
-                  <li>• Edge: 설정 → 쿠키 및 사이트 권한</li>
-                </ul>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                  ※ 쿠키 거부 시 일부 서비스 이용에 제한이 있을 수 있습니다.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 10. 개인정보 보호책임자 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Phone className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제10조 (개인정보 보호책임자 및 담당부서)
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-6 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                <h3 className="font-bold mb-4 text-indigo-700 dark:text-indigo-400">개인정보 보호책임자</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">성명</span>
-                    <span className="font-medium">홍길동</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">직책</span>
-                    <span className="font-medium">대표이사</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">이메일</span>
-                    <span className="font-medium">privacy@gameplaza.kr</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">전화</span>
-                    <span className="font-medium">062-123-4567</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
-                <h3 className="font-bold mb-4 text-blue-700 dark:text-blue-400">개인정보 보호담당부서</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">부서명</span>
-                    <span className="font-medium">고객지원팀</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">담당자</span>
-                    <span className="font-medium">김철수</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">이메일</span>
-                    <span className="font-medium">support@gameplaza.kr</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">전화</span>
-                    <span className="font-medium">062-123-4568</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                기타 개인정보 침해에 대한 신고나 상담이 필요하신 경우에는 아래 기관에 문의하시기 바랍니다:
-              </p>
-              <ul className="text-sm mt-3 space-y-1">
-                <li>• 개인정보침해신고센터 (privacy.kisa.or.kr / 118)</li>
-                <li>• 개인정보분쟁조정위원회 (www.kopico.go.kr / 1833-6972)</li>
-                <li>• 대검찰청 사이버수사과 (www.spo.go.kr / 1301)</li>
-                <li>• 경찰청 사이버수사국 (ecrm.police.go.kr / 182)</li>
+          <p><strong>버전: 1.0</strong><br />
+          <strong>시행일: 2025. 8. 15.</strong></p>
+          
+          <p>광주 게임플라자(이하 "회사")는 「개인정보 보호법」 제30조에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
+          
+          <h2>제1장 총칙</h2>
+          
+          <h3>제1조 (목적)</h3>
+          <p>이 개인정보 처리방침은 회사가 제공하는 게임기기 예약 서비스를 이용하는 이용자의 개인정보를 보호하고, 개인정보와 관련한 이용자의 고충을 신속하고 원활하게 처리할 수 있도록 하는 것을 목적으로 합니다.</p>
+          
+          <h3>제2조 (개인정보의 처리 목적)</h3>
+          <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 개인정보 보호법 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행합니다.</p>
+          
+          <ol>
+            <li><strong>회원 가입 및 관리</strong>
+              <ul>
+                <li>회원 가입의사 확인</li>
+                <li>회원제 서비스 제공에 따른 본인 식별·인증</li>
+                <li>회원자격 유지·관리</li>
+                <li>서비스 부정이용 방지</li>
+                <li>각종 고지·통지</li>
+                <li>고충처리</li>
               </ul>
-            </div>
-          </div>
-
-          {/* 11. 개정 및 고지 */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              제11조 (개인정보처리방침의 변경)
-            </h2>
-            
-            <div className="space-y-4 text-gray-700 dark:text-gray-300">
-              <p>
-                이 개인정보처리방침은 2025년 2월 1일부터 적용됩니다. 
-                법령이나 서비스의 변경사항을 반영하기 위한 목적 등으로 개인정보처리방침을 수정할 수 있으며, 
-                개정 시에는 변경사항에 대해 서비스 공지사항을 통해 고지할 것입니다.
-              </p>
-
-              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <h3 className="font-bold mb-3">개정 이력</h3>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b dark:border-gray-700">
-                      <th className="text-left py-2">버전</th>
-                      <th className="text-left py-2">시행일</th>
-                      <th className="text-left py-2">주요 변경사항</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">v2.0</td>
-                      <td className="py-2">2025.02.01</td>
-                      <td className="py-2">전면 개정, 법령 준수 강화</td>
-                    </tr>
-                    <tr className="border-b dark:border-gray-700">
-                      <td className="py-2">v1.0</td>
-                      <td className="py-2">2025.01.01</td>
-                      <td className="py-2">최초 제정</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <p className="text-sm">
-                  <strong>중요:</strong> 정보주체의 권리에 중대한 영향을 미치는 변경이 있을 경우, 
-                  시행 최소 7일 전에 홈페이지 공지사항 및 이메일을 통해 사전 고지하겠습니다.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 문의 */}
-          <div className="border-t pt-8 text-center">
-            <Mail className="w-12 h-12 text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold mb-4">개인정보 관련 문의</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              개인정보처리방침에 대한 문의사항이나 개인정보 관련 불만사항이 있으시면<br />
-              아래 연락처로 문의해 주시기 바랍니다.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="mailto:privacy@gameplaza.kr"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-              >
-                <Mail className="w-5 h-5" />
-                이메일 문의
-              </Link>
-              <Link 
-                href="https://open.kakao.com/o/sKZrYdYf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg hover:bg-yellow-500 transition-colors"
-              >
-                카카오톡 1:1 문의
-              </Link>
-            </div>
-          </div>
+            </li>
+            <li><strong>서비스 제공</strong>
+              <ul>
+                <li>게임기기 예약 서비스 제공</li>
+                <li>예약 상태 확인 및 변경</li>
+                <li>체크인 및 이용 관리</li>
+                <li>결제 정보 안내</li>
+                <li>콘텐츠 제공</li>
+                <li>맞춤 서비스 제공</li>
+              </ul>
+            </li>
+            <li><strong>마케팅 및 광고 활용</strong>
+              <ul>
+                <li>신규 서비스 개발 및 맞춤 서비스 제공</li>
+                <li>이벤트 및 광고성 정보 제공 및 참여기회 제공</li>
+                <li>인구통계학적 특성에 따른 서비스 제공 및 광고 게재</li>
+                <li>서비스의 유효성 확인</li>
+                <li>접속빈도 파악 또는 회원의 서비스 이용에 대한 통계</li>
+              </ul>
+            </li>
+          </ol>
           
+          <h2>제2장 개인정보의 수집 및 이용</h2>
+          
+          <h3>제3조 (수집하는 개인정보의 항목)</h3>
+          <p>회사는 다음의 개인정보 항목을 수집합니다.</p>
+          
+          <ol>
+            <li><strong>회원가입 시 수집항목</strong>
+              <ul>
+                <li>필수항목: 이메일 주소, 비밀번호, 닉네임, 휴대전화번호</li>
+                <li>선택항목: 프로필 이미지</li>
+              </ul>
+            </li>
+            <li><strong>구글 OAuth 로그인 시 수집항목</strong>
+              <ul>
+                <li>이메일 주소, 프로필 정보(이름, 프로필 사진)</li>
+              </ul>
+            </li>
+            <li><strong>서비스 이용 과정에서 자동으로 수집되는 항목</strong>
+              <ul>
+                <li>IP 주소, 쿠키, 서비스 이용 기록, 방문 기록, 불량 이용 기록, 기기정보(OS, 브라우저 정보 등)</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h3>제4조 (개인정보의 수집 방법)</h3>
+          <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
+          <ul>
+            <li>홈페이지(회원가입, 상담게시판, 이벤트 응모)</li>
+            <li>구글 OAuth 인증</li>
+            <li>생성정보 수집 툴을 통한 수집</li>
+          </ul>
+          
+          <h3>제5조 (개인정보의 보유 및 이용 기간)</h3>
+          <p>회사는 법령에 따른 개인정보 보유·이용기간 또는 이용자로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.</p>
+          
+          <ol>
+            <li><strong>회원정보</strong>
+              <ul>
+                <li>보유기간: 회원 탈퇴 시까지</li>
+                <li>단, 다음의 사유에 해당하는 경우에는 해당 사유 종료 시까지
+                  <ul>
+                    <li>관계 법령 위반에 따른 수사·조사 등이 진행 중인 경우: 해당 수사·조사 종료 시까지</li>
+                    <li>서비스 이용에 따른 채권·채무관계 잔존 시: 해당 채권·채무관계 정산 시까지</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>예약 및 이용 기록</strong>
+              <ul>
+                <li>보유기간: 3년</li>
+                <li>보유근거: 전자상거래 등에서의 소비자보호에 관한 법률</li>
+              </ul>
+            </li>
+            <li><strong>노쇼 및 부정이용 기록</strong>
+              <ul>
+                <li>보유기간: 3년</li>
+                <li>보유목적: 서비스 부정이용 방지</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h2>제3장 개인정보의 제공 및 위탁</h2>
+          
+          <h3>제6조 (개인정보의 제3자 제공)</h3>
+          <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
+          <ul>
+            <li>이용자들이 사전에 동의한 경우</li>
+            <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+          </ul>
+          
+          <h3>제7조 (개인정보처리의 위탁)</h3>
+          <p>회사는 원활한 개인정보 업무처리를 위하여 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.</p>
+          
+          <ol>
+            <li><strong>클라우드 서비스</strong>
+              <ul>
+                <li>수탁업체: Supabase Inc.</li>
+                <li>위탁업무: 데이터베이스 운영 및 관리</li>
+                <li>보유 및 이용기간: 회원탈퇴 시 또는 위탁계약 종료 시까지</li>
+              </ul>
+            </li>
+            <li><strong>인증 서비스</strong>
+              <ul>
+                <li>수탁업체: Google LLC</li>
+                <li>위탁업무: OAuth 인증 서비스</li>
+                <li>보유 및 이용기간: 회원탈퇴 시 또는 위탁계약 종료 시까지</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h2>제4장 이용자의 권리와 의무</h2>
+          
+          <h3>제8조 (이용자 및 법정대리인의 권리와 그 행사방법)</h3>
+          <ol>
+            <li>이용자는 회사에 대해 언제든지 개인정보 열람·정정·삭제·처리정지 요구 등의 권리를 행사할 수 있습니다.</li>
+            <li>제1항에 따른 권리 행사는 회사에 대해 개인정보 보호법 시행령 제41조제1항에 따라 서면, 전자우편, 모사전송(FAX) 등을 통하여 하실 수 있으며, 회사는 이에 대해 지체없이 조치하겠습니다.</li>
+            <li>제1항에 따른 권리 행사는 이용자의 법정대리인이나 위임을 받은 자 등 대리인을 통하여 하실 수 있습니다. 이 경우 개인정보 보호법 시행규칙 별지 제11호 서식에 따른 위임장을 제출하셔야 합니다.</li>
+            <li>개인정보 열람 및 처리정지 요구는 개인정보보호법 제35조 제4항, 제37조 제2항에 의하여 이용자의 권리가 제한될 수 있습니다.</li>
+            <li>개인정보의 정정 및 삭제 요구는 다른 법령에서 그 개인정보가 수집 대상으로 명시되어 있는 경우에는 그 삭제를 요구할 수 없습니다.</li>
+          </ol>
+          
+          <h3>제9조 (개인정보의 파기)</h3>
+          <ol>
+            <li>회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.</li>
+            <li>이용자로부터 동의받은 개인정보 보유기간이 경과하거나 처리목적이 달성되었음에도 불구하고 다른 법령에 따라 개인정보를 계속 보존하여야 하는 경우에는, 해당 개인정보를 별도의 데이터베이스(DB)로 옮기거나 보관장소를 달리하여 보존합니다.</li>
+            <li>개인정보 파기의 절차 및 방법은 다음과 같습니다.
+              <ul>
+                <li>파기절차: 이용자가 입력한 정보는 목적 달성 후 별도의 DB에 옮겨져 내부 방침 및 기타 관련 법령에 따라 일정기간 저장된 후 혹은 즉시 파기됩니다.</li>
+                <li>파기방법: 전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용합니다.</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h2>제5장 개인정보의 안전성 확보조치</h2>
+          
+          <h3>제10조 (개인정보의 안전성 확보조치)</h3>
+          <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.</p>
+          
+          <ol>
+            <li><strong>관리적 조치</strong>
+              <ul>
+                <li>내부관리계획 수립·시행</li>
+                <li>정기적 직원 교육</li>
+                <li>개인정보 취급 직원의 최소화 및 교육</li>
+              </ul>
+            </li>
+            <li><strong>기술적 조치</strong>
+              <ul>
+                <li>개인정보처리시스템 등의 접근권한 관리</li>
+                <li>접근통제시스템 설치</li>
+                <li>고유식별정보 등의 암호화</li>
+                <li>보안프로그램 설치</li>
+                <li>접속기록의 보관 및 위변조 방지</li>
+              </ul>
+            </li>
+            <li><strong>물리적 조치</strong>
+              <ul>
+                <li>전산실, 자료보관실 등의 접근통제</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h2>제6장 기타</h2>
+          
+          <h3>제11조 (개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항)</h3>
+          <ol>
+            <li>회사는 이용자에게 개별적인 맞춤서비스를 제공하기 위해 이용정보를 저장하고 수시로 불러오는 '쿠키(cookie)'를 사용합니다.</li>
+            <li>쿠키는 웹사이트를 운영하는데 이용되는 서버(http)가 이용자의 컴퓨터 브라우저에게 보내는 소량의 정보이며 이용자들의 PC 컴퓨터내의 하드디스크에 저장되기도 합니다.</li>
+            <li>쿠키의 사용 목적
+              <ul>
+                <li>이용자의 방문 및 이용형태 분석</li>
+                <li>개인 맞춤 서비스 제공</li>
+                <li>접속 빈도나 방문 시간 등을 분석</li>
+                <li>이용자의 취향과 관심분야 파악</li>
+              </ul>
+            </li>
+            <li>쿠키의 설치·운영 및 거부
+              <ul>
+                <li>이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다.</li>
+                <li>웹브라우저 옵션 설정을 통해 쿠키를 허용/거부할 수 있습니다.</li>
+                <li>쿠키 저장을 거부할 경우 맞춤형 서비스 이용에 어려움이 발생할 수 있습니다.</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h3>제12조 (추가적인 이용·제공 판단기준)</h3>
+          <p>회사는 ｢개인정보 보호법｣ 제15조제3항 및 제17조제4항에 따라 ｢개인정보 보호법 시행령｣ 제14조의2에 따른 사항을 고려하여 정보주체의 동의 없이 개인정보를 추가적으로 이용·제공할 수 있습니다.</p>
+          
+          <p>이에 따라 회사가 정보주체의 동의 없이 추가적인 이용·제공을 하기 위해서 다음과 같은 사항을 고려하였습니다.</p>
+          <ul>
+            <li>개인정보를 추가적으로 이용·제공하려는 목적이 당초 수집 목적과 관련성이 있는지 여부</li>
+            <li>개인정보를 수집한 정황 또는 처리 관행에 비추어 볼 때 추가적인 이용·제공에 대한 예측 가능성이 있는지 여부</li>
+            <li>개인정보의 추가적인 이용·제공이 정보주체의 이익을 부당하게 침해하는지 여부</li>
+            <li>가명처리 또는 암호화 등 안전성 확보에 필요한 조치를 하였는지 여부</li>
+          </ul>
+          
+          <h3>제13조 (개인정보 보호책임자)</h3>
+          <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
+          
+          <p><strong>개인정보 보호책임자</strong></p>
+          <ul>
+            <li>성명: 장세희</li>
+            <li>직책: 대표</li>
+            <li>이메일: ndz5496@gmail.com</li>
+            <li>연락처: 상기 이메일로 문의</li>
+          </ul>
+          
+          <p>이용자는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자로 문의하실 수 있습니다. 회사는 이용자의 문의에 대해 지체없이 답변 및 처리해드릴 것입니다.</p>
+          
+          <h3>제14조 (개인정보 열람청구)</h3>
+          <p>이용자는 ｢개인정보 보호법｣ 제35조에 따른 개인정보의 열람 청구를 아래의 부서에 할 수 있습니다. 회사는 정보주체의 개인정보 열람청구가 신속하게 처리되도록 노력하겠습니다.</p>
+          
+          <p><strong>개인정보 열람청구 접수·처리 부서</strong></p>
+          <ul>
+            <li>부서명: 개인정보보호팀</li>
+            <li>담당자: 장세희</li>
+            <li>이메일: ndz5496@gmail.com</li>
+          </ul>
+          
+          <h3>제15조 (권익침해 구제방법)</h3>
+          <p>이용자는 개인정보침해로 인한 구제를 받기 위하여 개인정보분쟁조정위원회, 한국인터넷진흥원 개인정보침해신고센터 등에 분쟁해결이나 상담 등을 신청할 수 있습니다. 이 밖에 기타 개인정보침해의 신고, 상담에 대하여는 아래의 기관에 문의하시기 바랍니다.</p>
+          
+          <ol>
+            <li>개인정보분쟁조정위원회: (국번없이) 1833-6972 (www.kopico.go.kr)</li>
+            <li>개인정보침해신고센터: (국번없이) 118 (privacy.kisa.or.kr)</li>
+            <li>대검찰청: (국번없이) 1301 (www.spo.go.kr)</li>
+            <li>경찰청: (국번없이) 182 (ecrm.cyber.go.kr)</li>
+          </ol>
+          
+          <p>「개인정보보호법」제35조(개인정보의 열람), 제36조(개인정보의 정정·삭제), 제37조(개인정보의 처리정지 등)의 규정에 의한 요구에 대하여 공공기관의 장이 행한 처분 또는 부작위로 인하여 권리 또는 이익의 침해를 받은 자는 행정심판법이 정하는 바에 따라 행정심판을 청구할 수 있습니다.</p>
+          
+          <p>※ 행정심판에 대해 자세한 사항은 중앙행정심판위원회(www.simpan.go.kr) 홈페이지를 참고하시기 바랍니다.</p>
+          
+          <h3>제16조 (개인정보 처리방침 변경)</h3>
+          <p>이 개인정보처리방침은 2025년 8월 15일부터 적용됩니다.</p>
+          
+          <p>이전의 개인정보처리방침은 아래에서 확인하실 수 있습니다.</p>
+          <ul>
+            <li>2024년 2월 1일 ~ 2025년 8월 14일 적용 (변경 전 고지)</li>
+          </ul>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
