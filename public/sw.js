@@ -66,7 +66,12 @@ self.addEventListener('fetch', (event) => {
 
   // Auth API는 캐싱하지 않음
   if (url.pathname.startsWith('/api/auth/')) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch((error) => {
+        console.warn('Auth API fetch failed:', error);
+        return new Response('Network error', { status: 503 });
+      })
+    );
     return;
   }
 
@@ -150,13 +155,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 기타 요청은 Network First
+  // 기타 요청은 Network First  
   event.respondWith(
     fetch(request)
       .then((response) => {
         return response;
       })
-      .catch(() => {
+      .catch((error) => {
+        console.warn('Fetch failed for:', request.url, error);
         return caches.match(request);
       })
   );
