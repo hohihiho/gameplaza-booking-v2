@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-gray-900">
       {/* 홈으로 버튼 - 상단 고정 */}
       <div className="fixed top-4 left-4 z-50">
         <Link 
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       {/* 내용 */}
       <div className="max-w-4xl mx-auto px-6 py-16">
-        <div className="prose prose-slate max-w-none !text-gray-800 dark:!text-gray-200 prose-headings:!text-gray-900 prose-p:!text-gray-800 prose-li:!text-gray-800 prose-strong:!text-gray-900">
+        <div className="prose prose-slate max-w-none !text-gray-900 prose-headings:!text-gray-900 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-strong:!text-black prose-a:!text-blue-600">
           <h1>개인정보 처리방침</h1>
           
           <p><strong>버전: 1.0</strong><br />
