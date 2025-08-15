@@ -10,7 +10,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   trustHost: true,
   providers: [
     GoogleProvider({
@@ -20,9 +20,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         params: {
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
+          response_type: "code",
+          scope: "openid email profile"
         }
-      }
+      },
+      allowDangerousEmailAccountLinking: true
     })
   ],
   debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
