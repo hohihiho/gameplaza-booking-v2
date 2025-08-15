@@ -14,11 +14,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // 로그인한 사용자의 프로필 체크
   const { isCheckingProfile, isLoading } = useProfileCheck();
   
-  // 회원가입, 로그인, 이용약관, 환영 페이지에서는 사이드바와 하단바 숨기기
-  const hideNavigation = pathname === '/signup' || pathname === '/login' || pathname === '/terms' || pathname === '/welcome';
+  // 회원가입, 로그인, 개인정보처리방침, 이용약관, 환영 페이지에서는 사이드바와 하단바 숨기기
+  const hideNavigation = pathname === '/signup' || pathname === '/login' || pathname === '/privacy' || pathname === '/terms' || pathname === '/welcome';
   
   // 프로필 체크 중이거나 세션 로딩 중일 때 로딩 화면 표시 (특정 페이지 제외)
-  const excludedPaths = ['/signup', '/login', '/terms', '/welcome', '/api/auth'];
+  const excludedPaths = ['/signup', '/login', '/privacy', '/terms', '/welcome', '/api/auth'];
   const shouldShowLoading = (isCheckingProfile || isLoading) && 
                            !excludedPaths.some(path => pathname.startsWith(path));
   

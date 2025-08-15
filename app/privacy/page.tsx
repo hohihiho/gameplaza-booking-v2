@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* 홈으로 버튼 - 상단 고정 */}
-      <div className="fixed top-4 right-4 lg:left-72 lg:right-auto z-50">
+      <div className="fixed top-4 left-4 z-50">
         <Link 
           href="/" 
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
