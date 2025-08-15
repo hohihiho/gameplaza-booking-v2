@@ -3,8 +3,8 @@
 // Google OAuth 클라이언트 검증 스크립트
 const https = require('https');
 
-const CLIENT_ID = '44559014883-248e8a3kb4meo4peee4ga8vr5190566m.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
+const CLIENT_ID = '377801534281-012et7rc69lqbo66ojnfmj8u8brd5ols.apps.googleusercontent.com';
+const CLIENT_SECRET = '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';
 
 console.log('🔍 Google OAuth 클라이언트 검증 시작...\n');
 console.log('Client ID:', CLIENT_ID);
