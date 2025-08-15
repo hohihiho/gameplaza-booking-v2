@@ -9,6 +9,9 @@ import { auth } from '@/auth'
 import { getEnv } from '@/lib/config/env'
 import type { Database } from './types'
 
+// JWT 캐시를 위한 간단한 메모리 저장소
+const jwtCache = new Map<string, { token: string; expires: number }>()
+
 /**
  * 서버용 Supabase 클라이언트 생성
  * NextAuth 세션과 통합되어 있습니다.
@@ -47,21 +50,45 @@ export async function createClient() {
     }
   )
 
-  // NextAuth JWT를 Supabase에 전달
+  // NextAuth JWT를 Supabase에 전달 (캐시 적용)
   if (session?.user?.email) {
-    // NextAuth 토큰에서 Supabase 호환 JWT 생성
-    const jwt = await import('jsonwebtoken')
-    const supabaseJWT = jwt.sign(
-      {
-        aud: 'authenticated',
-        exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
-        sub: session.user.id || session.user.email,
-        email: session.user.email,
-        role: 'authenticated',
-      },
-      process.env.NEXTAUTH_SECRET!,
-      { algorithm: 'HS256' }
-    )
+    const cacheKey = `${session.user.id || session.user.email}-${session.user.email}`
+    const now = Math.floor(Date.now() / 1000)
+    
+    // 캐시된 토큰 확인 (만료 5분 전에 갱신)
+    const cached = jwtCache.get(cacheKey)
+    let supabaseJWT: string
+    
+    if (cached && cached.expires > now + 300) {
+      // 캐시된 토큰 사용
+      supabaseJWT = cached.token
+    } else {
+      // 새 토큰 생성 및 캐시 저장
+      const jwt = await import('jsonwebtoken')
+      const expires = now + (24 * 60 * 60) // 24시간
+      
+      supabaseJWT = jwt.sign(
+        {
+          aud: 'authenticated',
+          exp: expires,
+          sub: session.user.id || session.user.email,
+          email: session.user.email,
+          role: 'authenticated',
+        },
+        process.env.NEXTAUTH_SECRET!,
+        { algorithm: 'HS256' }
+      )
+      
+      // 캐시에 저장
+      jwtCache.set(cacheKey, { token: supabaseJWT, expires })
+      
+      // 메모리 정리: 100개 이상 캐시되면 오래된 것 제거
+      if (jwtCache.size > 100) {
+        const entries = Array.from(jwtCache.entries())
+        entries.sort((a, b) => a[1].expires - b[1].expires)
+        entries.slice(0, 20).forEach(([key]) => jwtCache.delete(key))
+      }
+    }
     
     // Supabase 세션 설정
     await supabase.auth.setSession({
