@@ -592,7 +592,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
-                      {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 22:00'}
+                      {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)} - ${formatTime24Hour(todaySchedule.floor1End)}` : <div className="w-20 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse inline-block" />}
                     </span>
                   </div>
                 </div>
@@ -614,7 +614,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
-                      {new Date().getDay() === 0 || new Date().getDay() === 6 ? '11:00 - 22:00' : '12:00 - 24:00'}
+                      {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)} - ${formatTime24Hour(todaySchedule.floor2End)}` : <div className="w-20 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse inline-block" />}
                     </span>
                   </div>
                 </div>
