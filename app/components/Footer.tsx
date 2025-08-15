@@ -22,14 +22,14 @@ export default function Footer() {
             href="/privacy" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            개인정보처리방침
+            개인정보처리방침 (Privacy Policy)
           </Link>
           <span className="text-gray-400 dark:text-gray-500">|</span>
           <Link 
             href="/terms" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            이용약관
+            이용약관 (Terms of Service)
           </Link>
         </div>
         
