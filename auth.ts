@@ -271,7 +271,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL?.split('://')[1] : undefined,
+        domain: process.env.NODE_ENV === 'production' ? '.gameplaza.kr' : undefined,
       },
     },
     callbackUrl: {
@@ -280,7 +280,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL?.split('://')[1] : undefined,
+        domain: process.env.NODE_ENV === 'production' ? '.gameplaza.kr' : undefined,
       },
     },
     csrfToken: {
