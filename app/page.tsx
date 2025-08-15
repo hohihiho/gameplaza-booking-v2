@@ -3,6 +3,7 @@
 import QuickReservationWidget from '@/app/components/QuickReservationWidget';
 import MainActionButtons from '@/app/components/MainActionButtons';
 import PWAInstallBanner from '@/app/components/PWAInstallBanner';
+import Footer from '@/app/components/Footer';
 
 export default function Home() {
   return (
@@ -15,6 +16,9 @@ export default function Home() {
       
       {/* PWA 설치 배너 */}
       <PWAInstallBanner />
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

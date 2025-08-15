@@ -77,6 +77,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="게임플라자" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* Google Search Console 소유권 확인용 - 필요시 추가 */}
+        {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" /> */}
       </head>
       <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
         {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}
