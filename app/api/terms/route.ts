@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
-// 활성 약관 조회 API
+// 활성 약관 조회 API (content_pages 테이블 사용)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,14 +10,17 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     
     let query = supabase
-      .from('terms')
+      .from('content_pages')
       .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .eq('is_published', true)
+      .order('updated_at', { ascending: false });
     
     // 특정 타입이 요청된 경우 필터링
     if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
-      query = query.eq('type', type);
+      query = query.eq('slug', type);
+    } else {
+      // type이 지정되지 않은 경우 약관 관련 페이지만 조회
+      query = query.in('slug', ['terms_of_service', 'privacy_policy']);
     }
     
     const { data, error } = await query;
@@ -33,13 +36,42 @@ export async function GET(request: NextRequest) {
     // 타입별로 단일 객체 반환 (가장 최신 버전)
     if (type) {
       const terms = data?.[0] || null;
-      return NextResponse.json({ data: terms });
+      // content_pages 구조에 맞게 변환
+      const formattedTerms = terms ? {
+        id: terms.id,
+        type: terms.slug,
+        title: terms.title,
+        content: terms.content,
+        is_active: terms.is_published,
+        created_at: terms.created_at,
+        updated_at: terms.updated_at
+      } : null;
+      return NextResponse.json({ data: formattedTerms });
     }
     
     // 전체 약관 반환 시 타입별로 그룹화
+    const termsOfService = data?.find(t => t.slug === 'terms_of_service');
+    const privacyPolicy = data?.find(t => t.slug === 'privacy_policy');
+    
     const termsMap = {
-      terms_of_service: data?.find(t => t.type === 'terms_of_service') || null,
-      privacy_policy: data?.find(t => t.type === 'privacy_policy') || null
+      terms_of_service: termsOfService ? {
+        id: termsOfService.id,
+        type: termsOfService.slug,
+        title: termsOfService.title,
+        content: termsOfService.content,
+        is_active: termsOfService.is_published,
+        created_at: termsOfService.created_at,
+        updated_at: termsOfService.updated_at
+      } : null,
+      privacy_policy: privacyPolicy ? {
+        id: privacyPolicy.id,
+        type: privacyPolicy.slug,
+        title: privacyPolicy.title,
+        content: privacyPolicy.content,
+        is_active: privacyPolicy.is_published,
+        created_at: privacyPolicy.created_at,
+        updated_at: privacyPolicy.updated_at
+      } : null
     };
     
     return NextResponse.json({ data: termsMap });
