@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     description: '광주 게임플라자 리듬게임 기기 예약 시스템 - Privacy Policy and Terms available',
     type: 'website',
     locale: 'ko_KR',
-    url: 'https://gameplaza-v2.vercel.app',
+    url: 'https://gameplaza.kr',
     siteName: 'Gwangju Game Plaza',
   },
   twitter: {
@@ -107,19 +107,19 @@ export default function RootLayout({
               "@type": "WebSite",
               "name": "광주 게임플라자",
               "alternateName": "Gwangju Game Plaza",
-              "url": "https://gameplaza-v2.vercel.app",
+              "url": "https://www.gameplaza.kr",
               "description": "광주 게임플라자 예약 시스템",
               "inLanguage": "ko-KR",
               "potentialAction": {
                 "@type": "SearchAction",
-                "target": "https://gameplaza-v2.vercel.app/search?q={search_term_string}",
+                "target": "https://www.gameplaza.kr/search?q={search_term_string}",
                 "query-input": "required name=search_term_string"
               },
               "mainEntity": {
                 "@type": "Organization",
                 "name": "광주 게임플라자",
-                "url": "https://gameplaza-v2.vercel.app",
-                "logo": "https://gameplaza-v2.vercel.app/icons/icon-512x512.svg",
+                "url": "https://www.gameplaza.kr",
+                "logo": "https://www.gameplaza.kr/icons/icon-512x512.svg",
                 "contactPoint": {
                   "@type": "ContactPoint",
                   "email": "ndz5496@gmail.com",
@@ -130,12 +130,12 @@ export default function RootLayout({
                 {
                   "@type": "WebPage",
                   "name": "Privacy Policy",
-                  "url": "https://gameplaza-v2.vercel.app/privacy"
+                  "url": "https://www.gameplaza.kr/privacy"
                 },
                 {
                   "@type": "WebPage", 
                   "name": "Terms of Service",
-                  "url": "https://gameplaza-v2.vercel.app/terms"
+                  "url": "https://www.gameplaza.kr/terms"
                 }
               ]
             })

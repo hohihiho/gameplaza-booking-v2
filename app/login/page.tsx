@@ -42,16 +42,12 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
 
-      // NextAuth를 통한 Google 로그인
-      const result = await signIn('google', { 
-        callbackUrl: '/',
-        redirect: false 
+      // NextAuth를 통한 Google 로그인 - redirect: true로 변경
+      await signIn('google', { 
+        callbackUrl: '/'
       });
       
-      if (result?.url) {
-        // 로그인 성공 시 페이지 새로고침과 함께 리다이렉트
-        window.location.href = result.url;
-      }
+      // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
     } catch (error) {
       console.error('Login error:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');

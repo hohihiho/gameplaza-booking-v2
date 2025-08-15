@@ -35,13 +35,13 @@ export default function PrivacyPage() {
             "@type": "WebPage",
             "name": "개인정보처리방침",
             "alternateName": "Privacy Policy",
-            "url": "https://gameplaza-v2.vercel.app/privacy",
+            "url": "https://www.gameplaza.kr/privacy",
             "description": "광주 게임플라자의 개인정보처리방침",
             "inLanguage": "ko-KR",
             "isPartOf": {
               "@type": "WebSite",
               "name": "광주 게임플라자",
-              "url": "https://gameplaza-v2.vercel.app"
+              "url": "https://www.gameplaza.kr"
             },
             "datePublished": "2025-08-15",
             "dateModified": "2025-08-15"

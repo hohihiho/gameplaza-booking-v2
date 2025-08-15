@@ -15,13 +15,13 @@ export default function TermsPage() {
             "@type": "WebPage",
             "name": "서비스 이용약관",
             "alternateName": "Terms of Service",
-            "url": "https://gameplaza-v2.vercel.app/terms",
+            "url": "https://www.gameplaza.kr/terms",
             "description": "광주 게임플라자의 서비스 이용약관",
             "inLanguage": "ko-KR",
             "isPartOf": {
               "@type": "WebSite",
               "name": "광주 게임플라자",
-              "url": "https://gameplaza-v2.vercel.app"
+              "url": "https://www.gameplaza.kr"
             },
             "datePublished": "2025-08-15",
             "dateModified": "2025-08-15"
