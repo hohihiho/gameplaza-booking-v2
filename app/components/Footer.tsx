@@ -17,13 +17,14 @@ export default function Footer() {
         </div>
         
         {/* 법적 링크들 */}
-        <div className="flex flex-wrap justify-center gap-4 mb-6">
+        <div className="flex flex-wrap justify-center items-center gap-2 mb-6">
           <Link 
             href="/privacy" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             개인정보처리방침
           </Link>
+          <span className="text-gray-400 dark:text-gray-500">|</span>
           <Link 
             href="/terms" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
