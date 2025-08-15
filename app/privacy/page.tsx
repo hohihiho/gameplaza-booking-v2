@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       {/* 내용 */}
       <div className="max-w-4xl mx-auto px-6 py-16">
-        <div className="prose prose-slate max-w-none text-gray-900 dark:text-gray-100">
+        <div className="prose prose-slate max-w-none text-black dark:text-white [&>*]:text-black dark:[&>*]:text-white">
           <h1>개인정보 처리방침</h1>
           
           <p><strong>버전: 1.0</strong><br />
