@@ -26,28 +26,6 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <>
-      {/* JSON-LD 구조화 데이터 추가 */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": "개인정보처리방침",
-            "alternateName": "Privacy Policy",
-            "url": "https://www.gameplaza.kr/privacy",
-            "description": "광주 게임플라자의 개인정보처리방침",
-            "inLanguage": "ko-KR",
-            "isPartOf": {
-              "@type": "WebSite",
-              "name": "광주 게임플라자",
-              "url": "https://www.gameplaza.kr"
-            },
-            "datePublished": "2025-08-15",
-            "dateModified": "2025-08-15"
-          })
-        }}
-      />
       
       <div className="min-h-screen bg-white text-gray-900">
       {/* 홈으로 버튼 - 상단 고정 */}

@@ -62,11 +62,11 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icons/favicon-light-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/icons/favicon-light-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
-      { url: '/icons/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/icons/icon-152x152.svg', sizes: '152x152', type: 'image/svg+xml' },
+      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
     ],
   },
 }
@@ -86,64 +86,15 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-152x152.svg" />
+        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="게임플라자" />
         <meta name="mobile-web-app-capable" content="yes" />
         
-        {/* 개인정보처리방침 및 약관 메타 태그 - Google Play Console 봇 인식용 */}
-        <meta name="privacy-policy" content="/privacy" />
-        <meta name="terms-of-service" content="/terms" />
-        <link rel="privacy-policy" href="/privacy" />
-        <link rel="terms-of-service" href="/terms" />
-        
-        {/* JSON-LD 구조화 데이터 */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": "광주 게임플라자",
-              "alternateName": "Gwangju Game Plaza",
-              "url": "https://www.gameplaza.kr",
-              "description": "광주 게임플라자 예약 시스템",
-              "inLanguage": "ko-KR",
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": "https://www.gameplaza.kr/search?q={search_term_string}",
-                "query-input": "required name=search_term_string"
-              },
-              "mainEntity": {
-                "@type": "Organization",
-                "name": "광주 게임플라자",
-                "url": "https://www.gameplaza.kr",
-                "logo": "https://www.gameplaza.kr/icons/icon-512x512.svg",
-                "contactPoint": {
-                  "@type": "ContactPoint",
-                  "email": "ndz5496@gmail.com",
-                  "contactType": "customer service"
-                }
-              },
-              "hasPart": [
-                {
-                  "@type": "WebPage",
-                  "name": "Privacy Policy",
-                  "url": "https://www.gameplaza.kr/privacy"
-                },
-                {
-                  "@type": "WebPage", 
-                  "name": "Terms of Service",
-                  "url": "https://www.gameplaza.kr/terms"
-                }
-              ]
-            })
-          }}
-        />
-        
-        {/* Google Search Console 소유권 확인용 - 필요시 추가 */}
-        {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" /> */}
+        {/* Google Play Console 봇 인식을 위한 필수 메타 태그 */}
+        <meta name="privacy-policy-url" content="https://gameplaza-v2.vercel.app/privacy" />
+        <meta name="terms-of-service-url" content="https://gameplaza-v2.vercel.app/terms" />
       </head>
       <body className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}>
         {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}

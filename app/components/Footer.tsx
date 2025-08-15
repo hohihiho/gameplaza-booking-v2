@@ -16,28 +16,22 @@ export default function Footer() {
           </p>
         </div>
         
-        {/* 법적 링크들 - 더 명확한 마크업으로 봇 인식 개선 */}
-        <nav aria-label="법적 문서 링크" className="mb-6">
-          <div className="flex flex-wrap justify-center items-center gap-2">
-            <Link 
-              href="/privacy" 
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              rel="privacy-policy"
-              title="개인정보처리방침 - Privacy Policy"
-            >
-              개인정보처리방침 (Privacy Policy)
-            </Link>
-            <span className="text-gray-400 dark:text-gray-500">|</span>
-            <Link 
-              href="/terms" 
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              rel="terms-of-service"
-              title="서비스 이용약관 - Terms of Service"
-            >
-              이용약관 (Terms of Service)
-            </Link>
-          </div>
-        </nav>
+        {/* 법적 링크들 */}
+        <div className="flex flex-wrap justify-center items-center gap-3 mb-6">
+          <Link 
+            href="/privacy" 
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            개인정보처리방침
+          </Link>
+          <span className="text-gray-400 dark:text-gray-500">•</span>
+          <Link 
+            href="/terms" 
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            이용약관
+          </Link>
+        </div>
         
         
         {/* 저작권 */}
