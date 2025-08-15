@@ -7,12 +7,38 @@ import { notificationTemplates } from '@/lib/push-notifications';
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:admin@gameplaza.kr',
-    vapidPublicKey,
-    vapidPrivateKey
-  );
+// VAPID 키가 유효한 형식인지 확인하는 함수
+function isValidVapidKey(key: string | undefined): boolean {
+  if (!key) return false;
+  // URL safe Base64 패턴 확인 (=가 없어야 함)
+  const urlSafeBase64Pattern = /^[A-Za-z0-9_-]+$/;
+  return urlSafeBase64Pattern.test(key);
+}
+
+// 빌드 시점이 아닌 런타임에 설정하도록 지연 초기화
+let vapidInitialized = false;
+
+function initializeVapid() {
+  if (vapidInitialized) return;
+  
+  if (vapidPublicKey && vapidPrivateKey && 
+      isValidVapidKey(vapidPublicKey) && 
+      isValidVapidKey(vapidPrivateKey)) {
+    try {
+      webpush.setVapidDetails(
+        'mailto:admin@gameplaza.kr',
+        vapidPublicKey,
+        vapidPrivateKey
+      );
+      vapidInitialized = true;
+      console.log('VAPID 키가 성공적으로 설정되었습니다.');
+    } catch (error) {
+      console.error('VAPID 키 설정 실패:', error);
+      console.log('푸시 알림 기능이 비활성화됩니다.');
+    }
+  } else {
+    console.log('유효한 VAPID 키가 없어 푸시 알림이 비활성화됩니다.');
+  }
 }
 
 // 특정 사용자에게 푸시 알림 전송
@@ -20,9 +46,12 @@ export async function sendPushNotification(
   userId: string,
   notification: ReturnType<typeof notificationTemplates[keyof typeof notificationTemplates]>
 ) {
+  // VAPID 초기화 시도
+  initializeVapid();
+  
   // VAPID 키가 설정되지 않은 경우 건너뛰기
-  if (!vapidPublicKey || !vapidPrivateKey) {
-    console.log('VAPID 키가 설정되지 않아 푸시 알림을 건너뜁니다.');
+  if (!vapidInitialized) {
+    console.log('VAPID가 초기화되지 않아 푸시 알림을 건너뜁니다.');
     return false;
   }
 
