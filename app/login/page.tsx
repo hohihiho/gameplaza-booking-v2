@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingButton } from '@/app/components/mobile';
@@ -13,7 +13,22 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status } = useSession();
+
+  // URL 파라미터로 전달된 에러 메시지 처리
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      if (errorParam === 'AccessDenied') {
+        setError('액세스가 거부되었습니다. Google Cloud Console에서 OAuth 설정을 확인해주세요.');
+      } else if (errorParam === 'Configuration') {
+        setError('OAuth 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
+      } else {
+        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
+    }
+  }, [searchParams]);
 
   // 이미 로그인한 사용자는 홈으로 리다이렉트 (auth-check가 프로필 확인)
   useEffect(() => {
