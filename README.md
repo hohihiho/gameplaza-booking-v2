@@ -293,4 +293,4 @@ const dateTime = createKSTDateTime("2025-07-01", "14:00");  // ✅
 
 <div align="center">
   Made with ❤️ by 광주 게임플라자 팀
-</div>
+</div># 자동배포 테스트 - 20250815-111051
