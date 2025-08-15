@@ -1,8 +1,8 @@
 // Service Worker for 광주 게임플라자 PWA
-const CACHE_NAME = 'gameplaza-v2';
-const STATIC_CACHE = 'gameplaza-static-v2';
-const DYNAMIC_CACHE = 'gameplaza-dynamic-v2';
-const IMAGE_CACHE = 'gameplaza-images-v2';
+const CACHE_NAME = 'gameplaza-v3';
+const STATIC_CACHE = 'gameplaza-static-v3';
+const DYNAMIC_CACHE = 'gameplaza-dynamic-v3';
+const IMAGE_CACHE = 'gameplaza-images-v3';
 
 // 핵심 리소스 (설치 시 캐시)
 const urlsToCache = [
@@ -57,6 +57,12 @@ self.addEventListener('activate', (event) => {
 // 페치 이벤트 - 캐싱 전략
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  
+  // chrome-extension이나 비HTTP 요청은 무시
+  if (!request.url.startsWith('http')) {
+    return;
+  }
+  
   const url = new URL(request.url);
   
   // chrome-extension 스킴 요청은 무시
@@ -69,7 +75,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).catch((error) => {
         console.warn('Auth API fetch failed:', error);
-        return new Response('Network error', { status: 503 });
+        return new Response(JSON.stringify({ error: 'Network error' }), { 
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
       })
     );
     return;
@@ -93,9 +102,19 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
+        .catch((error) => {
+          console.warn('API fetch failed:', request.url, error);
           // 네트워크 실패 시 캐시에서 찾기
-          return caches.match(request);
+          return caches.match(request).then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // 캐시도 없으면 에러 응답 반환
+            return new Response(JSON.stringify({ error: 'Network error' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
         })
     );
     return;
