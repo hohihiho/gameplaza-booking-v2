@@ -1,0 +1,9 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&amp;display=swap');
+    </style>
+  </defs>
+  <rect width="16" height="16" rx="3" fill="#4338CA"/>
+  <text x="8" y="13" font-family="Orbitron" font-size="13" font-weight="900" text-anchor="middle" fill="#FFFFFF">G</text>
+</svg>
