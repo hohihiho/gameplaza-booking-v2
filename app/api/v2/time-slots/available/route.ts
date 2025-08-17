@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { z } from 'zod'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 쿼리 스키마 정의
 const querySchema = z.object({
@@ -12,6 +13,17 @@ const querySchema = z.object({
 // GET /api/v2/time-slots/available - 예약 가능한 시간대 조회
 export async function GET(request: NextRequest) {
   try {
+    // 자동 기기 상태 체크 실행 (시간대 조회 시 필수)
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 시간대 조회는 계속 진행
+    }
+
     // Supabase 클라이언트 생성 (시간대 조회는 공개 정보이므로 인증 불필요)
     const supabase = await createClient()
     

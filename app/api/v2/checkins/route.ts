@@ -7,6 +7,7 @@ import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.s
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
  * 활성 체크인 목록 조회 API
@@ -18,6 +19,9 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
  */
 export async function GET(request: NextRequest) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {
@@ -95,6 +99,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {

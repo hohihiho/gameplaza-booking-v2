@@ -4,12 +4,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import { createAdminClient } from '@/lib/supabase';
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     const { id } = await params;
     
     // 세션 확인

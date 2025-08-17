@@ -7,6 +7,7 @@ import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositori
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
 import { logRequest, logError } from '@/lib/api/logging'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 요청 스키마 정의 (시간을 시간 단위로 변경)
 const createReservationSchema = z.object({
@@ -41,6 +42,17 @@ export async function POST(request: NextRequest) {
         { error: '로그인이 필요합니다' },
         { status: 401 }
       )
+    }
+
+    // 자동 기기 상태 체크 실행 (예약 생성 시 필수)
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 예약 생성은 계속 진행
     }
 
     // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
@@ -191,38 +203,18 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceRoleClient()
     const userId = session.user.id
 
-    // 자동 상태 업데이트 실행 (크론잡 없이 조회 시점에 실행)
+    // 자동 기기 상태 체크 실행 (사용자 액션 기반)
     try {
-      const now = new Date()
-      const kstOffset = 9 * 60 * 60 * 1000
-      const kstTime = new Date(now.getTime() + kstOffset)
-      const currentDate = kstTime.toISOString().split('T')[0]
-      const currentTime = kstTime.toTimeString().slice(0, 5)
-
-      // 1. 체크인된 예약 중 시작 시간이 된 예약을 in_use(대여중)로 변경
-      await supabase
-        .from('reservations')
-        .update({ 
-          status: 'in_use',
-          updated_at: new Date().toISOString()
-        })
-        .eq('status', 'checked_in')
-        .eq('date', currentDate)
-        .lte('start_time', currentTime)
-
-      // 2. 종료 시간이 지난 대여중 예약을 완료 처리
-      await supabase
-        .from('reservations')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('status', 'in_use')
-        .or(`date.lt.${currentDate},and(date.eq.${currentDate},end_time.lt.${currentTime})`)
-
-    } catch (updateError) {
-      console.error('자동 상태 업데이트 실패:', updateError)
-      // 업데이트 실패해도 조회는 계속 진행
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+        if (statusCheck.errors.length > 0) {
+          console.warn('⚠️ Status check had errors:', statusCheck.errors)
+        }
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 조회는 계속 진행
     }
 
     // 쿼리 파라미터 파싱

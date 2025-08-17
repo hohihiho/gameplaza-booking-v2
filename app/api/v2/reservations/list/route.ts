@@ -4,6 +4,7 @@ import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositori
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 import { z } from 'zod'
 
 // 쿼리 파라미터 스키마 정의
@@ -22,6 +23,9 @@ const listReservationsSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     // 1. 인증 확인
     const user = getAuthenticatedUser(request)
     if (!user) {

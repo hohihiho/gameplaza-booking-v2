@@ -6,6 +6,7 @@ import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.s
 // DeviceTypeSupabaseRepository는 아직 구현되지 않음
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
  * 기기 목록 조회 API
@@ -19,11 +20,22 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as any
     const includeInactive = searchParams.get('includeInactive') === 'true'
 
-    // 2. 서비스 초기화
+    // 2. 자동 기기 상태 체크 실행
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 기기 목록 조회는 계속 진행
+    }
+
+    // 3. 서비스 초기화
     const supabase = createServiceRoleClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
 
-    // 3. 유스케이스 실행
+    // 4. 유스케이스 실행
     const useCase = new GetDeviceListUseCase(deviceRepository)
     const result = await useCase.execute({
       status,
@@ -31,7 +43,7 @@ export async function GET(request: NextRequest) {
       includeInactive
     })
 
-    // 4. 응답 반환
+    // 5. 응답 반환
     return NextResponse.json({
       devices: result.devices.map(device => ({
         id: device.id,

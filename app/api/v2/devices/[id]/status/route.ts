@@ -4,6 +4,7 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
  * 기기 상태 변경 API
@@ -14,6 +15,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     // params를 await로 추출
     const { id } = await params
     

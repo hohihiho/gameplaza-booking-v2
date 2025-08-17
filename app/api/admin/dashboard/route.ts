@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 export const GET = withAuth(
   async (_req, { user: _user }) => {
     try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     console.log('Dashboard API: Starting request')
     const supabase = createAdminClient()
     

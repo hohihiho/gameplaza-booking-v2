@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { forceCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,44 +16,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServiceRoleClient();
+    console.log('🔄 Legacy rental start cron job redirecting to new auto-check system...');
+
+    // 새로운 자동 관리 시스템 사용
+    const result = await forceCheckDeviceStatus();
     
-    // 1. 예약 시작 시간이 된 체크인 예약들의 기기 상태 업데이트
-    const { error: updateError } = await supabase
-      .rpc('check_rental_start_times');
-    
-    if (updateError) {
-      console.error('Error updating device status on rental start:', updateError);
-      return NextResponse.json({ 
-        error: 'Failed to update device status',
-        details: updateError.message 
-      }, { status: 500 });
-    }
-    
-    // 2. 업데이트된 예약 수 조회
+    // 기존 응답 형식 유지 (호환성을 위해)
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
     
-    const { data: updatedReservations, error: queryError } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('status', 'checked_in')
-      .eq('date', now.toISOString().split('T')[0])
-      .lte('start_time', currentTime)
-      .not('actual_start_time', 'is', null);
-    
-    if (queryError) {
-      console.error('Error querying updated reservations:', queryError);
-    }
-    
     return NextResponse.json({
       success: true,
-      message: 'Rental start times checked successfully',
+      message: 'Rental start times checked successfully (via new auto-check system)',
       timestamp: new Date().toISOString(),
-      updatedCount: updatedReservations?.length || 0,
-      currentTime: currentTime
+      updatedCount: result.startedCount,
+      currentTime: currentTime,
+      newSystemResult: {
+        executed: result.executed,
+        expiredReservations: result.expiredCount,
+        startedReservations: result.startedCount,
+        errorDetails: result.errors
+      }
     });
     
   } catch (error) {

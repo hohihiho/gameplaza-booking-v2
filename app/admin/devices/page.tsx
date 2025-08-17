@@ -597,6 +597,7 @@ export default function DevicesPage() {
           *,
           devices (
             id,
+            device_number,
             status
           ),
           play_modes (

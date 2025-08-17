@@ -3,11 +3,14 @@ import { createAdminClient } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/services/schedule.service'
 import { withAuth } from '@/lib/auth'
 import { sendReservationApprovedNotification, sendReservationCancelledNotification } from '@/lib/server/push-notifications'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 관리자용 예약 목록 조회
 export const GET = withAuth(
   async (request: NextRequest, { user: _user }) => {
     try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
     const supabaseAdmin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
@@ -78,6 +81,8 @@ export const GET = withAuth(
 export const PATCH = withAuth(
   async (request: NextRequest, { user: _user }) => {
     try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
     const body = await request.json();
     const { id, status, notes } = body;
 

@@ -6,6 +6,7 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
  * 체크인 처리 API
@@ -50,14 +51,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. 서비스 초기화
+    // 4. 자동 기기 상태 체크 실행
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 체크인은 계속 진행
+    }
+
+    // 5. 서비스 초기화
     const supabase = createServiceRoleClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
-    // 5. 유스케이스 실행
+    // 6. 유스케이스 실행
     const useCase = new ProcessCheckInUseCase(
       reservationRepository as any,
       checkInRepository as any,
@@ -71,7 +83,7 @@ export async function POST(request: NextRequest) {
       notes
     })
 
-    // 6. 응답 반환
+    // 7. 응답 반환
     const checkIn = result.checkIn as any
     return NextResponse.json({
       checkIn: {

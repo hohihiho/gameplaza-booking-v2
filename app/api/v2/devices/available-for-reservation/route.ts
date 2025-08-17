@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 쿼리 스키마 정의
 const querySchema = z.object({
@@ -12,6 +13,9 @@ const querySchema = z.object({
 // GET /api/v2/devices/available-for-reservation - 예약 가능한 기기 조회
 export async function GET(request: NextRequest) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     const supabase = await createClient()
     
     // 쿼리 파라미터 파싱 및 검증

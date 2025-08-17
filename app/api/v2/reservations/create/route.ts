@@ -6,6 +6,7 @@ import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.s
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { getCurrentUser } from '@/lib/auth'
 import { z } from 'zod'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 요청 스키마 정의
 const createReservationSchema = z.object({
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
   console.log('Headers:', Object.fromEntries(request.headers.entries()))
   
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     // 0. Supabase 클라이언트 초기화
     const supabase = createServiceRoleClient()
     

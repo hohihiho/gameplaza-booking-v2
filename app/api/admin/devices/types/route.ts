@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         device_categories(id, name),
-        devices(id, number, status)
+        devices(id, device_number, status)
       `)
       .order('created_at', { ascending: true })
 
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       console.log(`Creating ${device_count} devices for type ${deviceType.id}`)
       
       const devicesData = Array.from({ length: device_count }, (_, index) => ({
-        device_type_id: deviceType.id,
-        number: index + 1,
+        device_type_id: deviceType.id,  // 개발 DB는 device_type_id 사용
+        device_number: index + 1,       // 개발 DB는 device_number 사용
         name: `${name} #${index + 1}`,
         status: 'available' as const
       }))

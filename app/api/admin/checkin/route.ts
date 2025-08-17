@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import { createAdminClient } from '@/lib/supabase';
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function GET(request: NextRequest) {
   try {
+    // 🔄 자동 기기 상태 체크 실행
+    await autoCheckDeviceStatus()
+    
     const session = await auth();
     
     if (!session?.user?.email) {
