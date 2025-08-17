@@ -7,14 +7,21 @@ interface DynamicTermsContentProps {
   type: 'terms_of_service' | 'privacy_policy';
 }
 
+interface TermsContent {
+  type: string;
+  version: string;
+  full_content: string;
+  effective_date: string;
+}
+
 interface Terms {
   id: string;
   type: string;
   title: string;
-  content: string;
-  version: string;
-  effective_date: string;
+  content: TermsContent | string;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function DynamicTermsContent({ type }: DynamicTermsContentProps) {
@@ -74,18 +81,39 @@ export default function DynamicTermsContent({ type }: DynamicTermsContentProps) 
     );
   }
 
+  // content 필드에서 실제 내용과 메타데이터 추출
+  const getContentData = () => {
+    if (typeof terms.content === 'string') {
+      // 기존 문자열 방식
+      return {
+        text: terms.content,
+        version: '1.0',
+        effectiveDate: terms.created_at
+      };
+    } else {
+      // JSON 객체 방식
+      return {
+        text: terms.content.full_content || '',
+        version: terms.content.version || '1.0',
+        effectiveDate: terms.content.effective_date || terms.created_at
+      };
+    }
+  };
+
+  const contentData = getContentData();
+
   return (
     <div className="prose prose-gray dark:prose-invert max-w-none">
       <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
         <h1 className="text-2xl font-bold mb-2">{terms.title}</h1>
         <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-          <span>버전: {terms.version}</span>
-          <span>시행일: {new Date(terms.effective_date).toLocaleDateString('ko-KR')}</span>
+          <span>버전: {contentData.version}</span>
+          <span>시행일: {new Date(contentData.effectiveDate).toLocaleDateString('ko-KR')}</span>
         </div>
       </div>
       
       <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
-        {terms.content}
+        {contentData.text}
       </div>
     </div>
   );
