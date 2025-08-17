@@ -8,19 +8,47 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// VAPID 키 설정 (환경변수에서 가져오거나 기본값 사용)
+// VAPID 키 유효성 검증 함수
+function isValidVapidPublicKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  
+  // URL safe Base64는 A-Z, a-z, 0-9, -, _ 만 포함하고 = 패딩 없음
+  const urlSafeBase64Regex = /^[A-Za-z0-9_-]+$/;
+  return urlSafeBase64Regex.test(key) && key.length >= 43; // VAPID 공개 키는 일반적으로 87-88자
+}
+
+function isValidVapidPrivateKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  
+  // URL safe Base64 형식 검증
+  const urlSafeBase64Regex = /^[A-Za-z0-9_-]+$/;
+  return urlSafeBase64Regex.test(key) && key.length >= 43; // VAPID 개인 키는 일반적으로 43자
+}
+
+// VAPID 키 설정 (환경변수에서 가져오기)
 const vapidKeys = {
   publicKey: process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
   privateKey: process.env.VAPID_PRIVATE_KEY || '',
   subject: process.env.VAPID_SUBJECT || 'mailto:admin@gameplaza.co.kr'
 };
 
-if (vapidKeys.publicKey && vapidKeys.privateKey) {
-  webpush.setVapidDetails(
-    vapidKeys.subject,
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-  );
+// VAPID 키가 유효한 경우에만 설정 (빌드 시점 오류 방지)
+let vapidConfigured = false;
+if (vapidKeys.publicKey && 
+    vapidKeys.privateKey && 
+    isValidVapidPublicKey(vapidKeys.publicKey) && 
+    isValidVapidPrivateKey(vapidKeys.privateKey)) {
+  try {
+    webpush.setVapidDetails(
+      vapidKeys.subject,
+      vapidKeys.publicKey,
+      vapidKeys.privateKey
+    );
+    vapidConfigured = true;
+    console.log('VAPID 키 설정 완료');
+  } catch (error) {
+    console.error('VAPID 키 설정 실패:', error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -49,15 +77,19 @@ export async function POST(request: NextRequest) {
     });
 
     // VAPID 키 확인
-    if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
-      console.error('VAPID 키가 설정되지 않았습니다.');
+    if (!vapidConfigured) {
+      console.error('VAPID 키가 설정되지 않았거나 유효하지 않습니다.');
       return NextResponse.json(
         { 
-          error: 'VAPID 키가 설정되지 않았습니다. 환경변수를 확인해주세요.',
-          missingKeys: {
-            publicKey: !vapidKeys.publicKey,
-            privateKey: !vapidKeys.privateKey
-          }
+          error: 'VAPID 키가 설정되지 않았거나 유효하지 않습니다. 환경변수를 확인해주세요.',
+          details: {
+            publicKeyExists: !!vapidKeys.publicKey,
+            privateKeyExists: !!vapidKeys.privateKey,
+            publicKeyValid: vapidKeys.publicKey ? isValidVapidPublicKey(vapidKeys.publicKey) : false,
+            privateKeyValid: vapidKeys.privateKey ? isValidVapidPrivateKey(vapidKeys.privateKey) : false,
+            configured: vapidConfigured
+          },
+          help: 'VAPID 키는 URL safe Base64 형식이어야 하며 "=" 패딩을 포함하지 않아야 합니다.'
         },
         { status: 500 }
       );
