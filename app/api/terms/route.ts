@@ -7,6 +7,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     
+    // 캐시 헤더 설정 - 30분 캐시, stale-while-revalidate 사용
+    const headers = new Headers({
+      'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600',
+      'Content-Type': 'application/json',
+    });
+    
     const supabase = createClient();
     
     let query = supabase
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
         created_at: terms.created_at,
         updated_at: terms.updated_at
       } : null;
-      return NextResponse.json({ data: formattedTerms });
+      return NextResponse.json({ data: formattedTerms }, { headers });
     }
     
     // 전체 약관 반환 시 타입별로 그룹화
@@ -74,7 +80,7 @@ export async function GET(request: NextRequest) {
       } : null
     };
     
-    return NextResponse.json({ data: termsMap });
+    return NextResponse.json({ data: termsMap }, { headers });
     
   } catch (error) {
     console.error('약관 API 오류:', error);

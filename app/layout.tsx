@@ -4,6 +4,7 @@ import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
+import { TermsPreloader } from '@/components/providers/TermsPreloader'
 import ServiceWorkerRegister from './components/service-worker-register'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 // import DynamicFavicon from './components/DynamicFavicon'
@@ -126,9 +127,11 @@ export default function RootLayout({
         
         <Providers>
           <ThemeProvider>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
+            <TermsPreloader>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </TermsPreloader>
             <ServiceWorkerRegister />
             <PWAInstallPrompt />
           </ThemeProvider>

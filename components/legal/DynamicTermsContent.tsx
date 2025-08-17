@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTerms } from '@/hooks/useTerms';
 
 interface DynamicTermsContentProps {
   type: 'terms_of_service' | 'privacy_policy';
@@ -24,33 +25,8 @@ interface Terms {
   updated_at: string;
 }
 
-export default function DynamicTermsContent({ type }: DynamicTermsContentProps) {
-  const [terms, setTerms] = useState<Terms | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchTerms = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/terms?type=${type}`);
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || '약관을 불러올 수 없습니다.');
-        }
-
-        setTerms(result.data);
-      } catch (err) {
-        console.error('약관 조회 오류:', err);
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTerms();
-  }, [type]);
+function DynamicTermsContent({ type }: DynamicTermsContentProps) {
+  const { data: terms, loading, error } = useTerms(type);
 
   if (loading) {
     return (
@@ -118,3 +94,6 @@ export default function DynamicTermsContent({ type }: DynamicTermsContentProps) 
     </div>
   );
 }
+
+// React.memo로 컴포넌트 메모이제이션
+export default memo(DynamicTermsContent);
