@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, User, Hash,
   ChevronLeft, Loader2, AlertCircle, CheckCircle2, XCircle,
-  X, Copy, Check
+  X, Copy, Check, CreditCard, QrCode, Smartphone
 } from 'lucide-react';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 

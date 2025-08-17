@@ -31,7 +31,9 @@ import {
   Info,
   Calendar,
   AlertTriangle,
-  UserX
+  UserX,
+  QrCode,
+  Smartphone
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimeKST } from '@/lib/utils/kst-date';
@@ -100,7 +102,7 @@ export default function CheckInPage() {
   const [adjustedEndTime, setAdjustedEndTime] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [selectedReason, setSelectedReason] = useState('');
-  const [bankAccount, setBankAccount] = useState<{ bank: string; account: string; holder: string } | null>(null);
+  const [bankAccount, setBankAccount] = useState<{ bank: string; account: string; holder: string; qrCodeUrl?: string } | null>(null);
   const [showAmountAdjustModal, setShowAmountAdjustModal] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [amountAdjustReason, setAmountAdjustReason] = useState('');
@@ -1415,7 +1417,7 @@ export default function CheckInPage() {
                       className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
                       <Eye className="w-4 h-4" />
-                      계좌번호 확인하기
+                      계좌정보 및 QR코드 보기
                     </button>
                   </div>
                 )}
@@ -1516,6 +1518,34 @@ export default function CheckInPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">예금주</p>
                     <p className="font-semibold text-lg dark:text-white">{bankAccount.holder}</p>
                   </div>
+                  
+                  {/* QR 코드 섹션 */}
+                  {bankAccount.qrCodeUrl && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <QrCode className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">QR코드로 간편결제</p>
+                      </div>
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                          <img
+                            src={bankAccount.qrCodeUrl}
+                            alt="계좌이체 QR코드"
+                            className="w-32 h-32 object-contain"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 mb-1">
+                            <Smartphone className="w-4 h-4" />
+                            <span className="text-sm font-medium">스마트폰으로 스캔</span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            고객에게 QR코드를 보여주세요
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">

@@ -2,7 +2,7 @@
 // 비전공자 설명: 시스템 전반의 설정을 관리하는 페이지입니다
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Banknote,
@@ -84,55 +84,111 @@ export default function SettingsPage() {
   const [qrPreview, setQrPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 설정 불러오기
-  useEffect(() => {
-    loadSettings();
+  // 설정 캐시
+  const settingsCache = useMemo(() => {
+    return {
+      bankAccount: null as BankAccount | null,
+      isSuperAdmin: null as boolean | null,
+      timestamp: 0
+    };
   }, []);
 
-  const loadSettings = async () => {
-    try {
-      // 슈퍼관리자 권한 확인
-      const adminResponse = await fetch('/api/admin/check-super');
-      if (adminResponse.ok) {
-        const adminData = await adminResponse.json();
-        setIsSuperAdmin(adminData.isSuperAdmin);
-      }
+  // 설정 불러오기 - 캐시를 사용하여 불필요한 API 호출 방지
+  useEffect(() => {
+    let isMounted = true;
+    const CACHE_DURATION = 2 * 60 * 1000; // 2분 캐시
+    
+    const loadSettings = async () => {
+      try {
+        const now = Date.now();
+        
+        // 캐시가 유효한 경우 API 호출하지 않음
+        if (settingsCache.timestamp && (now - settingsCache.timestamp < CACHE_DURATION)) {
+          console.log('[Settings] Using cached data');
+          if (settingsCache.isSuperAdmin !== null) {
+            setIsSuperAdmin(settingsCache.isSuperAdmin);
+          }
+          if (settingsCache.bankAccount) {
+            setSettings(prev => ({
+              ...prev,
+              bankAccount: settingsCache.bankAccount!
+            }));
+            setTempSettings(prev => ({
+              ...prev,
+              bankAccount: settingsCache.bankAccount!
+            }));
+          }
+          return;
+        }
 
-      // 관리자 개인 계좌 정보 불러오기
-      const bankResponse = await fetch('/api/admin/settings/bank-account');
-      if (bankResponse.ok) {
-        const bankData = await bankResponse.json();
-        if (bankData.bankAccount) {
-          setSettings(prev => ({
-            ...prev,
-            bankAccount: {
+        console.log('[Settings] Fetching fresh data');
+        
+        // 병렬로 API 호출하되 상태 업데이트는 한 번에 처리
+        const [adminResponse, bankResponse] = await Promise.all([
+          fetch('/api/admin/check-super'),
+          fetch('/api/admin/settings/bank-account')
+        ]);
+
+        if (!isMounted) return;
+
+        let newSettings = { ...settings };
+        let adminData = null;
+        let bankData = null;
+
+        // 슈퍼관리자 권한 확인
+        if (adminResponse.ok) {
+          adminData = await adminResponse.json();
+          setIsSuperAdmin(adminData.isSuperAdmin);
+          settingsCache.isSuperAdmin = adminData.isSuperAdmin;
+        }
+
+        // 관리자 개인 계좌 정보 불러오기
+        if (bankResponse.ok) {
+          bankData = await bankResponse.json();
+          if (bankData.bankAccount) {
+            const bankAccount = {
               bank: bankData.bankAccount.bank || '',
               accountNumber: bankData.bankAccount.account || '',
               accountHolder: bankData.bankAccount.holder || '',
               qrCodeUrl: bankData.bankAccount.qrCodeUrl || ''
-            }
-          }));
+            };
+            newSettings.bankAccount = bankAccount;
+            settingsCache.bankAccount = bankAccount;
+          }
         }
+
+        // 푸시 알림 템플릿 불러오기 (로컬 스토리지에서)
+        const savedTemplates = localStorage.getItem('pushNotificationTemplates');
+        if (savedTemplates) {
+          try {
+            const parsedTemplates = JSON.parse(savedTemplates);
+            newSettings.pushNotificationTemplates = parsedTemplates;
+          } catch (e) {
+            console.warn('Failed to parse saved templates:', e);
+          }
+        }
+
+        if (!isMounted) return;
+
+        // 캐시 타임스탬프 업데이트
+        settingsCache.timestamp = now;
+
+        // 모든 설정을 한 번에 업데이트
+        setSettings(newSettings);
+        setTempSettings(newSettings);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
       }
+    };
 
-      // 푸시 알림 템플릿 불러오기 (로컬 스토리지에서)
-      const savedTemplates = localStorage.getItem('pushNotificationTemplates');
-      if (savedTemplates) {
-        const parsedTemplates = JSON.parse(savedTemplates);
-        setSettings(prev => ({
-          ...prev,
-          pushNotificationTemplates: parsedTemplates
-        }));
-      }
+    loadSettings();
 
-      // 기타 설정 불러오기 (WiFi, 운영시간 등)
-      // TODO: API 구현 후 추가
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, []); // 빈 의존성 배열로 한 번만 실행
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsLoading(true);
     
     try {
@@ -159,7 +215,7 @@ export default function SettingsPage() {
       
       // 다른 설정 저장 로직 추가
       
-      setSettings(tempSettings);
+      setSettings({ ...tempSettings });
       setEditingSection(null);
       alert('설정이 저장되었습니다.');
     } catch (error) {
@@ -168,20 +224,22 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [editingSection, tempSettings]);
 
-  const handleCancel = () => {
-    setTempSettings(settings);
+  const handleCancel = useCallback(() => {
+    // tempSettings를 현재 settings로 완전히 리셋
+    setTempSettings({ ...settings });
+    setQrPreview(null);
     setEditingSection(null);
-  };
+  }, [settings]);
 
-  const copyToClipboard = (text: string, label: string) => {
+  const copyToClipboard = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text);
     alert(`${label}이(가) 클립보드에 복사되었습니다.`);
-  };
+  }, []);
 
   // 푸시 알림 테스트 함수
-  const testPushNotification = async (templateKey: string, templateText: string) => {
+  const testPushNotification = useCallback(async (templateKey: string, templateText: string) => {
     try {
       // Service Worker 등록 확인
       if (!('serviceWorker' in navigator)) {
@@ -243,10 +301,10 @@ export default function SettingsPage() {
       console.error('Push notification test failed:', error);
       alert('푸시 알림 테스트에 실패했습니다. 콘솔을 확인해주세요.');
     }
-  };
+  }, []);
 
   // QR코드 업로드 함수
-  const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQrUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -282,16 +340,16 @@ export default function SettingsPage() {
     } finally {
       setIsUploading(false);
     }
-  };
+  }, []);
 
   // QR코드 제거 함수
-  const handleQrRemove = () => {
+  const handleQrRemove = useCallback(() => {
     setQrPreview(null);
     setTempSettings(prev => ({
       ...prev,
       bankAccount: { ...prev.bankAccount, qrCodeUrl: '' }
     }));
-  };
+  }, []);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -339,7 +397,10 @@ export default function SettingsPage() {
               </div>
             ) : (
               <button
-                onClick={() => setEditingSection('bankAccount')}
+                onClick={() => {
+                  setTempSettings({ ...settings });
+                  setEditingSection('bankAccount');
+                }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -528,7 +589,10 @@ export default function SettingsPage() {
               </div>
             ) : (
               <button
-                onClick={() => setEditingSection('pushTemplates')}
+                onClick={() => {
+                  setTempSettings({ ...settings });
+                  setEditingSection('pushTemplates');
+                }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />

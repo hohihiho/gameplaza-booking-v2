@@ -64,12 +64,16 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AdminDashboard] useEffect 실행됨 - fetchDashboardData 호출');
     fetchDashboardData();
     
-    // 30초마다 데이터 새로고침
-    const interval = setInterval(fetchDashboardData, 30000);
+    // 자동 새로고침 제거 - 사용자가 수동으로 새로고침하면 데이터 갱신됨
+    // const interval = setInterval(fetchDashboardData, 30000);
     
-    return () => clearInterval(interval);
+    return () => {
+      console.log('[AdminDashboard] useEffect cleanup 실행됨');
+      // clearInterval(interval);
+    };
   }, []);
 
   const fetchDashboardData = async () => {

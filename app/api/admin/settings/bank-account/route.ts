@@ -31,28 +31,15 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // 현재 로그인한 관리자의 개인 계좌 확인
-    if (adminData.bank_account) {
-      return NextResponse.json({
-        bankAccount: adminData.bank_account,
-        isPersonalAccount: true
-      });
-    }
-
-    // 개인 계좌가 없으면 시스템 기본 계좌 반환
-    
-  const { data: defaultPaymentInfo } = await supabaseAdmin.from('settings')
-      .select('value')
-      .eq('key', 'payment_info')
-      .single();
-
+    // 슈퍼관리자의 개인 계좌 반환
     return NextResponse.json({
-      bankAccount: defaultPaymentInfo?.value || {
+      bankAccount: adminData.bank_account || {
         bank: '',
         account: '',
-        holder: ''
+        holder: '',
+        qrCodeUrl: ''
       },
-      isPersonalAccount: false
+      isPersonalAccount: true
     });
 
   } catch (error) {
@@ -73,7 +60,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { bank, account, holder, isPersonalAccount } = body;
+    const { bank, account, holder, qrCodeUrl, isPersonalAccount } = body;
 
     // 필수 필드 검증
     if (!bank || !account || !holder) {
@@ -105,52 +92,34 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    if (isPersonalAccount) {
-      // 관리자 개인 계좌로 저장
-      
-  const { error: updateError } = await supabaseAdmin.from('admins')
-        .update({
-          bank_account: {
-            bank,
-            account,
-            holder
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userData.id);
+    // 슈퍼관리자 권한 확인
+    const { data: superAdminCheck } = await supabaseAdmin.from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
 
-      if (updateError) {
-        throw updateError;
-      }
-    } else {
-      // 시스템 기본 계좌로 저장 (super admin만 가능)
-      
-  const { data: superAdminCheck } = await supabaseAdmin.from('admins')
-        .select('is_super_admin')
-        .eq('user_id', userData.id)
-        .single();
+    if (!superAdminCheck?.is_super_admin) {
+      return NextResponse.json(
+        { error: 'Only super admin can update bank account' },
+        { status: 403 }
+      );
+    }
 
-      if (!superAdminCheck?.is_super_admin) {
-        return NextResponse.json(
-          { error: 'Only super admin can update system default account' },
-          { status: 403 }
-        );
-      }
+    // 슈퍼관리자 개인 계좌로 저장
+    const { error: updateError } = await supabaseAdmin.from('admins')
+      .update({
+        bank_account: {
+          bank,
+          account,
+          holder,
+          qrCodeUrl
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userData.id);
 
-  const { error: settingsError } = await supabaseAdmin.from('settings')
-        .update({
-          value: {
-            bank,
-            account,
-            holder
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', 'payment_info');
-
-      if (settingsError) {
-        throw settingsError;
-      }
+    if (updateError) {
+      throw updateError;
     }
 
     return NextResponse.json({ success: true });
