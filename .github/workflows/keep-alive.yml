@@ -2,8 +2,8 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # 매일 한국시간 오전 9시에 실행 (UTC 0시)
-    - cron: '0 0 * * *'
+    # 주 1회로 변경 (월요일 오전 9시)
+    - cron: '0 0 * * 1'
   
   # 수동 실행 가능하도록 설정
   workflow_dispatch:

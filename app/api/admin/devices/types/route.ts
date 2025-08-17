@@ -13,10 +13,9 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         device_categories(id, name),
-        play_modes(id, name, price, display_order),
-        devices(id, device_number, status)
+        devices(id, number, status)
       `)
-      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (categoryId) {
       query = query.eq('category_id', categoryId)
@@ -36,10 +35,8 @@ export async function GET(request: NextRequest) {
       category_id: type.category_id,
       category_name: type.device_categories?.name || '',
       description: type.description,
-      display_order: type.display_order,
-      is_rentable: type.is_rentable,
-      play_modes: type.play_modes?.sort((a: any, b: any) => a.display_order - b.display_order) || [],
-      rental_settings: type.rental_settings || {},  // JSONB 컬럼에서 직접 가져옴
+      created_at: type.created_at,
+      updated_at: type.updated_at,
       device_count: type.devices?.length || 0,
       active_count: type.devices?.filter((d: any) => d.status === 'available').length || 0
     }))
@@ -59,33 +56,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { category_id, name, description, is_rentable, play_modes, device_count } = body
+    const { category_id, name, description, device_count } = body
     
     console.log('Creating device type with:', { category_id, name, device_count })
 
     // 기기 타입 생성
     const supabaseAdmin = createAdminClient();
-  const { data: deviceType, error: typeError } = await supabaseAdmin.from('device_types')
-      .insert({ category_id, name, description, is_rentable })
+    const { data: deviceType, error: typeError } = await supabaseAdmin.from('device_types')
+      .insert({ category_id, name, description })
       .select()
       .single()
 
     if (typeError) throw typeError
-
-    // 플레이 모드 생성
-    if (play_modes && play_modes.length > 0) {
-      const modesData = play_modes.map((mode: any, index: number) => ({
-        device_type_id: deviceType.id,
-        name: mode.name,
-        price: mode.price,
-        display_order: index + 1
-      }))
-
-  const { error: modesError } = await supabaseAdmin.from('play_modes')
-        .insert(modesData)
-
-      if (modesError) throw modesError
-    }
 
     // 개별 기기 생성 (device_count만큼)
     if (device_count && device_count > 0) {
@@ -93,11 +75,12 @@ export async function POST(request: NextRequest) {
       
       const devicesData = Array.from({ length: device_count }, (_, index) => ({
         device_type_id: deviceType.id,
-        device_number: index + 1,
+        number: index + 1,
+        name: `${name} #${index + 1}`,
         status: 'available' as const
       }))
 
-  const { data: createdDevices, error: devicesError } = await supabaseAdmin.from('devices')
+      const { data: createdDevices, error: devicesError } = await supabaseAdmin.from('devices')
         .insert(devicesData)
         .select()
 
@@ -107,20 +90,6 @@ export async function POST(request: NextRequest) {
       }
       
       console.log(`Created ${createdDevices?.length || 0} devices`)
-    }
-
-    // 대여 가능한 경우 rental_settings 생성
-    if (is_rentable) {
-      
-  const { error: rentalError } = await supabaseAdmin.from('rental_settings')
-        .insert({
-          device_type_id: deviceType.id,
-          base_price: 40000, // 기본값
-          credit_types: ['freeplay'],
-          max_players: 1
-        })
-
-      if (rentalError) throw rentalError
     }
 
     return NextResponse.json(deviceType)

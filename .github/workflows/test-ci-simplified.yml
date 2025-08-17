@@ -1,0 +1,38 @@
+name: 🧪 Essential Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # 핵심 테스트만 실행
+  essential-tests:
+    name: 🔬 Essential Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 🔧 Install dependencies
+        run: npm ci
+        
+      - name: 🔧 TypeScript type check
+        run: npm run type-check
+        
+      - name: 🧹 ESLint check
+        run: npm run lint
+        
+      - name: 🏗️ Build check
+        run: npm run build

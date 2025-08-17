@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase';
 import { ToastContainer, toast } from '@/app/components/Toast';
 import { 
@@ -1528,10 +1529,12 @@ export default function CheckInPage() {
                       </div>
                       <div className="flex flex-col items-center gap-3">
                         <div className="p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                          <img
+                          <Image
                             src={bankAccount.qrCodeUrl}
                             alt="계좌이체 QR코드"
-                            className="w-32 h-32 object-contain"
+                            width={128}
+                            height={128}
+                            className="object-contain"
                           />
                         </div>
                         <div className="text-center">

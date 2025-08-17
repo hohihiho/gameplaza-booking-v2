@@ -670,35 +670,57 @@ export default function DevicesPage() {
     }
   }, [selectedDeviceType]);
 
-  // Realtime 구독으로 기기 상태 변경 감지
+  // Realtime 구독으로 기기 상태 변경 감지 (최적화된 버전)
   useEffect(() => {
-    const channel = supabase
-      .channel('devices-status')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'devices',
-          filter: selectedDeviceType ? `device_type_id=eq.${selectedDeviceType.id}` : undefined
-        },
-        (payload) => {
-          console.log('Device status updated:', payload);
-          if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
-            setDevices(prev => prev.map(device => 
-              device.id === payload.new.id 
-                ? { ...device, ...payload.new as Device }
-                : device
-            ));
+    // 기기 뷰에서만 Realtime 활성화
+    if (view !== 'devices' || !selectedDeviceType) {
+      return;
+    }
+
+    let retryCount = 0;
+    const maxRetries = 3;
+    let timeoutId: NodeJS.Timeout;
+
+    const createChannel = () => {
+      const channel = supabase
+        .channel(`devices-status-${selectedDeviceType.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'devices',
+            filter: `device_type_id=eq.${selectedDeviceType.id}`
+          },
+          (payload) => {
+            if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+              setDevices(prev => prev.map(device => 
+                device.id === payload.new.id 
+                  ? { ...device, ...payload.new as Device }
+                  : device
+              ));
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status, err) => {
+          if (status === 'CLOSED' && retryCount < maxRetries) {
+            retryCount++;
+            timeoutId = setTimeout(() => {
+              createChannel();
+            }, Math.pow(2, retryCount) * 1000); // 지수 백오프: 2초, 4초, 8초
+          }
+        });
+
+      return channel;
+    };
+
+    const channel = createChannel();
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [selectedDeviceType, supabase]);
+  }, [view, selectedDeviceType, supabase]);
 
   // 카테고리 드래그 앤 드롭 핸들러
   const handleCategoryDragStart = (e: React.DragEvent, index: number) => {

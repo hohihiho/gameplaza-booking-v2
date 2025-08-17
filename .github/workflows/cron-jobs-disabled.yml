@@ -1,0 +1,19 @@
+# DISABLED - 이 파일은 비활성화되었습니다
+# 원래 파일: cron-jobs.yml
+# 사유: 10분마다 실행되어 과도한 알림 발생
+# 필요시 수동으로 다시 활성화하세요
+
+# name: Scheduled Jobs
+
+# on:
+#   schedule:
+#     # 1시간마다로 변경 고려 (현재는 비활성화)
+#     - cron: '0 * * * *'
+#   workflow_dispatch:
+
+# jobs:
+#   update-device-status:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Placeholder
+#       run: echo "Disabled"

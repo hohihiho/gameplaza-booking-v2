@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { 
   Banknote,
   Save,
@@ -473,10 +474,12 @@ export default function SettingsPage() {
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
                   {qrPreview || tempSettings.bankAccount.qrCodeUrl ? (
                     <div className="flex flex-col items-center gap-3">
-                      <img
+                      <Image
                         src={qrPreview || tempSettings.bankAccount.qrCodeUrl}
                         alt="QR코드 미리보기"
-                        className="w-24 h-24 object-contain border border-gray-200 dark:border-gray-600 rounded-lg"
+                        width={96}
+                        height={96}
+                        className="object-contain border border-gray-200 dark:border-gray-600 rounded-lg"
                       />
                       <div className="flex gap-2">
                         <label className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors flex items-center gap-2">

@@ -2,8 +2,8 @@ name: Sync Korean Holidays
 
 on:
   schedule:
-    # 매일 새벽 4시 (KST) = UTC 19:00
-    - cron: '0 19 * * *'
+    # 월 1회로 변경 (매월 1일 새벽 4시)
+    - cron: '0 19 1 * *'
   workflow_dispatch: # 수동 실행 가능
 
 jobs:
