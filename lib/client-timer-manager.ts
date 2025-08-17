@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 // 예약 정보 인터페이스
 interface ReservationInfo {
@@ -262,8 +262,7 @@ export function useCountdown(targetTime: Date) {
   return timeLeft;
 }
 
-// React import 추가 (useState가 필요한 경우)
-import { useState } from 'react';
+// React hooks는 파일 상단에서 이미 import됨
 
 /**
  * 유틸리티 함수들
