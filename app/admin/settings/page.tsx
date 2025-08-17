@@ -131,7 +131,7 @@ export default function SettingsPage() {
 
         if (!isMounted) return;
 
-        let newSettings = { ...settings };
+        const newSettings = { ...settings };
         let adminData = null;
         let bankData = null;
 
