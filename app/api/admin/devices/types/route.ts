@@ -15,17 +15,26 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get('categoryId')
+    const noCache = searchParams.get('no-cache') === 'true'
 
     // 메모리 캐시 키
     const cacheKey = categoryId ? `device-types-${categoryId}` : 'device-types-all';
     const now = Date.now();
     
-    // 5분 캐시 확인
-    if (cacheMap[cacheKey] && (now - cacheMap[cacheKey].timestamp) < CACHE_DURATION) {
+    // 캐시 무효화 옵션 지원
+    if (noCache) {
+      delete cacheMap[cacheKey];
+    }
+    
+    // 5분 캐시 확인 (noCache가 false일 때만)
+    if (!noCache && cacheMap[cacheKey] && (now - cacheMap[cacheKey].timestamp) < CACHE_DURATION) {
       return NextResponse.json(cacheMap[cacheKey].data);
     }
 
     const supabaseAdmin = createAdminClient();
+    
+    console.log('🔍 [Device Types API] 요청 시작:', { categoryId, noCache });
+    
     let query = supabaseAdmin
       .from('device_types')
       .select(`
@@ -39,12 +48,20 @@ export async function GET(request: NextRequest) {
       query = query.eq('category_id', categoryId)
     }
 
+    console.log('🔍 [Device Types API] Supabase 쿼리 실행 중...');
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching device types:', error)
+      console.error('❌ [Device Types API] Supabase 에러:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error
     }
+    
+    console.log('✅ [Device Types API] 데이터 조회 완료:', data?.length, '건');
 
     // 데이터 포맷팅
     const formattedData = data?.map(type => ({
@@ -53,6 +70,15 @@ export async function GET(request: NextRequest) {
       category_id: type.category_id,
       category_name: type.device_categories?.name || '',
       description: type.description,
+      model_name: type.model_name,
+      version_name: type.version_name,
+      display_order: type.display_order,
+      is_rentable: type.is_rentable,
+      play_modes: type.play_modes ? 
+        (Array.isArray(type.play_modes) ? type.play_modes : []) 
+        .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)) 
+        : [],
+      rental_settings: type.rental_settings || {},
       created_at: type.created_at,
       updated_at: type.updated_at,
       device_count: type.devices?.length || 0,
