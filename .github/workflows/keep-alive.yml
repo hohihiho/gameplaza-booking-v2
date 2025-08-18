@@ -1,26 +1,31 @@
-name: Keep Supabase Active
+# DISABLED - GitHub Actions 결제 문제로 비활성화
+# 원래 파일: keep-alive.yml
+# 대안: 사용자 활동이 충분히 많아서 Supabase 연결이 자동으로 유지됨
+# 또는 수동으로 주기적으로 관리자 페이지 접속하여 연결 유지
 
-on:
-  schedule:
-    # 주 1회로 변경 (월요일 오전 9시)
-    - cron: '0 0 * * 1'
-  
-  # 수동 실행 가능하도록 설정
-  workflow_dispatch:
+# name: Keep Supabase Active
 
-jobs:
-  ping-database:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Ping Supabase Database
-      run: |
-        # Supabase REST API를 통해 간단한 쿼리 실행
-        curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/devices?select=id&limit=1" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-          --fail \
-          --show-error \
-          --silent
-        
-        echo "✅ Supabase database pinged successfully"
+# on:
+#   schedule:
+#     # 주 1회로 변경 (월요일 오전 9시)
+#     - cron: '0 0 * * 1'
+#   
+#   # 수동 실행 가능하도록 설정
+#   workflow_dispatch:
+
+# jobs:
+#   ping-database:
+#     runs-on: ubuntu-latest
+#     
+#     steps:
+#     - name: Ping Supabase Database
+#       run: |
+#         # Supabase REST API를 통해 간단한 쿼리 실행
+#         curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/devices?select=id&limit=1" \
+#           -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+#           -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+#           --fail \
+#           --show-error \
+#           --silent
+#         
+#         echo "✅ Supabase database pinged successfully"

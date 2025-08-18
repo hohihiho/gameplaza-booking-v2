@@ -17,7 +17,9 @@ import {
   X,
   Bell,
   Smartphone,
-  Send
+  Send,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
@@ -976,6 +978,92 @@ export default function SettingsPage() {
                     >
                       긴급 공지
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 시스템 관리 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <Database className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold dark:text-white">시스템 관리</h2>
+          </div>
+
+          <div className="space-y-4">
+            {/* Database Management */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-medium dark:text-white">데이터베이스 관리</h3>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Supabase 무료 요금제 연결 유지를 위한 수동 관리 도구입니다.
+                GitHub Actions 결제 문제로 자동 실행이 중단된 경우 사용하세요.
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      const response = await fetch('/api/admin/supabase-keepalive', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                      });
+
+                      const data = await response.json();
+
+                      if (response.ok) {
+                        alert(`✅ Supabase 연결 유지 성공!\n\n${data.message}\n시간: ${new Date(data.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}\n결과: ${data.queryResult}`);
+                      } else {
+                        alert(`❌ Supabase 연결 실패!\n\n에러: ${data.error}\n상세: ${data.details || '없음'}`);
+                      }
+                    } catch (error) {
+                      alert(`❌ 요청 실패!\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      연결 확인 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Supabase 연결 유지
+                    </>
+                  )}
+                </button>
+                
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  마지막 실행: GitHub Actions 비활성화됨
+                </div>
+              </div>
+
+              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <div className="text-xs text-amber-700 dark:text-amber-300">
+                    <strong>주의사항:</strong> 정기적으로 (주 1회 이상) 실행해야 Supabase 무료 요금제 연결이 유지됩니다.
+                    사용자 활동이 충분히 많으면 자동으로 유지되지만, 활동이 적은 시간대에는 수동 실행이 필요할 수 있습니다.
                   </div>
                 </div>
               </div>
