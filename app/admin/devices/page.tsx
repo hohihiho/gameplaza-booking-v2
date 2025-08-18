@@ -2,7 +2,7 @@
 // 비전공자 설명: 관리자가 카테고리, 기종, 개별 기기를 관리하는 페이지입니다
 'use client';
 
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   DollarSign,
@@ -528,6 +528,36 @@ export default function DevicesPage() {
     }
   }, [selectedCategory, selectedDeviceType, updateURL]);
 
+  // useMemo 최적화: 선택된 카테고리의 기기 타입들
+  const categoryTypes = useMemo(() => {
+    if (!selectedCategory?.id) return [];
+    return deviceTypes
+      .filter(t => t.category_id === selectedCategory.id)
+      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+  }, [deviceTypes, selectedCategory?.id]);
+
+  // useMemo 최적화: 카테고리별 기기 타입 개수
+  const categoryTypeCount = useMemo(() => {
+    const counts: { [categoryId: string]: number } = {};
+    deviceTypes.forEach(type => {
+      if (type.category_id) {
+        counts[type.category_id] = (counts[type.category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [deviceTypes]);
+
+  // useMemo 최적화: 기기 상태별 통계
+  const deviceStats = useMemo(() => {
+    const stats = {
+      total: devices.length,
+      available: devices.filter(d => d.status === 'available').length,
+      maintenance: devices.filter(d => d.status === 'maintenance').length,
+      broken: devices.filter(d => d.status === 'broken').length
+    };
+    return stats;
+  }, [devices]);
+
   const navigateBack = useCallback(() => {
     if (view === 'devices') {
       setView('types');
@@ -591,31 +621,24 @@ export default function DevicesPage() {
 
   const loadDeviceTypes = async () => {
     try {
-      const supabase = createClient();
-  const { data: types, error } = await supabase.from('device_types')
-        .select(`
-          *,
-          devices (
-            id,
-            device_number,
-            status
-          ),
-          play_modes (
-            id,
-            name,
-            price,
-            display_order
-          )
-        `)
-        .order('display_order', { ascending: true });
+      // API 엔드포인트 사용 (Supabase 직접 호출 대신)
+      const response = await fetch('/api/admin/devices/types', {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const types = await response.json();
 
-      if (error) throw error;
-
-      // 각 기종별 기기 수 계산 및 play_modes 정렬
+      // 각 기종별 기기 수 계산 및 play_modes 정렬 (API에서 이미 처리됨)
       const typesWithCounts = (types || []).map(type => ({
         ...type,
-        device_count: type.devices?.length || 0,
-        active_count: type.devices?.filter((d: any) => d.status === 'available').length || 0,
+        device_count: type.device_count || 0,
+        active_count: type.active_count || 0,
         play_modes: type.play_modes ? type.play_modes.sort((a: any, b: any) => 
           (a.display_order || 0) - (b.display_order || 0)
         ) : []
@@ -626,7 +649,7 @@ export default function DevicesPage() {
       console.error('Error loading device types:', error);
       setDeviceTypes([]);
     }
-  };
+  };;
 
   const loadDevices = async (deviceTypeId: string) => {
     setIsLoadingDevices(true);
@@ -819,10 +842,7 @@ export default function DevicesPage() {
       return;
     }
 
-    const categoryTypes = deviceTypes
-      .filter(t => t.category_id === selectedCategory?.id)
-      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
-
+    // categoryTypes는 이제 useMemo로 최적화된 값 사용
     const updatedTypes = [...categoryTypes];
     const [draggedItem] = updatedTypes.splice(draggedTypeIndex, 1);
     
@@ -1168,9 +1188,7 @@ export default function DevicesPage() {
 
   // 기종 뷰
   if (view === 'types' && selectedCategory) {
-    const categoryTypes = deviceTypes
-      .filter(t => t.category_id === selectedCategory.id)
-      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    // categoryTypes는 이제 useMemo로 최적화됨
 
     return (
       <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">

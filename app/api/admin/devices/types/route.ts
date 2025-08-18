@@ -1,11 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 
+// 메모리 캐시 (5분 캐시)
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const cacheMap: Record<string, CacheEntry> = {};
+const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
 // 기기 타입 목록 조회 (카테고리별 또는 전체)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get('categoryId')
+
+    // 메모리 캐시 키
+    const cacheKey = categoryId ? `device-types-${categoryId}` : 'device-types-all';
+    const now = Date.now();
+    
+    // 5분 캐시 확인
+    if (cacheMap[cacheKey] && (now - cacheMap[cacheKey].timestamp) < CACHE_DURATION) {
+      return NextResponse.json(cacheMap[cacheKey].data);
+    }
 
     const supabaseAdmin = createAdminClient();
     let query = supabaseAdmin
@@ -40,6 +58,12 @@ export async function GET(request: NextRequest) {
       device_count: type.devices?.length || 0,
       active_count: type.devices?.filter((d: any) => d.status === 'available').length || 0
     }))
+
+    // 캐시에 저장
+    cacheMap[cacheKey] = {
+      data: formattedData || [],
+      timestamp: now
+    };
 
     return NextResponse.json(formattedData || [])
   } catch (error) {
