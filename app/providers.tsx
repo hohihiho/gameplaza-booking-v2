@@ -4,6 +4,7 @@ import { SessionProvider } from 'next-auth/react'
 import { useEffect } from 'react'
 import { ModalProvider, modal } from '@/hooks/useModal'
 import { ToastProvider } from '@/hooks/useToast'
+import { StackAuthProvider } from '../components/stack-auth/StackAuthProvider'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -71,15 +72,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <SessionProvider 
-      refetchInterval={5 * 60} 
-      refetchOnWindowFocus={true}
-      basePath="/api/auth"
-      baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
-    >
-      {children}
-      <ModalProvider />
-      <ToastProvider />
-    </SessionProvider>
+    <StackAuthProvider>
+      <SessionProvider 
+        refetchInterval={5 * 60} 
+        refetchOnWindowFocus={true}
+        basePath="/api/auth"
+        baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
+      >
+        {children}
+        <ModalProvider />
+        <ToastProvider />
+      </SessionProvider>
+    </StackAuthProvider>
   )
 }

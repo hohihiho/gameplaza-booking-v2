@@ -45,14 +45,16 @@ test.describe('🟠 High Priority: 모바일 최적화 및 성능', () => {
     
     console.log(`⏱️ 예약 페이지 로딩 시간 (3G): ${performanceMetrics.reservationPageLoad}ms`);
     
-    // Core Web Vitals 시뮬레이션 (간단한 지표)
+    // Core Web Vitals 측정 (안전한 방식)
     const coreWebVitals = await page.evaluate(() => {
       const navigationEntry = performance.getEntriesByType('navigation')[0];
+      const paintEntries = performance.getEntriesByType('paint');
+      
       return {
-        domContentLoaded: navigationEntry.domContentLoadedEventEnd - navigationEntry.navigationStart,
-        loadComplete: navigationEntry.loadEventEnd - navigationEntry.navigationStart,
-        firstPaint: performance.getEntriesByName('first-paint')[0]?.startTime || 0,
-        firstContentfulPaint: performance.getEntriesByName('first-contentful-paint')[0]?.startTime || 0
+        domContentLoaded: navigationEntry ? (navigationEntry.domContentLoadedEventEnd - navigationEntry.navigationStart) : 0,
+        loadComplete: navigationEntry ? (navigationEntry.loadEventEnd - navigationEntry.navigationStart) : 0,
+        firstPaint: paintEntries.find(entry => entry.name === 'first-paint')?.startTime || 0,
+        firstContentfulPaint: paintEntries.find(entry => entry.name === 'first-contentful-paint')?.startTime || 0
       };
     });
     

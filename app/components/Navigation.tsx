@@ -5,12 +5,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import ThemeToggle from './ThemeToggle';
+import { useUser, UserButton } from '@stackframe/stack';
+import { ThemeToggle } from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminCheck } from '@/app/hooks/useAdminCheck';
+import { stackApp } from '@/stack-client';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -21,9 +23,10 @@ export default function Navigation() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
+  const stackUser = useUser(); // Stack Auth 사용자
   const { isAdmin } = useAdminCheck();
   
-  const user = session?.user;
+  const user = stackUser || session?.user; // Stack Auth 우선 사용
   
   // 관리자 권한에 따라 메뉴 표시
   const showAdminMenu = isAdmin;
@@ -238,7 +241,7 @@ export default function Navigation() {
 
       {/* 모바일 네비게이션 */}
       <nav 
-        className="md:hidden sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800"
+        className="md:hidden sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 dynamic-island-compatible"
         role="navigation"
         aria-label="모바일 네비게이션"
       >

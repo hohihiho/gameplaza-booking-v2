@@ -31,7 +31,7 @@ export default function BottomTabBar() {
   return (
     <>
       
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden safe-bottom bottom-tab-safe fixed-bottom-mobile">
       {/* 배경 블러 효과 - 더 강한 대비 */}
       <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700" />
       

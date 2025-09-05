@@ -33,7 +33,10 @@
     "supabase:run-migration": "supabase db push",
     "restore": "node scripts/restore-database.js",
     "fix": "./scripts/quick-fix.sh",
-    "fix:port": "./scripts/quick-fix.sh port"
+    "fix:port": "./scripts/quick-fix.sh port",
+    "verify-schema": "tsx scripts/verify-schema-consistency.ts",
+    "sync-hybrid-data": "tsx scripts/sync-hybrid-data.ts",
+    "generate-types": "supabase gen types typescript --project-id rupeyejnfurlcpgneekg > types/database.ts"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +45,7 @@
     "@anthropic-ai/claude-code": "^1.0.57",
     "@auth/supabase-adapter": "^1.10.0",
     "@radix-ui/themes": "^3.2.1",
+    "@stackframe/stack": "^2.8.36",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.2",

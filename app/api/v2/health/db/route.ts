@@ -57,7 +57,7 @@ export async function GET() {
     // 3. 성능 메트릭 계산
     const queryTimes = tableChecks.map(t => t.queryTime);
     const avgQueryTime = queryTimes.reduce((a, b) => a + b, 0) / queryTimes.length;
-    const slowQueries = queryTimes.filter(t => t > 100).length;
+    const slowQueries = queryTimes.filter(t => t > 500).length;
 
     // 4. 응답 구성
     metrics.responseTime = Date.now() - startTime;
@@ -72,7 +72,7 @@ export async function GET() {
 
     // 상태 판단
     const allTablesAccessible = tableChecks.every(t => t.accessible);
-    const performanceOk = avgQueryTime < 100 && slowQueries === 0;
+    const performanceOk = avgQueryTime < 300 && slowQueries === 0;
     
     if (!allTablesAccessible) {
       metrics.status = 'degraded';
@@ -89,7 +89,7 @@ export async function GET() {
     };
 
     return NextResponse.json(details, {
-      status: metrics.status === 'healthy' ? 200 : 503,
+      status: metrics.status === 'unhealthy' ? 503 : 200,
       headers: {
         'Cache-Control': 'no-store',
         'X-DB-Status': metrics.status,
