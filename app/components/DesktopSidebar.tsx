@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut } from '@/lib/auth-client';
 import { 
   Home, Calendar, FileText, Gamepad2, Clock, User, LogOut, 
   ChevronRight, Sparkles, Shield, HelpCircle
@@ -13,8 +13,8 @@ import { ThemeToggleWithMenu } from './ThemeToggleWithMenu';
 
 export default function DesktopSidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.isAdmin === true;
+  const { data: session, isPending } = useSession();
+  const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';
 
   const navItems = [
     { href: '/', label: '홈', icon: Home },
@@ -159,7 +159,20 @@ export default function DesktopSidebar() {
                 </div>
                 
                 <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
+                  onClick={async () => {
+                    try {
+                      await signOut({
+                        fetchOptions: {
+                          onSuccess: () => {
+                            window.location.href = '/';
+                          }
+                        }
+                      });
+                    } catch (error) {
+                      console.error('로그아웃 오류:', error);
+                      window.location.href = '/';
+                    }
+                  }}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
                 >
                   <LogOut className="w-4 h-4" />

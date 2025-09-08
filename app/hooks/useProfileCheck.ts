@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth-client';
 import { useRouter, usePathname } from 'next/navigation';
 
 export function useProfileCheck() {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [isCheckingProfile, setIsCheckingProfile] = useState(false);
 
   useEffect(() => {
     // 로딩 중이거나 로그인하지 않은 경우 체크하지 않음
-    if (status === 'loading' || !session?.user) {
+    if (isPending || !session?.user) {
       return;
     }
 
@@ -41,7 +41,7 @@ export function useProfileCheck() {
     };
 
     checkProfile();
-  }, [session, status, router, pathname]);
+  }, [session, isPending, router, pathname]);
 
-  return { isCheckingProfile, isLoading: status === 'loading' };
+  return { isCheckingProfile, isLoading: isPending };
 }

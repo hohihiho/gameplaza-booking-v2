@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { Calendar, FileText, Gamepad2, MessageCircle, Info, Clock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
 
 export default function MainActionButtons() {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   
   // 관리자 체크
   const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';

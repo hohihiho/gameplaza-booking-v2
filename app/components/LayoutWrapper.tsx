@@ -1,7 +1,6 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import Navigation from './Navigation';
 import DesktopSidebar from './DesktopSidebar';
 import BottomTabBar from './BottomTabBar';
 import { ToastContainer } from './mobile';
@@ -68,9 +67,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   
   return (
     <div className="min-h-screen">
-      {/* 상단 네비게이션 */}
-      <Navigation />
-      
       {/* 데스크톱 사이드바 - aside 태그로 의미적 마크업 */}
       <aside role="complementary" aria-label="사이드바 네비게이션">
         <DesktopSidebar />

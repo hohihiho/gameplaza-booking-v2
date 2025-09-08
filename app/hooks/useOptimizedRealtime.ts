@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
+
+// 실시간 기능은 D1에서 지원하지 않으므로 폴링 기반으로 교체됨
+// 이 파일은 Supabase에서 D1으로 전환하면서 비활성화됩니다.
 
 interface UseOptimizedRealtimeConfig {
   channel: string;

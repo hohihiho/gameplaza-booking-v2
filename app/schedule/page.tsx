@@ -3,7 +3,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
 import { 
   Calendar,
   Clock,
@@ -92,8 +91,7 @@ export default function SchedulePage() {
   // const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
-  const [supabase] = useState(() => createClient());
-  const [, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(true);
   const [todaySchedule, setTodaySchedule] = useState<{ 
     floor1Start: string; 
@@ -166,7 +164,7 @@ export default function SchedulePage() {
     };
     
     fetchTodaySchedule();
-  }, [supabase]);
+  }, []);
   
   // 운영 일정 및 예약 데이터 가져오기
   const fetchScheduleData = async () => {
@@ -178,7 +176,7 @@ export default function SchedulePage() {
       const month = currentMonth.getMonth() + 1;
       
       // API를 통해 데이터 가져오기
-      const response = await fetch(`/api/public/schedule?year=${year}&month=${month}`);
+      const response = await fetch(`/api/schedule?year=${year}&month=${month}`);
       if (!response.ok) {
         throw new Error('데이터 조회에 실패했습니다');
       }
@@ -188,7 +186,7 @@ export default function SchedulePage() {
       console.log('예약 데이터:', reservationsData);
       console.log('기기 정보:', devices);
       
-      // 기기 정보를 ID로 매핑
+      // 기기 정보를 ID로 매핑 (D1 스키마 형태로 이미 변환됨)
       const devicesInfo: Record<string, any> = {};
       devices.forEach((device: any) => {
         devicesInfo[device.id] = device;
@@ -229,12 +227,12 @@ export default function SchedulePage() {
         }
         
         const device = devicesInfo[res.device_id];
-        const deviceName = device?.device_types?.name || '알 수 없음';
+        const deviceName = res.device_type_display_name || res.device_type_name || '알 수 없음';
         const machineNumber = device?.device_number || '';
         const modelName = device?.device_types?.model_name || '';
         const versionName = device?.device_types?.version_name || '';
         const timeStr = res.start_time && res.end_time 
-          ? `${res.start_time.slice(0, 5)}-${res.end_time.slice(0, 5)}`
+          ? `${res.start_time}-${res.end_time}`
           : '';
         
         acc[date].push({
@@ -288,7 +286,11 @@ export default function SchedulePage() {
     } catch (error: any) {
       console.error('운영 일정 불러오기 실패:', error);
       console.error('에러 메시지:', error?.message);
-      console.error('에러 상세:', error?.details);
+      
+      // 사용자에게 한국어 에러 메시지 표시
+      const errorMessage = error?.message || '운영 일정을 불러오는데 실패했습니다';
+      
+      // 필요하다면 여기에 토스트 메시지나 에러 상태를 추가할 수 있습니다
       setEvents([]);
     } finally {
       setIsLoading(false);
@@ -300,41 +302,16 @@ export default function SchedulePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMonth]);
 
-  // 실시간 업데이트 구독
+  // 실시간 업데이트 대신 주기적 새로고침 (30초마다)
   useEffect(() => {
-    const channel = supabase
-      .channel('schedule-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'schedule_events'
-        },
-        () => {
-          fetchScheduleData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        () => {
-          fetchScheduleData();
-        }
-      )
-      .subscribe();
-
+    const interval = setInterval(() => {
+      fetchScheduleData();
+    }, 30000); // 30초마다 새로고침
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      clearInterval(interval);
     };
-  }, [supabase, currentMonth, fetchScheduleData]);
+  }, []);
   
   // 날짜 관련 유틸리티 함수들
   // const getDaysInMonth = (date: Date) => {

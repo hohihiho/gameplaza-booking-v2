@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { getDb } from '@/lib/db'
 
 // 개별 기기 업데이트
 export async function PATCH(
@@ -8,36 +8,51 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const supabase = createAdminClient()
+    const db = getDb()
     const body = await request.json()
 
-    // 업데이트할 데이터 준비
-    const updateData: any = {
-      updated_at: new Date().toISOString()
+    // 기존 기기 조회
+    const device = db.prepare('SELECT * FROM devices WHERE id = ?').get(id)
+    if (!device) {
+      return NextResponse.json({ error: 'Device not found' }, { status: 404 })
     }
 
+    // 업데이트 쿼리 동적 생성
+    const updates: string[] = []
+    const values: any[] = []
+
     if (body.status !== undefined) {
-      updateData.status = body.status
+      updates.push('status = ?')
+      values.push(body.status)
     }
 
     if (body.notes !== undefined) {
-      updateData.notes = body.notes
+      updates.push('notes = ?')
+      values.push(body.notes)
     }
 
     if (body.last_maintenance !== undefined) {
-      updateData.last_maintenance = body.last_maintenance
+      updates.push('last_maintenance = ?')
+      values.push(body.last_maintenance)
+    }
+
+    // updated_at 항상 업데이트
+    updates.push('updated_at = datetime("now")')
+
+    // 업데이트할 내용이 없으면 기존 데이터 반환
+    if (updates.length === 1) { // updated_at만 있는 경우
+      return NextResponse.json(device)
     }
 
     // 기기 업데이트
-    const { data, error } = await supabase.from('devices')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
+    values.push(id)
+    const updateQuery = `UPDATE devices SET ${updates.join(', ')} WHERE id = ?`
+    db.prepare(updateQuery).run(...values)
 
-    if (error) throw error
+    // 업데이트된 기기 조회
+    const updatedDevice = db.prepare('SELECT * FROM devices WHERE id = ?').get(id)
 
-    return NextResponse.json(data)
+    return NextResponse.json(updatedDevice)
   } catch (error) {
     console.error('Error updating device:', error)
     return NextResponse.json({ error: 'Failed to update device' }, { status: 500 })
@@ -51,15 +66,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = createAdminClient()
+    const db = getDb()
 
     // 기기 상태 확인
-    const { data: device, error: fetchError } = await supabase.from('devices')
-      .select('status')
-      .eq('id', id)
-      .single()
+    const device = db.prepare('SELECT status FROM devices WHERE id = ?').get(id) as any
 
-    if (fetchError) throw fetchError
+    if (!device) {
+      return NextResponse.json({ error: 'Device not found' }, { status: 404 })
+    }
 
     // available 상태인 기기만 삭제 가능
     if (device.status !== 'available') {
@@ -70,12 +84,7 @@ export async function DELETE(
     }
 
     // 기기 삭제
-    
-  const { error: deleteError } = await supabase.from('devices')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
+    db.prepare('DELETE FROM devices WHERE id = ?').run(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

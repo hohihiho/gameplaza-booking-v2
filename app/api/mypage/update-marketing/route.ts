@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { query } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,17 +24,9 @@ export async function POST(request: NextRequest) {
     }
 
     // users 테이블의 marketing_agreed 필드 업데이트
-    const { data, error } = await supabase
-      .from('users')
-      .update({ 
-        marketing_agreed,
-        updated_at: new Date().toISOString()
-      })
-      .eq('email', session.user.email)
-      .select('marketing_agreed')
-      .single();
-
-    if (error) {
+    try {
+      query.updateUserMarketingAgreement(session.user.email, marketing_agreed);
+    } catch (error) {
       console.error('마케팅 동의 업데이트 오류:', error);
       return NextResponse.json(
         { error: '설정 변경에 실패했습니다.' },
@@ -49,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      marketing_agreed: data.marketing_agreed,
+      marketing_agreed,
       message: marketing_agreed 
         ? '이벤트 및 혜택 정보 수신에 동의하였습니다.' 
         : '이벤트 및 혜택 정보 수신을 거절하였습니다.'

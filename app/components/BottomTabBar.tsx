@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from '@/lib/auth-client';
 import { Home, Calendar, Gamepad2, Clock, User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import ReservationBottomSheet from './ReservationBottomSheet';
 
 export default function BottomTabBar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const isLoggedIn = !!session?.user;
   const [isReservationSheetOpen, setIsReservationSheetOpen] = useState(false);
 

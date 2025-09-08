@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut } from "@/lib/auth-compat";
 import { useState, useEffect } from 'react';
 
 export default function DebugAdminPage() {

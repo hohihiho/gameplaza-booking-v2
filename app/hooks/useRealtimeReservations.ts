@@ -1,40 +1,12 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export function useRealtimeReservations(onUpdate: () => void) {
-  const supabase = createClient()
-
   useEffect(() => {
-    // 예약 테이블의 변경사항 구독
-    const channel = supabase
-      .channel('reservation-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        (payload) => {
-          console.log('Reservation change:', payload)
-          onUpdate()
-        }
-      )
-      .subscribe()
-
-    // 브로드캐스트 이벤트도 구독
-    channel.on('broadcast', { event: 'new_reservation' }, (payload) => {
-      console.log('New reservation broadcast:', payload)
-      onUpdate()
-    })
-
-    channel.on('broadcast', { event: 'cancelled_reservation' }, (payload) => {
-      console.log('Cancelled reservation broadcast:', payload)
-      onUpdate()
-    })
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [supabase, onUpdate])
+    // D1 마이그레이션 후 실시간 업데이트는 별도 구현 예정
+    // TODO: D1 기반 실시간 업데이트 구현
+    console.log('실시간 예약 업데이트 훅이 호출되었지만 D1 마이그레이션으로 인해 비활성화됨')
+    
+    // 임시로 빈 cleanup 함수 반환
+    return () => {}
+  }, [onUpdate])
 }

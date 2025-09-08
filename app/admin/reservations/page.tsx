@@ -25,7 +25,7 @@ import {
   X,
   Trash2
 } from 'lucide-react';
-import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime';
+// Realtime 기능을 폴링으로 대체
 
 // 24시간 이상 시간 포맷팅
 const formatTime = (time: string) => {
@@ -298,8 +298,8 @@ export default function ReservationManagementPage() {
       }
       params.append('limit', '200'); // 성능을 위해 200건으로 제한
       
-      // v2 API 사용 (v1은 deprecated)
-      const apiUrl = `/api/v2/admin/reservations?${params}`;
+      // D1 기반 API 사용
+      const apiUrl = `/api/admin/reservations?${params}`;
       
       console.log('API 호출 시작:', apiUrl);
       
@@ -453,39 +453,16 @@ export default function ReservationManagementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
 
-  // 실시간 동기화 설정
-  useAdminReservationRealtime({
-    onUpdate: (payload) => {
-      // 예약 상태가 업데이트되면 목록 새로고침
-      if (payload.new) {
-        setAllReservations(prev => 
-          prev.map(res => res.id === payload.new.id ? {
-            ...res,
-            status: payload.new.status,
-            admin_notes: payload.new.admin_notes,
-            approved_at: payload.new.approved_at,
-            updated_at: payload.new.updated_at,
-            payment_status: payload.new.payment_status,
-            check_in_at: payload.new.check_in_at
-          } : res)
-        );
-      }
-    },
-    onInsert: (payload) => {
-      // 새 예약이 추가되면 데이터 다시 로드
-      if (payload.new) {
+  // 폴링 기반 실시간 동기화 (30초마다 갱신)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isLoading) {
         fetchReservations(selectedYear);
       }
-    },
-    onDelete: (payload) => {
-      // 예약이 삭제되면 목록에서 제거
-      if (payload.old) {
-        setAllReservations(prev => 
-          prev.filter(res => res.id !== payload.old.id)
-        );
-      }
-    }
-  });
+    }, 30000); // 30초마다 업데이트
+
+    return () => clearInterval(interval);
+  }, [selectedYear, isLoading]);
 
   // 필터링 및 검색 처리
   useEffect(() => {
@@ -545,7 +522,7 @@ export default function ReservationManagementPage() {
     setCurrentPage(1); // 필터 변경 시 첫 페이지로
   };
 
-  // 실시간 업데이트는 useAdminReservationRealtime 훅이 처리
+  // 폴링을 통한 주기적 데이터 업데이트
 
 
   const getStatusBadge = (status: Reservation['status']) => {
@@ -608,8 +585,8 @@ export default function ReservationManagementPage() {
     try {
       setIsLoading(true);
       
-      // v2 API 사용
-      const apiUrl = '/api/v2/admin/reservations';
+      // D1 기반 API 사용
+      const apiUrl = '/api/admin/reservations';
       
       const response = await fetch(apiUrl, {
         method: 'PATCH',
@@ -698,7 +675,7 @@ export default function ReservationManagementPage() {
       
       // 각 예약을 순차적으로 승인 처리
       const promises = selectedReservationIds.map(async (reservationId) => {
-        const response = await fetch('/api/v2/admin/reservations', {
+        const response = await fetch('/api/admin/reservations', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -763,7 +740,7 @@ export default function ReservationManagementPage() {
       
       // 각 예약을 순차적으로 거절 처리
       const promises = selectedReservationIds.map(async (reservationId) => {
-        const response = await fetch('/api/v2/admin/reservations', {
+        const response = await fetch('/api/admin/reservations', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -825,8 +802,8 @@ export default function ReservationManagementPage() {
     try {
       setIsLoading(true);
       
-      // v2 API 사용
-      const apiUrl = '/api/v2/admin/reservations';
+      // D1 기반 API 사용
+      const apiUrl = '/api/admin/reservations';
       
       const response = await fetch(apiUrl, {
         method: 'PATCH',

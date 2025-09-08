@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+// import { useSession } from "@/lib/auth-compat"; // D1 마이그레이션 중 임시 제거
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, User, Hash,
@@ -109,7 +109,9 @@ function normalizeReservation(data: any): ReservationDetailV2 {
 export default function ReservationDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session, status } = useSession();
+  // const { data: session, status } = useSession(); // D1 마이그레이션 중 임시 제거
+  const status = 'authenticated'; // 임시 상태
+  const session = { user: { role: 'user' } }; // 임시 세션 데이터
   
   const [reservation, setReservation] = useState<ReservationDetailV2 | null>(null);
   const [isLoading, setIsLoading] = useState(true);

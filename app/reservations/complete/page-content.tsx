@@ -9,7 +9,7 @@ import { CheckCircle, Calendar, Clock, Hash, Home, List, Gamepad2, AlertCircle }
 import { createClient } from '@/lib/supabase';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-compat";
 
 export default function ReservationCompleteContent() {
   const router = useRouter();

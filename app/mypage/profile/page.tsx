@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-compat";
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

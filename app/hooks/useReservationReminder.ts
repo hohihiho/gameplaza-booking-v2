@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-compat";
 import { toast } from 'react-hot-toast';
 
 export function useReservationReminder() {

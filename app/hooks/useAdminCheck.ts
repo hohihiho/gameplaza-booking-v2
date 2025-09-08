@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-compat";
 import { useEffect, useState, useRef } from 'react';
 
 // 관리자 권한 캐시 - 메모리에 저장하여 불필요한 API 호출 방지

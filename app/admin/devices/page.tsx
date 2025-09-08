@@ -25,7 +25,6 @@ import {
   Info
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 
 // 타입 정의
 type Category = {
@@ -464,7 +463,6 @@ const DeviceCard = memo(function DeviceCard({
 export default function DevicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [supabase] = useState(() => createClient());
   
   // 카테고리 관련 상태
   const [categories, setCategories] = useState<Category[]>([]);
@@ -610,56 +608,82 @@ export default function DevicesPage() {
   // 데이터 로드 함수들
   const loadCategories = async () => {
     try {
-      const response = await fetch('/api/admin/devices/categories');
-      if (!response.ok) throw new Error('Failed to fetch categories');
+      const response = await fetch('/api/machines');
+      if (!response.ok) throw new Error('기기 카테고리 조회 실패');
       const data = await response.json();
-      setCategories(data);
+      
+      // machines API 응답을 categories 형태로 변환
+      const categoriesData = data.map((machine: any, index: number) => ({
+        id: machine.id,
+        name: machine.display_name || machine.name,
+        display_order: machine.sort_order || index + 1
+      }));
+      
+      setCategories(categoriesData);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error('카테고리 로드 오류:', error);
+      setCategories([]);
     }
   };
 
   const loadDeviceTypes = async () => {
     try {
-      // API 엔드포인트 사용 (Supabase 직접 호출 대신)
-      const response = await fetch('/api/admin/devices/types', {
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
+      const response = await fetch('/api/machines');
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`기기 타입 조회 실패: ${response.status}`);
       }
       
-      const types = await response.json();
+      const machines = await response.json();
 
-      // 각 기종별 기기 수 계산 및 play_modes 정렬 (API에서 이미 처리됨)
-      const typesWithCounts = (types || []).map(type => ({
-        ...type,
-        device_count: type.device_count || 0,
-        active_count: type.active_count || 0,
-        play_modes: type.play_modes ? type.play_modes.sort((a: any, b: any) => 
-          (a.display_order || 0) - (b.display_order || 0)
-        ) : []
-      }));
+      // machines API 응답을 device types 형태로 변환
+      const typesWithCounts = machines.flatMap((machine: any) => 
+        machine.devices?.map((device: any, index: number) => ({
+          id: device.id,
+          name: device.name,
+          category_id: machine.id,
+          description: machine.description,
+          model_name: machine.display_name,
+          version_name: '', // 버전 정보가 없으면 빈 문자열
+          display_order: index + 1,
+          play_modes: [], // 임시로 빈 배열
+          is_rentable: true, // 기본값
+          device_count: machine.total_count || 0,
+          active_count: machine.available_count || 0
+        })) || []
+      );
 
       setDeviceTypes(typesWithCounts);
     } catch (error) {
-      console.error('Error loading device types:', error);
+      console.error('기기 타입 로드 오류:', error);
       setDeviceTypes([]);
     }
-  };;
+  };
 
   const loadDevices = async (deviceTypeId: string) => {
     setIsLoadingDevices(true);
     try {
-      const response = await fetch(`/api/admin/devices?deviceTypeId=${deviceTypeId}`);
-      if (!response.ok) throw new Error('Failed to fetch devices');
-      const data = await response.json();
-      setDevices(data);
+      const response = await fetch('/api/machines');
+      if (!response.ok) throw new Error('기기 정보 조회 실패');
+      const machines = await response.json();
+      
+      // deviceTypeId에 해당하는 기기들을 찾아서 변환
+      const allDevices = machines.flatMap((machine: any) => 
+        machine.devices?.map((device: any, index: number) => ({
+          id: device.id,
+          device_type_id: deviceTypeId,
+          device_number: index + 1,
+          status: device.status === 'occupied' ? 'in_use' : device.status,
+          notes: '',
+          last_maintenance: device.last_used_at
+        })) || []
+      );
+      
+      // 특정 deviceTypeId에 해당하는 기기들만 필터링
+      const filteredDevices = allDevices.filter(device => device.device_type_id === deviceTypeId);
+      setDevices(filteredDevices);
     } catch (error) {
-      console.error('Error loading devices:', error);
+      console.error('기기 정보 로드 오류:', error);
+      setDevices([]);
     } finally {
       setIsLoadingDevices(false);
     }
@@ -694,57 +718,19 @@ export default function DevicesPage() {
     }
   }, [selectedDeviceType]);
 
-  // Realtime 구독으로 기기 상태 변경 감지 (최적화된 버전)
+  // 주기적으로 기기 상태 동기화 (D1용 폴링 방식)
   useEffect(() => {
-    // 기기 뷰에서만 Realtime 활성화
     if (view !== 'devices' || !selectedDeviceType) {
       return;
     }
 
-    let retryCount = 0;
-    const maxRetries = 3;
-    let timeoutId: NodeJS.Timeout;
+    // 30초마다 데이터 새로고침
+    const interval = setInterval(() => {
+      loadDevices(selectedDeviceType.id);
+    }, 30000);
 
-    const createChannel = () => {
-      const channel = supabase
-        .channel(`devices-status-${selectedDeviceType.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'devices',
-            filter: `device_type_id=eq.${selectedDeviceType.id}`
-          },
-          (payload) => {
-            if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
-              setDevices(prev => prev.map(device => 
-                device.id === payload.new.id 
-                  ? { ...device, ...payload.new as Device }
-                  : device
-              ));
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          if (status === 'CLOSED' && retryCount < maxRetries) {
-            retryCount++;
-            timeoutId = setTimeout(() => {
-              createChannel();
-            }, Math.pow(2, retryCount) * 1000); // 지수 백오프: 2초, 4초, 8초
-          }
-        });
-
-      return channel;
-    };
-
-    const channel = createChannel();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      supabase.removeChannel(channel);
-    };
-  }, [view, selectedDeviceType, supabase]);
+    return () => clearInterval(interval);
+  }, [view, selectedDeviceType]);
 
   // 카테고리 드래그 앤 드롭 핸들러
   const handleCategoryDragStart = (e: React.DragEvent, index: number) => {
@@ -789,27 +775,12 @@ export default function DevicesPage() {
     setDragOverCategoryIndex(null);
 
     try {
-      const response = await fetch('/api/admin/devices/categories', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categories: updatedCategories.map(cat => ({
-            id: cat.id,
-            display_order: cat.display_order
-          }))
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update category order');
-      }
-      
-      console.log('카테고리 순서 업데이트 성공');
-    } catch (error: any) {
-      console.error('Error updating category order:', error);
-      alert('카테고리 순서 변경 실패: ' + error.message);
+      alert('카테고리 순서 변경 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
       // 실패 시 원래 순서로 복구
+      loadCategories();
+    } catch (error: any) {
+      console.error('카테고리 순서 변경 오류:', error);
+      alert('카테고리 순서 변경 실패: ' + error.message);
       loadCategories();
     }
   };
@@ -865,30 +836,12 @@ export default function DevicesPage() {
     setDragOverTypeIndex(null);
 
     try {
-      // 모든 업데이트를 병렬로 처리
-      const updatePromises = updatedTypes.map(type => 
-        fetch('/api/admin/devices/types', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: type.id,
-            display_order: type.display_order
-          })
-        })
-      );
-      
-      const responses = await Promise.all(updatePromises);
-      const hasError = responses.some(r => !r.ok);
-      
-      if (hasError) {
-        throw new Error('Failed to update some device types');
-      }
-      
-      console.log('기종 순서 업데이트 성공');
-    } catch (error: any) {
-      console.error('Error updating type order:', error);
-      alert('기종 순서 변경 실패: ' + error.message);
+      alert('기종 순서 변경 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
       // 실패 시 원래 순서로 복구
+      loadDeviceTypes();
+    } catch (error: any) {
+      console.error('기종 순서 변경 오류:', error);
+      alert('기종 순서 변경 실패: ' + error.message);
       loadDeviceTypes();
     }
   };
@@ -928,19 +881,11 @@ export default function DevicesPage() {
                 const name = formData.get('name') as string;
                 
                 try {
-                  await fetch('/api/admin/devices/categories', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      name,
-                      display_order: categories.length + 1
-                    })
-                  });
-                  
-                  loadCategories();
+                  // D1에서는 카테고리 추가가 복잡하므로 일단 경고 메시지 표시
+                  alert('카테고리 추가 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                   setIsAddingCategory(false);
                 } catch (error) {
-                  console.error('Error creating category:', error);
+                  console.error('카테고리 생성 오류:', error);
                 }
               }}>
                 <input
@@ -1000,16 +945,10 @@ export default function DevicesPage() {
                   const name = formData.get('name') as string;
                   
                   try {
-                    await fetch('/api/admin/devices/categories', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ id: category.id, name })
-                    });
-                    
-                    loadCategories();
+                    alert('카테고리 수정 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                     setEditingCategory(null);
                   } catch (error) {
-                    console.error('Error updating category:', error);
+                    console.error('카테고리 수정 오류:', error);
                   }
                 }}>
                   <input
@@ -1158,19 +1097,7 @@ export default function DevicesPage() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
-                          try {
-                            await fetch('/api/admin/devices/categories', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: category.id })
-                            });
-                            
-                            loadCategories();
-                          } catch (error) {
-                            console.error('Error deleting category:', error);
-                          }
-                        }
+                        alert('카테고리 삭제 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                       }}
                       className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                     >
@@ -1227,46 +1154,8 @@ export default function DevicesPage() {
             >
               <TypeEditForm
                 onSubmit={async (data) => {
-                  try {
-                    // 기종 생성
-                    const response = await fetch('/api/admin/device-types', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        name: data.name,
-                        description: data.description,
-                        model_name: data.model_name,
-                        version_name: data.version_name,
-                        category_id: selectedCategory.id,
-                        is_rentable: data.is_rentable,
-                        device_count: 0  // 기본값 0, 필요시 나중에 개별 기기 추가
-                      })
-                    });
-                    
-                    if (!response.ok) throw new Error('Failed to create device type');
-                    const newType = await response.json();
-                    
-                    // play_modes 추가
-                    if (data.play_modes && data.play_modes.length > 0) {
-                      const playModesResponse = await fetch(`/api/admin/devices/types/${newType.id}/play-modes`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          play_modes: data.play_modes
-                        })
-                      });
-                      
-                      if (!playModesResponse.ok) {
-                        console.error('Play modes 추가 실패');
-                      }
-                    }
-                    
-                    loadDeviceTypes();
-                    setIsAddingType(false);
-                  } catch (error) {
-                    console.error('Error creating device type:', error);
-                    alert('기종 추가에 실패했습니다.');
-                  }
+                  alert('기종 추가 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
+                  setIsAddingType(false);
                 }}
                 onCancel={() => setIsAddingType(false)}
               />
@@ -1303,73 +1192,8 @@ export default function DevicesPage() {
                 <TypeEditForm
                   type={type}
                   onSubmit={async (data) => {
-                    try {
-                      console.log('기종 업데이트 데이터:', data);
-                      
-                      // 기종 정보 업데이트
-                      const response = await fetch(`/api/admin/device-types/${type.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          name: data.name,
-                          description: data.description,
-                          model_name: data.model_name || null,
-                          version_name: data.version_name || null,
-                          is_rentable: data.is_rentable
-                        })
-                      });
-                      
-                      if (!response.ok) {
-                        const error = await response.json();
-                        console.error('API 응답 오류:', error);
-                        throw new Error(error.error || '기종 업데이트 실패');
-                      }
-                      
-                      const result = await response.json();
-                      console.log('기종 업데이트 결과:', result);
-                      
-                      // play_modes 업데이트
-                      console.log('Play modes 업데이트 시도:', data.play_modes);
-                      if (data.play_modes && data.play_modes.length > 0) {
-                        const playModesResponse = await fetch(`/api/admin/devices/types/${type.id}/play-modes`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            play_modes: data.play_modes
-                          })
-                        });
-                        
-                        const playModesResult = await playModesResponse.json();
-                        
-                        if (!playModesResponse.ok) {
-                          console.error('Play modes 업데이트 오류:', playModesResult);
-                          throw new Error(playModesResult.error || '플레이 모드 업데이트 실패');
-                        }
-                        
-                        console.log('Play modes 업데이트 결과:', playModesResult);
-                      } else {
-                        // play_modes가 비어있으면 모든 모드 삭제
-                        console.log('Play modes 삭제 (빈 배열)');
-                        const playModesResponse = await fetch(`/api/admin/devices/types/${type.id}/play-modes`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            play_modes: []
-                          })
-                        });
-                        
-                        if (!playModesResponse.ok) {
-                          console.error('Play modes 삭제 실패');
-                        }
-                      }
-                      
-                      // 데이터 다시 로드
-                      await loadDeviceTypes();
-                      setEditingType(null);
-                    } catch (error: any) {
-                      console.error('Error updating device type:', error);
-                      alert(`기종 수정에 실패했습니다: ${error.message}`);
-                    }
+                    alert('기종 수정 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
+                    setEditingType(null);
                   }}
                   onCancel={() => setEditingType(null)}
                 />
@@ -1423,25 +1247,10 @@ export default function DevicesPage() {
                             setDeviceTypes(allUpdatedTypes);
                             
                             try {
-                              const updatePromises = updatedTypes.map(type => 
-                                fetch('/api/admin/devices/types', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    id: type.id,
-                                    display_order: type.display_order
-                                  })
-                                })
-                              );
-                              
-                              const responses = await Promise.all(updatePromises);
-                              const hasError = responses.some(r => !r.ok);
-                              
-                              if (hasError) {
-                                throw new Error('Failed to update some device types');
-                              }
+                              alert('기종 순서 변경 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
+                              loadDeviceTypes();
                             } catch (error: any) {
-                              console.error('Error updating order:', error);
+                              console.error('기종 순서 변경 오류:', error);
                               alert('기종 순서 변경 실패: ' + error.message);
                               loadDeviceTypes();
                             }
@@ -1476,25 +1285,10 @@ export default function DevicesPage() {
                             setDeviceTypes(allUpdatedTypes);
                             
                             try {
-                              const updatePromises = updatedTypes.map(type => 
-                                fetch('/api/admin/devices/types', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    id: type.id,
-                                    display_order: type.display_order
-                                  })
-                                })
-                              );
-                              
-                              const responses = await Promise.all(updatePromises);
-                              const hasError = responses.some(r => !r.ok);
-                              
-                              if (hasError) {
-                                throw new Error('Failed to update some device types');
-                              }
+                              alert('기종 순서 변경 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
+                              loadDeviceTypes();
                             } catch (error: any) {
-                              console.error('Error updating order:', error);
+                              console.error('기종 순서 변경 오류:', error);
                               alert('기종 순서 변경 실패: ' + error.message);
                               loadDeviceTypes();
                             }
@@ -1551,17 +1345,7 @@ export default function DevicesPage() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if (confirm('이 기종을 삭제하시겠습니까?')) {
-                          try {
-                            await fetch(`/api/admin/devices/types/${type.id}`, {
-                              method: 'DELETE'
-                            });
-                            
-                            loadDeviceTypes();
-                          } catch (error) {
-                            console.error('Error deleting device type:', error);
-                          }
-                        }
+                        alert('기종 삭제 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                       }}
                       className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                     >
@@ -1659,29 +1443,8 @@ export default function DevicesPage() {
                 </div>
               </div>
               <button
-                onClick={async () => {
-                  const count = prompt('추가할 기기 개수를 입력하세요:', '1');
-                  if (count && parseInt(count) > 0) {
-                    try {
-                      const newDevices = Array.from({ length: parseInt(count) }, (_, i) => ({
-                        device_type_id: selectedDeviceType.id,
-                        device_number: devices.length + i + 1
-                      }));
-                      
-                      for (const device of newDevices) {
-                        await fetch('/api/admin/devices', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(device)
-                        });
-                      }
-                      
-                      loadDevices(selectedDeviceType.id);
-                      loadDeviceTypes();
-                    } catch (error) {
-                      console.error('Error adding devices:', error);
-                    }
-                  }
+                onClick={() => {
+                  alert('기기 추가 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
@@ -1704,81 +1467,16 @@ export default function DevicesPage() {
                 device={device}
                 isEditing={editingDevice === device.id}
                 onStatusChange={async (status) => {
-                  try {
-                    const response = await fetch(`/api/admin/devices/${device.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status })
-                    });
-                    
-                    if (!response.ok) {
-                      const error = await response.json();
-                      throw new Error(error.error || 'Failed to update device status');
-                    }
-                    
-                    const updatedDevice = await response.json();
-                    
-                    // 로컬 상태 즉시 업데이트
-                    setDevices(prevDevices => 
-                      prevDevices.map(d => 
-                        d.id === device.id ? { ...d, ...updatedDevice } : d
-                      )
-                    );
-                    
-                    // 기종별 기기 수 업데이트를 위해 다시 로드
-                    loadDeviceTypes();
-                  } catch (error: any) {
-                    console.error('Error updating device status:', error);
-                    alert('기기 상태 변경 실패: ' + error.message);
-                    // 실패 시 원래 상태로 복구
-                    setDevices(prevDevices => 
-                      prevDevices.map(d => 
-                        d.id === device.id ? { ...d, status: device.status } : d
-                      )
-                    );
-                  }
+                  alert('기기 상태 변경 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                 }}
                 onEdit={() => setEditingDevice(device.id)}
                 onSave={async (updates) => {
-                  try {
-                    const response = await fetch(`/api/admin/devices/${device.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(updates)
-                    });
-                    
-                    if (!response.ok) {
-                      const error = await response.json();
-                      throw new Error(error.error || 'Failed to update device');
-                    }
-                    
-                    const updatedDevice = await response.json();
-                    
-                    setDevices(prevDevices => 
-                      prevDevices.map(d => 
-                        d.id === device.id ? { ...d, ...updatedDevice } : d
-                      )
-                    );
-                    setEditingDevice(null);
-                  } catch (error: any) {
-                    console.error('Error updating device:', error);
-                    alert('기기 정보 저장 실패: ' + error.message);
-                  }
+                  alert('기기 정보 저장 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
+                  setEditingDevice(null);
                 }}
                 onCancel={() => setEditingDevice(null)}
                 onDelete={async () => {
-                  if (confirm('이 기기를 삭제하시겠습니까?')) {
-                    try {
-                      await fetch(`/api/admin/devices/${device.id}`, {
-                        method: 'DELETE'
-                      });
-                      
-                      loadDevices(selectedDeviceType.id);
-                      loadDeviceTypes();
-                    } catch (error) {
-                      console.error('Error deleting device:', error);
-                    }
-                  }
+                  alert('기기 삭제 기능은 아직 구현되지 않았습니다.\nD1 마이그레이션 후 추가될 예정입니다.');
                 }}
               />
             ))}

@@ -4,15 +4,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
-import { useUser, UserButton } from '@stackframe/stack';
+import { useSession, signOut } from '@/lib/auth-client';
 import { ThemeToggle } from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAdminCheck } from '@/app/hooks/useAdminCheck';
-import { stackApp } from '@/stack-client';
+
+// TODO: 현재 Better Auth 마이그레이션 중으로 임시 비활성화
+// import { useAdminCheck } from '@/app/hooks/useAdminCheck';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -22,14 +22,12 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const { data: session, status } = useSession();
-  const stackUser = useUser(); // Stack Auth 사용자
-  const { isAdmin } = useAdminCheck();
   
-  const user = stackUser || session?.user; // Stack Auth 우선 사용
-  
-  // 관리자 권한에 따라 메뉴 표시
-  const showAdminMenu = isAdmin;
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const status = isPending ? 'loading' : (user ? 'authenticated' : 'unauthenticated');
+  // TODO: Better Auth로 관리자 체크 구현 필요
+  const showAdminMenu = user?.role === 'admin' || user?.role === 'super_admin';
   
 
   // 세션 변경 감지 및 강제 새로고침
@@ -54,7 +52,19 @@ export default function Navigation() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/' });
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = '/';
+          }
+        }
+      });
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      // 에러가 발생해도 홈으로 리다이렉트
+      window.location.href = '/';
+    }
   };
   
   // 네비게이션 아이템 - 로그인 상태에 따라 다르게 표시

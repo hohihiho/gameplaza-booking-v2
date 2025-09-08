@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-compat";
 import Link from 'next/link';
 import { Calendar, CreditCard, ChevronLeft, ChevronRight, Loader2, Gamepad2, Clock, Sparkles, AlertCircle, CheckCircle2, XCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
