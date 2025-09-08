@@ -4,15 +4,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
-import { useUser, UserButton } from '@stackframe/stack';
+import { useSession, signOut } from '@/lib/auth/client';
 import { ThemeToggle } from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminCheck } from '@/app/hooks/useAdminCheck';
-import { stackApp } from '@/stack-client';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -22,11 +20,11 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const { data: session, status } = useSession();
-  const stackUser = useUser(); // Stack Auth 사용자
+  const { data: session, isPending } = useSession();
   const { isAdmin } = useAdminCheck();
   
-  const user = stackUser || session?.user; // Stack Auth 우선 사용
+  const user = session?.user; // Better Auth 세션 사용
+  const status = isPending ? 'loading' : (session ? 'authenticated' : 'unauthenticated');
   
   // 관리자 권한에 따라 메뉴 표시
   const showAdminMenu = isAdmin;

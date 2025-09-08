@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 

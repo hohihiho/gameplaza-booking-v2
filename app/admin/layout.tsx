@@ -2,7 +2,7 @@
 // 비전공자 설명: 관리자 페이지 전체를 감싸는 레이아웃입니다
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';

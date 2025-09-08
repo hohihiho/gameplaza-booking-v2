@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { motion } from 'framer-motion';
 import { Trophy, Calendar, Users, Shield, ArrowRight, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';

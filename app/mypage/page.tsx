@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut } from '@/lib/auth/better-auth-client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle, XCircle, Sparkles, Shield } from 'lucide-react';

@@ -1,0 +1,22 @@
+name = "gameplaza-v2"
+compatibility_date = "2024-01-01"
+
+# 개발 환경
+[env.development]
+[[env.development.d1_databases]]
+binding = "GAMEPLAZA_DB"
+database_name = "gameplaza-development"
+database_id = "d8bb6ff7-b731-4d5a-b22f-4b3e41c9ed8e"
+
+[env.development.vars]
+NODE_ENV = "development"
+
+# 프로덕션 환경
+[env.production]
+[[env.production.d1_databases]]
+binding = "GAMEPLAZA_DB"
+database_name = "gameplaza-production" 
+database_id = "1d59afcb-f4c2-4d1c-9532-a63bd124bf97"
+
+[env.production.vars]
+NODE_ENV = "production"

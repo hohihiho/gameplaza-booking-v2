@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { motion } from 'framer-motion';
 import { 
   Clock,

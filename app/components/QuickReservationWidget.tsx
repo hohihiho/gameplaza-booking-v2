@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
 import { Zap, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ThemeToggleWithMenu } from './ThemeToggleWithMenu';
 
 export default function QuickReservationWidget() {
-  const [supabase] = useState(() => createClient());
   const [availableCount, setAvailableCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -75,19 +73,9 @@ export default function QuickReservationWidget() {
           setTotalCount(deviceData.total);
           setAvailableCount(deviceData.available);
         } else {
-          // Fallback: 기존 방식으로 조회
-          const { data: devices, error: devicesError } = await supabase.from('devices')
-            .select('id, status');
-
-          if (!devicesError) {
-            const total = devices?.length || 0;
-            const available = devices?.filter(d => d.status === 'available').length || 0;
-            setTotalCount(total);
-            setAvailableCount(available);
-          } else {
-            setTotalCount(0);
-            setAvailableCount(0);
-          }
+          // API 실패 시 기본값 설정
+          setTotalCount(0);
+          setAvailableCount(0);
         }
 
       } catch (error) {
@@ -105,7 +93,7 @@ export default function QuickReservationWidget() {
     // 1분마다 새로고침
     const interval = setInterval(fetchReservationStatus, 60000);
     return () => clearInterval(interval);
-  }, [supabase]);
+  }, []);
 
   const availablePercentage = totalCount > 0 ? (availableCount / totalCount) * 100 : 0;
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut } from '@/lib/auth/better-auth-client';
 import { 
   Home, Calendar, FileText, Gamepad2, Clock, User, LogOut, 
   ChevronRight, Sparkles, Shield, HelpCircle

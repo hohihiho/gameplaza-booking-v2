@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { db, contentPages } from '@/lib/db/client';
+import { eq } from 'drizzle-orm';
 
-// 활성 약관 조회 API (content_pages 테이블 사용)
+// 활성 약관 조회 API (Cloudflare D1 사용)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,51 +14,47 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     });
     
-    const supabase = createClient();
-    
-    let query = supabase
-      .from('content_pages')
-      .select('*')
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false });
-    
-    // 특정 타입이 요청된 경우 필터링
+    // Drizzle ORM으로 약관 데이터 조회
+    let data;
     if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
-      query = query.eq('slug', type);
+      try {
+        const result = await db.select().from(contentPages)
+          .where(eq(contentPages.slug, type));
+        data = result;
+      } catch (dbError) {
+        console.error('DB 쿼리 오류:', dbError);
+        data = [];
+      }
     } else {
-      // type이 지정되지 않은 경우 약관 관련 페이지만 조회
-      query = query.in('slug', ['terms_of_service', 'privacy_policy']);
+      // 전체 약관 조회
+      try {
+        const result = await db.select().from(contentPages)
+          .where(eq(contentPages.isPublished, true));
+        data = result;
+      } catch (dbError) {
+        console.error('DB 쿼리 오류:', dbError);
+        data = [];
+      }
     }
     
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('약관 조회 오류:', error);
-      return NextResponse.json(
-        { error: '약관을 불러오는 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
-    }
-    
-    // 타입별로 단일 객체 반환 (가장 최신 버전)
+    // 타입별로 단일 객체 반환
     if (type) {
       const terms = data?.[0] || null;
-      // content_pages 구조에 맞게 변환
       const formattedTerms = terms ? {
         id: terms.id,
         type: terms.slug,
         title: terms.title,
         content: terms.content,
-        is_active: terms.is_published,
-        created_at: terms.created_at,
-        updated_at: terms.updated_at
+        is_active: terms.isPublished,
+        created_at: terms.createdAt?.toISOString(),
+        updated_at: terms.updatedAt?.toISOString()
       } : null;
       return NextResponse.json({ data: formattedTerms }, { headers });
     }
     
     // 전체 약관 반환 시 타입별로 그룹화
-    const termsOfService = data?.find(t => t.slug === 'terms_of_service');
-    const privacyPolicy = data?.find(t => t.slug === 'privacy_policy');
+    const termsOfService = data?.find((t: any) => t.slug === 'terms_of_service');
+    const privacyPolicy = data?.find((t: any) => t.slug === 'privacy_policy');
     
     const termsMap = {
       terms_of_service: termsOfService ? {
@@ -65,18 +62,18 @@ export async function GET(request: NextRequest) {
         type: termsOfService.slug,
         title: termsOfService.title,
         content: termsOfService.content,
-        is_active: termsOfService.is_published,
-        created_at: termsOfService.created_at,
-        updated_at: termsOfService.updated_at
+        is_active: termsOfService.isPublished,
+        created_at: termsOfService.createdAt?.toISOString(),
+        updated_at: termsOfService.updatedAt?.toISOString()
       } : null,
       privacy_policy: privacyPolicy ? {
         id: privacyPolicy.id,
         type: privacyPolicy.slug,
         title: privacyPolicy.title,
         content: privacyPolicy.content,
-        is_active: privacyPolicy.is_published,
-        created_at: privacyPolicy.created_at,
-        updated_at: privacyPolicy.updated_at
+        is_active: privacyPolicy.isPublished,
+        created_at: privacyPolicy.createdAt?.toISOString(),
+        updated_at: privacyPolicy.updatedAt?.toISOString()
       } : null
     };
     

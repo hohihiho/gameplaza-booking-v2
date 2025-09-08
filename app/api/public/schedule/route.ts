@@ -1,4 +1,3 @@
-import { createAdminClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -11,84 +10,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '년월 정보가 필요합니다' }, { status: 400 });
     }
     
-    const supabase = createAdminClient();
-    
-    // 월의 시작일과 종료일 계산
-    // const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 0);
-    const startStr = `${year}-${month.padStart(2, '0')}-01`;
-    const endStr = `${year}-${month.padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
-    
-    // 1. 운영 일정 가져오기 (테이블이 없을 수 있으므로 에러 처리)
-    let scheduleEvents: any[] = [];
-    try {
-      const { data: scheduleData, error: scheduleError } = await supabase.from('schedule_events')
-        .select('*')
-        .gte('date', startStr)
-        .lte('date', endStr)
-        .order('date');
-      
-      if (scheduleError && scheduleError.code !== '42P01') { // 42P01: table does not exist
-        console.error('일정 조회 오류:', scheduleError);
-        throw scheduleError;
-      }
-      
-      scheduleEvents = scheduleData || [];
-    } catch (error: any) {
-      // 테이블이 없는 경우는 무시하고 빈 배열 반환
-      if (error?.code !== '42P01') {
-        console.error('일정 조회 오류:', error);
-        return NextResponse.json({ error: '일정 조회에 실패했습니다' }, { status: 500 });
-      }
-    }
-    
-    // 2. 예약 데이터 가져오기 (대기, 취소 제외)
-    const { data: reservations, error: reservationsError } = await supabase.from('reservations')
-      .select(`
-        id,
-        device_id,
-        player_count,
-        status,
-        date,
-        start_time,
-        end_time
-      `)
-      .in('status', ['approved', 'checked_in', 'completed'])
-      .gte('date', startStr)
-      .lte('date', endStr);
-    
-    if (reservationsError) {
-      console.error('예약 조회 오류:', reservationsError);
-    }
-    
-    // 3. 기기 정보 가져오기
-    let devices: any[] = [];
-    if (reservations && reservations.length > 0) {
-      const deviceIds = [...new Set(reservations.map(r => r.device_id).filter(Boolean))];
-      if (deviceIds.length > 0) {
-        const { data: devicesData, error: devicesError } = await supabase.from('devices')
-          .select(`
-            id,
-            device_number,
-            device_types (
-              name,
-              model_name,
-              version_name
-            )
-          `)
-          .in('id', deviceIds);
-        
-        devices = devicesData || [];
-        if (devicesError) {
-          console.error('기기 조회 오류:', devicesError);
-        }
-      }
-    }
+    // 임시 데이터 - 추후 Cloudflare D1으로 이관 예정
+    const scheduleEventsData: any[] = [];
+    const reservationsData: any[] = [];
+    const devicesData: any[] = [];
     
     return NextResponse.json({
-      scheduleEvents: scheduleEvents || [],
-      reservations: reservations || [],
-      devices: devices || []
+      scheduleEvents: scheduleEventsData,
+      reservations: reservationsData,
+      devices: devicesData
     });
   } catch (error) {
     console.error('API 오류:', error);

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Calendar, FileText, Gamepad2, MessageCircle, Info, Clock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { motion } from 'framer-motion';
 
 export default function MainActionButtons() {

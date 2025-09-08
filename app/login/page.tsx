@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, useSession } from '@/lib/auth/better-auth-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Calendar, Gamepad2, Clock, User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/better-auth-client';
 import { useState } from 'react';
 import ReservationBottomSheet from './ReservationBottomSheet';
 
