@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+// D1은 실시간 기능을 지원하지 않으므로 폴링 또는 웹소켓으로 대체 필요
+interface RealtimeChannel {}
+interface RealtimePostgresChangesPayload<T = any> {
+  type: 'INSERT' | 'UPDATE' | 'DELETE';
+  table: string;
+  schema: string;
+  new: T;
+  old: T;
+}
 import { createClient } from '@/lib/supabase/client';
 
 interface UseOptimizedRealtimeConfig {

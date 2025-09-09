@@ -1,0 +1,52 @@
+{
+  "tasks": [
+    {
+      "id": "23449b83-fdfe-4406-933e-87d5f04192b9",
+      "name": "Stack Auth 클라이언트 설정 및 NextAuth 잔재 제거",
+      "description": "NextAuth.js에서 Stack Auth로 완전히 마이그레이션하기 위해 클라이언트 사이드 설정을 구성하고, 기존 NextAuth 관련 import를 모두 제거합니다. 37개 이상의 파일에서 발생하는 next-auth/react import 오류를 해결합니다.",
+      "notes": "기존 사용자 세션 데이터 호환성을 유지해야 하며, 사용자 경험에 영향을 주지 않도록 점진적으로 변경해야 합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-05T22:43:33.430Z",
+      "updatedAt": "2025-09-05T22:52:45.932Z",
+      "relatedFiles": [
+        {
+          "path": "app/admin/check-session/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "NextAuth useSession을 Stack Auth useUser로 변경",
+          "lineStart": 3,
+          "lineEnd": 3
+        },
+        {
+          "path": "app/admin/layout.tsx",
+          "type": "TO_MODIFY",
+          "description": "SessionProvider 관련 코드 수정",
+          "lineStart": 5,
+          "lineEnd": 5
+        },
+        {
+          "path": "app/admin/settings/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "useSession 호출 수정",
+          "lineStart": 24,
+          "lineEnd": 24
+        },
+        {
+          "path": "stack-client.ts",
+          "type": "CREATE",
+          "description": "Stack Auth 클라이언트 설정 파일 생성"
+        },
+        {
+          "path": "hooks/useAuth.ts",
+          "type": "TO_MODIFY",
+          "description": "Stack Auth 통합 커스텀 훅 업데이트"
+        }
+      ],
+      "implementationGuide": "1. stack-client.ts 파일 생성:\\n   - StackClientApp 인스턴스 생성\\n   - 환경변수 NEXT_PUBLIC_STACK_PROJECT_ID 사용\\n\\n2. 영향받는 파일들 수정:\\n   - app/admin/check-session/page.tsx: useSession → useUser 변경\\n   - app/admin/layout.tsx: SessionProvider 제거\\n   - app/admin/settings/page.tsx: useSession 호출 변경\\n\\n3. 커스텀 훅 구현:\\n   - hooks/useAuth.ts 업데이트\\n   - Stack Auth와 Supabase 사용자 정보 통합",
+      "verificationCriteria": "1. TypeScript 컴파일 시 next-auth 관련 오류가 모두 해결됨\\n2. 모든 파일에서 Stack Auth 클라이언트 정상 작동\\n3. 사용자 인증 상태가 정상적으로 표시됨\\n4. 기존 세션 데이터가 올바르게 마이그레이션됨",
+      "analysisResult": "게임플라자 예약 시스템의 Stack Auth 마이그레이션 후 발생한 모든 오류를 체계적으로 진단하고 수정하여, TypeScript 컴파일 오류, ESLint 오류, 빌드 오류, 런타임 오류, 테스트 실패를 모두 해결하는 것이 목표입니다. 모바일 퍼스트 최적화와 KST 시간대 처리를 유지하면서, 기존 코드의 일관성을 보장해야 합니다.",
+      "summary": "Stack Auth 클라이언트 설정 완료 및 NextAuth 잔재 제거 성공. stack-client.ts 파일 생성하고 app/admin/check-session/page.tsx, app/admin/layout.tsx, app/admin/settings/page.tsx, app/hooks/useAuth.ts 파일에서 NextAuth 관련 import를 모두 Stack Auth로 변경했습니다. TypeScript 컴파일 시 next-auth 관련 오류가 모두 해결되었으며, Stack Auth 클라이언트가 정상적으로 설정되었습니다.",
+      "completedAt": "2025-09-05T22:52:45.926Z"
+    }
+  ]
+}

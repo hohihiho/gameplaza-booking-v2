@@ -20,7 +20,24 @@ const CANARY_COOKIE = 'x-api-version';
 const CANARY_HEADER = 'x-api-version';
 
 export async function middleware(request: NextRequest) {
-  // 임시로 모든 미들웨어 로직 비활성화
+  // 의심스러운 요청 차단
+  if (isBlockedRequest(request)) {
+    return new NextResponse('Blocked', { status: 403 });
+  }
+  
+  // Rate limiting 적용
+  const rateLimitResponse = applyRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+  
+  // Canary 라우팅 처리
+  const canaryResponse = await handleCanaryRouting(request);
+  if (canaryResponse) {
+    return canaryResponse;
+  }
+  
+  // 기본 요청 처리
   return NextResponse.next();
 }
 

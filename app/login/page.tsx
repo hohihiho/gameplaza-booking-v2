@@ -3,18 +3,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingButton } from '@/app/components/mobile';
+import { useAuth, signIn } from '@/lib/auth';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { user, isLoading: authLoading } = useAuth();
 
   // URL 파라미터로 전달된 에러 메시지 처리
   useEffect(() => {
@@ -30,32 +30,34 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  // 이미 로그인한 사용자는 홈으로 리다이렉트 (auth-check가 프로필 확인)
+  // 이미 로그인한 사용자는 홈으로 리다이렉트
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.push('/');
+    if (!authLoading && user) {
+      const callbackUrl = searchParams.get('callbackUrl') || '/';
+      router.replace(callbackUrl);
     }
-  }, [status, router]);
+  }, [user, authLoading, router, searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // NextAuth를 통한 Google 로그인 - redirect: true로 변경
-      await signIn('google', { 
-        callbackUrl: '/'
+      // Better Auth를 통한 Google 로그인
+      await signIn.social({
+        provider: 'google',
+        callbackURL: searchParams.get('callbackUrl') || '/'
       });
       
-      // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
     } catch (error) {
       console.error('Login error:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       setIsLoading(false);
     }
   };
+
   // 로딩 중이거나 이미 로그인한 경우
-  if (status === 'loading' || status === 'authenticated') {
+  if (authLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4">
         <div className="flex flex-col items-center gap-4">
@@ -64,7 +66,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
           </div>
           <p className="text-gray-600 dark:text-gray-400 font-medium">
-            {status === 'authenticated' ? '리다이렉트 중...' : '로딩 중...'}
+            {user ? '리다이렉트 중...' : '로딩 중...'}
           </p>
         </div>
       </main>

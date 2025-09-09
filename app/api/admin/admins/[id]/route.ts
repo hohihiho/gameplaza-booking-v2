@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth/superadmin';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getD1Client } from '@/lib/d1/client';
 import { GetAdminDetailUseCase } from '@/src/application/use-cases/admin/get-admin-detail.use-case';
 import { UpdateAdminPermissionsUseCase } from '@/src/application/use-cases/admin/update-admin-permissions.use-case';
 import { DeleteAdminUseCase } from '@/src/application/use-cases/admin/delete-admin.use-case';
-import { AdminSupabaseRepository } from '@/src/infrastructure/repositories/admin.supabase.repository';
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository';
+import { D1AdminRepository } from '@/src/infrastructure/repositories/d1-admin.repository';
+import { D1UserRepository } from '@/src/infrastructure/repositories/d1-user.repository';
 import {
   GetAdminDetailRequestDto,
   UpdateAdminPermissionsRequestDto,

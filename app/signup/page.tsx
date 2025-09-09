@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth, signOut } from "@/lib/auth";
 import { createClient } from '@/lib/supabase';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,15 +33,15 @@ export default function SignupPage() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { user, isLoading } = useAuth();
   const supabase = createClient();
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 세션 확인
-    if (status === 'loading') return;
+    if (isLoading) return;
     
-    if (!session?.user) {
+    if (!user) {
       router.push('/login');
       return;
     }
@@ -65,7 +65,7 @@ export default function SignupPage() {
     // 페이지 이탈 감지를 위한 이벤트 핸들러
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // 회원가입이 완료되지 않은 상태에서 페이지를 떠나려고 할 때
-      if (session?.user && !nickname) {
+      if (user && !nickname) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -74,7 +74,7 @@ export default function SignupPage() {
     // 라우트 변경 감지
     const handleRouteChange = () => {
       // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
-      if (session?.user && !nickname) {
+      if (user && !nickname) {
         signOut({ redirect: false }).then(() => {
           router.push('/');
         });
@@ -231,7 +231,7 @@ export default function SignupPage() {
     }
   };
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -276,7 +276,7 @@ export default function SignupPage() {
                 이메일
               </label>
               <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-400">
-                {session?.user?.email}
+                {user?.email}
               </div>
             </div>
 

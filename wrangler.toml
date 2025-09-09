@@ -1,0 +1,55 @@
+# Cloudflare Workers 설정
+name = "gameplaza-v2-workers"
+main = "src/worker/index.ts"
+compatibility_date = "2024-09-20"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 데이터베이스 설정
+[[d1_databases]]
+binding = "DB"
+database_name = "gameplaza-production"
+database_id = "1d59afcb-f4c2-4d1c-9532-a63bd124bf97"
+
+[[d1_databases]]
+binding = "DEV_DB"
+database_name = "gameplaza-development"
+database_id = "d8bb6ff7-b731-4d5a-b22f-4b3e41c9ed8e"
+
+# 환경 변수
+[env.production]
+name = "gameplaza-v2-workers"
+vars = { ENVIRONMENT = "production" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "gameplaza-production"
+database_id = "1d59afcb-f4c2-4d1c-9532-a63bd124bf97"
+
+[env.development]
+name = "gameplaza-v2-workers-dev"
+vars = { ENVIRONMENT = "development" }
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "gameplaza-development"
+database_id = "d8bb6ff7-b731-4d5a-b22f-4b3e41c9ed8e"
+
+[env.staging]
+name = "gameplaza-v2-workers-staging" 
+vars = { ENVIRONMENT = "staging" }
+
+# Durable Objects (실시간 기능용) - 임시 비활성화
+# [[durable_objects.bindings]]
+# name = "RESERVATION_STATE"
+# class_name = "ReservationDurableObject"
+# script_name = "gameplaza-v2-workers"
+
+# [[durable_objects.bindings]]
+# name = "DEVICE_STATUS" 
+# class_name = "DeviceStatusDurableObject"
+# script_name = "gameplaza-v2-workers"
+
+# 마이그레이션 설정 - 임시 비활성화
+# [[migrations]]
+# tag = "v0001"
+# new_classes = ["ReservationDurableObject", "DeviceStatusDurableObject"]

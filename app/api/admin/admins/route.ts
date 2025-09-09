@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth/superadmin';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getD1Client } from '@/lib/d1/client';
 import { CreateAdminUseCase } from '@/src/application/use-cases/admin/create-admin.use-case';
 import { ListAdminsUseCase } from '@/src/application/use-cases/admin/list-admins.use-case';
-import { AdminSupabaseRepository } from '@/src/infrastructure/repositories/admin.supabase.repository';
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository';
+import { D1AdminRepository } from '@/src/infrastructure/repositories/d1-admin.repository';
+import { D1UserRepository } from '@/src/infrastructure/repositories/d1-user.repository';
 import {
   CreateAdminRequestDto,
   ListAdminsRequestDto,
@@ -28,15 +28,15 @@ export async function GET(request: NextRequest) {
       console.log('ndz5496 슈퍼관리자 권한 허용');
       
       // Supabase에서 사용자 ID 가져오기
-      const supabase = createAdminClient();
-      const { data: userData } = await supabase
+      const d1Client = getD1Client();
+      const { data: userData } = await d1Client
         .from('users')
         .select('id')
         .eq('email', 'ndz5496@gmail.com')
         .single();
       
       if (userData) {
-        const { data: adminData } = await supabase
+        const { data: adminData } = await d1Client
           .from('admins')
           .select('id')
           .eq('user_id', userData.id)
@@ -80,9 +80,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // 리포지토리 및 유스케이스 초기화
-    const supabase = createAdminClient();
-    const adminRepository = new AdminSupabaseRepository(supabase);
-    const userRepository = new UserSupabaseRepository(supabase);
+    const adminRepository = new D1AdminRepository(d1Client);
+    const userRepository = new D1UserRepository(d1Client);
     const listAdminsUseCase = new ListAdminsUseCase(adminRepository, userRepository);
 
     // 관리자 목록 조회
@@ -122,15 +121,15 @@ export async function POST(request: NextRequest) {
       console.log('ndz5496 슈퍼관리자 권한 허용 (POST)');
       
       // Supabase에서 사용자 ID 가져오기
-      const supabase = createAdminClient();
-      const { data: userData } = await supabase
+      const d1Client = getD1Client();
+      const { data: userData } = await d1Client
         .from('users')
         .select('id')
         .eq('email', 'ndz5496@gmail.com')
         .single();
       
       if (userData) {
-        const { data: adminData } = await supabase
+        const { data: adminData } = await d1Client
           .from('admins')
           .select('id')
           .eq('user_id', userData.id)
@@ -181,8 +180,8 @@ export async function POST(request: NextRequest) {
     // 이메일로 사용자 ID 찾기
     let actualUserId = userId;
     if (!userId && email) {
-      const supabase = createAdminClient();
-      const { data: userData } = await supabase
+      const d1Client = getD1Client();
+      const { data: userData } = await d1Client
         .from('users')
         .select('id')
         .eq('email', email)
@@ -199,9 +198,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 리포지토리 및 유스케이스 초기화
-    const supabase = createAdminClient();
-    const adminRepository = new AdminSupabaseRepository(supabase);
-    const userRepository = new UserSupabaseRepository(supabase);
+    const adminRepository = new D1AdminRepository(d1Client);
+    const userRepository = new D1UserRepository(d1Client);
     const createAdminUseCase = new CreateAdminUseCase(adminRepository, userRepository);
 
     // 관리자 생성

@@ -1,0 +1,41 @@
+{
+  "tasks": [
+    {
+      "id": "76414920-b81f-486f-b8c8-d343a8f854af",
+      "name": "핵심 Supabase import 오류 해결",
+      "description": "빌드를 중단시키는 lib/supabase import 오류를 해결합니다. 가장 중요한 파일들부터 시작하여 Supabase import를 제거하고 Worker API 호출로 대체합니다. 우선 임시 스텁을 생성하여 빌드가 가능하도록 만듭니다.",
+      "notes": "빌드 오류를 최우선으로 해결하되, 기능 동작은 다음 단계에서 완성",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-06T15:15:45.428Z",
+      "updatedAt": "2025-09-06T16:13:16.036Z",
+      "relatedFiles": [
+        {
+          "path": "lib/supabase/index.ts",
+          "type": "CREATE",
+          "description": "임시 스텁 파일 (필요시)"
+        },
+        {
+          "path": "lib/hooks/useReservationRealtime.ts",
+          "type": "TO_MODIFY",
+          "description": "실시간 예약 훅"
+        },
+        {
+          "path": "lib/auth/middleware.ts",
+          "type": "TO_MODIFY",
+          "description": "인증 미들웨어"
+        },
+        {
+          "path": "app/api/moderation/check/route.ts",
+          "type": "TO_MODIFY",
+          "description": "모더레이션 API"
+        }
+      ],
+      "implementationGuide": "1. lib/supabase/index.ts가 누락된 경우 임시 스텁 생성\n2. 가장 자주 import되는 파일들 우선 처리:\n   - lib/hooks/useReservationRealtime.ts\n   - lib/auth/middleware.ts\n   - app/api/moderation/check/route.ts\n3. import { createClient } from 'lib/supabase/*' 제거\n4. import { getWorkerData } from 'lib/cloudflare-worker'로 교체\n5. supabase 쿼리를 Worker API 호출로 변경",
+      "verificationCriteria": "npm run build 또는 npm run dev가 Supabase import 오류 없이 성공하는지 확인",
+      "analysisResult": "게임플라자 프로젝트에서 Supabase를 완전히 제거하고 Cloudflare Worker API로 대체하는 작업. 179개 파일에서 Supabase를 사용 중이며, 현재 빌드 오류와 Worker API 500 오류가 발생하고 있어 단계적 해결이 필요함.",
+      "summary": "핵심 Supabase import 오류가 성공적으로 해결되었습니다. 빌드와 개발 서버가 모두 정상 실행되고, 주요 API 엔드포인트들이 Worker와 연동되어 올바른 데이터를 반환하고 있습니다. 임시 스텁을 통해 빌드 오류를 방지하면서도 Worker API가 정상 작동하도록 구현되었습니다.",
+      "completedAt": "2025-09-06T16:13:16.023Z"
+    }
+  ]
+}

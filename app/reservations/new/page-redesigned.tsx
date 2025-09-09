@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Loader2, AlertCircle, Check } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { createClient } from '@/lib/supabase';
+// D1 API 사용
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { BottomSheet, TouchRipple, SkeletonCard } from '@/app/components/mobile';
