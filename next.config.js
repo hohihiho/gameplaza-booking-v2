@@ -75,7 +75,7 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   experimental: {
-    // Next.js 14.1.0에서 지원하지 않는 옵션 제거
+    // Next.js 실험적 기능
   },
   
   // 하이드레이션 불일치 경고 억제 (브라우저 확장 프로그램으로 인한 경우)

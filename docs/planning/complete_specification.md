@@ -72,23 +72,28 @@
 - **Supabase Client**: 실시간 DB 연동
 
 ### Backend & Database
-- **Supabase** (PostgreSQL + Realtime + Storage)
-- **Stack Auth** (차세대 인증 시스템 - NextAuth.js 완전 대체)
-  - **성능 혁신**: NextAuth.js 대비 70% 향상된 응답속도로 로그인/세션 확인 즉시 처리
-  - **벤더 락인 해제**: 완전한 셀프호스팅으로 외부 서비스 종속성 완전 제거
-  - **비용 최적화**: 무료 오픈소스로 인증 서비스 비용 완전 절약 (월 $0 유지)
-  - **고급 인증 지원**: 패스키(생체인증), 매직링크, 다중 OAuth 통합 지원
-  - **통합 관리 대시보드**: 사용자 impersonation, 실시간 세션 모니터링, 완전한 감사 로그
-  - **개발 효율성**: TypeScript 네이티브 지원, 직관적 API로 50% 적은 코드 구현
-  - **보안 강화**: 자동 보안 정책 적용, 비정상 로그인 감지 및 차단
-- **구글 OAuth** (Stack Auth 통합 관리를 통한 안정적 인증)
+- **Cloudflare D1** (SQLite Edge Database)
+  - **엣지 성능**: 전 세계 데이터센터에서 밀리초 단위 응답
+  - **무료 티어**: 5GB 스토리지, 500만 읽기/월 무료
+  - **자동 백업**: 일일 자동 백업 및 30일 보관
+  - **SQL 호환**: SQLite 기반으로 표준 SQL 지원
+- **Better Auth** (차세대 인증 시스템)
+  - **TypeScript Native**: 완전한 타입 안정성
+  - **Edge 최적화**: Cloudflare Workers와 완벽 호환
+  - **OAuth 통합**: 구글, 카카오 등 다중 OAuth 지원
+  - **세션 관리**: JWT 기반 안전한 세션 처리
+- **Cloudflare Workers** (Edge Functions)
+  - **API Routes**: 서버리스 API 엔드포인트
+  - **KV Storage**: 세션 및 캐시 저장소
+  - **R2 Storage**: 이미지 및 파일 저장
+- **구글 OAuth** (Better Auth 통합 인증)
 - **AI 필터링 시스템** (닉네임 중복 체크, 비속어/스팸 차단)
 
 ### 배포 & 호스팅
-- **Vercel** (Frontend 호스팅)
+- **Vercel** (Frontend 호스팅 - Next.js 최적화)
+- **Cloudflare Workers** (API & Edge Functions)
 - **GitHub Actions** (크론잡 - 무료)
   - 10분마다 기기 상태 자동 업데이트
-  - 매일 Supabase 활성화 유지
 - **커스텀 도메인** 연결
 
 ---

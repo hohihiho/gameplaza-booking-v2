@@ -77,3 +77,10 @@ node_modules/
 *.jpg
 *.jpeg
 *.webp
+
+# Cloudflare
+.dev.vars
+.wrangler/
+.workers/
+.cloudflare/
+dist/

@@ -1,9 +1,8 @@
 'use client';
 
-import { useUser } from '@stackframe/stack';
+import { useUser, UserButton } from '@stackframe/stack';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { UserButton } from '@stackframe/stack';
 
 export default function ProfilePage() {
   const user = useUser();

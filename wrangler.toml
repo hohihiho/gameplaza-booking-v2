@@ -1,0 +1,72 @@
+name = "gameplaza-v2"
+main = "./workers/index.js"
+compatibility_date = "2025-09-09"
+compatibility_flags = ["nodejs_compat"]
+
+# 빌드 설정
+[build]
+command = "npm run build"
+
+# 환경 변수 (실제 값은 wrangler secret으로 설정)
+[vars]
+NODE_ENV = "production"
+
+# KV 네임스페이스 (세션 저장용)
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "gameplaza_sessions"
+preview_id = "gameplaza_sessions_preview"
+
+# D1 데이터베이스
+[[d1_databases]]
+binding = "DB"
+database_name = "gameplaza-production"
+database_id = "1d59afcb-f4c2-4d1c-9532-a63bd124bf97"
+
+# R2 버킷 (이미지/파일 저장용)
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "gameplaza-files"
+
+# 라우팅 설정
+[route]
+pattern = "gameplaza.gwangju.kr/*"
+zone_name = "gwangju.kr"
+
+# 개발 환경
+[env.development]
+name = "gameplaza-v2-dev"
+vars = { NODE_ENV = "development" }
+
+[[env.development.kv_namespaces]]
+binding = "SESSIONS"
+id = "gameplaza_sessions_dev"
+preview_id = "gameplaza_sessions_dev_preview"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "gameplaza-development"
+database_id = "d8bb6ff7-b731-4d5a-b22f-4b3e41c9ed8e"
+
+# 스테이징 환경
+[env.staging]
+name = "gameplaza-v2-staging"
+vars = { NODE_ENV = "staging" }
+
+[[env.staging.kv_namespaces]]
+binding = "SESSIONS"
+id = "gameplaza_sessions_staging"
+preview_id = "gameplaza_sessions_staging_preview"
+
+# Workers 설정
+[placement]
+mode = "smart"
+
+[limits]
+cpu_ms = 50
+
+[observability]
+enabled = true
+
+# 캐싱 규칙 (Cloudflare Pages용)
+# Workers에서는 코드에서 직접 처리
