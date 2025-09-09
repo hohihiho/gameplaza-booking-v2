@@ -1,9 +1,10 @@
 # 세션 상태 - 2025-09-09
 
 ## 🎯 현재 작업
-**Cloudflare D1 데이터베이스 마이그레이션 - Phase 3 완료! 🎉**
+**Cloudflare D1 데이터베이스 마이그레이션 - Phase 4 진행 중**
 
 ## 📊 진행 상황
+### Phase 3 완료 ✅
 - ✅ 환경 변수 업데이트 완료
 - ✅ Better Auth 설정 구성 완료
 - ✅ D1 클라이언트 및 리포지토리 생성 완료 (총 20+ 리포지토리)
@@ -17,13 +18,26 @@
   - lib/supabase/*.ts 스텁 파일 생성
   - 모든 컴파일 오류 해결
 - ✅ **Next.js 빌드 성공!**
-  - 172개 페이지 정적 생성 완료
+  - 173개 페이지 정적 생성 완료
   - 컴파일 오류 0개
-  - 빌드 시간: 29초
+  - 빌드 시간: 33초
 - ✅ API 클라이언트 생성 (lib/api-client.ts)
 - ✅ 기획서 업데이트 완료
 - ✅ 커밋 완료 (6467e8a)
 - ✅ 진행 상황 문서화 완료
+
+### Phase 4 진행 중 (60%)
+- ✅ D1 초기 스키마 생성 (`/migrations/d1/001_initial_schema.sql`)
+- ✅ D1 Repository 패턴 재구현
+  - Base Repository (`/lib/repositories/d1/base.repository.ts`)
+  - User Repository (`/lib/repositories/d1/user.repository.ts`)
+  - Device Repository (`/lib/repositories/d1/device.repository.ts`)
+  - Reservation Repository (`/lib/repositories/d1/reservation.repository.ts`)
+- ✅ API v2 엔드포인트 생성 시작
+  - `/api/v2/users` - 사용자 CRUD
+  - `/api/v2/users/[id]` - 사용자 상세
+  - `/api/test/d1` - D1 연결 테스트
+- 🔄 추가 API 마이그레이션 필요
 
 ## 🔧 설정된 환경
 ### D1 데이터베이스
@@ -70,15 +84,13 @@
 - 모든 시간 처리는 KST 기준
 
 ## 📊 진행률
-**전체 진행률: 85%**
-- ✅ 환경 설정 (100%)
-- ✅ 데이터베이스 마이그레이션 (100%)
-- ✅ 인증 시스템 설정 (100%)
-- ✅ Supabase 호환성 레이어 (100%)
-- ✅ 빌드 성공 (100%)
-- ⏳ 실제 API 마이그레이션 (10%)
-- ⏳ 테스트 및 검증 (0%)
-- ⏳ 프로덕션 배포 (0%)
+**전체 진행률: 60%**
+- ✅ Phase 1: 환경 설정 (100%)
+- ✅ Phase 2: D1 스키마 생성 (100%)
+- ✅ Phase 3: Repository 패턴 구현 (100%)
+- 🔄 Phase 4: API 마이그레이션 (30%)
+- ⏳ Phase 5: 프론트엔드 연동 (0%)
+- ⏳ Phase 6: 테스트 및 최적화 (0%)
 
 ## 🔗 관련 문서
 - [마이그레이션 진행 상황](./MIGRATION_PROGRESS.md)
@@ -90,6 +102,11 @@
 - **Tech Stack Changes** (Architecture Decision)
 - **Migration Progress** (Status)
 
+## 💬 해결 필요사항
+- ✅ Better Auth accessToken 오류 해결
+- ✅ D1 데이터베이스 연결 테스트
+- 🔄 API 엔드포인트 D1 마이그레이션 (진행 중)
+
 ---
-*마지막 업데이트: 2025-09-09 14:46 KST*
-*커밋: 6467e8a - feat: Supabase에서 Cloudflare D1으로 데이터베이스 마이그레이션*
+*마지막 업데이트: 2025-09-09 15:56 KST*
+*최근 커밋: 6467e8a - feat: Supabase에서 Cloudflare D1으로 데이터베이스 마이그레이션*

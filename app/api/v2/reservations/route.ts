@@ -1,375 +1,267 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { auth } from '@/auth'
-import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
-import { logRequest, logError } from '@/lib/api/logging'
-import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
+import { NextRequest, NextResponse } from 'next/server';
+import { D1RepositoryFactory, getD1Database } from '@/lib/repositories/d1';
+import { z } from 'zod';
 
-// 요청 스키마 정의 (시간을 시간 단위로 변경)
+// 요청 스키마 정의
 const createReservationSchema = z.object({
+  user_id: z.string().uuid('올바른 사용자 ID 형식이 아닙니다'),
   device_id: z.string().uuid('올바른 기기 ID 형식이 아닙니다'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '올바른 날짜 형식(YYYY-MM-DD)을 입력해주세요'),
-  start_hour: z.number().int().min(0).max(29, '시작 시간은 0-29 사이여야 합니다'),
-  end_hour: z.number().int().min(1).max(30, '종료 시간은 1-30 사이여야 합니다'),
-  credit_type: z.enum(['fixed', 'freeplay', 'unlimited'], {
-    errorMap: () => ({ message: '올바른 크레딧 타입을 선택해주세요' })
-  }),
-  player_count: z.union([z.literal(1), z.literal(2)], {
-    errorMap: () => ({ message: '플레이어 수는 1명 또는 2명이어야 합니다' })
-  }).default(1),
-  user_notes: z.string().optional()
-}).refine(data => data.start_hour < data.end_hour, {
-  message: '종료 시간은 시작 시간보다 커야 합니다',
-  path: ['end_hour']
-})
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, '올바른 시간 형식(HH:MM)을 입력해주세요'),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, '올바른 시간 형식(HH:MM)을 입력해주세요'),
+  units: z.number().int().min(1).max(4).optional(),
+  amount: z.number().min(0).optional(),
+  notes: z.string().optional()
+});
 
-// POST: 예약 생성
-export async function POST(request: NextRequest) {
+// GET /api/v2/reservations - 예약 목록 조회
+export async function GET(request: NextRequest) {
   try {
-    logRequest(request, 'POST /api/v2/reservations')
-
-    // NextAuth 세션 확인
-    const session = await auth()
-    console.log('POST /api/v2/reservations - NextAuth 세션:', session)
-
-    if (!session?.user?.id) {
-      console.log('POST /api/v2/reservations - NextAuth 세션 없음')
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
-    }
-
-    // 자동 기기 상태 체크 실행 (예약 생성 시 필수)
-    try {
-      const statusCheck = await autoCheckDeviceStatus()
-      if (statusCheck.executed) {
-        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
-      }
-    } catch (statusError) {
-      console.error('❌ Auto status check failed:', statusError)
-      // 상태 체크 실패해도 예약 생성은 계속 진행
-    }
-
-    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const supabase = createServiceRoleClient()
-    const userId = session.user.id
-
-    // 요청 본문 파싱
-    const body = await request.json()
-    const validationResult = createReservationSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0]
-      return NextResponse.json(
-        { error: firstError?.message ?? '유효하지 않은 요청입니다' },
-        { status: 400 }
-      )
-    }
-
-    const data = validationResult.data
-
-    // 레포지토리 초기화
-    const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
-    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
-    const userRepository = new SupabaseUserRepository(supabase)
-
-    // 유스케이스 실행
-    const useCase = new CreateReservationV2UseCase(
-      reservationRepository,
-      deviceRepository as any,
-      userRepository as any
-    )
-
-    // 슈퍼관리자 여부 확인
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userId)
-      .eq('is_super_admin', true)
-      .single()
+    const db = getD1Database(request);
     
-    const isSuperAdmin = !!adminData
-    
-    const result = await useCase.execute({
-      userId: userId,
-      deviceId: data.device_id,
-      date: data.date,
-      startHour: data.start_hour,
-      endHour: data.end_hour,
-      creditType: data.credit_type,
-      playerCount: data.player_count,
-      userNotes: data.user_notes,
-      isAdmin: isSuperAdmin
-    })
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database not available' },
+        { status: 503 }
+      );
+    }
 
-    // 실시간 업데이트를 위한 브로드캐스트
-    try {
-      await supabase
-        .channel('reservations')
-        .send({
-          type: 'broadcast',
-          event: 'new_reservation',
-          payload: { 
-            date: data.date,
-            deviceId: data.device_id,
-            reservationId: result.reservation.id,
-            startHour: data.start_hour,
-            endHour: data.end_hour
-          }
+    const repos = new D1RepositoryFactory(db);
+    const searchParams = request.nextUrl.searchParams;
+    
+    const userId = searchParams.get('user_id');
+    const date = searchParams.get('date');
+    const status = searchParams.get('status');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    
+    let reservations;
+    
+    if (userId) {
+      // 사용자별 예약 조회
+      reservations = await repos.reservations.findByUser(userId, limit);
+    } else if (date) {
+      // 날짜별 예약 조회
+      reservations = await repos.reservations.findByDate(date);
+    } else if (status) {
+      // 상태별 예약 조회
+      reservations = await repos.reservations.findByStatus(status, limit);
+    } else {
+      // 최근 예약 조회
+      reservations = await repos.reservations.findAll(limit);
+    }
+
+    // 상세 정보 포함 옵션
+    if (searchParams.get('include_details') === 'true') {
+      const detailedReservations = await Promise.all(
+        reservations.map(async (reservation) => {
+          const details = await repos.reservations.findWithDetails(reservation.id);
+          return details || reservation;
         })
-    } catch (broadcastError) {
-      logError(broadcastError, 'Broadcast error')
-      // 브로드캐스트 실패는 무시하고 계속 진행
+      );
+      reservations = detailedReservations;
     }
 
-    // v2 응답 형식 (snake_case)
-    const reservation = {
-      id: result.reservation.id,
-      reservation_number: result.reservation.reservationNumber || '',
-      user_id: result.reservation.userId,
-      device_id: result.reservation.deviceId,
-      date: result.reservation.date.dateString,
-      start_hour: data.start_hour,
-      end_hour: data.end_hour,
-      status: result.reservation.status.value,
-      total_price: 0,
-      credit_type: data.credit_type,
-      player_count: data.player_count,
-      user_notes: data.user_notes,
-      created_at: result.reservation.createdAt.toISOString(),
-      updated_at: result.reservation.updatedAt.toISOString()
-    }
-
-    return NextResponse.json({ reservation }, { status: 201 })
+    return NextResponse.json({
+      success: true,
+      data: reservations,
+      count: reservations.length
+    });
 
   } catch (error) {
-    logError(error, 'POST /api/v2/reservations')
-
-    if (error instanceof Error) {
-      // 비즈니스 로직 에러는 400으로 반환
-      if (error.message.includes('예약') || 
-          error.message.includes('권한') || 
-          error.message.includes('시간') ||
-          error.message.includes('기기') ||
-          error.message.includes('크레딧') ||
-          error.message.includes('플레이') ||
-          error.message.includes('청소년')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        )
-      }
-    }
-
+    console.error('예약 조회 오류:', error);
     return NextResponse.json(
-      { error: '예약 생성 중 오류가 발생했습니다' },
+      { 
+        error: 'Failed to fetch reservations',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
-    )
+    );
   }
 }
 
-// 예약 목록 조회 스키마
-const listReservationsSchema = z.object({
-  status: z.enum(['all', 'pending', 'approved', 'rejected', 'cancelled', 'checked_in', 'completed', 'no_show']).optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  device_id: z.string().uuid().optional(),
-  page: z.coerce.number().int().positive().default(1),
-  page_size: z.coerce.number().int().positive().max(100).default(20)
-})
-
-// GET: 예약 목록 조회
-export async function GET(request: NextRequest) {
+// POST /api/v2/reservations - 새 예약 생성
+export async function POST(request: NextRequest) {
   try {
-    logRequest(request, 'GET /api/v2/reservations')
-
-    // NextAuth 세션 확인 (우선순위)
-    const session = await auth()
-    console.log('GET /api/v2/reservations - NextAuth 세션:', session)
-
-    if (!session?.user?.id) {
-      console.log('GET /api/v2/reservations - NextAuth 세션 없음')
+    const db = getD1Database(request);
+    
+    if (!db) {
       return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+        { error: 'Database not available' },
+        { status: 503 }
+      );
     }
 
-    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const supabase = createServiceRoleClient()
-    const userId = session.user.id
-
-    // 자동 기기 상태 체크 실행 (사용자 액션 기반)
-    try {
-      const statusCheck = await autoCheckDeviceStatus()
-      if (statusCheck.executed) {
-        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
-        if (statusCheck.errors.length > 0) {
-          console.warn('⚠️ Status check had errors:', statusCheck.errors)
-        }
-      }
-    } catch (statusError) {
-      console.error('❌ Auto status check failed:', statusError)
-      // 상태 체크 실패해도 조회는 계속 진행
-    }
-
-    // 쿼리 파라미터 파싱
-    const searchParams = request.nextUrl.searchParams
-    const params = {
-      status: searchParams.get('status') || undefined,
-      date: searchParams.get('date') || undefined,
-      device_id: searchParams.get('device_id') || undefined,
-      page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
-      page_size: searchParams.get('page_size') ? parseInt(searchParams.get('page_size')!) : 20
-    }
-
-    const validationResult = listReservationsSchema.safeParse(params)
-
+    const body = await request.json();
+    
+    // 요청 데이터 검증
+    const validationResult = createReservationSchema.safeParse(body);
     if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0]
       return NextResponse.json(
-        { error: firstError?.message ?? '유효하지 않은 요청입니다' },
+        { 
+          error: 'Validation failed',
+          details: validationResult.error.errors 
+        },
         { status: 400 }
-      )
+      );
     }
 
-    const { status, date, device_id, page, page_size } = validationResult.data
-
-    console.log('GET /api/v2/reservations - userId:', userId)
+    const data = validationResult.data;
+    const repos = new D1RepositoryFactory(db);
     
-    // 먼저 단순 쿼리로 테스트
-    console.log('단순 user_id 쿼리 테스트...')
-    const simpleTest = await supabase
-      .from('reservations')
-      .select('id, reservation_number, user_id, date')
-      .eq('user_id', userId)
-      .limit(3)
-    
-    console.log('단순 쿼리 결과:', simpleTest)
-    
-    // 이제 JOIN 쿼리 (일단 device만)
-    let query = supabase
-      .from('reservations')
-      .select(`
-        *,
-        devices!device_id(
-          id,
-          device_number,
-          device_type_id,
-          device_types!device_type_id(
-            id,
-            name,
-            model_name
-          )
-        )
-      `, { count: 'exact' })
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-
-    // 필터 적용
-    if (status && status !== 'all') {
-      query = query.eq('status', status)
+    // 사용자 존재 확인
+    const user = await repos.users.findById(data.user_id);
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
 
-    if (date) {
-      query = query.eq('date', date)
+    // 블랙리스트 사용자 확인
+    if (user.is_blacklisted) {
+      return NextResponse.json(
+        { error: '예약이 제한된 사용자입니다.' },
+        { status: 403 }
+      );
     }
 
-    if (device_id) {
-      query = query.eq('device_id', device_id)
+    // 시간 충돌 확인
+    const hasConflict = await repos.reservations.checkTimeConflict(
+      data.device_id,
+      data.date,
+      data.start_time,
+      data.end_time
+    );
+
+    if (hasConflict) {
+      return NextResponse.json(
+        { error: '해당 시간에 이미 예약이 있습니다.' },
+        { status: 409 }
+      );
     }
 
-    // 페이지네이션
-    const from = (page - 1) * page_size
-    const to = from + page_size - 1
-    query = query.range(from, to)
-
-    const { data: reservations, error: queryError, count } = await query
-    
-    console.log('GET /api/v2/reservations - 쿼리 결과:')
-    console.log('- reservations:', reservations)
-    console.log('- queryError:', queryError)
-    console.log('- count:', count)
-    console.log('- reservations length:', reservations?.length)
-
-    if (queryError) {
-      console.error('GET /api/v2/reservations - 쿼리 에러:', queryError)
-      throw queryError
+    // 사용자 활성 예약 수 확인 (최대 3개)
+    const activeReservations = await repos.reservations.countActiveReservations(data.user_id);
+    if (activeReservations >= 3) {
+      return NextResponse.json(
+        { error: '활성 예약은 최대 3개까지만 가능합니다.' },
+        { status: 400 }
+      );
     }
 
-    // 총 페이지 수 계산
-    const total_count = count || 0
-    const total_pages = Math.ceil(total_count / page_size)
+    // 기기 존재 및 상태 확인
+    const device = await repos.devices.findById(data.device_id);
+    if (!device) {
+      return NextResponse.json(
+        { error: '기기를 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
 
-    // 응답 형식화 (v2 snake_case)
-    const formatted_reservations = (reservations || []).map(reservation => {
-      // 시간을 시간(hour) 형태로 변환
-      const startHour = reservation.start_time ? parseInt(reservation.start_time.split(':')[0]) : 0
-      const endHour = reservation.end_time ? parseInt(reservation.end_time.split(':')[0]) : 0
-      
-      // 기기 정보 안전하게 추출
-      const device = reservation.devices
-      const deviceType = device?.device_types
-      
-      return {
-        id: reservation.id,
-        reservation_number: reservation.reservation_number,
-        user_id: reservation.user_id,
-        device_id: reservation.device_id,
-        device_number: device?.device_number,
-        device_name: deviceType?.name,
-        device_type: deviceType?.name,
-        date: reservation.date,
-        start_hour: startHour,
-        end_hour: endHour,
-        start_time: reservation.start_time,
-        end_time: reservation.end_time,
-        time_slot: `${startHour}:00 - ${endHour}:00`,
-        status: reservation.status,
-        credit_type: reservation.credit_type,
-        player_count: reservation.player_count,
-        total_amount: reservation.total_amount || 0,
-        user_notes: reservation.user_notes,
-        created_at: reservation.created_at,
-        updated_at: reservation.updated_at,
-        // 기기 정보를 중첩 객체로 제공 (컴포넌트 호환성)
-        device: device ? {
-          id: device.id,
-          device_number: device.device_number,
-          device_type: {
-            name: deviceType?.name || '기기 정보 없음',
-            model_name: deviceType?.model_name
-          }
-        } : null
-      }
-    })
+    if (device.status === 'maintenance') {
+      return NextResponse.json(
+        { error: '점검 중인 기기는 예약할 수 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 예약 생성
+    const reservation = await repos.reservations.createReservation({
+      user_id: data.user_id,
+      device_id: data.device_id,
+      date: data.date,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      units: data.units || 1,
+      amount: data.amount || 0,
+      notes: data.notes
+    });
+
+    // 예약 상세 정보 조회
+    const reservationWithDetails = await repos.reservations.findWithDetails(reservation.id);
 
     return NextResponse.json({
-      reservations: formatted_reservations,
-      pagination: {
-        page,
-        page_size,
-        total_count,
-        total_pages,
-        has_next: page < total_pages,
-        has_prev: page > 1
-      }
-    })
+      success: true,
+      data: reservationWithDetails || reservation,
+      message: '예약이 성공적으로 생성되었습니다.'
+    }, { status: 201 });
 
   } catch (error) {
-    console.error('GET /api/v2/reservations - 상세 에러:', error)
-    logError(error, 'GET /api/v2/reservations')
-
+    console.error('예약 생성 오류:', error);
     return NextResponse.json(
       { 
-        error: '예약 목록 조회 중 오류가 발생했습니다',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to create reservation',
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
-    )
+    );
+  }
+}
+
+// PATCH /api/v2/reservations - 예약 일괄 업데이트 (관리자용)
+export async function PATCH(request: NextRequest) {
+  try {
+    const db = getD1Database(request);
+    
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database not available' },
+        { status: 503 }
+      );
+    }
+
+    const body = await request.json();
+    const { action, reservation_ids } = body;
+
+    if (!action || !reservation_ids || !Array.isArray(reservation_ids)) {
+      return NextResponse.json(
+        { error: 'Invalid request data' },
+        { status: 400 }
+      );
+    }
+
+    const repos = new D1RepositoryFactory(db);
+    const results = [];
+
+    for (const id of reservation_ids) {
+      try {
+        switch (action) {
+          case 'confirm':
+            await repos.reservations.updateStatus(id, 'confirmed');
+            break;
+          case 'cancel':
+            await repos.reservations.cancel(id, '관리자 일괄 취소');
+            break;
+          case 'complete':
+            await repos.reservations.updateStatus(id, 'completed');
+            break;
+          default:
+            throw new Error(`Unknown action: ${action}`);
+        }
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({ 
+          id, 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      results,
+      message: `${results.filter(r => r.success).length}개 예약이 업데이트되었습니다.`
+    });
+
+  } catch (error) {
+    console.error('예약 일괄 업데이트 오류:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to update reservations',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 }

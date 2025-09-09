@@ -17,6 +17,11 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7일
     updateAge: 60 * 60 * 24, // 1일마다 갱신
     cookieName: "gameplaza-session",
+    // 쿠키 기반 세션 사용 (accessToken 문제 해결)
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 60 * 24 * 7, // 7일
+    },
   },
 
   // 쿠키 설정 (Next.js 통합)
