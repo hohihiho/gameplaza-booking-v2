@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/supabase/admin'
+// TODO: D1 데이터베이스로 마이그레이션 필요
+// import { createAdminClient } from '@/lib/supabase/admin'
 
 export const GET = withAuth(
   async (_req, { user }) => {
+    // 임시로 비활성화 - D1 마이그레이션 완료될 때까지
+    return NextResponse.json(
+      { 
+        error: '이 기능은 현재 데이터베이스 마이그레이션 중입니다.',
+        message: 'Cloudflare D1으로 전환 작업 진행 중'
+      },
+      { status: 503 }
+    );
+
+    /* D1 마이그레이션 후 구현 예정
     try {
       const supabase = createAdminClient()
 
@@ -42,5 +53,6 @@ export const GET = withAuth(
         { status: 500 }
       )
     }
+    */
   }
 )
