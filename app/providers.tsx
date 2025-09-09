@@ -1,6 +1,6 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
+import { BetterAuthProvider } from './components/BetterAuthProvider'
 import { useEffect } from 'react'
 import { ModalProvider, modal } from '@/hooks/useModal'
 import { ToastProvider } from '@/hooks/useToast'
@@ -71,15 +71,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <SessionProvider 
-      refetchInterval={5 * 60} 
-      refetchOnWindowFocus={true}
-      basePath="/api/auth"
-      baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
-    >
+    <BetterAuthProvider>
       {children}
       <ModalProvider />
       <ToastProvider />
-    </SessionProvider>
+    </BetterAuthProvider>
   )
 }

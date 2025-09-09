@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { auth } from '@/auth'
-import { getD1Database, D1RepositoryFactory } from '@/lib/repositories/d1'
+import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
+import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
+import { SupabaseUserRepository } from '@/src/infrastructure/repositories/supabase-user.repository'
 import { logRequest, logError } from '@/lib/api/logging'
+import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 // 요청 스키마 정의 (시간을 시간 단위로 변경)
 const createReservationSchema = z.object({
@@ -39,16 +44,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // D1 데이터베이스 연결
-    const db = getD1Database(request)
-    if (!db) {
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 503 }
-      )
+    // 자동 기기 상태 체크 실행 (예약 생성 시 필수)
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 예약 생성은 계속 진행
     }
 
-    const repos = new D1RepositoryFactory(db)
+    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
+    const supabase = createServiceRoleClient()
     const userId = session.user.id
 
     // 요청 본문 파싱
@@ -65,82 +73,79 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data
 
-    // 1. 기기 존재 및 사용 가능 여부 확인
-    const device = await repos.devices.findById(data.device_id)
-    if (!device) {
-      return NextResponse.json(
-        { error: '존재하지 않는 기기입니다' },
-        { status: 400 }
-      )
-    }
+    // 레포지토리 초기화
+    const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
+    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
+    const userRepository = new SupabaseUserRepository(supabase)
 
-    if (device.status !== 'available') {
-      return NextResponse.json(
-        { error: '현재 사용할 수 없는 기기입니다' },
-        { status: 400 }
-      )
-    }
-
-    // 2. 시간 충돌 체크
-    const hasConflict = await repos.reservations.checkTimeConflict(
-      data.device_id,
-      data.date,
-      data.start_hour,
-      data.end_hour
+    // 유스케이스 실행
+    const useCase = new CreateReservationV2UseCase(
+      reservationRepository,
+      deviceRepository as any,
+      userRepository as any
     )
 
-    if (hasConflict) {
-      return NextResponse.json(
-        { error: '해당 시간대에 이미 예약이 있습니다' },
-        { status: 400 }
-      )
-    }
-
-    // 3. 사용자 일일 예약 수 제한 체크 (최대 3개)
-    const dailyReservationCount = await repos.reservations.getUserReservationCount(
-      userId,
-      data.date,
-      ['pending', 'approved', 'checked_in']
-    )
-
-    if (dailyReservationCount >= 3) {
-      return NextResponse.json(
-        { error: '하루 최대 3개까지만 예약할 수 있습니다' },
-        { status: 400 }
-      )
-    }
-
-    // 4. 예약 생성
-    const reservation = await repos.reservations.createReservation({
-      user_id: userId,
-      device_id: data.device_id,
+    // 슈퍼관리자 여부 확인
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userId)
+      .eq('is_super_admin', true)
+      .single()
+    
+    const isSuperAdmin = !!adminData
+    
+    const result = await useCase.execute({
+      userId: userId,
+      deviceId: data.device_id,
       date: data.date,
-      start_hour: data.start_hour,
-      end_hour: data.end_hour,
-      credit_type: data.credit_type,
-      player_count: data.player_count,
-      user_notes: data.user_notes
+      startHour: data.start_hour,
+      endHour: data.end_hour,
+      creditType: data.credit_type,
+      playerCount: data.player_count,
+      userNotes: data.user_notes,
+      isAdmin: isSuperAdmin
     })
 
+    // 실시간 업데이트를 위한 브로드캐스트
+    try {
+      await supabase
+        .channel('reservations')
+        .send({
+          type: 'broadcast',
+          event: 'new_reservation',
+          payload: { 
+            date: data.date,
+            deviceId: data.device_id,
+            reservationId: result.reservation.id,
+            startHour: data.start_hour,
+            endHour: data.end_hour
+          }
+        })
+    } catch (broadcastError) {
+      logError(broadcastError, 'Broadcast error')
+      // 브로드캐스트 실패는 무시하고 계속 진행
+    }
+
     // v2 응답 형식 (snake_case)
-    const responseData = {
-      id: reservation.id,
-      reservation_number: reservation.reservation_number,
-      user_id: reservation.user_id,
-      device_id: reservation.device_id,
-      date: reservation.date,
+    const reservation = {
+      id: result.reservation.id,
+      reservation_number: result.reservation.reservationNumber || '',
+      user_id: result.reservation.userId,
+      device_id: result.reservation.deviceId,
+      date: result.reservation.date.dateString,
       start_hour: data.start_hour,
       end_hour: data.end_hour,
-      status: reservation.status,
+      status: result.reservation.status.value,
       total_price: 0,
       credit_type: data.credit_type,
       player_count: data.player_count,
       user_notes: data.user_notes,
-      created_at: reservation.created_at,
-      updated_at: reservation.updated_at
+      created_at: result.reservation.createdAt.toISOString(),
+      updated_at: result.reservation.updatedAt.toISOString()
     }
 
-    return NextResponse.json({ reservation: responseData }, { status: 201 })
+    return NextResponse.json({ reservation }, { status: 201 })
 
   } catch (error) {
     logError(error, 'POST /api/v2/reservations')
@@ -182,7 +187,7 @@ export async function GET(request: NextRequest) {
   try {
     logRequest(request, 'GET /api/v2/reservations')
 
-    // NextAuth 세션 확인
+    // NextAuth 세션 확인 (우선순위)
     const session = await auth()
     console.log('GET /api/v2/reservations - NextAuth 세션:', session)
 
@@ -194,17 +199,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // D1 데이터베이스 연결
-    const db = getD1Database(request)
-    if (!db) {
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 503 }
-      )
-    }
-
-    const repos = new D1RepositoryFactory(db)
+    // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
+    const supabase = createServiceRoleClient()
     const userId = session.user.id
+
+    // 자동 기기 상태 체크 실행 (사용자 액션 기반)
+    try {
+      const statusCheck = await autoCheckDeviceStatus()
+      if (statusCheck.executed) {
+        console.log(`✅ Auto status check completed - Expired: ${statusCheck.expiredCount}, Started: ${statusCheck.startedCount}`)
+        if (statusCheck.errors.length > 0) {
+          console.warn('⚠️ Status check had errors:', statusCheck.errors)
+        }
+      }
+    } catch (statusError) {
+      console.error('❌ Auto status check failed:', statusError)
+      // 상태 체크 실패해도 조회는 계속 진행
+    }
 
     // 쿼리 파라미터 파싱
     const searchParams = request.nextUrl.searchParams
@@ -230,61 +241,88 @@ export async function GET(request: NextRequest) {
 
     console.log('GET /api/v2/reservations - userId:', userId)
     
-    // 페이지네이션 계산
-    const offset = (page - 1) * page_size
+    // 먼저 단순 쿼리로 테스트
+    console.log('단순 user_id 쿼리 테스트...')
+    const simpleTest = await supabase
+      .from('reservations')
+      .select('id, reservation_number, user_id, date')
+      .eq('user_id', userId)
+      .limit(3)
+    
+    console.log('단순 쿼리 결과:', simpleTest)
+    
+    // 이제 JOIN 쿼리 (일단 device만)
+    let query = supabase
+      .from('reservations')
+      .select(`
+        *,
+        devices!device_id(
+          id,
+          device_number,
+          device_type_id,
+          device_types!device_type_id(
+            id,
+            name,
+            model_name
+          )
+        )
+      `, { count: 'exact' })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
 
-    // 예약 목록 조회 (기기 정보와 함께)
-    const reservations = await repos.reservations.findByUserId(userId, {
-      status,
-      date,
-      device_id,
-      limit: page_size,
-      offset
-    })
-
-    console.log('GET /api/v2/reservations - 조회된 예약 수:', reservations.length)
-
-    // 총 개수 조회 (페이지네이션용)
-    let countQuery = `
-      SELECT COUNT(*) as count 
-      FROM reservations r 
-      WHERE r.user_id = ?
-    `
-    const countParams: any[] = [userId]
-
+    // 필터 적용
     if (status && status !== 'all') {
-      countQuery += ' AND r.status = ?'
-      countParams.push(status)
+      query = query.eq('status', status)
     }
 
     if (date) {
-      countQuery += ' AND r.date = ?'
-      countParams.push(date)
+      query = query.eq('date', date)
     }
 
     if (device_id) {
-      countQuery += ' AND r.device_id = ?'
-      countParams.push(device_id)
+      query = query.eq('device_id', device_id)
     }
 
-    const countResult = await repos.reservations.rawFirst(countQuery, countParams) as any
-    const total_count = countResult?.count || 0
+    // 페이지네이션
+    const from = (page - 1) * page_size
+    const to = from + page_size - 1
+    query = query.range(from, to)
+
+    const { data: reservations, error: queryError, count } = await query
+    
+    console.log('GET /api/v2/reservations - 쿼리 결과:')
+    console.log('- reservations:', reservations)
+    console.log('- queryError:', queryError)
+    console.log('- count:', count)
+    console.log('- reservations length:', reservations?.length)
+
+    if (queryError) {
+      console.error('GET /api/v2/reservations - 쿼리 에러:', queryError)
+      throw queryError
+    }
+
+    // 총 페이지 수 계산
+    const total_count = count || 0
     const total_pages = Math.ceil(total_count / page_size)
 
     // 응답 형식화 (v2 snake_case)
-    const formatted_reservations = reservations.map(reservation => {
+    const formatted_reservations = (reservations || []).map(reservation => {
       // 시간을 시간(hour) 형태로 변환
       const startHour = reservation.start_time ? parseInt(reservation.start_time.split(':')[0]) : 0
       const endHour = reservation.end_time ? parseInt(reservation.end_time.split(':')[0]) : 0
+      
+      // 기기 정보 안전하게 추출
+      const device = reservation.devices
+      const deviceType = device?.device_types
       
       return {
         id: reservation.id,
         reservation_number: reservation.reservation_number,
         user_id: reservation.user_id,
         device_id: reservation.device_id,
-        device_number: (reservation as any).device_number,
-        device_name: (reservation as any).device_type_name,
-        device_type: (reservation as any).device_type_name,
+        device_number: device?.device_number,
+        device_name: deviceType?.name,
+        device_type: deviceType?.name,
         date: reservation.date,
         start_hour: startHour,
         end_hour: endHour,
@@ -299,14 +337,14 @@ export async function GET(request: NextRequest) {
         created_at: reservation.created_at,
         updated_at: reservation.updated_at,
         // 기기 정보를 중첩 객체로 제공 (컴포넌트 호환성)
-        device: {
-          id: reservation.device_id,
-          device_number: (reservation as any).device_number,
+        device: device ? {
+          id: device.id,
+          device_number: device.device_number,
           device_type: {
-            name: (reservation as any).device_type_name || '기기 정보 없음',
-            model_name: (reservation as any).device_type_description
+            name: deviceType?.name || '기기 정보 없음',
+            model_name: deviceType?.model_name
           }
-        }
+        } : null
       }
     })
 

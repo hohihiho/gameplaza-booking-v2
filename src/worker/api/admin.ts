@@ -19,7 +19,7 @@ const requireAdmin = async (request: Request) => {
     )
   }
   
-  // Stack Auth에서 관리자 권한 확인
+  // 관리자 권한 확인
   // 임시 구현
   return true
 }

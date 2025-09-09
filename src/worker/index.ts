@@ -672,7 +672,7 @@ export default {
         }
       }
       
-      // 사용자 이메일로 조회 API (Stack Auth 연동)
+      // 사용자 이메일로 조회 API
       if (url.pathname === '/api/auth/user-by-email' && request.method === 'GET') {
         try {
           const db = env.DB // Development와 Production 모두 DB 바인딩 사용
