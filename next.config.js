@@ -126,23 +126,29 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
           }]),
-          // Content Security Policy - 테스트 환경에 따라 조정
+          // Content Security Policy - 보안 강화
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com",
+              // script-src에서 unsafe-inline, unsafe-eval 제거
+              isDev ? 
+                "script-src 'self' 'unsafe-eval' https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com" :
+                "script-src 'self' https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com",
               "worker-src 'self' blob: data:",
-              // 테스트 환경에서 외부 폰트 허용
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+              // style-src에서 unsafe-inline을 nonce로 대체 (개발환경에서만 허용)
+              isDev ?
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net" :
+                "style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-              "img-src 'self' data: blob: https: http: https://lh3.googleusercontent.com https://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co",
-              // Supabase 연결 허용 (개발/운영 DB 모두 포함)
-              "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co wss://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co wss://rfcxbqlgvppqjxgpwnzd.supabase.co https://www.google-analytics.com https://cdn.jsdelivr.net",
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co",
+              // D1 마이그레이션 후 Supabase 연결 제거
+              "connect-src 'self' https://accounts.google.com https://www.google-analytics.com https://cdn.jsdelivr.net" + (isDev ? " http://localhost:* ws://localhost:*" : ""),
               "frame-src 'self' https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
+              "frame-ancestors 'none'",
               ...(isDev ? [] : ["upgrade-insecure-requests"]),
             ].join('; '),
           },

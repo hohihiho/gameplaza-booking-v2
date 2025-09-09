@@ -50,11 +50,23 @@ export default {
       };
     }
 
-    // CORS 헤더 설정
+    // CORS 헤더 설정 - 보안 강화
+    const allowedOrigins = [
+      'https://gameplaza.gwangju.kr',
+      'https://gameplaza.kr',
+      'http://localhost:3000', // 개발 환경
+      'http://127.0.0.1:3000'  // 개발 환경
+    ];
+    
+    const origin = request.headers.get('Origin');
+    const isAllowedOrigin = allowedOrigins.includes(origin) || 
+      (env.NODE_ENV === 'development' && origin?.startsWith('http://localhost:'));
+    
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token',
       'Access-Control-Max-Age': '86400',
     };
 

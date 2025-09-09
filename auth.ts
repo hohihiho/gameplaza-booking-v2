@@ -24,10 +24,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           scope: "openid email profile"
         }
       },
-      allowDangerousEmailAccountLinking: true
+      allowDangerousEmailAccountLinking: false // 보안 강화
     })
   ],
-  debug: true, // 디버깅을 위해 임시로 활성화
+  debug: process.env.NODE_ENV === 'development', // 개발 환경에서만 디버그
   pages: {
     signIn: '/login',
     error: '/login', // 에러 페이지를 로그인 페이지로 리다이렉트
@@ -257,11 +257,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: 'jwt',
-    maxAge: 7 * 24 * 60 * 60, // 7일로 단축 (보안 강화)
-    updateAge: 24 * 60 * 60, // 1일마다 세션 갱신
+    maxAge: 24 * 60 * 60, // 1일로 더 단축 (보안 강화)
+    updateAge: 4 * 60 * 60, // 4시간마다 세션 갱신
   },
   jwt: {
-    maxAge: 7 * 24 * 60 * 60, // 7일로 단축
+    maxAge: 24 * 60 * 60, // 1일로 더 단축 (보안 강화)
   },
   cookies: {
     sessionToken: {

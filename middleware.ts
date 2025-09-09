@@ -19,8 +19,84 @@ interface CanaryConfig {
 const CANARY_COOKIE = 'x-api-version';
 const CANARY_HEADER = 'x-api-version';
 
+// Rate Limiting 설정
+const rateLimitConfigs = {
+  auth: { windowMs: 15 * 60 * 1000, max: 5 }, // 15분에 5번
+  reservation: { windowMs: 60 * 1000, max: 3 }, // 1분에 3번  
+  admin: { windowMs: 60 * 1000, max: 10 }, // 1분에 10번
+  default: { windowMs: 60 * 1000, max: 30 } // 1분에 30번
+};
+
+// 메모리 기반 Rate Limiter (개발용 - 프로덕션에서는 Redis 권장)
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
+interface RateLimitConfig {
+  windowMs: number;
+  max: number;
+}
+
+function rateLimit(config: RateLimitConfig) {
+  return (request: NextRequest): NextResponse | null => {
+    const identifier = request.ip || 'unknown';
+    const now = Date.now();
+    const key = `${identifier}:${request.nextUrl.pathname}`;
+    
+    let requestData = requestCounts.get(key);
+    
+    // 시간 윈도우가 지났으면 초기화
+    if (!requestData || now > requestData.resetTime) {
+      requestData = {
+        count: 1,
+        resetTime: now + config.windowMs
+      };
+      requestCounts.set(key, requestData);
+      return null;
+    }
+    
+    // 요청 수 증가
+    requestData.count++;
+    
+    // 제한 초과 시 차단
+    if (requestData.count > config.max) {
+      console.warn(`[SECURITY] Rate limit exceeded: ${identifier} on ${request.nextUrl.pathname}`);
+      return new NextResponse(
+        JSON.stringify({ 
+          error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((requestData.resetTime - now) / 1000)
+        }),
+        { 
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': Math.ceil((requestData.resetTime - now) / 1000).toString()
+          }
+        }
+      );
+    }
+    
+    return null;
+  };
+}
+
 export async function middleware(request: NextRequest) {
-  // 임시로 모든 미들웨어 로직 비활성화
+  // 의심스러운 요청 차단
+  if (isBlockedRequest(request)) {
+    console.warn(`[SECURITY] 차단된 요청: ${request.nextUrl.pathname} from ${request.ip}`);
+    return new NextResponse('요청이 차단되었습니다.', { status: 403 });
+  }
+
+  // Rate Limiting 적용
+  const rateLimitResponse = applyRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  // Canary 라우팅 처리
+  const canaryResponse = await handleCanaryRouting(request);
+  if (canaryResponse) {
+    return canaryResponse;
+  }
+
   return NextResponse.next();
 }
 
