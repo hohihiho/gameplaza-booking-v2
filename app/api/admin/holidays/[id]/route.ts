@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { HolidayService } from '@/lib/services/holiday.service';
-import { createClient } from '@/lib/supabase/server';
+import { HolidayService } from '@/lib/d1/services/holiday.service';
+import { auth } from '@/auth';
+import { AdminsRepository } from '@/lib/d1/repositories/admins';
 
 // DELETE /api/admin/holidays/[id] - 공휴일 삭제
 export async function DELETE(
@@ -11,10 +12,9 @@ export async function DELETE(
     const { id } = await params;
     
     // 관리자 권한 확인
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const session = await auth();
     
-    if (!user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: '인증이 필요합니다' },
         { status: 401 }
@@ -22,20 +22,18 @@ export async function DELETE(
     }
 
     // 관리자인지 확인
-    const { data: admin } = await supabase
-      .from('admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single();
+    const adminsRepo = new AdminsRepository();
+    const isAdmin = await adminsRepo.isAdmin(session.user.email);
 
-    if (!admin) {
+    if (!isAdmin) {
       return NextResponse.json(
         { error: '관리자 권한이 필요합니다' },
         { status: 403 }
       );
     }
 
-    const success = await HolidayService.deleteHoliday(id);
+    const holidayService = new HolidayService();
+    const success = await holidayService.deleteHoliday(id);
 
     if (!success) {
       return NextResponse.json(

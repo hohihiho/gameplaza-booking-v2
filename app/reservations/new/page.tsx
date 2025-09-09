@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info, UserPlus } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { createClient } from '@/lib/supabase';
+// D1 마이그레이션: API client 사용 예정
 import { parseKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { useCreateReservation } from '@/lib/hooks/useReservations';
@@ -121,29 +121,18 @@ export default function NewReservationPage() {
     }
   }, [selectedDate, selectedDeviceInfo]);
 
-  // 실시간 예약 업데이트 구독
+  // D1 마이그레이션: 실시간 업데이트 임시 비활성화
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel('reservations')
-      .on(
-        'broadcast',
-        { event: 'new_reservation' },
-        (payload) => {
-          console.log('New reservation broadcast received:', payload);
-          
-          // 현재 선택된 날짜와 기기 타입이 일치하는 경우만 업데이트
-          if (payload.payload?.date === selectedDate && 
-              selectedDeviceInfo?.typeId === payload.payload?.deviceTypeId) {
-            console.log('Refreshing time slots due to new reservation');
-            fetchTimeSlots();
-          }
-        }
-      )
-      .subscribe();
+    // 폴링으로 대체: 30초마다 시간대 새로고침
+    const interval = setInterval(() => {
+      if (selectedDate && selectedDeviceInfo) {
+        console.log('Refreshing time slots (polling)');
+        fetchTimeSlots();
+      }
+    }, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [selectedDate, selectedDeviceInfo]);
 
@@ -151,31 +140,21 @@ export default function NewReservationPage() {
     console.log('=== fetchDeviceTypes started ===');
     setIsLoadingDevices(true);
     try {
-      // device_types와 관련 정보 가져오기
-      const supabase = createClient();
-      // 모든 렌탈 가능한 기기 타입 조회 (일단 시간대 필터링 제거)
-      const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
-        .select(`
-          *,
-          device_categories!category_id (
-            id,
-            name,
-            display_order
-          ),
-          devices (
-            id,
-            device_number,
-            status
-          )
-        `)
-        .eq('is_rentable', true)
-        .order('display_order', { ascending: true });
+      // API를 통해 기기 타입 정보 가져오기
+      const response = await fetch('/api/v2/devices/available-for-reservation');
+      
+      if (!response.ok) {
+        throw new Error('기기 타입 정보를 가져올 수 없습니다');
+      }
+      
+      const result = await response.json();
+      const deviceTypesData = result.data;
 
       console.log('Fetched device types:', deviceTypesData?.length || 0, 'types');
 
-      if (typesError) {
-        console.error('Supabase query error:', typesError);
-        throw typesError;
+      if (!deviceTypesData) {
+        console.error('API query failed - no data');
+        throw new Error('기기 타입 데이터를 받아오지 못했습니다');
       }
 
       console.log('Raw device types data:', deviceTypesData);

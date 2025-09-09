@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle, Calendar, Clock, Hash, Home, List, Gamepad2, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+// D1 마이그레이션: API client 사용 예정
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { useSession } from 'next-auth/react';
@@ -18,7 +18,7 @@ export default function ReservationCompleteContent() {
   const { lastReservationId } = useReservationStore();
   const [reservation, setReservation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [supabase] = useState(() => createClient());
+  // D1 마이그레이션: API client로 대체됨
   const { data: session, status } = useSession();
   
   // URL 파라미터가 있으면 우선 사용, 없으면 store에서 가져옴
@@ -59,33 +59,21 @@ export default function ReservationCompleteContent() {
     try {
       console.log('예약 정보 로드 시작 - ID:', reservationId);
       
-      // 예약 정보와 관련 데이터를 한 번에 가져오기
-      const { data, error } = await supabase.from('reservations')
-        .select(`
-          *,
-          devices (
-            device_number,
-            device_types (
-              name,
-              device_categories (
-                name
-              )
-            )
-          )
-        `)
-        .eq('id', reservationId)
-        .maybeSingle(); // single() 대신 maybeSingle() 사용
-
-      if (error) {
-        console.error('예약 정보 로드 에러:', error);
-        // 에러가 나도 페이지는 유지
-        setReservation(null);
-      } else if (!data) {
+      // API를 통해 예약 정보 가져오기
+      const response = await fetch(`/api/v2/reservations/${reservationId}`)
+      
+      if (!response.ok) {
+        throw new Error('예약 정보를 가져올 수 없습니다')
+      }
+      
+      const result = await response.json()
+      
+      if (result.data) {
+        console.log('예약 데이터 로드 성공:', result.data);
+        setReservation(result.data);
+      } else {
         console.log('예약 정보를 찾을 수 없습니다');
         setReservation(null);
-      } else {
-        console.log('예약 데이터 로드 성공:', data);
-        setReservation(data);
       }
     } catch (error) {
       console.error('예약 정보 로드 실패:', error);

@@ -1,40 +1,18 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
+// D1 마이그레이션 중 Realtime 기능 임시 비활성화
 export function useRealtimeReservations(onUpdate: () => void) {
-  const supabase = createClient()
-
   useEffect(() => {
-    // 예약 테이블의 변경사항 구독
-    const channel = supabase
-      .channel('reservation-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        (payload) => {
-          console.log('Reservation change:', payload)
-          onUpdate()
-        }
-      )
-      .subscribe()
-
-    // 브로드캐스트 이벤트도 구독
-    channel.on('broadcast', { event: 'new_reservation' }, (payload) => {
-      console.log('New reservation broadcast:', payload)
+    // D1에서는 Realtime 기능이 없으므로 폴링으로 대체
+    // 15초마다 업데이트 트리거
+    const interval = setInterval(() => {
       onUpdate()
-    })
+    }, 15000)
 
-    channel.on('broadcast', { event: 'cancelled_reservation' }, (payload) => {
-      console.log('Cancelled reservation broadcast:', payload)
-      onUpdate()
-    })
+    console.warn('D1 마이그레이션 중: Realtime 기능이 폴링으로 대체됨')
 
     return () => {
-      supabase.removeChannel(channel)
+      clearInterval(interval)
     }
-  }, [supabase, onUpdate])
+  }, [onUpdate])
 }

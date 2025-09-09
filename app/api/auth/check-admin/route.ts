@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
-
-import { createAdminClient } from '@/lib/supabase';
+import { UsersRepository } from '@/lib/d1/repositories/users';
+import { AdminsRepository } from '@/lib/d1/repositories/admins';
 
 export async function GET() {
   const session = await auth();
@@ -13,29 +13,22 @@ export async function GET() {
   }
 
   try {
-    const supabase = createAdminClient();
+    const usersRepo = new UsersRepository();
+    const adminsRepo = new AdminsRepository();
     
     // 사용자 ID 조회
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, role')
-      .eq('email', session.user.email)
-      .single();
+    const userData = await usersRepo.findByEmail(session.user.email);
     
-    console.log('[check-admin] User data:', userData, 'Error:', userError);
+    console.log('[check-admin] User data:', userData);
     
     if (!userData) {
       return Response.json({ isAdmin: false });
     }
 
     // 관리자 권한 확인
-    const { data: adminData, error: adminError } = await supabase
-      .from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userData.id)
-      .single();
+    const adminData = await adminsRepo.findByUserId(userData.id);
     
-    console.log('[check-admin] Admin data:', adminData, 'Error:', adminError);
+    console.log('[check-admin] Admin data:', adminData);
     
     // 관리자 권한 확인 - admins 테이블에 있으면 관리자
     const isAdmin = !!adminData || userData.role === 'admin';

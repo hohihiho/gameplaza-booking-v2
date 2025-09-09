@@ -1,22 +1,36 @@
-/**
- * Supabase 클라이언트 통합 모듈
- * 모든 Supabase 관련 기능을 한 곳에서 관리합니다.
- */
+// D1 마이그레이션 중 임시 Supabase 호환성 모듈
+// 빌드 오류를 방지하기 위한 임시 구현
 
-// 클라이언트 exports
-export { createClient, getClient } from './client'
-// Server exports는 별도로 import해서 사용하세요: import { createClient } from '@/lib/supabase/server'
-// export { createClient as createServerClient, createActionClient } from './server'
-export { createAdminClient, getAdminClient } from './admin'
-export { createServiceRoleClient } from './service-role'
+export function createClient() {
+  return {
+    from: (table: string) => ({
+      select: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+      insert: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+      update: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+      delete: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+    }),
+    auth: {
+      getUser: () => ({ data: { user: null }, error: null }),
+      signIn: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+      signUp: () => ({ data: null, error: new Error('D1 마이그레이션 중') }),
+      signOut: () => ({ error: null }),
+    },
+    channel: () => ({
+      on: () => ({}),
+      subscribe: () => ({}),
+    }),
+    removeChannel: () => {},
+  }
+}
 
-// 타입 exports - 명시적으로 export
-export type { Database, Tables, TablesInsert, TablesUpdate, Enums, User, Reservation, Device, DeviceType, Admin } from './types'
+export function createAdminClient() {
+  return createClient()
+}
 
-// 헬퍼 함수들
-// import { isServer } from '@/lib/config/env'
-
-// getSupabaseClient 함수는 제거되었습니다.
-// 대신 다음을 사용하세요:
-// - Client Component: import { createClient } from '@/lib/supabase'
-// - Server Component/API Route: import { createClient } from '@/lib/supabase/server'
+export function createServiceRoleClient(
+  supabaseUrl?: string,
+  supabaseServiceRoleKey?: string,
+  options?: any
+) {
+  return createClient()
+}

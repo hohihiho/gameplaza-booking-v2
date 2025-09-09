@@ -4,9 +4,17 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  nickname?: string;
   phone?: string;
   avatar?: string;
   role: 'user' | 'admin';
+  marketing_agreed?: boolean;
+  marketing_agreed_at?: string;
+  birth_date?: string;
+  gender?: string;
+  terms_agreed_at?: string;
+  privacy_agreed_at?: string;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }

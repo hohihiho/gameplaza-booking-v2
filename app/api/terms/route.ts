@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { ContentPagesRepository } from '@/lib/d1/repositories/content-pages';
 
 // 활성 약관 조회 API (content_pages 테이블 사용)
 export async function GET(request: NextRequest) {
@@ -13,25 +13,19 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     });
     
-    const supabase = createClient();
+    const contentRepo = new ContentPagesRepository();
+    let data;
     
-    let query = supabase
-      .from('content_pages')
-      .select('*')
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false });
-    
-    // 특정 타입이 요청된 경우 필터링
-    if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
-      query = query.eq('slug', type);
-    } else {
-      // type이 지정되지 않은 경우 약관 관련 페이지만 조회
-      query = query.in('slug', ['terms_of_service', 'privacy_policy']);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
+    try {
+      // 특정 타입이 요청된 경우 필터링
+      if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
+        const page = await contentRepo.findBySlug(type, true);
+        data = page ? [page] : [];
+      } else {
+        // type이 지정되지 않은 경우 약관 관련 페이지만 조회
+        data = await contentRepo.findMultiple(['terms_of_service', 'privacy_policy'], true);
+      }
+    } catch (error) {
       console.error('약관 조회 오류:', error);
       return NextResponse.json(
         { error: '약관을 불러오는 중 오류가 발생했습니다.' },

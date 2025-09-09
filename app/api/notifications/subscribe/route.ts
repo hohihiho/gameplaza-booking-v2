@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { PushSubscriptionsRepository } from '@/lib/d1/repositories/push-subscriptions';
+import { UsersRepository } from '@/lib/d1/repositories/users';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,22 +37,18 @@ export async function POST(request: NextRequest) {
       };
 
       // 기존 구독이 있는지 확인
-      const { data: existingSubscription } = await supabase
-        .from('push_subscriptions')
-        .select('*')
-        .eq('user_email', session.user.email)
-        .eq('endpoint', subscription.endpoint)
-        .single();
+      const pushRepo = new PushSubscriptionsRepository();
+      const existingSubscriptions = await pushRepo.findByUserEmail(session.user.email, false);
+      const existingSubscription = existingSubscriptions.find(
+        sub => sub.endpoint === subscription.endpoint
+      );
 
       if (existingSubscription) {
         // 기존 구독 업데이트
-        const { error } = await supabase
-          .from('push_subscriptions')
-          .update(subscriptionData)
-          .eq('id', existingSubscription.id);
-
-        if (error) {
-          console.error('구독 업데이트 오류:', error);
+        const updated = await pushRepo.update(existingSubscription.id, subscriptionData);
+        
+        if (!updated) {
+          console.error('구독 업데이트 실패');
           return NextResponse.json(
             { error: '구독 업데이트에 실패했습니다.' },
             { status: 500 }
@@ -64,15 +56,13 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // 새 구독 생성
-        const { error } = await supabase
-          .from('push_subscriptions')
-          .insert({
-            ...subscriptionData,
-            created_at: new Date().toISOString()
-          });
+        const created = await pushRepo.create({
+          ...subscriptionData,
+          created_at: new Date().toISOString()
+        });
 
-        if (error) {
-          console.error('구독 생성 오류:', error);
+        if (!created) {
+          console.error('구독 생성 실패');
           return NextResponse.json(
             { error: '구독 등록에 실패했습니다.' },
             { status: 500 }
@@ -83,20 +73,22 @@ export async function POST(request: NextRequest) {
 
     // users 테이블의 push_notifications_enabled 필드 업데이트
     if (typeof enabled === 'boolean') {
-      const { error: userUpdateError } = await supabase
-        .from('users')
-        .update({ 
+      const usersRepo = new UsersRepository();
+      const user = await usersRepo.findByEmail(session.user.email);
+      
+      if (user) {
+        const updated = await usersRepo.update(user.id, {
           push_notifications_enabled: enabled,
           updated_at: new Date().toISOString()
-        })
-        .eq('email', session.user.email);
-
-      if (userUpdateError) {
-        console.error('사용자 알림 설정 업데이트 오류:', userUpdateError);
-        return NextResponse.json(
-          { error: '알림 설정 변경에 실패했습니다.' },
-          { status: 500 }
-        );
+        });
+        
+        if (!updated) {
+          console.error('사용자 알림 설정 업데이트 실패');
+          return NextResponse.json(
+            { error: '알림 설정 변경에 실패했습니다.' },
+            { status: 500 }
+          );
+        }
       }
     }
 
@@ -128,14 +120,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 사용자의 현재 푸시 알림 설정 조회
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('push_notifications_enabled')
-      .eq('email', session.user.email)
-      .single();
+    const usersRepo = new UsersRepository();
+    const user = await usersRepo.findByEmail(session.user.email);
 
-    if (error) {
-      console.error('사용자 알림 설정 조회 오류:', error);
+    if (!user) {
+      console.error('사용자를 찾을 수 없음');
       return NextResponse.json(
         { error: '설정 조회에 실패했습니다.' },
         { status: 500 }

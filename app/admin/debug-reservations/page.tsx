@@ -1,183 +1,93 @@
+// 예약 디버그 페이지 - D1 마이그레이션 중 임시 비활성화
 'use client';
 
-import React, { useState } from 'react';
-import { createAdminClient } from '@/lib/supabase';
+import { useState } from 'react';
 
 export default function DebugReservationsPage() {
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>({});
+  const [testing, setTesting] = useState(false);
+  const [results, setResults] = useState<any>(null);
 
-  const runDebug = async () => {
-    setLoading(true);
-    const debugResults: any = {};
-
+  const testAPI = async () => {
+    setTesting(true);
     try {
-      // 1. API 호출 테스트
-      console.log('=== 1. API 호출 테스트 ===');
-      try {
-        const apiResponse = await fetch('/api/v2/admin/reservations?limit=10');
-        const apiText = await apiResponse.text();
-        debugResults.api = {
-          status: apiResponse.status,
-          statusText: apiResponse.statusText,
-          headers: Object.fromEntries(apiResponse.headers.entries()),
-          body: apiText,
-          parsed: null
-        };
-        
-        try {
-          debugResults.api.parsed = JSON.parse(apiText);
-        } catch (e) {
-          debugResults.api.parseError = e instanceof Error ? e.message : String(e);
-        }
-        
-        console.log('API 응답:', debugResults.api);
-      } catch (error) {
-        debugResults.api = { error: error instanceof Error ? error.message : String(error) };
-      }
-
-      // 2. 직접 Supabase 조회 (Admin Client)
-      console.log('=== 2. Supabase Admin Client 조회 ===');
-      try {
-        const supabaseAdmin = createAdminClient();
-        
-        // 예약 테이블 전체 카운트
-        const { count: totalCount, error: countError } = await supabaseAdmin
-          .from('reservations')
-          .select('*', { count: 'exact', head: true });
-        
-        debugResults.totalCount = { count: totalCount, error: countError };
-        console.log('전체 예약 수:', totalCount, '에러:', countError);
-        
-        // 최근 5개 예약 조회
-        const { data: recentReservations, error: recentError } = await supabaseAdmin
-          .from('reservations')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        debugResults.recentReservations = { 
-          data: recentReservations, 
-          error: recentError,
-          count: recentReservations?.length || 0
-        };
-        console.log('최근 예약:', recentReservations);
-        
-        // 상태별 카운트
-        const statuses = ['pending', 'approved', 'rejected', 'cancelled', 'completed'];
-        debugResults.statusCounts = {};
-        
-        for (const status of statuses) {
-          const { count, error } = await supabaseAdmin
-            .from('reservations')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', status);
-          
-          debugResults.statusCounts[status] = { count, error };
-        }
-        console.log('상태별 카운트:', debugResults.statusCounts);
-        
-        // Users 테이블 샘플 조회
-        const { data: sampleUsers, error: usersError } = await supabaseAdmin
-          .from('users')
-          .select('*')
-          .limit(3);
-        
-        debugResults.sampleUsers = { data: sampleUsers, error: usersError };
-        
-        // Devices 테이블 샘플 조회
-        const { data: sampleDevices, error: devicesError } = await supabaseAdmin
-          .from('devices')
-          .select('*')
-          .limit(3);
-        
-        debugResults.sampleDevices = { data: sampleDevices, error: devicesError };
-        
-      } catch (error) {
-        debugResults.supabase = { error: error instanceof Error ? error.message : String(error) };
-      }
-
-      // 3. NextAuth 세션 확인
-      console.log('=== 3. NextAuth 세션 확인 ===');
-      try {
-        const sessionResponse = await fetch('/api/auth/session');
-        const session = await sessionResponse.json();
-        debugResults.session = session;
-        console.log('NextAuth 세션:', session);
-      } catch (error) {
-        debugResults.session = { error: error instanceof Error ? error.message : String(error) };
-      }
-
+      const response = await fetch('/api/v2/admin/reservations?limit=10');
+      const data = await response.json();
+      setResults({
+        success: response.ok,
+        status: response.status,
+        data: data,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
-      console.error('Debug error:', error);
-      debugResults.error = error instanceof Error ? error.message : String(error);
+      setResults({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setTesting(false);
     }
-
-    setResults(debugResults);
-    setLoading(false);
   };
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">예약 데이터 디버깅</h1>
+      <h1 className="text-2xl font-bold mb-4">예약 디버그</h1>
       
-      <button
-        onClick={runDebug}
-        disabled={loading}
-        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-      >
-        {loading ? '디버깅 중...' : '디버그 실행'}
-      </button>
-
-      {Object.keys(results).length > 0 && (
-        <div className="space-y-4">
-          <div className="p-4 bg-gray-100 rounded">
-            <h2 className="font-bold mb-2">1. API 응답</h2>
-            <pre className="text-xs overflow-auto">
-              {JSON.stringify(results.api, null, 2)}
-            </pre>
-          </div>
-
-          <div className="p-4 bg-blue-100 rounded">
-            <h2 className="font-bold mb-2">2. 데이터베이스 직접 조회</h2>
-            <div className="space-y-2">
-              <div>
-                <h3 className="font-semibold">전체 예약 수:</h3>
-                <pre className="text-xs">{JSON.stringify(results.totalCount, null, 2)}</pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">상태별 카운트:</h3>
-                <pre className="text-xs">{JSON.stringify(results.statusCounts, null, 2)}</pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">최근 예약 ({results.recentReservations?.count || 0}개):</h3>
-                <pre className="text-xs overflow-auto">{JSON.stringify(results.recentReservations, null, 2)}</pre>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-green-100 rounded">
-            <h2 className="font-bold mb-2">3. 관련 테이블</h2>
-            <div className="space-y-2">
-              <div>
-                <h3 className="font-semibold">Users 샘플:</h3>
-                <pre className="text-xs overflow-auto">{JSON.stringify(results.sampleUsers, null, 2)}</pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">Devices 샘플:</h3>
-                <pre className="text-xs overflow-auto">{JSON.stringify(results.sampleDevices, null, 2)}</pre>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-yellow-100 rounded">
-            <h2 className="font-bold mb-2">4. NextAuth 세션</h2>
-            <pre className="text-xs overflow-auto">
-              {JSON.stringify(results.session, null, 2)}
-            </pre>
-          </div>
+      <div className="space-y-6">
+        <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-2">⚠️ D1 마이그레이션 진행 중</h2>
+          <p>기존 Supabase 직접 조회 기능은 비활성화되었습니다.</p>
+          <p>현재는 API를 통한 데이터 조회만 가능합니다.</p>
         </div>
-      )}
+
+        <div className="bg-white border border-gray-300 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">API 테스트</h2>
+          <button
+            onClick={testAPI}
+            disabled={testing}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {testing ? '테스트 중...' : '예약 API 테스트'}
+          </button>
+        </div>
+
+        {results && (
+          <div className={`border rounded-lg p-6 ${
+            results.success ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
+          }`}>
+            <h2 className="text-lg font-semibold mb-2">
+              {results.success ? '✅ API 테스트 성공' : '❌ API 테스트 실패'}
+            </h2>
+            <div className="space-y-2 text-sm">
+              <p><strong>시간:</strong> {results.timestamp}</p>
+              {results.status && <p><strong>상태 코드:</strong> {results.status}</p>}
+              {results.error && (
+                <p className="text-red-600"><strong>오류:</strong> {results.error}</p>
+              )}
+            </div>
+            
+            {results.data && (
+              <div className="mt-4">
+                <h3 className="font-semibold mb-2">응답 데이터:</h3>
+                <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+                  {JSON.stringify(results.data, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="bg-blue-100 border border-blue-300 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-2">대체 기능</h2>
+          <p className="mb-4">더 자세한 관리 기능은 메인 관리자 대시보드에서 이용할 수 있습니다:</p>
+          <a 
+            href="/admin" 
+            className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          >
+            관리자 대시보드로 이동
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

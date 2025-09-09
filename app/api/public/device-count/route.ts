@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase';
+import { DevicesRepository } from '@/lib/d1/repositories/devices';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (30초 캐시)
@@ -16,16 +16,10 @@ export async function GET() {
       return NextResponse.json(deviceCountCache.data);
     }
     
-    const supabase = createAdminClient();
+    const devicesRepo = new DevicesRepository();
     
-    // 최적화된 쿼리: status만 선택하여 네트워크 트래픽 최소화
-    const { data: devices, error: devicesError } = await supabase
-      .from('devices')
-      .select('status');
-    
-    if (devicesError) {
-      throw devicesError;
-    }
+    // 모든 기기 조회 (status 필드만 필요하므로 전체 조회)
+    const devices = await devicesRepo.list();
     
     const total = devices?.length || 0;
     const available = devices?.filter(d => d.status === 'available').length || 0;

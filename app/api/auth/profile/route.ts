@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createAdminClient } from '@/lib/supabase';
+import { UsersRepository } from '@/lib/d1/repositories/users';
+import { AdminsRepository } from '@/lib/d1/repositories/admins';
 
 export async function GET() {
   try {
@@ -14,14 +15,11 @@ export async function GET() {
     }
 
     // 사용자 프로필 조회
-    const supabaseAdmin = createAdminClient();
-    const { data: profile, error } = await supabaseAdmin.from('users')
-      .select('*')
-      .eq('email', session.user.email)
-      .single();
+    const usersRepo = new UsersRepository();
+    const profile = await usersRepo.findByEmail(session.user.email);
 
-    // PGRST116: 행이 없음 (프로필이 없는 경우)
-    if (error && error.code === 'PGRST116') {
+    // 프로필이 없는 경우
+    if (!profile) {
       return NextResponse.json(
         { 
           exists: false,
@@ -33,22 +31,11 @@ export async function GET() {
       );
     }
 
-    if (error) {
-      console.error('프로필 조회 오류:', error);
-      return NextResponse.json(
-        { error: '프로필 조회 중 오류가 발생했습니다' },
-        { status: 500 }
-      );
-    }
-
     // 관리자 권한 확인
     let isAdmin = false;
     if (profile?.id) {
-      
-      const { data: adminData } = await supabaseAdmin.from('admins')
-        .select('is_super_admin')
-        .eq('user_id', profile.id)
-        .single();
+      const adminsRepo = new AdminsRepository();
+      const adminData = await adminsRepo.findByUserId(profile.id);
       
       isAdmin = !!adminData?.is_super_admin;
     }
@@ -103,18 +90,24 @@ export async function PUT(request: Request) {
     }
 
     // 프로필 업데이트
-    const supabaseAdmin = createAdminClient();
-    const { data, error } = await supabaseAdmin.from('users')
-      .update({
-        nickname,
-        updated_at: new Date().toISOString()
-      })
-      .eq('email', session.user.email)
-      .select()
-      .single();
+    const usersRepo = new UsersRepository();
+    
+    // 먼저 사용자를 찾기
+    const user = await usersRepo.findByEmail(session.user.email);
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다' },
+        { status: 404 }
+      );
+    }
 
-    if (error) {
-      console.error('프로필 업데이트 오류:', error);
+    // 프로필 업데이트
+    const updatedProfile = await usersRepo.update(user.id, {
+      nickname,
+      updated_at: new Date().toISOString()
+    });
+
+    if (!updatedProfile) {
       return NextResponse.json(
         { error: '프로필 업데이트 중 오류가 발생했습니다' },
         { status: 500 }
@@ -123,7 +116,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      profile: data
+      profile: updatedProfile
     });
   } catch (error) {
     console.error('Profile PUT API error:', error);
