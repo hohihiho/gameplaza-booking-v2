@@ -72,7 +72,7 @@ interface ReservationData {
 export default function NewReservationPageRedesigned() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [supabase] = useState(() => createClient());
+  // D1 API 사용으로 Supabase 클라이언트 불필요
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 현재 단계 (1-3)
@@ -115,7 +115,7 @@ export default function NewReservationPageRedesigned() {
     try {
       setIsLoadingDevices(true);
       
-      const supabase = createClient();
+      // D1 API 사용
       const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
@@ -181,7 +181,7 @@ export default function NewReservationPageRedesigned() {
       setIsLoadingSlots(true);
       setError(null);
       
-      const supabase = createClient();
+      // D1 API 사용
       const { data: slotsData, error: slotsError } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
@@ -346,7 +346,7 @@ export default function NewReservationPageRedesigned() {
       setIsSubmitting(true);
       setError(null);
       
-      const supabase = createClient();
+      // D1 API 사용
   const { data: availableDevice, error: deviceError } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
@@ -365,7 +365,7 @@ export default function NewReservationPageRedesigned() {
         throw new Error('로그인이 필요합니다');
       }
 
-      const supabase = createClient();
+      // D1 API 사용
   const { data: userData } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
@@ -387,7 +387,7 @@ export default function NewReservationPageRedesigned() {
         notes: ''
       };
       
-      const supabase = createClient();
+      // D1 API 사용
   const { data: newReservation, error: reservationError } = await supabase.from('reservations')
         .insert(reservationPayload)
         .select()

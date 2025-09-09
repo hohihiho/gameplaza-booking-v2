@@ -92,7 +92,7 @@ export default function SchedulePage() {
   // const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
-  const [supabase] = useState(() => createClient());
+  // D1 API 사용으로 Supabase 클라이언트 불필요
   const [, setIsLoading] = useState(false);
   const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(true);
   const [todaySchedule, setTodaySchedule] = useState<{ 

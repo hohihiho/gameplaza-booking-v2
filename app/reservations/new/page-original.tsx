@@ -63,7 +63,7 @@ type TimeSlot = {
 export default function NewReservationPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [supabase] = useState(() => createClient());
+  // D1 API 사용으로 Supabase 클라이언트 불필요
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 예약 확인사항

@@ -34,7 +34,7 @@ export default function SignupPage() {
   
   const router = useRouter();
   const { data: session, status } = useSession();
-  const supabase = createClient();
+  // D1 API 사용
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {

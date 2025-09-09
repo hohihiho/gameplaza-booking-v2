@@ -27,7 +27,7 @@ export default function ReservationSearchPage() {
     setReservation(null);
 
     try {
-      const supabase = createClient();
+      // D1 API 사용
       const { data, error } = await supabase
         .from('reservations')
         .select(`

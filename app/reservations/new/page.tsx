@@ -67,7 +67,7 @@ export default function NewReservationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, data: session } = useSession();
-  // const [supabase] = useState(() => createClient());
+  // // D1 API 사용으로 Supabase 클라이언트 불필요
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 대리 예약 모드 확인

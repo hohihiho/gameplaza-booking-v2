@@ -36,7 +36,7 @@ export function useOptimizedRealtime({
   onDisconnect,
   onError
 }: UseOptimizedRealtimeConfig) {
-  const supabase = createClient();
+  // D1 API 사용
   const channelRef = useRef<RealtimeChannel | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
