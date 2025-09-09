@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/app/components/BetterAuthProvider';
 import { useRouter, usePathname } from 'next/navigation';
 
 export function useProfileCheck() {

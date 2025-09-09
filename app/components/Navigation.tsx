@@ -4,8 +4,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
-import ThemeToggle from './ThemeToggle';
+import { useSession, signOut } from './BetterAuthProvider';
+import { ThemeToggle } from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
