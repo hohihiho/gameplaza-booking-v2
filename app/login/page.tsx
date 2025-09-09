@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from '@/app/components/BetterAuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { user, isLoading: authLoading } = useSession();
 
   // URL 파라미터로 전달된 에러 메시지 처리
   useEffect(() => {
@@ -32,30 +32,65 @@ export default function LoginPage() {
 
   // 이미 로그인한 사용자는 홈으로 리다이렉트 (auth-check가 프로필 확인)
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (!authLoading && user) {
       router.push('/');
     }
-  }, [status, router]);
+  }, [user, authLoading, router]);
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // NextAuth를 통한 Google 로그인 - redirect: true로 변경
-      await signIn('google', { 
-        callbackUrl: '/'
+      // Better Auth를 통한 Google 로그인
+      const response = await fetch('/api/auth/sign-in/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'google',
+          callbackURL: '/'
+        })
       });
-      
-      // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        }
+      } else {
+        throw new Error('Google 로그인 실패');
+      }
     } catch (error) {
       console.error('Login error:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       setIsLoading(false);
     }
   };
+
+  const handlePasskeyLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Better Auth 패스키 로그인
+      const response = await fetch('/api/auth/sign-in/passkey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        window.location.href = '/';
+      } else {
+        throw new Error('패스키 인증 실패');
+      }
+    } catch (error) {
+      console.error('Passkey login error:', error);
+      setError('생체 인증에 실패했습니다. 다시 시도해주세요.');
+      setIsLoading(false);
+    }
+  };
   // 로딩 중이거나 이미 로그인한 경우
-  if (status === 'loading' || status === 'authenticated') {
+  if (authLoading || user) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4">
         <div className="flex flex-col items-center gap-4">
@@ -140,6 +175,29 @@ export default function LoginPage() {
                   loadingText="로그인 중..."
                 >
                   Google로 계속하기
+                </LoadingButton>
+
+                {/* 패스키 인증 버튼 */}
+                <LoadingButton
+                  onClick={handlePasskeyLogin}
+                  isLoading={false}
+                  variant="outline"
+                  size="lg"
+                  fullWidth
+                  className="shadow-md min-h-[48px] touch-target border-indigo-200 dark:border-indigo-700"
+                  haptic="light"
+                  aria-label="패스키로 로그인하기"
+                  role="button"
+                  icon={
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" role="img" aria-label="패스키 아이콘">
+                      <rect x="3" y="11" width="18" height="10" rx="2" ry="2"/>
+                      <circle cx="12" cy="16" r="1"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  }
+                  loadingText="패스키 인증 중..."
+                >
+                  생체 인증으로 로그인
                 </LoadingButton>
 
                 {error && (

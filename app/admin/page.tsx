@@ -548,6 +548,26 @@ export default function AdminDashboard() {
             </Link>
             
             <Link
+              href="/admin/auth-management"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-700/20 dark:to-indigo-600/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-600/30 dark:hover:to-indigo-500/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">Better Auth</span>
+            </Link>
+            
+            <Link
+              href="/admin/user-management"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-violet-50 to-violet-100 dark:from-violet-700/20 dark:to-violet-600/20 hover:from-violet-100 hover:to-violet-200 dark:hover:from-violet-600/30 dark:hover:to-violet-500/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">사용자 권한</span>
+            </Link>
+            
+            <Link
               href="/admin/settings"
               className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/20 dark:to-slate-600/20 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600/30 dark:hover:to-slate-500/30 transition-all group"
             >
