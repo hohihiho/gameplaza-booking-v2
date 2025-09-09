@@ -1,220 +1,371 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Metadata } from 'next';
-import { Suspense } from 'react';
-import { TermsSkeleton } from '@/app/components/ui/Skeleton';
 
-// 메타데이터 생성 - 동적 메타데이터
-export async function generateMetadata(): Promise<Metadata> {
-  try {
-    // API에서 개인정보처리방침 데이터 가져오기
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/terms?type=privacy_policy`, {
-      next: { revalidate: 1800 } // 30분 캐싱
-    });
-    
-    if (res.ok) {
-      const result = await res.json();
-      const privacy = result.data;
-      
-      return {
-        title: `${privacy.title} - Privacy Policy | 광주 게임플라자`,
-        description: `광주 게임플라자의 ${privacy.title}입니다. 개인정보의 수집, 이용, 보관 및 파기에 관한 사항을 안내합니다.`,
-        keywords: ['개인정보처리방침', 'privacy policy', '개인정보보호', 'data protection', '게임플라자'],
-        robots: {
-          index: true,
-          follow: true,
-        },
-        openGraph: {
-          title: `${privacy.title} | 광주 게임플라자`,
-          description: `광주 게임플라자의 ${privacy.title}입니다.`,
-          type: 'article',
-          locale: 'ko_KR',
-        },
-        other: {
-          'last-modified': privacy.updated_at,
-        }
-      };
-    }
-  } catch (error) {
-    console.error('메타데이터 생성 중 오류:', error);
-  }
-  
-  // 폴백 메타데이터
-  return {
+// 메타데이터 export (서버 컴포넌트가 아니므로 별도 파일로 분리 필요하지만 임시로 주석 처리)
+/*
+export const metadata: Metadata = {
+  title: '개인정보처리방침 - Privacy Policy | 광주 게임플라자',
+  description: '광주 게임플라자의 개인정보처리방침입니다. Privacy Policy for Gwangju Game Plaza.',
+  keywords: ['개인정보처리방침', 'privacy policy', '개인정보보호', 'data protection'],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
     title: '개인정보처리방침 - Privacy Policy | 광주 게임플라자',
-    description: '광주 게임플라자의 개인정보처리방침입니다. Privacy Policy for Gwangju Game Plaza.',
-    keywords: ['개인정보처리방침', 'privacy policy', '개인정보보호', 'data protection'],
-    robots: {
-      index: true,
-      follow: true,
-    },
-    openGraph: {
-      title: '개인정보처리방침 - Privacy Policy | 광주 게임플라자',
-      description: '광주 게임플라자의 개인정보처리방침입니다.',
-      type: 'article',
-      locale: 'ko_KR',
-    }
-  };
-}
-
-// 개인정보처리방침 데이터 가져오기 함수
-async function getPrivacyData() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/terms?type=privacy_policy`, {
-      next: { revalidate: 1800 }, // 30분 캐싱
-      headers: {
-        'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600'
-      }
-    });
-    
-    if (!res.ok) {
-      throw new Error(`API 응답 오류: ${res.status}`);
-    }
-    
-    const result = await res.json();
-    return result.data;
-  } catch (error) {
-    console.error('개인정보처리방침 데이터 가져오기 오류:', error);
-    
-    // 폴백 데이터
-    return {
-      id: 2,
-      type: 'privacy_policy',
-      title: '개인정보처리방침',
-      content: `
-        <h1>개인정보 처리방침<br /><span style="font-size: 1.5rem; color: #6b7280; font-weight: normal;">Privacy Policy</span></h1>
-        
-        <p><strong>버전: 1.0</strong><br />
-        <strong>시행일: 2025. 8. 15.</strong></p>
-        
-        <br />
-        
-        <p>광주 게임플라자(이하 "회사")는 「개인정보 보호법」 제30조에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
-        
-        <br />
-        
-        <h2>제1장 총칙</h2>
-        
-        <br />
-        
-        <h3>제1조 (목적)</h3>
-        <p>이 개인정보 처리방침은 회사가 제공하는 게임기기 예약 서비스를 이용하는 이용자의 개인정보를 보호하고, 개인정보와 관련한 이용자의 고충을 신속하고 원활하게 처리할 수 있도록 하는 것을 목적으로 합니다.</p>
-        
-        <br />
-        
-        <h3>제2조 (개인정보의 처리 목적)</h3>
-        <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다.</p>
-        <ol>
-          <li><strong>회원 가입 및 관리</strong>
-            <ul>
-              <li>회원 가입의사 확인</li>
-              <li>회원제 서비스 제공에 따른 본인 식별·인증</li>
-              <li>회원자격 유지·관리</li>
-            </ul>
-          </li>
-          <li><strong>서비스 제공</strong>
-            <ul>
-              <li>게임기기 예약 서비스 제공</li>
-              <li>예약 상태 확인 및 변경</li>
-              <li>콘텐츠 제공</li>
-            </ul>
-          </li>
-        </ol>
-        
-        <p><em>서비스 연결 오류로 인해 기본 개인정보처리방침을 표시하고 있습니다. 최신 방침은 관리자에게 문의해 주세요.</em></p>
-      `,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      error: true
-    };
+    description: '광주 게임플라자의 개인정보처리방침입니다.',
+    type: 'article',
+    locale: 'ko_KR',
   }
 }
+*/
 
-// 개인정보처리방침 콘텐츠 컴포넌트
-function PrivacyContent({ privacy }: { privacy: any }) {
+export default function PrivacyPage() {
   return (
     <>
-      {/* JSON-LD 구조화 데이터 */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": privacy.title,
-            "alternateName": "Privacy Policy",
-            "url": "https://www.gameplaza.kr/privacy",
-            "description": `광주 게임플라자의 ${privacy.title}`,
-            "inLanguage": "ko-KR",
-            "isPartOf": {
-              "@type": "WebSite",
-              "name": "광주 게임플라자",
-              "url": "https://www.gameplaza.kr"
-            },
-            "datePublished": privacy.created_at,
-            "dateModified": privacy.updated_at
-          })
-        }}
-      />
       
       <div className="min-h-screen bg-white text-gray-900">
-        {/* 홈으로 버튼 - 상단 고정 */}
-        <div className="fixed top-4 left-4 z-50">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            홈으로
-          </Link>
-        </div>
+      {/* 홈으로 버튼 - 상단 고정 */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          홈으로
+        </Link>
+      </div>
 
-        {/* 내용 */}
-        <div className="max-w-4xl mx-auto px-6 py-16">
-          <div className="prose prose-slate max-w-none !text-gray-900 prose-headings:!text-gray-900 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-strong:!text-black prose-a:!text-blue-600">
-            {/* 에러 표시 */}
-            {privacy.error && (
-              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      연결 오류
-                    </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>서비스 연결 오류로 인해 기본 개인정보처리방침을 표시하고 있습니다. 최신 방침은 관리자에게 문의해 주세요.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* 동적 콘텐츠 렌더링 */}
-            <div 
-              dangerouslySetInnerHTML={{ 
-                __html: privacy.content 
-              }}
-            />
-          </div>
+      {/* 내용 */}
+      <div className="max-w-4xl mx-auto px-6 py-16">
+        <div className="prose prose-slate max-w-none !text-gray-900 prose-headings:!text-gray-900 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-strong:!text-black prose-a:!text-blue-600">
+          <h1>
+            개인정보 처리방침
+            <br />
+            <span className="text-2xl text-gray-600 font-normal">Privacy Policy</span>
+          </h1>
+          
+          <p><strong>버전: 1.0</strong><br />
+          <strong>시행일: 2025. 8. 15.</strong></p>
+          
+          <br />
+          
+          <p>광주 게임플라자(이하 "회사")는 「개인정보 보호법」 제30조에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
+          
+          <br />
+          
+          <h2>제1장 총칙</h2>
+          
+          <br />
+          
+          <h3>제1조 (목적)</h3>
+          <p>이 개인정보 처리방침은 회사가 제공하는 게임기기 예약 서비스를 이용하는 이용자의 개인정보를 보호하고, 개인정보와 관련한 이용자의 고충을 신속하고 원활하게 처리할 수 있도록 하는 것을 목적으로 합니다.</p>
+          
+          <br />
+          
+          <h3>제2조 (개인정보의 처리 목적)</h3>
+          <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 개인정보 보호법 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행합니다.</p>
+          
+          <br />
+          
+          <ol>
+            <li><strong>회원 가입 및 관리</strong>
+              <ul>
+                <li>회원 가입의사 확인</li>
+                <li>회원제 서비스 제공에 따른 본인 식별·인증</li>
+                <li>회원자격 유지·관리</li>
+                <li>서비스 부정이용 방지</li>
+                <li>각종 고지·통지</li>
+                <li>고충처리</li>
+              </ul>
+            </li>
+            <li><strong>서비스 제공</strong>
+              <ul>
+                <li>게임기기 예약 서비스 제공</li>
+                <li>예약 상태 확인 및 변경</li>
+                <li>체크인 및 이용 관리</li>
+                <li>결제 정보 안내</li>
+                <li>콘텐츠 제공</li>
+                <li>맞춤 서비스 제공</li>
+              </ul>
+            </li>
+            <li><strong>마케팅 및 광고 활용</strong>
+              <ul>
+                <li>신규 서비스 개발 및 맞춤 서비스 제공</li>
+                <li>이벤트 및 광고성 정보 제공 및 참여기회 제공</li>
+                <li>인구통계학적 특성에 따른 서비스 제공 및 광고 게재</li>
+                <li>서비스의 유효성 확인</li>
+                <li>접속빈도 파악 또는 회원의 서비스 이용에 대한 통계</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h2>제2장 개인정보의 수집 및 이용</h2>
+          
+          <br />
+          
+          <h3>제3조 (수집하는 개인정보의 항목)</h3>
+          <p>회사는 다음의 개인정보 항목을 수집합니다.</p>
+          
+          <br />
+          
+          <ol>
+            <li><strong>회원가입 시 수집항목</strong>
+              <ul>
+                <li>필수항목: 이메일 주소, 비밀번호, 닉네임, 휴대전화번호</li>
+                <li>선택항목: 프로필 이미지</li>
+              </ul>
+            </li>
+            <li><strong>구글 OAuth 로그인 시 수집항목</strong>
+              <ul>
+                <li>이메일 주소, 프로필 정보(이름, 프로필 사진)</li>
+              </ul>
+            </li>
+            <li><strong>서비스 이용 과정에서 자동으로 수집되는 항목</strong>
+              <ul>
+                <li>IP 주소, 쿠키, 서비스 이용 기록, 방문 기록, 불량 이용 기록, 기기정보(OS, 브라우저 정보 등)</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h3>제4조 (개인정보의 수집 방법)</h3>
+          <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
+          <ul>
+            <li>홈페이지(회원가입, 상담게시판, 이벤트 응모)</li>
+            <li>구글 OAuth 인증</li>
+            <li>생성정보 수집 툴을 통한 수집</li>
+          </ul>
+          
+          <br />
+          
+          <h3>제5조 (개인정보의 보유 및 이용 기간)</h3>
+          <p>회사는 법령에 따른 개인정보 보유·이용기간 또는 이용자로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.</p>
+          
+          <ol>
+            <li><strong>회원정보</strong>
+              <ul>
+                <li>보유기간: 회원 탈퇴 시까지</li>
+                <li>단, 다음의 사유에 해당하는 경우에는 해당 사유 종료 시까지
+                  <ul>
+                    <li>관계 법령 위반에 따른 수사·조사 등이 진행 중인 경우: 해당 수사·조사 종료 시까지</li>
+                    <li>서비스 이용에 따른 채권·채무관계 잔존 시: 해당 채권·채무관계 정산 시까지</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>예약 및 이용 기록</strong>
+              <ul>
+                <li>보유기간: 3년</li>
+                <li>보유근거: 전자상거래 등에서의 소비자보호에 관한 법률</li>
+              </ul>
+            </li>
+            <li><strong>노쇼 및 부정이용 기록</strong>
+              <ul>
+                <li>보유기간: 3년</li>
+                <li>보유목적: 서비스 부정이용 방지</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h2>제3장 개인정보의 제공 및 위탁</h2>
+          
+          <br />
+          
+          <h3>제6조 (개인정보의 제3자 제공)</h3>
+          <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
+          <ul>
+            <li>이용자들이 사전에 동의한 경우</li>
+            <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+          </ul>
+          
+          <br />
+          
+          <h3>제7조 (개인정보처리의 위탁)</h3>
+          <p>회사는 원활한 개인정보 업무처리를 위하여 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.</p>
+          
+          <ol>
+            <li><strong>클라우드 서비스</strong>
+              <ul>
+                <li>수탁업체: Supabase Inc.</li>
+                <li>위탁업무: 데이터베이스 운영 및 관리</li>
+                <li>보유 및 이용기간: 회원탈퇴 시 또는 위탁계약 종료 시까지</li>
+              </ul>
+            </li>
+            <li><strong>인증 서비스</strong>
+              <ul>
+                <li>수탁업체: Google LLC</li>
+                <li>위탁업무: OAuth 인증 서비스</li>
+                <li>보유 및 이용기간: 회원탈퇴 시 또는 위탁계약 종료 시까지</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h2>제4장 이용자의 권리와 의무</h2>
+          
+          <br />
+          
+          <h3>제8조 (이용자 및 법정대리인의 권리와 그 행사방법)</h3>
+          <ol>
+            <li>이용자는 회사에 대해 언제든지 개인정보 열람·정정·삭제·처리정지 요구 등의 권리를 행사할 수 있습니다.</li>
+            <li>제1항에 따른 권리 행사는 회사에 대해 개인정보 보호법 시행령 제41조제1항에 따라 서면, 전자우편, 모사전송(FAX) 등을 통하여 하실 수 있으며, 회사는 이에 대해 지체없이 조치하겠습니다.</li>
+            <li>제1항에 따른 권리 행사는 이용자의 법정대리인이나 위임을 받은 자 등 대리인을 통하여 하실 수 있습니다. 이 경우 개인정보 보호법 시행규칙 별지 제11호 서식에 따른 위임장을 제출하셔야 합니다.</li>
+            <li>개인정보 열람 및 처리정지 요구는 개인정보보호법 제35조 제4항, 제37조 제2항에 의하여 이용자의 권리가 제한될 수 있습니다.</li>
+            <li>개인정보의 정정 및 삭제 요구는 다른 법령에서 그 개인정보가 수집 대상으로 명시되어 있는 경우에는 그 삭제를 요구할 수 없습니다.</li>
+          </ol>
+          
+          <br />
+          
+          <h3>제9조 (개인정보의 파기)</h3>
+          <ol>
+            <li>회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.</li>
+            <li>이용자로부터 동의받은 개인정보 보유기간이 경과하거나 처리목적이 달성되었음에도 불구하고 다른 법령에 따라 개인정보를 계속 보존하여야 하는 경우에는, 해당 개인정보를 별도의 데이터베이스(DB)로 옮기거나 보관장소를 달리하여 보존합니다.</li>
+            <li>개인정보 파기의 절차 및 방법은 다음과 같습니다.
+              <ul>
+                <li>파기절차: 이용자가 입력한 정보는 목적 달성 후 별도의 DB에 옮겨져 내부 방침 및 기타 관련 법령에 따라 일정기간 저장된 후 혹은 즉시 파기됩니다.</li>
+                <li>파기방법: 전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용합니다.</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h2>제5장 개인정보의 안전성 확보조치</h2>
+          
+          <br />
+          
+          <h3>제10조 (개인정보의 안전성 확보조치)</h3>
+          <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.</p>
+          
+          <ol>
+            <li><strong>관리적 조치</strong>
+              <ul>
+                <li>내부관리계획 수립·시행</li>
+                <li>정기적 직원 교육</li>
+                <li>개인정보 취급 직원의 최소화 및 교육</li>
+              </ul>
+            </li>
+            <li><strong>기술적 조치</strong>
+              <ul>
+                <li>개인정보처리시스템 등의 접근권한 관리</li>
+                <li>접근통제시스템 설치</li>
+                <li>고유식별정보 등의 암호화</li>
+                <li>보안프로그램 설치</li>
+                <li>접속기록의 보관 및 위변조 방지</li>
+              </ul>
+            </li>
+            <li><strong>물리적 조치</strong>
+              <ul>
+                <li>전산실, 자료보관실 등의 접근통제</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h2>제6장 기타</h2>
+          
+          <br />
+          
+          <h3>제11조 (개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항)</h3>
+          <ol>
+            <li>회사는 이용자에게 개별적인 맞춤서비스를 제공하기 위해 이용정보를 저장하고 수시로 불러오는 '쿠키(cookie)'를 사용합니다.</li>
+            <li>쿠키는 웹사이트를 운영하는데 이용되는 서버(http)가 이용자의 컴퓨터 브라우저에게 보내는 소량의 정보이며 이용자들의 PC 컴퓨터내의 하드디스크에 저장되기도 합니다.</li>
+            <li>쿠키의 사용 목적
+              <ul>
+                <li>이용자의 방문 및 이용형태 분석</li>
+                <li>개인 맞춤 서비스 제공</li>
+                <li>접속 빈도나 방문 시간 등을 분석</li>
+                <li>이용자의 취향과 관심분야 파악</li>
+              </ul>
+            </li>
+            <li>쿠키의 설치·운영 및 거부
+              <ul>
+                <li>이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다.</li>
+                <li>웹브라우저 옵션 설정을 통해 쿠키를 허용/거부할 수 있습니다.</li>
+                <li>쿠키 저장을 거부할 경우 맞춤형 서비스 이용에 어려움이 발생할 수 있습니다.</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <br />
+          
+          <h3>제12조 (추가적인 이용·제공 판단기준)</h3>
+          <p>회사는 ｢개인정보 보호법｣ 제15조제3항 및 제17조제4항에 따라 ｢개인정보 보호법 시행령｣ 제14조의2에 따른 사항을 고려하여 정보주체의 동의 없이 개인정보를 추가적으로 이용·제공할 수 있습니다.</p>
+          
+          <p>이에 따라 회사가 정보주체의 동의 없이 추가적인 이용·제공을 하기 위해서 다음과 같은 사항을 고려하였습니다.</p>
+          <ul>
+            <li>개인정보를 추가적으로 이용·제공하려는 목적이 당초 수집 목적과 관련성이 있는지 여부</li>
+            <li>개인정보를 수집한 정황 또는 처리 관행에 비추어 볼 때 추가적인 이용·제공에 대한 예측 가능성이 있는지 여부</li>
+            <li>개인정보의 추가적인 이용·제공이 정보주체의 이익을 부당하게 침해하는지 여부</li>
+            <li>가명처리 또는 암호화 등 안전성 확보에 필요한 조치를 하였는지 여부</li>
+          </ul>
+          
+          <br />
+          
+          <h3>제13조 (개인정보 보호책임자)</h3>
+          <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
+          
+          <p><strong>개인정보 보호책임자</strong></p>
+          <ul>
+            <li>성명: 장세희</li>
+            <li>직책: 대표</li>
+            <li>이메일: ndz5496@gmail.com</li>
+            <li>연락처: 상기 이메일로 문의</li>
+          </ul>
+          
+          <p>이용자는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자로 문의하실 수 있습니다. 회사는 이용자의 문의에 대해 지체없이 답변 및 처리해드릴 것입니다.</p>
+          
+          <br />
+          
+          <h3>제14조 (개인정보 열람청구)</h3>
+          <p>이용자는 ｢개인정보 보호법｣ 제35조에 따른 개인정보의 열람 청구를 아래의 부서에 할 수 있습니다. 회사는 정보주체의 개인정보 열람청구가 신속하게 처리되도록 노력하겠습니다.</p>
+          
+          <p><strong>개인정보 열람청구 접수·처리 부서</strong></p>
+          <ul>
+            <li>부서명: 개인정보보호팀</li>
+            <li>담당자: 장세희</li>
+            <li>이메일: ndz5496@gmail.com</li>
+          </ul>
+          
+          <br />
+          
+          <h3>제15조 (권익침해 구제방법)</h3>
+          <p>이용자는 개인정보침해로 인한 구제를 받기 위하여 개인정보분쟁조정위원회, 한국인터넷진흥원 개인정보침해신고센터 등에 분쟁해결이나 상담 등을 신청할 수 있습니다. 이 밖에 기타 개인정보침해의 신고, 상담에 대하여는 아래의 기관에 문의하시기 바랍니다.</p>
+          
+          <ol>
+            <li>개인정보분쟁조정위원회: (국번없이) 1833-6972 (www.kopico.go.kr)</li>
+            <li>개인정보침해신고센터: (국번없이) 118 (privacy.kisa.or.kr)</li>
+            <li>대검찰청: (국번없이) 1301 (www.spo.go.kr)</li>
+            <li>경찰청: (국번없이) 182 (ecrm.cyber.go.kr)</li>
+          </ol>
+          
+          <p>「개인정보보호법」제35조(개인정보의 열람), 제36조(개인정보의 정정·삭제), 제37조(개인정보의 처리정지 등)의 규정에 의한 요구에 대하여 공공기관의 장이 행한 처분 또는 부작위로 인하여 권리 또는 이익의 침해를 받은 자는 행정심판법이 정하는 바에 따라 행정심판을 청구할 수 있습니다.</p>
+          
+          <p>※ 행정심판에 대해 자세한 사항은 중앙행정심판위원회(www.simpan.go.kr) 홈페이지를 참고하시기 바랍니다.</p>
+          
+          <br />
+          
+          <h3>제16조 (개인정보 처리방침 변경)</h3>
+          <p>이 개인정보처리방침은 2025년 8월 15일부터 적용됩니다.</p>
+          
+          <p>이전의 개인정보처리방침은 아래에서 확인하실 수 있습니다.</p>
+          <ul>
+            <li>2024년 2월 1일 ~ 2025년 8월 14일 적용 (변경 전 고지)</li>
+          </ul>
         </div>
       </div>
+    </div>
     </>
-  );
-}
-
-// 메인 페이지 컴포넌트 - 서버 컴포넌트
-export default async function PrivacyPage() {
-  const privacy = await getPrivacyData();
-  
-  return (
-    <Suspense fallback={<TermsSkeleton />}>
-      <PrivacyContent privacy={privacy} />
-    </Suspense>
   );
 }

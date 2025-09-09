@@ -14,9 +14,8 @@ export function ThemeToggle() {
         // 라이트/다크 모드만 토글
         setTheme(theme === 'dark' ? 'light' : 'dark');
       }}
-      className="p-3 rounded-full hover:bg-white/30 transition-colors touch-target min-h-[44px] min-w-[44px] flex items-center justify-center"
+      className="p-2 rounded-full hover:bg-white/30 transition-colors"
       aria-label="테마 변경"
-      data-testid="theme-toggle"
     >
       {/* 현재 테마의 반대 아이콘 표시 (클릭시 변경될 테마) */}
       {theme === 'dark' ? (

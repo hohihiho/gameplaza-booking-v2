@@ -1,10 +1,9 @@
 'use client'
 
-// Better Auth는 자동으로 React Context를 제공하므로 별도 프로바이더 불필요
+import { SessionProvider } from 'next-auth/react'
 import { useEffect } from 'react'
 import { ModalProvider, modal } from '@/hooks/useModal'
 import { ToastProvider } from '@/hooks/useToast'
-import { StackAuthProvider } from '../components/stack-auth/StackAuthProvider'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -72,11 +71,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <StackAuthProvider>
-      {/* Better Auth는 자동으로 세션 관리를 제공합니다 */}
-        {children}
-        <ModalProvider />
-        <ToastProvider />
-    </StackAuthProvider>
+    <SessionProvider 
+      refetchInterval={5 * 60} 
+      refetchOnWindowFocus={true}
+      basePath="/api/auth"
+      baseUrl={typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
+    >
+      {children}
+      <ModalProvider />
+      <ToastProvider />
+    </SessionProvider>
   )
 }
