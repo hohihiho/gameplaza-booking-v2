@@ -1,18 +1,30 @@
+// Drizzle Kit 설정 - Cloudflare D1 전용
 import { defineConfig } from 'drizzle-kit';
-import 'dotenv/config';
 
 export default defineConfig({
-  // Drizzle 스키마 파일의 위치를 지정합니다.
-  schema: './lib/db/schema.ts',
-
-  // 마이그레이션 파일이 저장될 폴더입니다.
-  out: './drizzle',
-
+  schema: './drizzle/schema.ts',
+  out: './drizzle/migrations',
   dialect: 'sqlite',
-  driver: 'd1-http',
+  driver: 'd1-http', // Cloudflare D1 HTTP API 사용
+  
   dbCredentials: {
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
-    databaseId: process.env.CLOUDFLARE_DATABASE_ID!,
-    token: process.env.CLOUDFLARE_D1_API_TOKEN!,
+    // 개발 환경에서는 로컬 SQLite 파일 사용
+    url: process.env.NODE_ENV === 'development' 
+      ? 'file:./drizzle/dev.db'
+      : process.env.DATABASE_URL || '',
+    
+    // Cloudflare D1 설정 (프로덕션)
+    ...(process.env.NODE_ENV === 'production' && {
+      accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+      databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID,
+      token: process.env.CLOUDFLARE_API_TOKEN,
+    }),
   },
+  
+  // 마이그레이션 설정
+  verbose: true,
+  strict: true,
+  
+  // D1 특화 설정
+  tablesFilter: ['!better_auth_*'], // Better Auth 테이블 제외
 });

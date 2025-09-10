@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+// Supabase 제거됨 - 추후 D1/Better Auth로 대체 예정
 import { 
   Calendar,
   Clock,

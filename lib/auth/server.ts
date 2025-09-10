@@ -1,13 +1,32 @@
 import { betterAuth } from "better-auth";
 import { google } from "better-auth/social-providers";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { getDb } from "@/lib/db/connection";
 
-export const export const auth = betterAuth({
-  // 기본 설정
-  secret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET || "fallback-secret-key",
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000",
+// D1 데이터베이스 연결 설정 (Drizzle ORM 사용)
+function getDatabase() {
+  // 개발 환경에서는 로컬 SQLite 사용, 프로덕션에서는 D1 사용
+  const db = getDb();
   
-  // 메모리 기반 세션 (개발용)
-  // production에서는 D1 어댑터 사용 필요
+  if (db) {
+    // Drizzle 어댑터 사용
+    return drizzleAdapter(db, {
+      provider: 'sqlite'
+    });
+  }
+  
+  // DB 연결이 없으면 메모리 어댑터 사용 (빌드 시점)
+  return null;
+}
+
+// Better Auth 설정 (완전히 새로 작성)
+export const auth = betterAuth({
+  // 기본 설정
+  secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-production",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  
+  // 데이터베이스 설정 - 개발 환경에서는 메모리 사용
+  database: getDatabase(),
   
   // 세션 설정
   session: {
@@ -15,12 +34,12 @@ export const export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1일
   },
   
-  // 이메일/비밀번호 로그인 비활성화 (Google + 패스키만 사용)
+  // 이메일/비밀번호 로그인 비활성화 (Google 전용)
   emailAndPassword: {
     enabled: false,
   },
   
-  // 사용자 설정
+  // 사용자 설정 (게임플라자 전용)
   user: {
     additionalFields: {
       nickname: { type: "string", required: false },
@@ -31,45 +50,41 @@ export const export const auth = betterAuth({
     },
   },
   
-  // 소셜 로그인 제공자 (패스키는 별도 플러그인 설치 후 추가)
-  plugins: [
-    google({
+  // Google 소셜 로그인만 활성화
+  socialProviders: {
+    google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       scope: ["openid", "profile", "email"],
-    }),
-  ],
+    },
+  },
   
   // 고급 설정
   advanced: {
     generateId: () => crypto.randomUUID(),
-    crossSubDomainCookies: { enabled: false },
+    crossSubDomainCookies: { 
+      enabled: false 
+    },
     cookies: {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      domain: process.env.NODE_ENV === "production" ? ".gwangju.kr" : undefined,
+      domain: process.env.NODE_ENV === "production" ? ".gameplaza.kr" : undefined,
     },
     enableCSRFProtection: true,
-    
-    // KST 시간 처리 훅
-    hooks: {
-      before: [
-        {
-          matcher: (context) => {
-            return ["sign-in", "sign-up", "update-user"].includes(context.endpoint);
-          },
-          handler: async (request) => {
-            // KST 기준 시간으로 lastLoginAt 업데이트
-            if (request.body && typeof request.body === "object") {
-              const now = new Date();
-              const kstOffset = 9 * 60 * 60 * 1000; // KST는 UTC+9
-              const kstTime = new Date(now.getTime() + kstOffset);
-              (request.body as any).lastLoginAt = kstTime.toISOString();
-            }
-            return request;
-          },
-        },
-      ],
+  },
+  
+  // 로그인 성공 후 처리 (KST 시간)
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        // KST 기준 시간으로 lastLoginAt 업데이트
+        const now = new Date();
+        const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+        
+        // 사용자 정보 업데이트 로직 (향후 DB 연결 시 구현)
+        console.log(`User ${user.email} logged in at ${kstTime.toISOString()}`);
+      }
+      return true;
     },
   },
   
@@ -82,6 +97,8 @@ export const export const auth = betterAuth({
       method: request?.method,
     });
   },
-})
+});
 
-export type Auth = typeof auth
+// 타입 내보내기
+export type Session = typeof auth.$Infer.Session;
+export type User = typeof auth.$Infer.User;

@@ -2,7 +2,7 @@
 // 비전공자 설명: 관리자 페이지 전체를 감싸는 레이아웃입니다
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -31,16 +31,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const { data: session, isPending: isLoading, error } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(true);
 
   // 관리자 권한 확인
   useEffect(() => {
     const checkAdmin = async () => {
-      if (status === 'loading') return;
+      if (isLoading) return;
       
       if (!session?.user) {
         router.push('/login');
@@ -56,7 +56,7 @@ export default function AdminLayout({
           return;
         }
         
-        setIsLoading(false);
+        setIsCheckingPermission(false);
       } catch (error) {
         console.error('Admin check error:', error);
         router.push('/');
@@ -64,7 +64,7 @@ export default function AdminLayout({
     };
 
     checkAdmin();
-  }, [session, status, router]);
+  }, [session, isLoading, router]);
 
   const menuItems = [
     { href: '/admin', label: '대시보드', icon: LayoutDashboard },
@@ -83,7 +83,7 @@ export default function AdminLayout({
     { href: '/admin/settings', label: '설정', icon: Settings },
   ];
 
-  if (isLoading || status === 'loading') {
+  if (isLoading || isCheckingPermission) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
