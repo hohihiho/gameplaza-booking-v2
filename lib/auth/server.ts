@@ -1,126 +1,86 @@
-import { betterAuth } from "better-auth"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { passkey } from "better-auth/plugins/passkey"
-import { admin } from "better-auth/plugins/admin"
-import { organization } from "better-auth/plugins/organization"
-import { twoFactor } from "better-auth/plugins/two-factor"
-import { getDB } from "@/lib/db/client"
-import * as schema from "@/lib/db/schema"
+import { betterAuth } from "better-auth";
+import { google } from "better-auth/social-providers";
 
-export const auth = betterAuth({
-  database: drizzleAdapter(getDB(), {
-    provider: "sqlite", // D1 is SQLite-based
-    schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
-    }
-  }),
+export const export const auth = betterAuth({
+  // 기본 설정
+  secret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET || "fallback-secret-key",
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000",
   
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: false, // 일단 이메일 검증 비활성화
-  },
-
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-    kakao: {
-      clientId: process.env.KAKAO_CLIENT_ID!,
-      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
-    },
-  },
-
+  // 메모리 기반 세션 (개발용)
+  // production에서는 D1 어댑터 사용 필요
+  
+  // 세션 설정
   session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30일
-    updateAge: 60 * 60 * 24, // 24시간마다 세션 갱신
-    cookieName: "better-auth.session",
+    expiresIn: 60 * 60 * 24 * 7, // 7일
+    updateAge: 60 * 60 * 24, // 1일
   },
-
-  trustedOrigins: [
-    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  ],
-
-  advanced: {
-    generateId: () => {
-      // D1에 친화적인 UUID 생성
-      return crypto.randomUUID()
-    },
-    cookiePrefix: "gameplaza",
-    useSecureCookies: process.env.NODE_ENV === "production",
+  
+  // 이메일/비밀번호 로그인 비활성화 (Google + 패스키만 사용)
+  emailAndPassword: {
+    enabled: false,
   },
-
-  // 플러그인 설정
-  plugins: [
-    // 패스키 인증
-    passkey({
-      rpName: "게임플라자",
-      rpID: process.env.NODE_ENV === "production" 
-        ? "gameplaza.kr" 
-        : "localhost",
-      origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    }),
-    
-    // 관리자 기능
-    admin({
-      impersonationSessionDuration: 60 * 60 * 24, // 24시간
-    }),
-    
-    // 조직/권한 관리 (관리자, 슈퍼관리자, 회원 구분)
-    organization({
-      allowUserToCreateOrganization: false, // 관리자만 조직 생성 가능
-      organizationLimit: 1, // 하나의 조직 (게임플라자)
-    }),
-    
-    // 2단계 인증 (선택사항)
-    twoFactor({
-      issuer: "GamePlaza",
-      backupCodeCount: 10,
-      totpEnabled: true,
-    }),
-  ],
-
-  // 사용자 역할 정의
+  
+  // 사용자 설정
   user: {
     additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "member",
-        // member, admin, super_admin, vip_member, gold_member, silver_member
-      },
-      nickname: {
-        type: "string",
-        required: false,
-      },
-      phone: {
-        type: "string",
-        required: false,
-      },
-      status: {
-        type: "string",
-        defaultValue: "active",
-        // active, blocked, suspended
-      },
-      blockReason: {
-        type: "string",
-        required: false,
-      },
-      blockedAt: {
-        type: "date",
-        required: false,
-      },
-      blockedBy: {
-        type: "string",
-        required: false,
-      },
-      blockExpiresAt: {
-        type: "date",
-        required: false,
-      },
+      nickname: { type: "string", required: false },
+      phone: { type: "string", required: false },
+      role: { type: "string", defaultValue: "user", required: true },
+      isActive: { type: "boolean", defaultValue: true, required: true },
+      lastLoginAt: { type: "date", required: false },
     },
+  },
+  
+  // 소셜 로그인 제공자 (패스키는 별도 플러그인 설치 후 추가)
+  plugins: [
+    google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      scope: ["openid", "profile", "email"],
+    }),
+  ],
+  
+  // 고급 설정
+  advanced: {
+    generateId: () => crypto.randomUUID(),
+    crossSubDomainCookies: { enabled: false },
+    cookies: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      domain: process.env.NODE_ENV === "production" ? ".gwangju.kr" : undefined,
+    },
+    enableCSRFProtection: true,
+    
+    // KST 시간 처리 훅
+    hooks: {
+      before: [
+        {
+          matcher: (context) => {
+            return ["sign-in", "sign-up", "update-user"].includes(context.endpoint);
+          },
+          handler: async (request) => {
+            // KST 기준 시간으로 lastLoginAt 업데이트
+            if (request.body && typeof request.body === "object") {
+              const now = new Date();
+              const kstOffset = 9 * 60 * 60 * 1000; // KST는 UTC+9
+              const kstTime = new Date(now.getTime() + kstOffset);
+              (request.body as any).lastLoginAt = kstTime.toISOString();
+            }
+            return request;
+          },
+        },
+      ],
+    },
+  },
+  
+  // 에러 처리
+  onError: (error, request) => {
+    console.error("Better Auth Error:", {
+      error: error.message,
+      stack: error.stack,
+      url: request?.url,
+      method: request?.method,
+    });
   },
 })
 

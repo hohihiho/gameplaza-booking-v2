@@ -202,39 +202,7 @@ function isBlockedRequest(request: NextRequest): boolean {
  * Rate limiting 적용
  */
 function applyRateLimit(request: NextRequest): NextResponse | null {
-  const { pathname } = request.nextUrl;
-  
-  // 테스트 환경에서는 Rate Limiting 완전 비활성화
-  if (request.headers.get('X-Test-Environment') === 'true' ||
-      process.env.NODE_ENV === 'test' ||
-      process.env.NEXT_PUBLIC_TEST_MODE === 'true') {
-    return null;
-  }
-  
-  // 인증 관련 API
-  if (pathname.startsWith('/api/auth') || pathname.startsWith('/api/v2/auth')) {
-    const authRateLimit = rateLimit(rateLimitConfigs.auth);
-    return authRateLimit(request);
-  }
-  
-  // 예약 관련 API
-  if (pathname.includes('/reservations') && request.method === 'POST') {
-    const reservationRateLimit = rateLimit(rateLimitConfigs.reservation);
-    return reservationRateLimit(request);
-  }
-  
-  // 관리자 API
-  if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/v2/admin')) {
-    const adminRateLimit = rateLimit(rateLimitConfigs.admin);
-    return adminRateLimit(request);
-  }
-  
-  // 일반 API
-  if (pathname.startsWith('/api/')) {
-    const defaultRateLimit = rateLimit(rateLimitConfigs.default);
-    return defaultRateLimit(request);
-  }
-  
+  // Rate limiting 임시 비활성화 - Better Auth 마이그레이션 완료 후 재활성화 예정
   return null;
 }
 

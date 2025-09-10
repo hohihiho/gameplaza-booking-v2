@@ -1,6 +1,6 @@
 // 데이터베이스 메인 익스포트
 export * from './schema';
-export * from './client';
+export * from './server';
 export * from './d1';
 
 // Drizzle ORM 관련 익스포트

@@ -42,24 +42,15 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
 
-      // Better Auth를 통한 Google 로그인
-      const response = await fetch('/api/auth/sign-in/social', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: 'google',
-          callbackURL: '/'
-        })
+      // Better Auth React 클라이언트를 사용한 Google 로그인
+      const { signIn } = await import('@/lib/auth-client');
+      
+      await signIn.social({
+        provider: 'google',
+        callbackURL: '/',
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.redirect) {
-          window.location.href = data.redirect;
-        }
-      } else {
-        throw new Error('Google 로그인 실패');
-      }
+      
+      // signIn.social은 자동으로 리다이렉트하므로 추가 처리 불필요
     } catch (error) {
       console.error('Login error:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -72,17 +63,12 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
 
-      // Better Auth 패스키 로그인
-      const response = await fetch('/api/auth/sign-in/passkey', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        window.location.href = '/';
-      } else {
-        throw new Error('패스키 인증 실패');
-      }
+      // Better Auth React 클라이언트를 사용한 패스키 로그인
+      const { signIn } = await import('@/lib/auth-client');
+      
+      await signIn.passkey();
+      
+      // 성공 시 자동으로 페이지가 새로고침되거나 리다이렉트됨
     } catch (error) {
       console.error('Passkey login error:', error);
       setError('생체 인증에 실패했습니다. 다시 시도해주세요.');
@@ -99,7 +85,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
           </div>
           <p className="text-gray-600 dark:text-gray-400 font-medium">
-            {status === 'authenticated' ? '리다이렉트 중...' : '로딩 중...'}
+            {user ? '리다이렉트 중...' : '로딩 중...'}
           </p>
         </div>
       </main>

@@ -1,5 +1,7 @@
-import { createAdminClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
+import { getDB } from '@/lib/db/server';
+import { scheduleEvents } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 
 // 메모리 캐시 (10분 캐시)
 let scheduleCache: {
@@ -22,27 +24,29 @@ export async function GET() {
       return NextResponse.json(scheduleCache.data);
     }
     
-    const supabase = createAdminClient();
+    const db = getDB();
     
-    // 특별 영업시간 조회
-    let scheduleEvents: any[] = [];
+    // 특별 영업시간 조회 - Drizzle ORM 사용
+    let events: any[] = [];
     try {
-      const { data, error } = await supabase
-        .from('schedule_events')
-        .select('title, start_time, end_time, type')
-        .eq('date', dateStr)
-        .in('type', ['early_open', 'overnight', 'early_close']);
-      
-      if (error && error.code !== '42P01') { // 42P01: table does not exist
-        throw error;
-      }
-      
-      scheduleEvents = data || [];
+      events = await db
+        .select({
+          title: scheduleEvents.title,
+          start_time: scheduleEvents.start_time,
+          end_time: scheduleEvents.end_time,
+          type: scheduleEvents.type
+        })
+        .from(scheduleEvents)
+        .where(
+          and(
+            eq(scheduleEvents.date, dateStr),
+            inArray(scheduleEvents.type, ['early_open', 'overnight', 'early_close'])
+          )
+        );
     } catch (error: any) {
-      if (error?.code !== '42P01') {
-        console.error('일정 조회 오류:', error);
-        return NextResponse.json({ error: '일정 조회에 실패했습니다' }, { status: 500 });
-      }
+      // 테이블이 없는 경우 빈 배열로 처리
+      console.log('Schedule events table not found, using default schedule');
+      events = [];
     }
     
     // 오늘의 영업시간 계산
@@ -63,9 +67,9 @@ export async function GET() {
     };
     
     // 특별 일정이 있으면 반영
-    if (scheduleEvents.length > 0) {
-      const floor1Events = scheduleEvents.filter((e: any) => e.title?.includes('1층'));
-      const floor2Events = scheduleEvents.filter((e: any) => e.title?.includes('2층') || !e.title?.includes('층'));
+    if (events.length > 0) {
+      const floor1Events = events.filter((e: any) => e.title?.includes('1층'));
+      const floor2Events = events.filter((e: any) => e.title?.includes('2층') || !e.title?.includes('층'));
       
       const floor1Event = floor1Events.find((e: any) => e.type === 'early_open') || 
                          floor1Events.find((e: any) => e.type === 'early_close' || e.type === 'overnight');

@@ -1,4 +1,3 @@
-import { createAdminClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (30초 캐시)
@@ -16,19 +15,18 @@ export async function GET() {
       return NextResponse.json(deviceCountCache.data);
     }
     
-    const supabase = createAdminClient();
+    // Drizzle ORM 사용
+    const { getDB } = await import('@/lib/db/server');
+    const { devices } = await import('@/lib/db/schema');
+    const db = getDB();
     
-    // 최적화된 쿼리: status만 선택하여 네트워크 트래픽 최소화
-    const { data: devices, error: devicesError } = await supabase
-      .from('devices')
-      .select('status');
+    // 모든 기기 조회 (status만 선택하여 네트워크 트래픽 최소화)
+    const deviceList = await db.select({
+      status: devices.status
+    }).from(devices);
     
-    if (devicesError) {
-      throw devicesError;
-    }
-    
-    const total = devices?.length || 0;
-    const available = devices?.filter(d => d.status === 'available').length || 0;
+    const total = deviceList?.length || 0;
+    const available = deviceList?.filter(d => d.status === 'available').length || 0;
     const availablePercentage = total > 0 ? Math.round((available / total) * 100) : 0;
     
     const result = {

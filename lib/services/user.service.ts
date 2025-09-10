@@ -2,8 +2,6 @@
  * 사용자 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/types/database'
 import { UserRepository } from '@/lib/repositories/user.repository'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { 
@@ -11,6 +9,7 @@ import {
   ErrorCodes 
 } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
+import { getDB } from '@/lib/db/server'
 
 export interface CreateUserDto {
   id: string
@@ -30,9 +29,20 @@ export class UserService {
   private userRepo: UserRepository
   private reservationRepo: ReservationRepository
 
-  constructor(supabase: SupabaseClient<Database>) {
-    this.userRepo = new UserRepository(supabase)
-    this.reservationRepo = new ReservationRepository(supabase)
+  constructor() {
+    const db = getDB()
+    this.userRepo = new UserRepository(db)
+    this.reservationRepo = new ReservationRepository(db)
+  }
+
+  // 싱글톤 인스턴스
+  private static instance: UserService | null = null
+
+  static getInstance(): UserService {
+    if (!UserService.instance) {
+      UserService.instance = new UserService()
+    }
+    return UserService.instance
   }
 
   /**

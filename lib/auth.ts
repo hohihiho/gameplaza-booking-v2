@@ -1,70 +1,67 @@
-import { betterAuth } from "better-auth"
-import Database from "better-sqlite3"
-import { googleProvider } from "better-auth/providers/google"
+// Better Auth 역할 기반 권한 검사 유틸리티
+import { auth } from '@/lib/auth/server'
+import { headers } from 'next/headers'
 
-// 환경 변수 검증
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.warn('Missing required environment variables: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET')
+/**
+ * Better Auth 역할 시스템을 사용한 관리자 권한 확인
+ * @param userRole - 사용자의 역할 (Better Auth에서 가져온 user.role)
+ * @returns 관리자 권한이 있는지 여부
+ */
+export function isAdmin(userRole?: string): boolean {
+  if (!userRole) return false
+  return ['admin', 'super_admin'].includes(userRole)
 }
 
-// SQLite 데이터베이스 설정
-const db = new Database("./auth.db")
-
-// 관리자 이메일 목록 (하드코딩)
-const ADMIN_EMAILS = [
-  'ndz5496@gmail.com',
-  'admin@gameplaza.kr',
-  // 추가 관리자 이메일을 여기에 추가
-]
-
-export const auth = betterAuth({
-  database: db,
-  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000',
-  emailAndPassword: {
-    enabled: false, // 이메일/패스워드 로그인 비활성화
-  },
-  socialProviders: {
-    google: googleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    }),
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 24 * 7, // 7일
-    },
-  },
-  callbacks: {
-    async onSignIn(data) {
-      console.log('User signed in:', data.user.email)
-      return true
-    },
-    async onSignUp(data) {
-      console.log('New user signed up:', data.user.email)
-      return true
-    },
-  },
-  trustedOrigins: [
-    process.env.NODE_ENV === 'production' 
-      ? 'https://gameplaza.kr' 
-      : 'http://localhost:3000'
-  ],
-})
-
-// 관리자 권한 확인 유틸리티 함수
-export function isAdmin(email: string): boolean {
-  return ADMIN_EMAILS.includes(email.toLowerCase())
+/**
+ * 슈퍼 관리자 권한 확인
+ * @param userRole - 사용자의 역할
+ * @returns 슈퍼 관리자 권한이 있는지 여부
+ */
+export function isSuperAdmin(userRole?: string): boolean {
+  if (!userRole) return false
+  return userRole === 'super_admin'
 }
 
-// 세션 및 사용자 정보를 위한 타입 확장
-export type Session = typeof auth.$Infer.Session & {
-  user: {
-    isAdmin?: boolean
+/**
+ * VIP 멤버 권한 확인
+ * @param userRole - 사용자의 역할
+ * @returns VIP 멤버 권한이 있는지 여부
+ */
+export function isVipMember(userRole?: string): boolean {
+  if (!userRole) return false
+  return ['vip_member', 'gold_member', 'silver_member'].includes(userRole)
+}
+
+/**
+ * 서버에서 현재 사용자의 세션 정보 가져오기
+ * @returns 현재 사용자 세션 또는 null
+ */
+export async function getCurrentUser() {
+  try {
+    const session = await auth.api.getSession({
+      headers: headers()
+    })
+    return session?.user || null
+  } catch (error) {
+    console.error('getCurrentUser 오류:', error)
+    return null
   }
 }
 
-export type User = typeof auth.$Infer.User & {
-  isAdmin?: boolean
+/**
+ * 서버에서 현재 사용자가 관리자인지 확인
+ * @returns 관리자 권한 여부
+ */
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  const user = await getCurrentUser()
+  return isAdmin(user?.role)
+}
+
+/**
+ * 서버에서 현재 사용자가 슈퍼 관리자인지 확인
+ * @returns 슈퍼 관리자 권한 여부
+ */
+export async function isCurrentUserSuperAdmin(): Promise<boolean> {
+  const user = await getCurrentUser()
+  return isSuperAdmin(user?.role)
 }

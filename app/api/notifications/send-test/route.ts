@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getRawDB } from '@/lib/db/server';
 
 // VAPID 키 유효성 검증 함수
 function isValidVapidPublicKey(key: string): boolean {
@@ -96,13 +91,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 대상 사용자의 활성화된 푸시 구독 정보 조회
-    const { data: subscriptions, error } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_email', targetEmail)
-      .eq('enabled', true);
-
-    if (error) {
+    let subscriptions;
+    try {
+      const db = getRawDB();
+      const stmt = db.prepare(`
+        SELECT * FROM push_subscriptions 
+        WHERE user_email = ? AND enabled = 1
+      `);
+      subscriptions = stmt.all(targetEmail);
+    } catch (error) {
       console.error('구독 정보 조회 오류:', error);
       return NextResponse.json(
         { error: '구독 정보를 가져오는데 실패했습니다.' },
@@ -176,12 +173,19 @@ export async function POST(request: NextRequest) {
 
         // 410 Gone: 구독이 만료된 경우 비활성화
         if (sendError.statusCode === 410) {
-          await supabase
-            .from('push_subscriptions')
-            .update({ enabled: false })
-            .eq('id', subscription.id);
-          
-          console.log('만료된 구독 비활성화:', subscription.id);
+          try {
+            const db = getRawDB();
+            const stmt = db.prepare(`
+              UPDATE push_subscriptions 
+              SET enabled = 0, updated_at = ? 
+              WHERE id = ?
+            `);
+            stmt.run(new Date().toISOString(), subscription.id);
+            
+            console.log('만료된 구독 비활성화:', subscription.id);
+          } catch (updateError) {
+            console.error('구독 비활성화 오류:', updateError);
+          }
         }
       }
     }

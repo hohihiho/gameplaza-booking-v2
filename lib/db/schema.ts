@@ -1,42 +1,37 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-// 사용자 테이블
+// 사용자 테이블 (실제 migration과 일치)
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
-  role: text('role', { enum: ['user', 'admin', 'super_admin'] }).notNull().default('user'),
-  profileImageUrl: text('profile_image_url'),
-  marketingConsent: integer('marketing_consent', { mode: 'boolean' }).default(false),
-  marketing_agreed: integer('marketing_agreed', { mode: 'boolean' }).default(false),
-  push_notifications_enabled: integer('push_notifications_enabled', { mode: 'boolean' }).default(false),
-  lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  phone: text('phone'),
+  role: text('role').notNull().default('user'),
+  profile_image_url: text('profile_image_url'),
+  marketing_consent: integer('marketing_consent').default(0),
+  marketing_agreed: integer('marketing_agreed').default(0),
+  push_notifications_enabled: integer('push_notifications_enabled').default(0),
+  last_login_at: integer('last_login_at'),
+  created_at: integer('created_at').default(sql`CURRENT_TIMESTAMP`),
   updated_at: text('updated_at'),
 }, (table) => ({
   emailIdx: index('idx_users_email').on(table.email),
   roleIdx: index('idx_users_role').on(table.role),
-  createdAtIdx: index('idx_users_created_at').on(table.createdAt),
+  createdAtIdx: index('idx_users_created_at').on(table.created_at),
 }));
 
-// 세션 테이블
+// 세션 테이블 (Better Auth 표준)
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token').notNull(),
-  refreshToken: text('refresh_token').notNull(),
-  accessTokenExpiresAt: text('access_token_expires_at').notNull(),
-  refreshTokenExpiresAt: text('refresh_token_expires_at').notNull(),
-  deviceInfo: text('device_info'), // JSON string
+  token: text('token').notNull(),
+  expiresAt: text('expires_at').notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  lastActivityAt: text('last_activity_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
-})
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 // 기기 카테고리 테이블
 export const deviceCategories = sqliteTable('device_categories', {
@@ -247,120 +242,75 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   auth: text('auth'),
   user_agent: text('user_agent'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-  created_at: text('created_at').notNull(),
-  updated_at: text('updated_at').notNull(),
+  created_at: text('created_at'),
+  updated_at: text('updated_at'),
 }, (table) => ({
   userEmailIdx: index('idx_push_subscriptions_user_email').on(table.user_email),
   endpointIdx: index('idx_push_subscriptions_endpoint').on(table.endpoint),
   enabledIdx: index('idx_push_subscriptions_enabled').on(table.enabled),
 }));
 
-// 콘텐츠 페이지 테이블 (약관 관리용)
+// 컨텐츠 페이지 테이블
 export const contentPages = sqliteTable('content_pages', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  slug: text('slug').notNull().unique(), // 'terms', 'privacy', etc.
+  slug: text('slug').notNull().unique(),
   title: text('title').notNull(),
   content: text('content').notNull(),
-  contentType: text('content_type', { enum: ['markdown', 'html'] }).notNull().default('markdown'),
-  version: integer('version').notNull().default(1),
-  isPublished: integer('is_published', { mode: 'boolean' }).notNull().default(false),
-  publishedAt: integer('published_at', { mode: 'timestamp' }),
-  metadata: text('metadata'), // JSON 문자열 (메타데이터, 태그 등)
-  createdBy: text('created_by').references(() => users.id),
-  updatedBy: text('updated_by').references(() => users.id),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  contentType: text('content_type').default('markdown'),
+  version: integer('version').default(1),
+  isPublished: integer('is_published', { mode: 'boolean' }).default(true),
+  publishedAt: text('published_at'),
+  metadata: text('metadata'), // JSON
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
   slugIdx: uniqueIndex('idx_content_pages_slug').on(table.slug),
   publishedIdx: index('idx_content_pages_published').on(table.isPublished),
-  versionIdx: index('idx_content_pages_version').on(table.version),
-  createdAtIdx: index('idx_content_pages_created_at').on(table.createdAt),
 }));
 
-// 콘텐츠 페이지 버전 히스토리 테이블
-export const contentPageVersions = sqliteTable('content_page_versions', {
+// Better Auth 계정 테이블
+export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  pageId: text('page_id').notNull().references(() => contentPages.id, { onDelete: 'cascade' }),
-  version: integer('version').notNull(),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  contentType: text('content_type', { enum: ['markdown', 'html'] }).notNull().default('markdown'),
-  changeLog: text('change_log'), // 변경 사항 설명
-  createdBy: text('created_by').references(() => users.id),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: text('access_token_expires_at'),
+  refreshTokenExpiresAt: text('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  pageVersionIdx: index('idx_content_page_versions_page_version').on(table.pageId, table.version),
-  pageIdx: index('idx_content_page_versions_page').on(table.pageId),
-  createdAtIdx: index('idx_content_page_versions_created_at').on(table.createdAt),
+  userIdx: index('idx_accounts_user_id').on(table.userId),
+  providerIdx: index('idx_accounts_provider').on(table.providerId),
+  accountIdx: uniqueIndex('idx_accounts_account_provider').on(table.accountId, table.providerId),
 }));
 
-// 공지사항 테이블
-export const announcements = sqliteTable('announcements', {
+// Better Auth 인증 테이블
+export const verifications = sqliteTable('verifications', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  type: text('type', { enum: ['popup', 'banner', 'both'] }).notNull().default('popup'),
-  priority: integer('priority').notNull().default(0), // 높을수록 우선순위
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  startDate: integer('start_date', { mode: 'timestamp' }),
-  endDate: integer('end_date', { mode: 'timestamp' }),
-  buttonText: text('button_text'), // 팝업 버튼 텍스트 (기본: "확인")
-  buttonUrl: text('button_url'), // 버튼 클릭 시 이동할 URL (선택사항)
-  showOnce: integer('show_once', { mode: 'boolean' }).default(false), // 사용자당 한번만 표시
-  backgroundColor: text('background_color'), // 배너 배경색
-  textColor: text('text_color'), // 텍스트 색상
-  createdBy: text('created_by').references(() => users.id),
-  updatedBy: text('updated_by').references(() => users.id),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  activeIdx: index('idx_announcements_active').on(table.isActive),
-  typeIdx: index('idx_announcements_type').on(table.type),
-  priorityIdx: index('idx_announcements_priority').on(table.priority),
-  dateRangeIdx: index('idx_announcements_date_range').on(table.startDate, table.endDate),
-  createdAtIdx: index('idx_announcements_created_at').on(table.createdAt),
-}));
-
-// 공지사항 조회 기록 테이블 (showOnce 기능용)
-export const announcementViews = sqliteTable('announcement_views', {
-  id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  announcementId: text('announcement_id').notNull().references(() => announcements.id, { onDelete: 'cascade' }),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
-  userSessionId: text('user_session_id'), // 비로그인 사용자를 위한 세션 ID
-  viewedAt: integer('viewed_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-}, (table) => ({
-  announcementUserIdx: index('idx_announcement_views_announcement_user').on(table.announcementId, table.userId),
-  announcementSessionIdx: index('idx_announcement_views_announcement_session').on(table.announcementId, table.userSessionId),
-  viewedAtIdx: index('idx_announcement_views_viewed_at').on(table.viewedAt),
-}));
-
-// 공지사항 게시판 테이블
-export const notices = sqliteTable('notices', {
-  id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  category: text('category', { enum: ['general', 'event', 'maintenance', 'update'] }).notNull().default('general'),
-  isPinned: integer('is_pinned', { mode: 'boolean' }).notNull().default(false),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  viewCount: integer('view_count').notNull().default(0),
-  startDate: integer('start_date', { mode: 'timestamp' }),
-  endDate: integer('end_date', { mode: 'timestamp' }),
-  createdBy: text('created_by').notNull().references(() => users.id),
-  updatedBy: text('updated_by').references(() => users.id),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-}, (table) => ({
-  categoryIdx: index('idx_notices_category').on(table.category),
-  activeIdx: index('idx_notices_active').on(table.isActive),
-  pinnedIdx: index('idx_notices_pinned').on(table.isPinned),
-  dateRangeIdx: index('idx_notices_date_range').on(table.startDate, table.endDate),
-  createdAtIdx: index('idx_notices_created_at').on(table.createdAt),
-  viewCountIdx: index('idx_notices_view_count').on(table.viewCount),
+  identifierIdx: index('idx_verifications_identifier').on(table.identifier),
+  valueIdx: index('idx_verifications_value').on(table.value),
 }));
 
 // 타입 추론을 위한 유틸리티 타입
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type DeviceCategory = typeof deviceCategories.$inferSelect;
+export type NewDeviceCategory = typeof deviceCategories.$inferInsert;
 export type DeviceType = typeof deviceTypes.$inferSelect;
 export type NewDeviceType = typeof deviceTypes.$inferInsert;
 export type Device = typeof devices.$inferSelect;
@@ -387,7 +337,7 @@ export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
 export type ContentPage = typeof contentPages.$inferSelect;
 export type NewContentPage = typeof contentPages.$inferInsert;
-export type ContentPageVersion = typeof contentPageVersions.$inferSelect;
-export type NewContentPageVersion = typeof contentPageVersions.$inferInsert;
-export type Notice = typeof notices.$inferSelect;
-export type NewNotice = typeof notices.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+export type Verification = typeof verifications.$inferSelect;
+export type NewVerification = typeof verifications.$inferInsert;

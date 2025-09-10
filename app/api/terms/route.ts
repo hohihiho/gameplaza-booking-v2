@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { getDB } from '@/lib/db/server';
+import { contentPages } from '@/lib/db/schema';
+import { eq, and, desc, inArray, or } from 'drizzle-orm';
 
 // 활성 약관 조회 API (content_pages 테이블 사용)
 export async function GET(request: NextRequest) {
@@ -13,44 +15,37 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     });
     
-    const supabase = createClient();
+    const db = getDB();
     
-    let query = supabase
-      .from('content_pages')
-      .select('*')
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false });
+    // D1 데이터베이스에서 content_pages 조회
+    let whereConditions = [eq(contentPages.isPublished, true)];
     
     // 특정 타입이 요청된 경우 필터링
     if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
-      query = query.eq('slug', type);
+      whereConditions.push(eq(contentPages.slug, type));
     } else {
       // type이 지정되지 않은 경우 약관 관련 페이지만 조회
-      query = query.in('slug', ['terms_of_service', 'privacy_policy']);
+      whereConditions.push(inArray(contentPages.slug, ['terms_of_service', 'privacy_policy']));
     }
     
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('약관 조회 오류:', error);
-      return NextResponse.json(
-        { error: '약관을 불러오는 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
-    }
+    const data = await db
+      .select()
+      .from(contentPages)
+      .where(and(...whereConditions))
+      .orderBy(desc(contentPages.updatedAt));
     
     // 타입별로 단일 객체 반환 (가장 최신 버전)
     if (type) {
       const terms = data?.[0] || null;
-      // content_pages 구조에 맞게 변환
+      // D1 content_pages 구조에 맞게 변환
       const formattedTerms = terms ? {
         id: terms.id,
         type: terms.slug,
         title: terms.title,
         content: terms.content,
-        is_active: terms.is_published,
-        created_at: terms.created_at,
-        updated_at: terms.updated_at
+        is_active: terms.isPublished,
+        created_at: terms.createdAt,
+        updated_at: terms.updatedAt
       } : null;
       return NextResponse.json({ data: formattedTerms }, { headers });
     }
@@ -65,18 +60,18 @@ export async function GET(request: NextRequest) {
         type: termsOfService.slug,
         title: termsOfService.title,
         content: termsOfService.content,
-        is_active: termsOfService.is_published,
-        created_at: termsOfService.created_at,
-        updated_at: termsOfService.updated_at
+        is_active: termsOfService.isPublished,
+        created_at: termsOfService.createdAt,
+        updated_at: termsOfService.updatedAt
       } : null,
       privacy_policy: privacyPolicy ? {
         id: privacyPolicy.id,
         type: privacyPolicy.slug,
         title: privacyPolicy.title,
         content: privacyPolicy.content,
-        is_active: privacyPolicy.is_published,
-        created_at: privacyPolicy.created_at,
-        updated_at: privacyPolicy.updated_at
+        is_active: privacyPolicy.isPublished,
+        created_at: privacyPolicy.createdAt,
+        updated_at: privacyPolicy.updatedAt
       } : null
     };
     

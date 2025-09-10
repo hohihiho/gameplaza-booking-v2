@@ -2,8 +2,6 @@
  * 예약 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/types/database'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { DeviceRepository } from '@/lib/repositories/device.repository'
 import { UserRepository } from '@/lib/repositories/user.repository'
@@ -12,8 +10,7 @@ import {
   ErrorCodes 
 } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
-
-type ReservationInsert = Database['public']['Tables']['reservations']['Insert']
+import { getDB } from '@/lib/db/server'
 
 export interface CreateReservationDto {
   date: string
@@ -32,10 +29,21 @@ export class ReservationService {
   private deviceRepo: DeviceRepository
   private userRepo: UserRepository
 
-  constructor(supabase: SupabaseClient<Database>) {
-    this.reservationRepo = new ReservationRepository(supabase)
-    this.deviceRepo = new DeviceRepository(supabase)
-    this.userRepo = new UserRepository(supabase)
+  constructor() {
+    const db = getDB()
+    this.reservationRepo = new ReservationRepository(db)
+    this.deviceRepo = new DeviceRepository(db)
+    this.userRepo = new UserRepository(db)
+  }
+
+  // 싱글톤 인스턴스
+  private static instance: ReservationService | null = null
+
+  static getInstance(): ReservationService {
+    if (!ReservationService.instance) {
+      ReservationService.instance = new ReservationService()
+    }
+    return ReservationService.instance
   }
 
   /**

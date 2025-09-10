@@ -1,6 +1,5 @@
 'use client'
 
-import { BetterAuthProvider } from './components/BetterAuthProvider'
 import { useEffect } from 'react'
 import { ModalProvider, modal } from '@/hooks/useModal'
 import { ToastProvider } from '@/hooks/useToast'
@@ -71,10 +70,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <BetterAuthProvider>
+    <>
       {children}
       <ModalProvider />
       <ToastProvider />
-    </BetterAuthProvider>
+    </>
   )
 }

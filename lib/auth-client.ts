@@ -1,5 +1,12 @@
+"use client"
+
 import { createAuthClient } from "better-auth/react"
-import { isAdmin } from "./auth"
+
+// 관리자 이메일 목록 (클라이언트용)
+const ADMIN_EMAILS = [
+  'ndz5496@gmail.com',
+  'admin@gameplaza.kr',
+]
 
 export const authClient = createAuthClient({
   baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
@@ -22,7 +29,20 @@ export function useIsAdmin() {
     return false
   }
   
-  return isAdmin(session.data.user.email)
+  return ADMIN_EMAILS.includes(session.data.user.email.toLowerCase())
+}
+
+// useAuth 훅 추가 (호환성을 위해)
+export function useAuth() {
+  const { data: session, isPending: isLoading, error } = useSession()
+  
+  return {
+    user: session?.user || null,
+    session,
+    isLoading,
+    isAuthenticated: !!session?.user,
+    error
+  }
 }
 
 // 세션 타입

@@ -2,12 +2,11 @@
  * 분석 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/types/database'
 import { AnalyticsRepository } from '@/lib/repositories/analytics.repository'
 import { DeviceRepository } from '@/lib/repositories/device.repository'
 import { UserRepository } from '@/lib/repositories/user.repository'
 import { logger } from '@/lib/utils/logger'
+import { getDB } from '@/lib/db/server'
 
 export interface DateRangeDto {
   startDate: string
@@ -45,9 +44,22 @@ export class AnalyticsService {
   private deviceRepo: DeviceRepository
   private userRepo: UserRepository
 
-  constructor(supabase: SupabaseClient<Database>) {
-    this.analyticsRepo = new AnalyticsRepository(supabase)
-    this.deviceRepo = new DeviceRepository(supabase)
+  constructor() {
+    const db = getDB()
+    this.analyticsRepo = new AnalyticsRepository(db)
+    this.deviceRepo = new DeviceRepository(db)
+    this.userRepo = new UserRepository(db)
+  }
+
+  // 싱글톤 인스턴스
+  private static instance: AnalyticsService | null = null
+
+  static getInstance(): AnalyticsService {
+    if (!AnalyticsService.instance) {
+      AnalyticsService.instance = new AnalyticsService()
+    }
+    return AnalyticsService.instance
+  }
     this.userRepo = new UserRepository(supabase)
   }
 
