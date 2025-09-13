@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const userId = session.user.id
 
     // 요청 본문 파싱
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 서비스 롤 키로 Supabase 클라이언트 생성 (RLS 우회)
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const userId = session.user.id
 
     // 자동 기기 상태 체크 실행 (사용자 액션 기반)

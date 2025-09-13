@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 // no_show 상태의 예약 확인
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // no_show 상태의 예약 조회
     const { data: noShowReservations, error } = await supabase

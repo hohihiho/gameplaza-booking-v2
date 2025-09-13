@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createClient } from '@/lib/db'
+import { createAdminClient } from '@/lib/db'
 import { z } from 'zod'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     // 해당 날짜의 모든 예약 조회 (기기 타입별)
     // RLS를 우회하기 위해 service role 클라이언트 사용
-    const supabaseAdmin = createServiceRoleClient()
+    const supabaseAdmin = createAdminClient()
     const { data: reservations, error: reservationError } = await supabaseAdmin
       .from('reservations')
       .select(`

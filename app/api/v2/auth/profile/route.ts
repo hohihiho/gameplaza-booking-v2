@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GetProfileUseCase } from '@/src/application/use-cases/auth/get-profile.use-case'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 프로필 조회 API
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const userRepository = new UserSupabaseRepository(supabase)
 
     // 유스케이스 실행

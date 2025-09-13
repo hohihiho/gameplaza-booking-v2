@@ -1,0 +1,104 @@
+{
+  "timestamp": "2025-09-13T11:51:08.632Z",
+  "tests": [
+    {
+      "testName": "Desktop - 메인 페이지",
+      "url": "http://localhost:3000",
+      "deviceType": "Desktop",
+      "timestamp": "2025-09-13T11:51:37.088Z",
+      "loadTime": 25692,
+      "webVitals": {
+        "LCP": null,
+        "FCP": null,
+        "TTI": null,
+        "CLS": null
+      },
+      "navigationTiming": {
+        "domContentLoaded": null,
+        "loadComplete": null,
+        "TTI": null
+      },
+      "memory": {
+        "usedJSHeapSize": 148000000,
+        "totalJSHeapSize": 157000000,
+        "jsHeapSizeLimit": 3760000000
+      },
+      "networkRequests": 54,
+      "fastestRequest": 12,
+      "slowestRequest": 18994,
+      "averageRequestTime": 2059.4814814814813,
+      "consoleLogs": 6,
+      "errors": 0,
+      "evaluation": {}
+    },
+    {
+      "testName": "Mobile - 메인 페이지",
+      "url": "http://localhost:3000",
+      "timestamp": "2025-09-13T11:51:43.886Z",
+      "loadTime": 6719,
+      "webVitals": {
+        "LCP": null,
+        "FCP": null,
+        "TTI": null,
+        "CLS": null
+      },
+      "navigationTiming": {
+        "domContentLoaded": null,
+        "loadComplete": null,
+        "TTI": null
+      },
+      "memory": {
+        "usedJSHeapSize": 123000000,
+        "totalJSHeapSize": 131000000,
+        "jsHeapSizeLimit": 3760000000
+      },
+      "networkRequests": 26,
+      "fastestRequest": 9,
+      "slowestRequest": 5561,
+      "averageRequestTime": 272.5,
+      "consoleLogs": 1,
+      "errors": 0,
+      "evaluation": {}
+    },
+    {
+      "testName": "Mobile 3G - 메인 페이지",
+      "url": "http://localhost:3000",
+      "deviceType": "iPhone 12 (3G)",
+      "loadTime": 9069,
+      "timestamp": "2025-09-13T11:51:53.008Z"
+    }
+  ],
+  "apiTests": [
+    {
+      "name": "Home API",
+      "url": "http://localhost:3000/api/devices",
+      "error": "fetch failed",
+      "responseTime": null,
+      "success": false
+    },
+    {
+      "name": "Auth Check",
+      "url": "http://localhost:3000/api/auth/session",
+      "error": "fetch failed",
+      "responseTime": null,
+      "success": false
+    },
+    {
+      "name": "Time Slots",
+      "url": "http://localhost:3000/api/time-slots",
+      "error": "fetch failed",
+      "responseTime": null,
+      "success": false
+    },
+    {
+      "name": "Device Types",
+      "url": "http://localhost:3000/api/admin/devices/types",
+      "error": "fetch failed",
+      "responseTime": null,
+      "success": false
+    }
+  ],
+  "bundleAnalysis": {
+    "error": "JavaScript build files not found"
+  }
+}

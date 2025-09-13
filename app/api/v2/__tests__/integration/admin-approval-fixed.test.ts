@@ -15,7 +15,7 @@ jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
   isAdmin: jest.fn()
 }))
 
-jest.mock('@/lib/supabase/server', () => ({
+jest.mock('@/lib/db', () => ({
   createClient: jest.fn()
 }))
 
@@ -36,7 +36,7 @@ jest.mock('@/src/infrastructure/repositories/notification.supabase.repository', 
 }))
 
 const { getAuthenticatedUser, isAdmin } = require('@/src/infrastructure/middleware/auth.middleware')
-const { createClient } = require('@/lib/supabase/server')
+const { createClient } = require('@/lib/db')
 const { UserSupabaseRepository } = require('@/src/infrastructure/repositories/user.supabase.repository')
 const { SupabaseReservationRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-reservation.repository.v2')
 const { SupabaseDeviceRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-device.repository.v2')

@@ -25,7 +25,7 @@ jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn()
 }))
 
-jest.mock('@/lib/supabase/server', () => ({
+jest.mock('@/lib/db', () => ({
   createClient: jest.fn()
 }))
 
@@ -38,7 +38,7 @@ jest.mock('next/headers', () => ({
 }))
 
 const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
-const { createClient } = require('@/lib/supabase/server')
+const { createClient } = require('@/lib/db')
 const { getAuthenticatedUser } = require('@/src/infrastructure/middleware/auth.middleware')
 
 describe('v2 API Integration Tests - Reservations', () => {
@@ -78,7 +78,7 @@ describe('v2 API Integration Tests - Reservations', () => {
     }
     // @supabase/supabase-js의 createClient 모킹
     createSupabaseClient.mockReturnValue(mockSupabase)
-    // @/lib/supabase/server의 createClient도 모킹 (일부 테스트에서 사용)
+    // @/lib/db의 createClient도 모킹 (일부 테스트에서 사용)
     createClient.mockResolvedValue(mockSupabase)
     // 기본적으로 인증된 사용자로 설정
     getAuthenticatedUser.mockReturnValue(testUser)

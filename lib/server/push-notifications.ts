@@ -1,6 +1,6 @@
 // 서버 사이드 푸시 알림 유틸리티
 import webpush from 'web-push';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { notificationTemplates } from '@/lib/push-notifications';
 
 // VAPID 설정 - 환경 변수가 있을 때만 설정

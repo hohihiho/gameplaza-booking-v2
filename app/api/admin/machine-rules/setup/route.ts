@@ -37,7 +37,7 @@ export async function POST() {
     const supabaseAdmin = createAdminClient();
     const { count } = await supabaseAdmin
       .from('machine_rules')
-      .select('*', { count: 'exact', head: true })
+      .count()
 
     if (count === 0) {
       // 초기 데이터 삽입

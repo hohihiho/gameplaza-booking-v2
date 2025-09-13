@@ -1,4 +1,3 @@
-import { createAdminClient } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (10분 캐시)
@@ -22,28 +21,9 @@ export async function GET() {
       return NextResponse.json(scheduleCache.data);
     }
     
-    const supabase = createAdminClient();
-    
-    // 특별 영업시간 조회
+    // D1 데이터베이스는 아직 구현되지 않았으므로
+    // 특별 일정 없이 기본 영업시간만 반환
     let scheduleEvents: any[] = [];
-    try {
-      const { data, error } = await supabase
-        .from('schedule_events')
-        .select('title, start_time, end_time, type')
-        .eq('date', dateStr)
-        .in('type', ['early_open', 'overnight', 'early_close']);
-      
-      if (error && error.code !== '42P01') { // 42P01: table does not exist
-        throw error;
-      }
-      
-      scheduleEvents = data || [];
-    } catch (error: any) {
-      if (error?.code !== '42P01') {
-        console.error('일정 조회 오류:', error);
-        return NextResponse.json({ error: '일정 조회에 실패했습니다' }, { status: 500 });
-      }
-    }
     
     // 오늘의 영업시간 계산
     const dayOfWeek = today.getDay();

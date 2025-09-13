@@ -16,7 +16,7 @@ export default function CheckTotalCountPage() {
       // 1. 전체 예약 수 확인
       const { count: totalCount, error: totalError } = await supabaseAdmin
         .from('reservations')
-        .select('*', { count: 'exact', head: true });
+        .count();
       
       counts.total = { count: totalCount, error: totalError };
 
@@ -27,9 +27,9 @@ export default function CheckTotalCountPage() {
       for (const status of statuses) {
         const { count, error } = await supabaseAdmin
           .from('reservations')
-          .select('*', { count: 'exact', head: true })
+          .count()
           .eq('status', status);
-        
+
         counts.byStatus[status] = { count, error };
       }
 
@@ -40,7 +40,7 @@ export default function CheckTotalCountPage() {
       for (let year = currentYear - 2; year <= currentYear; year++) {
         const { count, error } = await supabaseAdmin
           .from('reservations')
-          .select('*', { count: 'exact', head: true })
+          .count()
           .gte('date', `${year}-01-01`)
           .lte('date', `${year}-12-31`);
         

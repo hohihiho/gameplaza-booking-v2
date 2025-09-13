@@ -1,7 +1,7 @@
 // 예약 상태 자동 업데이트 서비스
 // 크론잡 없이 조회 시점에 상태를 동적으로 처리
 
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 export class ReservationStatusService {
   // 예약 목록 조회 시 상태 자동 업데이트

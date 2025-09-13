@@ -16,12 +16,12 @@ jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
   isAdmin: jest.fn()
 }))
 
-jest.mock('@/lib/supabase/server', () => ({
+jest.mock('@/lib/db', () => ({
   createClient: jest.fn()
 }))
 
 const { getAuthenticatedUser, isAdmin } = require('@/src/infrastructure/middleware/auth.middleware')
-const { createClient } = require('@/lib/supabase/server')
+const { createClient } = require('@/lib/db')
 
 describe('예약 승인 API 테스트', () => {
   const adminUser = {

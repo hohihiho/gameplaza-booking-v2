@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 // 관리자 계정 목록 확인
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // 관리자 계정 조회
     const { data: admins, error } = await supabase

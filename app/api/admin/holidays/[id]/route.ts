@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HolidayService } from '@/lib/services/holiday.service';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/db';
 
 // DELETE /api/admin/holidays/[id] - 공휴일 삭제
 export async function DELETE(

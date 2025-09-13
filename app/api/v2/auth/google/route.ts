@@ -6,7 +6,7 @@ import { AuthDomainService } from '@/src/domain/services/auth-domain.service'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
 import { AuthRequestDto } from '@/src/application/dtos/auth.dto'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * Google OAuth 로그인 API
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const googleAuthService = new GoogleAuthService(googleClientId)
     const tokenService = new JWTTokenService(accessTokenSecret, refreshTokenSecret)
     const authDomainService = new AuthDomainService(tokenService as any)

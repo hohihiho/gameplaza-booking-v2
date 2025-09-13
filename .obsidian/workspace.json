@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/testing/test-plan.md",
+                "file": "CLAUDE.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "test-plan"
+              "title": "CLAUDE"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/testing/test-plan.md",
+                "file": "CLAUDE.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "test-plan 의 백링크"
+              "title": "CLAUDE 의 백링크"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/testing/test-plan.md",
+                "file": "CLAUDE.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "test-plan 의 나가는 링크"
+              "title": "CLAUDE 의 나가는 링크"
             }
           },
           {
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/testing/test-plan.md",
+                "file": "CLAUDE.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "test-plan 의 개요"
+              "title": "CLAUDE 의 개요"
             }
           }
         ]
@@ -171,42 +171,43 @@
   },
   "active": "7b45eab121eb9ee0",
   "lastOpenFiles": [
-    "lib/db/query-builder.ts",
-    "lib/db/base-repository.ts",
-    "lib/db/connection.ts",
-    "scripts/fix-imports.sh",
-    "lib/supabase/service-role.ts",
-    "lib/supabase/server.ts",
-    "lib/supabase/admin.ts",
-    "lib/supabase",
-    "auth.ts",
-    "docs/technical/v3-technical-specification.md",
-    "app/api/admin/admins/[id]/route.ts.tmp.96577.1757761172121",
+    "scripts/error-dashboard.html",
+    "docs/performance/performance-optimization-report.md",
+    "docs/performance",
+    "scripts/advanced-error-monitor.js",
+    "test-results/specs-error-scan-Error-Sca-0aa2c-al-pages-and-fail-on-errors-chromium/trace.zip",
+    "test-results/specs-error-scan-Error-Sca-0aa2c-al-pages-and-fail-on-errors-chromium",
+    "test-results",
+    "app/components/toaster-host.tsx",
+    "app/components/dev-error-watcher.tsx",
+    "playwright-errors.config.ts",
+    "tests/e2e/specs/error-scan.spec.ts",
+    "app/api/internal/query/route.ts",
+    "docs/agents/auto-fixer.md",
+    "node_modules/concurrently/docs/cli/success.md",
+    "node_modules/concurrently/docs/cli/terminating.md",
+    "node_modules/concurrently/docs/cli/shortcuts.md",
+    "node_modules/concurrently/docs/cli/restarting.md",
+    "node_modules/concurrently/docs/cli/prefixing.md",
+    "node_modules/concurrently/docs/cli/passthrough-arguments.md",
+    "node_modules/concurrently/docs/cli/output-control.md",
+    "node_modules/concurrently/docs/cli/configuration.md",
+    "node_modules/concurrently/docs/cli/input-handling.md",
+    "node_modules/concurrently/docs/demo.gif",
+    "node_modules/concurrently/docs/README.md",
+    "node_modules/concurrently/README.md",
+    "node_modules/shell-quote/security.md",
+    "node_modules/shell-quote/README.md",
+    "docs/testing/complete-qa-test-plan.md",
+    "docs/test-results/performance-test-comprehensive.md",
+    "docs/test-results/performance-test.md",
+    "docs/SECURITY_ENV_GUIDE.md",
     "docs/기획서_운영일정관리.md",
+    "docs/testing/qa-test-plan-detailed.md",
+    "docs/testing/test-plan.md",
+    "docs/test-plans/comprehensive-test-plan.md",
+    "docs/technical/v3-technical-specification.md",
     "docs/기획서_대여가격설정.md",
-    "docs/기획서_기기관리.md",
-    "docs/OAUTH_FINAL_CHECKLIST.md",
-    "docs/CRON_SETUP.md",
-    "docs/firebase-setup.md",
-    "docs/PHASE1_IMPLEMENTATION.md",
-    "docs/PHASE2_IMPLEMENTATION.md",
-    "docs/QA_WORKFLOW.md",
-    "docs/SECURITY_RECOMMENDATIONS.md",
-    "docs/SESSION_STATE.md",
-    "docs/SPECLINTER_GUIDE_KR.md",
-    "docs/technical-debt-report.md",
-    "docs/supabase-oauth-setup.md",
-    "docs/TASKS.md",
-    "docs/TEST_DATA_PLAN.md",
-    "docs/TEST_RESULTS.md",
-    "docs/USER_MANUAL.md",
-    "docs/USER_REQUESTS.md",
-    "docs/V2_API_MIGRATION_GUIDE.md",
-    "docs/v3-completion-summary.md",
-    "docs/v3-implementation-guide.md",
-    "docs/v3-reservation-system.md",
-    "docs/DEVELOPER_PRODUCTIVITY_GUIDE.md",
-    "app/api/sentry-example-api/route.ts",
     "test-results/specs-site-pages-auth-Admi-ce604-tics-reservations-for-admin-chromium/test-failed-1.png",
     "playwright-report/data/bd27d5eb053cbdc266a788100da7b960f963d868.png",
     "playwright-report/data/7a8e53988731e34370effd8a50ff10f36ca35949.png",
@@ -215,7 +216,6 @@
     "playwright-report/data/f7d052b7c204c7cb86b4308b8d2ee20167333c80.png",
     "playwright-report/data/dd3aefd2920cabef455f52d260623d61961c4143.png",
     "playwright-report/data/c29dba64b42069b5ba95b55f92710d97e1bb9198.png",
-    "playwright-report/data/9f3d5c00c9725e050fcab45ba6ff0cda0cc91560.png",
-    "playwright-report/data/8db615e45f138efda4a81c2231e43ef4340c9225.png"
+    "playwright-report/data/9f3d5c00c9725e050fcab45ba6ff0cda0cc91560.png"
   ]
 }

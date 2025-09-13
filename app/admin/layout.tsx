@@ -3,6 +3,7 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react'
+import { useAdminAuth } from '@/app/hooks/useAdminAuth'
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -28,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const { user, isAdmin, loading } = useAdminAuth('admin')
   const [isLoading, setIsLoading] = useState(true)
 
   // 관리자 권한 확인
@@ -162,26 +164,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="lg:hidden p-4 border-t border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-                  {session?.user?.image ? (
+                  {user?.image ? (
                     <Image
-                      src={session.user.image}
-                      alt={session.user.name || '프로필'}
+                      src={user.image}
+                      alt={user.name || '프로필'}
                       width={40}
                       height={40}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-sm font-medium dark:text-white">
-                      {session?.user?.name?.[0] || 'A'}
+                      {user?.name?.[0] || 'A'}
                     </span>
                   )}
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium dark:text-white">
-                    {session?.user?.name || '관리자'}
+                    {user?.name || '관리자'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {session?.user?.email}
+                    {user?.email}
                   </p>
                 </div>
               </div>

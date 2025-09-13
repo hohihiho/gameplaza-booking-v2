@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 export const GET = withAuth(
@@ -98,9 +98,9 @@ export const GET = withAuth(
       .eq('payment_status', 'pending')
     
     // 6. 기기 현황 조회
-    const { data: totalDevices, count: totalDeviceCount } = await supabase
+    const { data: totalDevices } = await supabase
       .from('devices')
-      .select('id, status', { count: 'exact' })
+      .select('id, status')
     
     const availableDevices = totalDevices?.filter(d => d.status === 'available')?.length || 0
     const maintenanceDevices = totalDevices?.filter(d => d.status === 'maintenance')?.length || 0

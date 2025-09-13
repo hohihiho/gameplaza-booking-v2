@@ -10,6 +10,8 @@ import PWAInstallPrompt from './components/PWAInstallPrompt'
 // import DynamicFavicon from './components/DynamicFavicon'
 import { checkDatabaseEnvironment } from '@/lib/server/check-db-env'
 import SentryInit from './components/SentryInit'
+import DevErrorWatcher from './components/dev-error-watcher'
+import ToasterHost from './components/toaster-host'
 
 // 서버 시작 시 DB 환경 체크
 if (typeof window === 'undefined') {
@@ -136,6 +138,13 @@ export default function RootLayout({
               </TermsPreloader>
               <ServiceWorkerRegister />
               <PWAInstallPrompt />
+              {/* Dev/Test only helpers */}
+              {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_TEST_MODE === 'true') && (
+                <>
+                  <ToasterHost />
+                  <DevErrorWatcher />
+                </>
+              )}
             </ThemeProvider>
           </Providers>
         </BetterAuthProvider>

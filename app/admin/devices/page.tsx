@@ -635,11 +635,11 @@ export default function DevicesPage() {
       const types = await response.json();
 
       // 각 기종별 기기 수 계산 및 play_modes 정렬 (API에서 이미 처리됨)
-      const typesWithCounts = (types || []).map(type => ({
+      const typesWithCounts = (types || []).map((type: any) => ({
         ...type,
         device_count: type.device_count || 0,
         active_count: type.active_count || 0,
-        play_modes: type.play_modes ? type.play_modes.sort((a: any, b: any) => 
+        play_modes: type.play_modes ? type.play_modes.sort((a: { display_order?: number }, b: { display_order?: number }) =>
           (a.display_order || 0) - (b.display_order || 0)
         ) : []
       }));
@@ -716,7 +716,7 @@ export default function DevicesPage() {
             table: 'devices',
             filter: `device_type_id=eq.${selectedDeviceType.id}`
           },
-          (payload) => {
+          (payload: { new?: any; old?: any; eventType?: string }) => {
             if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
               setDevices(prev => prev.map(device => 
                 device.id === payload.new.id 
@@ -726,7 +726,7 @@ export default function DevicesPage() {
             }
           }
         )
-        .subscribe((status, err) => {
+        .subscribe((status: string, err?: any) => {
           if (status === 'CLOSED' && retryCount < maxRetries) {
             retryCount++;
             timeoutId = setTimeout(() => {

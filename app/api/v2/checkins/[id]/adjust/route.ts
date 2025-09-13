@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdjustTimeAndAmountUseCase } from '@/src/application/use-cases/checkin/adjust-time-and-amount.use-case'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 시간/금액 조정 API
@@ -87,7 +87,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
     // 5. 유스케이스 실행

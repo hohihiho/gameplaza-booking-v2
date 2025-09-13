@@ -5,7 +5,7 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 // DeviceTypeSupabaseRepository는 아직 구현되지 않음
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
 
     // 4. 유스케이스 실행
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceTypeRepository = deviceRepository as any

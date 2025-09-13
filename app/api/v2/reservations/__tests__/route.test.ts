@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { POST, GET } from '../route'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/db'
 
 // Mock dependencies
-jest.mock('@/lib/supabase/server')
+jest.mock('@/lib/db')
 jest.mock('@/lib/api/logging')
 
 const mockSupabase = {

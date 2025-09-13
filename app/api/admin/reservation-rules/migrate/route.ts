@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from "@/auth"
+import { getCurrentUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
 
 export async function POST() {
   try {
-    const session = await auth()
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 })
+    const user = await getCurrentUser()
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: '관리자 권한이 필요합니다' }, { status: 403 })
     }
 
     // 테이블이 존재하는지 확인
@@ -26,7 +26,7 @@ export async function POST() {
     // 데이터가 없으면 초기 데이터 삽입
     const { count } = await supabaseAdmin
       .from('reservation_rules')
-      .select('*', { count: 'exact', head: true })
+      .count()
 
     if (count === 0) {
       const initialRules = [

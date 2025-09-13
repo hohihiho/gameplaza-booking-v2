@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 // 테스트용 엔드포인트 - 조기예약 승인 테스트
 export async function POST(_request: NextRequest) {
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // 1. 먼저 테스트용 조기예약 생성
     const testDate = '2025-08-21' // 목요일 - 새로운 날짜로 테스트

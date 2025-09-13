@@ -44,7 +44,7 @@ export default function DebugReservationsPage() {
         // 예약 테이블 전체 카운트
         const { count: totalCount, error: countError } = await supabaseAdmin
           .from('reservations')
-          .select('*', { count: 'exact', head: true });
+          .count();
         
         debugResults.totalCount = { count: totalCount, error: countError };
         console.log('전체 예약 수:', totalCount, '에러:', countError);
@@ -70,9 +70,9 @@ export default function DebugReservationsPage() {
         for (const status of statuses) {
           const { count, error } = await supabaseAdmin
             .from('reservations')
-            .select('*', { count: 'exact', head: true })
+            .count()
             .eq('status', status);
-          
+
           debugResults.statusCounts[status] = { count, error };
         }
         console.log('상태별 카운트:', debugResults.statusCounts);

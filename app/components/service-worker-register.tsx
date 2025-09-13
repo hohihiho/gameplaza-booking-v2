@@ -5,10 +5,17 @@ import { registerServiceWorker } from '@/lib/push-notifications';
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
-    // Service Worker 등록
+    // Service Worker 비활성화 - 개발 중에는 사용하지 않음
+    console.log('Service Worker Register가 비활성화되었습니다.');
+
+    // 기존에 등록된 Service Worker가 있다면 제거
     if ('serviceWorker' in navigator) {
-      // 개발 환경에서도 PWA 테스트를 위해 Service Worker 등록
-      registerServiceWorker();
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister();
+          console.log('Service Worker 등록이 해제되었습니다.');
+        });
+      });
     }
   }, []);
 

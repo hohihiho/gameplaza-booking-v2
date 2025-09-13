@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-// import removed - using Better Auth;
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from './useAuth';
 
 export function useProfileCheck() {
-  const { data: session, status } = useSession();
+  const { session, loading } = useAuth();
+  const status = loading ? 'loading' : session ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const pathname = usePathname();
   const [isCheckingProfile, setIsCheckingProfile] = useState(false);

@@ -3,7 +3,7 @@ import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.se
 import { CreateTimeSlotTemplateUseCase, GetTimeSlotTemplatesUseCase } from '@/src/application/use-cases/time-slot'
 import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
 import { SupabaseTimeSlotScheduleRepository } from '@/src/infrastructure/repositories/supabase-time-slot-schedule.repository'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/db'
 import { z } from 'zod'
 
 // 요청 스키마 정의

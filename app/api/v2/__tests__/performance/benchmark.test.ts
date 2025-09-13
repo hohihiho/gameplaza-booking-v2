@@ -14,7 +14,7 @@ import { createMockSupabaseClient } from '@/lib/test-utils/mock-supabase'
 import { NextRequest } from 'next/server'
 
 // Mock 모듈들
-jest.mock('@/lib/supabase', () => ({
+jest.mock('@/lib/db', () => ({
   createAdminClient: jest.fn()
 }))
 
@@ -22,7 +22,7 @@ jest.mock('@/lib/auth', () => ({
   getCurrentUser: jest.fn()
 }))
 
-jest.mock('@/lib/supabase/server', () => ({
+jest.mock('@/lib/db', () => ({
   createClient: jest.fn(() => Promise.resolve({
     auth: {
       getUser: jest.fn(() => Promise.resolve({
@@ -46,7 +46,7 @@ jest.mock('@/lib/supabase/server', () => ({
   }))
 }))
 
-const { createAdminClient } = require('@/lib/supabase')
+const { createAdminClient } = require('@/lib/db')
 const { getCurrentUser } = require('@/lib/auth')
 
 // v2 API 엔드포인트 import
@@ -67,7 +67,7 @@ describe('v2 API Performance Benchmarks', () => {
     getCurrentUser.mockResolvedValue(testUser)
     
     // Supabase client mock 설정
-    const { createClient } = require('@/lib/supabase/server')
+    const { createClient } = require('@/lib/db')
     createClient.mockResolvedValue({
       auth: {
         getUser: jest.fn(() => Promise.resolve({

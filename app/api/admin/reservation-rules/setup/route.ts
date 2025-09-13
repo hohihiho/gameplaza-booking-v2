@@ -50,7 +50,7 @@ export async function POST() {
     // 샘플 데이터 추가 (테이블이 있고 비어있는 경우)
     const { count } = await supabaseAdmin
       .from('reservation_rules')
-      .select('*', { count: 'exact', head: true });
+      .count();
 
     if (count === 0) {
       const sampleRules = [

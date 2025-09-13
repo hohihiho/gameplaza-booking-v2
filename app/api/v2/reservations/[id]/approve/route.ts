@@ -5,7 +5,7 @@ import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.s
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { getAuthenticatedUser, isAdmin } from '@/src/infrastructure/middleware/auth.middleware'
 
 export const POST = createApiHandler(
@@ -31,7 +31,7 @@ export const POST = createApiHandler(
 
     try {
       // Supabase 클라이언트 생성
-      const supabase = createServiceRoleClient()
+      const supabase = createAdminClient()
 
       // 리포지토리 생성
       const userRepository = new UserSupabaseRepository(supabase)

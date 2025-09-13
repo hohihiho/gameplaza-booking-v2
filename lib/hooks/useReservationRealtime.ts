@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/db'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface UseReservationRealtimeProps {

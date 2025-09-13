@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { CancelReservationUseCase } from '@/src/application/use-cases/reservation/cancel-reservation.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 
 /**
@@ -39,7 +39,7 @@ export async function POST(
     }
 
     // 3. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

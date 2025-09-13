@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ConfirmPaymentUseCase } from '@/src/application/use-cases/checkin/confirm-payment.use-case'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { PaymentMethodType } from '@/src/domain/value-objects/payment-method'
 
 /**
@@ -73,7 +73,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
     // 5. 유스케이스 실행

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createAdminClient } from '@/lib/db';
 
 // 금지어 목록 (욕설, 비속어, 부적절한 단어)
 const BANNED_WORDS = [
@@ -38,7 +38,7 @@ const WARNING_PATTERNS = [
 
 // 닉네임 중복 체크
 async function checkNicknameDuplicate(nickname: string) {
-  const supabase = createServiceRoleClient();
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from('users')
     .select('nickname')

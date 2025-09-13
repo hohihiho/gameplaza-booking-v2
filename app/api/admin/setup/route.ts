@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 /**
@@ -12,7 +12,7 @@ export async function POST() {
   }
 
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // 첫 번째 사용자를 관리자로 설정
     const { data: users, error: userError } = await supabase

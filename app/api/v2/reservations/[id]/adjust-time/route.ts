@@ -9,7 +9,7 @@ import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/pay
 import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
 import { TimeAdjustmentSupabaseRepository } from '@/src/infrastructure/repositories/time-adjustment.supabase.repository'
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 export async function POST(
   req: NextRequest,
@@ -50,7 +50,7 @@ export async function POST(
       }
 
       // Supabase 클라이언트 생성
-      const supabase = createServiceRoleClient()
+      const supabase = createAdminClient()
       
       // 리포지토리 초기화
       const userRepository = new UserSupabaseRepository(supabase)

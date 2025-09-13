@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 export async function GET(request: NextRequest) {
   // E2E 테스트 모드: 비프로덕션 + 헤더로 가장 세션 제공
   if (process.env.NODE_ENV !== 'production') {
-    const h = headers()
+    const h = await headers()
     const imp = h.get('x-e2e-impersonate')
     if (imp === 'admin') {
       return NextResponse.json({ user: { id: 'e2e-admin', email: 'e2e-admin@example.com', isAdmin: true, isSuperAdmin: true } })

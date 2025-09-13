@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gameplaza-secret-key-2025';
+// JWT 비밀키는 반드시 환경변수에서 설정되어야 함 (보안상 기본값 제거)
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET 환경변수가 설정되지 않았습니다. 서버를 시작할 수 없습니다.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
 
 export interface User {

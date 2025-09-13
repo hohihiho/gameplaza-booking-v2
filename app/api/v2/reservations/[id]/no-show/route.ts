@@ -4,7 +4,7 @@ import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositori
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 노쇼 처리 API
@@ -46,7 +46,7 @@ export async function POST(
     const { reason } = body
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)

@@ -133,7 +133,7 @@ export default function RentalSlotManagementPage() {
           schema: 'public',
           table: 'rental_time_slots'
         },
-        (payload) => {
+        (payload: { new?: any; old?: any; eventType?: string }) => {
           // 현재 선택된 기기와 날짜에 해당하는 변경사항만 처리
           if (payload.new && 
               'device_type_id' in payload.new &&

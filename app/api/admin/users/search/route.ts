@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createClient } from '@/lib/db';
+import { createAdminClient } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 서비스 롤 클라이언트 사용 (모든 사용자 검색을 위해)
-    const supabaseAdmin = createServiceRoleClient();
+    const supabaseAdmin = createAdminClient();
 
     // 사용자 검색 (이름, 이메일, 전화번호)
     const { data: users, error: searchError } = await supabaseAdmin

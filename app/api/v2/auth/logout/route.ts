@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { LogoutUseCase } from '@/src/application/use-cases/auth/logout.use-case'
 import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
 import { LogoutRequestDto } from '@/src/application/dtos/auth.dto'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
 
 /**
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const sessionRepository = new SessionSupabaseRepository(supabase)
 
     // 유스케이스 실행

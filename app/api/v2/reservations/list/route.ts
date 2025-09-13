@@ -3,7 +3,7 @@ import { ListUserReservationsUseCase } from '@/src/application/use-cases/reserva
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 import { z } from 'zod'
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const data = validationResult.data
 
     // 3. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

@@ -6,7 +6,7 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const includeWaitingPayment = searchParams.get('includeWaitingPayment') === 'true'
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

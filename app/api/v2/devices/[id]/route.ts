@@ -6,7 +6,7 @@ import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/che
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 기기 상세 조회 API
@@ -21,7 +21,7 @@ export async function GET(
     const { id } = await params
     
     // 1. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
@@ -121,7 +121,7 @@ export async function PUT(
     const { name, specifications, notes } = body
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

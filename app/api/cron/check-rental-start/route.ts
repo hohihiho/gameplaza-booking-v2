@@ -3,7 +3,7 @@
 // 예약 시간이 되면 자동으로 '대여 중' 상태로 변경하는 API입니다.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createAdminClient } from '@/lib/db';
 import { forceCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function GET(request: NextRequest) {

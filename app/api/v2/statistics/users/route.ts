@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GetUserStatisticsUseCase } from '@/src/application/use-cases/statistics/get-user-statistics.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const data = validationResult.data
 
     // 3. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

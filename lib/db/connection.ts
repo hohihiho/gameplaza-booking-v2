@@ -1,22 +1,39 @@
 // 개선된 데이터베이스 연결 및 쿼리 매니저
-import { Pool, PoolClient } from 'pg';
 import { DatabaseResult, DatabaseClient, TransactionCallback } from './types';
 
-// 연결 풀 설정 - 최적화된 설정값
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  // 연결 풀 최적화 설정
-  max: 20, // 최대 연결 수
-  idleTimeoutMillis: 30000, // 유휴 연결 타임아웃
-  connectionTimeoutMillis: 2000, // 연결 타임아웃
-});
+// PostgreSQL 관련 타입 정의 (서버 사이드에서만 사용)
+let Pool: any;
+let PoolClient: any;
+let pool: any;
+
+// 서버 사이드에서만 pg 모듈 로드
+if (typeof window === 'undefined') {
+  const pg = require('pg');
+  Pool = pg.Pool;
+  PoolClient = pg.PoolClient;
+
+  // 연결 풀 설정 - 최적화된 설정값
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    // 연결 풀 최적화 설정
+    max: 20, // 최대 연결 수
+    idleTimeoutMillis: 30000, // 유휴 연결 타임아웃
+    connectionTimeoutMillis: 2000, // 연결 타임아웃
+  });
+}
 
 /**
  * 기본 쿼리 실행 함수
  * 연결 풀에서 클라이언트를 가져와 쿼리 실행 후 자동으로 반환
  */
 export async function query<T = any>(text: string, params?: any[]): Promise<DatabaseResult<T>> {
+  if (typeof window !== 'undefined') {
+    throw new Error('Database operations cannot be performed on the client side');
+  }
+  if (!pool) {
+    throw new Error('Database pool not initialized');
+  }
   const client = await pool.connect();
   try {
     const startTime = Date.now();
@@ -49,6 +66,9 @@ export async function query<T = any>(text: string, params?: any[]): Promise<Data
  * 단일 행 쿼리 실행 함수
  */
 export async function queryOne<T = any>(text: string, params?: any[]): Promise<DatabaseResult<T>> {
+  if (typeof window !== 'undefined') {
+    throw new Error('Database operations cannot be performed on the client side');
+  }
   const result = await query<T[]>(text, params);
 
   return {
@@ -63,6 +83,12 @@ export async function queryOne<T = any>(text: string, params?: any[]): Promise<D
  * 여러 쿼리를 원자적으로 실행할 때 사용
  */
 export async function transaction<T>(callback: TransactionCallback<T>): Promise<DatabaseResult<T>> {
+  if (typeof window !== 'undefined') {
+    throw new Error('Database operations cannot be performed on the client side');
+  }
+  if (!pool) {
+    throw new Error('Database pool not initialized');
+  }
   const client = await pool.connect();
 
   try {

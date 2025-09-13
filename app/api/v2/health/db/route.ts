@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient, handleSupabaseError } from '@/lib/supabase/service-role';
+import { createAdminClient, handleSupabaseError } from '@/lib/db';
 
 /**
  * Database health check endpoint
@@ -10,7 +10,7 @@ export async function GET() {
   const startTime = Date.now();
   
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = createAdminClient();
     const metrics = {
       status: 'healthy',
       responseTime: 0,

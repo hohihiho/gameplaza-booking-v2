@@ -3,7 +3,7 @@ import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservat
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { z } from 'zod'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await autoCheckDeviceStatus()
     
     // 0. Supabase 클라이언트 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // 1. 인증 확인
     console.log('Checking authentication...')

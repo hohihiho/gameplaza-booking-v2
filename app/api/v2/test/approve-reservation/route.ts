@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { ApproveReservationUseCase } from '@/src/application/use-cases/reservation/approve-reservation.use-case'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
@@ -9,7 +9,7 @@ import { NotificationSupabaseRepository } from '@/src/infrastructure/repositorie
 // 테스트용 엔드포인트 - 인증 없이 예약 승인 테스트
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const body = await request.json()
     
     // 관리자 사용자 찾기

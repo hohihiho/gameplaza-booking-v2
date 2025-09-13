@@ -5,7 +5,7 @@ import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositori
 import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
@@ -59,7 +59,7 @@ export async function POST(
     }
 
     // 5. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

@@ -26,7 +26,7 @@ export async function POST() {
     // 데이터가 없으면 초기 데이터 삽입
     const { count } = await supabaseAdmin
       .from('machine_rules')
-      .select('*', { count: 'exact', head: true })
+      .count()
 
     if (count === 0) {
       const initialRules = [

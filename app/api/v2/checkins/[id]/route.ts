@@ -5,7 +5,7 @@ import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/devi
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 체크인 상세 조회 API
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // 3. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

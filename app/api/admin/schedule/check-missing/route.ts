@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { ScheduleService } from '@/lib/services/schedule.service'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
       )
     }
 
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     
     // 날짜 범위 설정 (오늘부터 7일)
     const today = new Date()

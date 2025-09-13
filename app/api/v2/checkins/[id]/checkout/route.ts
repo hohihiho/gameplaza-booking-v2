@@ -3,7 +3,7 @@ import { ProcessCheckOutUseCase } from '@/src/application/use-cases/checkin/proc
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
 /**
@@ -60,7 +60,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
 

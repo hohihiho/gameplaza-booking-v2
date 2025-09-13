@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Calendar, Gamepad2, Clock, User, LogIn, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
-// import removed - using Better Auth;
 import { useState } from 'react';
 import ReservationBottomSheet from './ReservationBottomSheet';
+import { useAuth } from '../hooks/useAuth';
 
 export default function BottomTabBar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const isLoggedIn = !!session?.user;
+  const { session, isAuthenticated } = useAuth();
+  const isLoggedIn = isAuthenticated;
   const [isReservationSheetOpen, setIsReservationSheetOpen] = useState(false);
 
   // 로그인 상태에 따라 다른 탭 구성

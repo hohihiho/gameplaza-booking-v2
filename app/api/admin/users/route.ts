@@ -77,7 +77,7 @@ export async function GET(_req: NextRequest) {
       // 예약 통계
       const { count: totalReservations } = await supabase
         .from('reservations')
-        .select('*', { count: 'exact', head: true })
+        .count()
         .eq('user_id', user.id);
 
       // 최근 예약 정보
@@ -102,7 +102,7 @@ export async function GET(_req: NextRequest) {
       // 노쇼 카운트
       const { count: noShowCount } = await supabase
         .from('reservations')
-        .select('*', { count: 'exact', head: true })
+        .count()
         .eq('user_id', user.id)
         .eq('status', 'no_show');
 

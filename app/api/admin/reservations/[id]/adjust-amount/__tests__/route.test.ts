@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/db'
 jest.mock('@/auth', () => ({
   auth: jest.fn()
 }))
-jest.mock('@/lib/supabase')
+jest.mock('@/lib/db')
 
 const { auth } = require('@/auth')
 

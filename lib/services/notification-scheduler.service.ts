@@ -1,7 +1,7 @@
 // 알림 스케줄러 서비스
 // 크론잡 없이 예약 알림을 처리하는 서비스
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/db';
 
 export class NotificationSchedulerService {
   // 예약 생성 시 알림 예약

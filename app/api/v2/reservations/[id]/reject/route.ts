@@ -4,7 +4,7 @@ import { RejectReservationUseCase } from '@/src/application/use-cases/reservatio
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 import { getAuthenticatedUser, isAdmin } from '@/src/infrastructure/middleware/auth.middleware'
 
 interface RejectRequestBody {
@@ -44,7 +44,7 @@ export const POST = createApiHandler(
       }
 
       // Supabase 클라이언트 생성
-      const supabase = createServiceRoleClient()
+      const supabase = createAdminClient()
 
       // 리포지토리 생성
       const userRepository = new UserSupabaseRepository(supabase)

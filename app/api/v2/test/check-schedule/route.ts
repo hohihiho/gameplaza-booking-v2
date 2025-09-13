@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 // 테스트용 엔드포인트 - 스케줄 확인
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const searchParams = request.nextUrl.searchParams
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
     

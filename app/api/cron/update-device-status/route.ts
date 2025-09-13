@@ -2,7 +2,7 @@
 // 비전공자 설명: 예약이 끝난 기기들을 자동으로 '사용가능' 상태로 되돌리는 API입니다
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/db';
 import { forceCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function GET(request: NextRequest) {

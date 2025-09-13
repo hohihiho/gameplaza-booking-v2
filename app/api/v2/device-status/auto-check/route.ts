@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autoCheckDeviceStatus, forceCheckDeviceStatus, getStatusInfo } from '@/lib/device-status-manager';
 import { auth } from '@/lib/auth';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createAdminClient } from '@/lib/db';
 
 // GET: 현재 자동 상태 관리 시스템 정보 조회
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const supabase = createServiceRoleClient();
+    const supabase = createAdminClient();
     const { data: adminData } = await supabase
       .from('admins')
       .select('role')
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const supabase = createServiceRoleClient();
+    const supabase = createAdminClient();
     const { data: adminData } = await supabase
       .from('admins')
       .select('role')

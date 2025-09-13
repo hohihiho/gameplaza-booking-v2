@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GetCheckInsByDateRangeUseCase } from '@/src/application/use-cases/checkin/get-checkins-by-date-range.use-case'
 import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
 import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createAdminClient } from '@/lib/db'
 
 /**
  * 체크인 이력 조회 API
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. 서비스 초기화
-    const supabase = createServiceRoleClient()
+    const supabase = createAdminClient()
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
     // 5. 유스케이스 실행
