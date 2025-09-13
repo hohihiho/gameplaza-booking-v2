@@ -21,7 +21,7 @@ import {
   Database,
   RefreshCw
 } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+// import removed - using Better Auth;
 
 type BankAccount = {
   bank: string;

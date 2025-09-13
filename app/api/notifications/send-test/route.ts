@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 

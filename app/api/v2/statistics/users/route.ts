@@ -3,7 +3,7 @@ import { GetUserStatisticsUseCase } from '@/src/application/use-cases/statistics
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { z } from 'zod'
 
 // 쿼리 파라미터 스키마 정의

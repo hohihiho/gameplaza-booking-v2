@@ -1,7 +1,7 @@
 // 시간 조정 API 엔드포인트
 // 비전공자 설명: 관리자가 실제 이용시간을 조정할 때 호출되는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 
 import { createAdminClient } from '@/lib/db';
 

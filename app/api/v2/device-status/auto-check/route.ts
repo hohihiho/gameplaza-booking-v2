@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { autoCheckDeviceStatus, forceCheckDeviceStatus, getStatusInfo } from '@/lib/device-status-manager';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 // GET: 현재 자동 상태 관리 시스템 정보 조회

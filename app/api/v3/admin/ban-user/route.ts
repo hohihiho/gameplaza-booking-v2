@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
 
 // 스키마 정의

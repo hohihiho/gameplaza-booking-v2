@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/db';
 
 export default function TestApiPage() {
   const [apiResponse, setApiResponse] = useState<any>(null);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/db'
 
 export function useRealtimeReservations(onUpdate: () => void) {
   const supabase = createClient()

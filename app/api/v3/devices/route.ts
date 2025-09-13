@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listDevices } from '@/lib/db/adapter'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 
 // GET /api/v3/devices
 export async function GET(req: NextRequest) {

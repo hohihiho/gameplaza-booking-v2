@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { listReservations as listRes, createReservation as createRes } from '@/lib/db/adapter'
 import { computeTotalFromSlotId, CreditOptionType, computeTotalFromDeviceType } from '@/lib/pricing/index'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
 
 // Zod 스키마 정의

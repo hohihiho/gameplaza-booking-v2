@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/db';
 
 interface UseOptimizedRealtimeConfig {
   channel: string;

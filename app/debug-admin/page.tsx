@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+// import removed - using Better Auth;
 import { useState, useEffect } from 'react';
 
 export default function DebugAdminPage() {

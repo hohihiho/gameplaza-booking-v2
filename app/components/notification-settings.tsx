@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession } from 'next-auth/react';
+// import removed - using Better Auth;
 import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,

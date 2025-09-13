@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
 import { d1MonthlyRanking, d1AddUserRole, d1RemoveUserRole, d1ListUserRoles, d1ListUserRestrictions } from '@/lib/db/d1'
 

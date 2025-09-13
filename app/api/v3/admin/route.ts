@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
 
 // 관리자 권한 체크 헬퍼 함수

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+// import removed - using Better Auth;
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+// import removed - using Better Auth;
 
 export function useIsAdmin() {
   const { data: session, status } = useSession();

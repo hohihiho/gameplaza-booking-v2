@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { listReservations } from '@/lib/db/adapter'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 
 // 스키마 정의
 const AvailabilitySchema = z.object({

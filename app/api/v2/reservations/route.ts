@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
 import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
 import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'

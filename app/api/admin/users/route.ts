@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient, createAdminClient } from '@/lib/db';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 
 export async function GET(_req: NextRequest) {
   console.log('[API /admin/users] Handler called');

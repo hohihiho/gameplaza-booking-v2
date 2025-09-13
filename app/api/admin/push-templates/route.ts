@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 import { createAdminClient } from '@/lib/db';
 
 // 푸시 메시지 템플릿 목록 조회

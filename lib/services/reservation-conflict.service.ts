@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/db'
 import { Database } from '@/types/database'
 
 type Reservation = Database['public']['Tables']['reservations']['Row']

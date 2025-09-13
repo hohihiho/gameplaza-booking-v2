@@ -1,7 +1,7 @@
 // 노쇼 처리 API 엔드포인트
 // 비전공자 설명: 고객이 예약 시간에 방문하지 않았을 때 예약을 취소하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 
 import { createAdminClient } from '@/lib/db';
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager';

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, Sparkles, ChevronRight, Info, UserPlus } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+// import removed - using Better Auth;
 import { createClient } from '@/lib/db';
 import { parseKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
