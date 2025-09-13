@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['admin@gameplaza.kr', 'ndz5496@gmail.com'];

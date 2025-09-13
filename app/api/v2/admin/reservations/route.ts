@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
 import { withAuth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 import { ScheduleService } from '@/lib/services/schedule.service'
 
 // 관리자용 예약 목록 조회 (v2)

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 export default function CheckTotalCountPage() {
   const [loading, setLoading] = useState(false);

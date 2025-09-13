@@ -26,7 +26,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 
 type UserDetail = {
   id: string;

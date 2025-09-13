@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 
 // 시간대 수정
 export async function PUT(

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import { Zap, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ThemeToggleWithMenu } from './ThemeToggleWithMenu';

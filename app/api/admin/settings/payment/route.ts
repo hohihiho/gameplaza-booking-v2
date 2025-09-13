@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 // 계좌 목록 조회
 export async function GET() {

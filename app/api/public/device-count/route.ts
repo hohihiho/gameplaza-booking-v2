@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (30초 캐시)
@@ -24,6 +24,21 @@ export async function GET() {
       .select('status');
     
     if (devicesError) {
+      // 테이블이 없는 경우 기본값 반환
+      if (devicesError.code === '42P01') { // table does not exist
+        const defaultResult = {
+          total: 0,
+          available: 0,
+          availablePercentage: 0
+        };
+        
+        deviceCountCache = {
+          data: defaultResult,
+          timestamp: Date.now()
+        };
+        
+        return NextResponse.json(defaultResult);
+      }
       throw devicesError;
     }
     

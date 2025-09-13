@@ -1,244 +1,185 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/auth/superadmin';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { GetAdminDetailUseCase } from '@/src/application/use-cases/admin/get-admin-detail.use-case';
-import { UpdateAdminPermissionsUseCase } from '@/src/application/use-cases/admin/update-admin-permissions.use-case';
-import { DeleteAdminUseCase } from '@/src/application/use-cases/admin/delete-admin.use-case';
-import { AdminSupabaseRepository } from '@/src/infrastructure/repositories/admin.supabase.repository';
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository';
-import {
-  GetAdminDetailRequestDto,
-  UpdateAdminPermissionsRequestDto,
-  DeleteAdminRequestDto,
-  SuperAdminCheckDto
-} from '@/src/application/dtos/admin.dto';
-import { auth } from '@/auth';
+import { withAuth, isSuperAdmin } from '@/lib/auth';
+import { d1GetUserById, d1GetUserByEmail, d1ListUserRoles, d1AddUserRole, d1RemoveUserRole } from '@/lib/db/d1';
 
 /**
  * GET /api/admin/admins/[id]
  * 관리자 상세 조회 (슈퍼관리자만 가능)
  */
-export async function GET(
+export const GET = withAuth(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  context: { user: any; params: Promise<{ id: string }> }
+) => {
   try {
-    // params를 await로 추출
-    const { id } = await params
-    
     // 슈퍼관리자 권한 확인
-    const superAdminCheck = await requireSuperAdmin(request);
-    if (!superAdminCheck.isSuperAdmin) {
+    if (!isSuperAdmin(context.user)) {
       return NextResponse.json(
-        { error: superAdminCheck.error },
+        { error: '슈퍼관리자 권한이 필요합니다' },
         { status: 403 }
       );
     }
 
-    // 리포지토리 및 유스케이스 초기화
-    const supabase = createAdminClient();
-    const adminRepository = new AdminSupabaseRepository(supabase);
-    const userRepository = new UserSupabaseRepository(supabase);
-    const getAdminDetailUseCase = new GetAdminDetailUseCase(adminRepository, userRepository);
+    // params 추출
+    const { id } = await context.params;
 
-    // 관리자 상세 조회
-    const getDetailRequest: GetAdminDetailRequestDto = {
-      adminId: id
-    };
+    // 사용자 정보 조회
+    const user = await d1GetUserById(id);
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다' },
+        { status: 404 }
+      );
+    }
 
-    const superAdminCheckDto: SuperAdminCheckDto = {
-      executorId: superAdminCheck.adminId!,
-      executorUserId: superAdminCheck.userId!
-    };
+    // 사용자의 역할 조회
+    const roles = await d1ListUserRoles(id);
 
-    const result = await getAdminDetailUseCase.execute(getDetailRequest, superAdminCheckDto);
-
-    return NextResponse.json(result);
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      roles: roles.map(r => r.role_type),
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    });
 
   } catch (error) {
     console.error('Get admin detail error:', error);
-    
-    if (error instanceof Error && error.message.includes('찾을 수 없습니다')) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
-}
+}, { requireAdmin: true });
 
 /**
  * PATCH /api/admin/admins/[id]
  * 관리자 권한 수정 (슈퍼관리자만 가능)
  */
-export async function PATCH(
+export const PATCH = withAuth(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  context: { user: any; params: Promise<{ id: string }> }
+) => {
   try {
-    // params를 await로 추출
-    const { id } = await params
-    
     // 슈퍼관리자 권한 확인
-    const superAdminCheck = await requireSuperAdmin(request);
-    if (!superAdminCheck.isSuperAdmin) {
+    if (!isSuperAdmin(context.user)) {
       return NextResponse.json(
-        { error: superAdminCheck.error },
+        { error: '슈퍼관리자 권한이 필요합니다' },
         { status: 403 }
       );
     }
 
+    // params 추출
+    const { id } = await context.params;
+
     // Request body 파싱
     const body = await request.json();
-    const { permissions } = body;
+    const { roles } = body;
 
-    if (!permissions) {
+    if (!roles || !Array.isArray(roles)) {
       return NextResponse.json(
-        { error: '권한 정보가 필요합니다' },
+        { error: '역할 정보가 필요합니다' },
         { status: 400 }
       );
     }
 
-    // 리포지토리 및 유스케이스 초기화
-    const supabase = createAdminClient();
-    const adminRepository = new AdminSupabaseRepository(supabase);
-    const userRepository = new UserSupabaseRepository(supabase);
-    const updatePermissionsUseCase = new UpdateAdminPermissionsUseCase(adminRepository, userRepository);
+    // 사용자 확인
+    const user = await d1GetUserById(id);
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다' },
+        { status: 404 }
+      );
+    }
 
-    // 권한 수정
-    const updateRequest: UpdateAdminPermissionsRequestDto = {
-      adminId: id,
-      permissions
-    };
+    // 기존 역할 제거
+    const currentRoles = await d1ListUserRoles(id);
+    for (const role of currentRoles) {
+      await d1RemoveUserRole(id, role.role_type);
+    }
 
-    const superAdminCheckDto: SuperAdminCheckDto = {
-      executorId: superAdminCheck.adminId!,
-      executorUserId: superAdminCheck.userId!
-    };
+    // 새로운 역할 추가
+    for (const roleType of roles) {
+      await d1AddUserRole(id, roleType, context.user.id);
+    }
 
-    const result = await updatePermissionsUseCase.execute(updateRequest, superAdminCheckDto);
+    // 업데이트된 역할 조회
+    const updatedRoles = await d1ListUserRoles(id);
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      roles: updatedRoles.map(r => r.role_type),
+      updated_at: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error('Update admin permissions error:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('찾을 수 없습니다')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
-      }
-      if (error.message.includes('슈퍼관리자의 권한')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-    }
-
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
-}
+}, { requireAdmin: true });
 
 /**
  * DELETE /api/admin/admins/[id]
  * 관리자 삭제 (슈퍼관리자만 가능)
  */
-export async function DELETE(
+export const DELETE = withAuth(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  context: { user: any; params: Promise<{ id: string }> }
+) => {
   try {
-    // params를 await로 추출
-    const { id } = await params
-    
-    // 현재 세션 확인
-    const session = await auth();
-    
-    let superAdminCheckDto: SuperAdminCheckDto | null = null;
-    
-    // ndz5496@gmail.com은 슈퍼관리자로 처리
-    if (session?.user?.email === 'ndz5496@gmail.com') {
-      console.log('ndz5496 슈퍼관리자 권한 허용 (DELETE)');
-      
-      // Supabase에서 사용자 ID 가져오기
-      const supabase = createAdminClient();
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', 'ndz5496@gmail.com')
-        .single();
-      
-      if (userData) {
-        const { data: adminData } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('user_id', userData.id)
-          .single();
-        
-        if (adminData) {
-          superAdminCheckDto = {
-            executorId: adminData.id,
-            executorUserId: userData.id
-          };
-        }
-      }
-    } else {
-      // 일반적인 슈퍼관리자 권한 확인
-      const superAdminCheck = await requireSuperAdmin(request);
-      if (!superAdminCheck.isSuperAdmin) {
-        return NextResponse.json(
-          { error: superAdminCheck.error },
-          { status: 403 }
-        );
-      }
-      
-      superAdminCheckDto = {
-        executorId: superAdminCheck.adminId!,
-        executorUserId: superAdminCheck.userId!
-      };
-    }
-    
-    if (!superAdminCheckDto) {
+    // 슈퍼관리자 권한 확인
+    if (!isSuperAdmin(context.user)) {
       return NextResponse.json(
-        { error: '권한 확인 실패' },
+        { error: '슈퍼관리자 권한이 필요합니다' },
         { status: 403 }
       );
     }
 
-    // 리포지토리 및 유스케이스 초기화
-    const supabase = createAdminClient();
-    const adminRepository = new AdminSupabaseRepository(supabase);
-    const deleteAdminUseCase = new DeleteAdminUseCase(adminRepository);
+    // params 추출
+    const { id } = await context.params;
 
-    // 관리자 삭제
-    const deleteRequest: DeleteAdminRequestDto = {
-      adminId: id
-    };
+    // 자기 자신 삭제 방지
+    if (id === context.user.id) {
+      return NextResponse.json(
+        { error: '자기 자신은 삭제할 수 없습니다' },
+        { status: 400 }
+      );
+    }
 
-    const result = await deleteAdminUseCase.execute(deleteRequest, superAdminCheckDto!);
+    // 사용자 확인
+    const user = await d1GetUserById(id);
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json(result);
+    // 모든 역할 제거 (사실상 삭제)
+    const currentRoles = await d1ListUserRoles(id);
+    for (const role of currentRoles) {
+      await d1RemoveUserRole(id, role.role_type);
+    }
+
+    return NextResponse.json({
+      message: '관리자가 삭제되었습니다',
+      deletedUser: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    });
 
   } catch (error) {
     console.error('Delete admin error:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('찾을 수 없습니다')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
-      }
-      if (error.message.includes('슈퍼관리자는 삭제')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-      if (error.message.includes('자기 자신')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-    }
-
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
-}
+}, { requireAdmin: true });

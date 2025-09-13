@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar, Activity, Wrench, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 
 type Device = {
   id: string;

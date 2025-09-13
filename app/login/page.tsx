@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useAuth } from '../components/BetterAuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -14,7 +14,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { session, loading, signIn } = useAuth();
+  const status = loading ? 'loading' : session ? 'authenticated' : 'unauthenticated';
 
   // URL 파라미터로 전달된 에러 메시지 처리
   useEffect(() => {
@@ -30,22 +31,22 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  // 이미 로그인한 사용자는 홈으로 리다이렉트 (auth-check가 프로필 확인)
+  // 이미 로그인한 사용자는 redirect 파라미터 또는 홈으로 리다이렉트
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push('/');
+      const redirect = searchParams.get('redirect');
+      router.push(redirect || '/');
     }
-  }, [status, router]);
+  }, [status, router, searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // NextAuth를 통한 Google 로그인 - redirect: true로 변경
-      await signIn('google', { 
-        callbackUrl: '/'
-      });
+      // Better Auth를 통한 Google 로그인 - redirect 파라미터 처리
+      const redirect = searchParams.get('redirect') || '/';
+      await signIn('google');
       
       // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
     } catch (error) {

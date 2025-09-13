@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { sendReservationReminderNotification } from '@/lib/server/push-notifications';
 
 // 예약 1시간 전 리마인더 전송

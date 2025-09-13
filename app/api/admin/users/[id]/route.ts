@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/db';
 import { withAuth } from '@/lib/auth/middleware';
 
 async function handler(_req: NextRequest, { params }: { params: { id: string } }) {

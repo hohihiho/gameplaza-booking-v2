@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 import { ScheduleService } from '@/lib/services/schedule.service'
 import { withAuth } from '@/lib/auth'
 import { sendReservationApprovedNotification, sendReservationCancelledNotification } from '@/lib/server/push-notifications'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 
 // 플레이 모드 업데이트 (전체 교체)
 export async function PUT(

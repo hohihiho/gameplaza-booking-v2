@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager';
 
 export async function POST(

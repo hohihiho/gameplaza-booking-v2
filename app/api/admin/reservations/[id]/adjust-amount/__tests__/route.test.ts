@@ -1,6 +1,6 @@
 import { POST } from '../route'
 import { NextRequest } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 
 // Mock 모듈들
 jest.mock('@/auth', () => ({

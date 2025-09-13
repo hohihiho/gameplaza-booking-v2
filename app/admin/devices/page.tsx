@@ -25,7 +25,7 @@ import {
   Info
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 
 // 타입 정의
 type Category = {

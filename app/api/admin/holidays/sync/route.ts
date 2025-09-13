@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { HolidayService } from '@/lib/services/holiday.service';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 // POST /api/admin/holidays/sync - 공휴일 동기화
 export async function POST(request: NextRequest) {

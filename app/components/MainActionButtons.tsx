@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, FileText, Gamepad2, MessageCircle, Info, Clock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { Calendar, FileText, Gamepad2, MessageCircle, Info, Clock, Trophy } from 'lucide-react';
+import { useAuth, useIsAdmin } from '../components/BetterAuthProvider';
 import { motion } from 'framer-motion';
 
 export default function MainActionButtons() {
-  const { data: session } = useSession();
-  
-  // 관리자 체크
-  const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';
+  const { session } = useAuth();
+  const { isAdmin } = useIsAdmin();
 
   const mainActions = [
     { 
@@ -33,6 +31,17 @@ export default function MainActionButtons() {
       shadowColor: 'shadow-accent-500/25',
       iconBg: 'bg-accent-500/20',
       iconColor: 'text-accent-600',
+    },
+    { 
+      id: 'ranking',
+      href: '/ranking',
+      icon: Trophy,
+      label: '랭킹',
+      description: '최고 점수 랭킹 확인',
+      gradient: 'from-amber-500 to-amber-600',
+      shadowColor: 'shadow-amber-500/25',
+      iconBg: 'bg-amber-500/20',
+      iconColor: 'text-amber-600',
     },
     { 
       id: 'machines',
@@ -135,14 +144,15 @@ export default function MainActionButtons() {
           </motion.div>
         )}
         
-        {/* 메인 액션 카드들 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* 메인 액션 카드들 - 5개 버튼 레이아웃 */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
           {mainActions.map((action, index) => (
             <motion.div
               key={action.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
+              className={index === 4 ? 'col-span-2 md:col-span-1' : ''}
             >
               <Link
                 href={action.href}

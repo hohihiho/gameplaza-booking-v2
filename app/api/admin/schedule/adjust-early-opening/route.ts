@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 // 조기개장 자동 스케줄 조정 API
 // 예약 취소 시 조기개장 스케줄을 자동으로 조정하는 기능

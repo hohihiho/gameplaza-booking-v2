@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import { ToastContainer, toast } from '@/app/components/Toast';
 import { 
   CheckCircle,

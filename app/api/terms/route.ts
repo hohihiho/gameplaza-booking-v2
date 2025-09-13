@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 
 // 활성 약관 조회 API (content_pages 테이블 사용)
 export async function GET(request: NextRequest) {

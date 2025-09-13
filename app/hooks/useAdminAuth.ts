@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from './useAuth';
 
 interface AdminAuthState {
   isAdmin: boolean;
@@ -18,16 +18,16 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
     loading: true,
     error: null
   });
-  
-  const { data: session, status } = useSession();
+
+  const { isAuthenticated, loading: authLoading, isAdmin, isSuperAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (authLoading) return;
 
     const checkAdminAuth = async () => {
       try {
-        if (!session) {
+        if (!isAuthenticated) {
           setAuthState({
             isAdmin: false,
             role: null,
@@ -38,7 +38,11 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
           return;
         }
 
-        const response = await fetch('/api/admin/auth/check');
+        const response = await fetch('/api/admin/auth/check', {
+          headers: {
+            'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)authToken\s*\=\s*([^;]*).*$)|^.*$/, "$1")}`
+          }
+        });
         const data = await response.json();
 
         if (!response.ok || !data.isAdmin) {
@@ -83,7 +87,7 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
     };
 
     checkAdminAuth();
-  }, [session, status, router, requiredRole]);
+  }, [isAuthenticated, authLoading, router, requiredRole, isAdmin, isSuperAdmin]);
 
   return authState;
 }

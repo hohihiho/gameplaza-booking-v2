@@ -1,25 +1,24 @@
 import type { Metadata } from 'next'
-import { Orbitron } from 'next/font/google'
 import './globals.css'
 import LayoutWrapper from './components/LayoutWrapper'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Providers } from './providers'
+import { BetterAuthProvider } from './components/BetterAuthProvider'
 import { TermsPreloader } from '@/components/providers/TermsPreloader'
 import ServiceWorkerRegister from './components/service-worker-register'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 // import DynamicFavicon from './components/DynamicFavicon'
 import { checkDatabaseEnvironment } from '@/lib/server/check-db-env'
+import SentryInit from './components/SentryInit'
 
 // 서버 시작 시 DB 환경 체크
 if (typeof window === 'undefined') {
   checkDatabaseEnvironment();
 }
 
-const orbitron = Orbitron({ 
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-orbitron'
-})
+// NOTE: Avoid next/font.google during restricted network builds
+// Use system fonts; add local font later if needed
+const orbitron = { variable: '' } as { variable: string }
 
 export const metadata: Metadata = {
   title: '광주 게임플라자 - Gwangju Game Plaza',
@@ -98,9 +97,11 @@ export default function RootLayout({
         <meta name="terms-of-service-url" content="https://gameplaza-v2.vercel.app/terms" />
       </head>
       <body 
-        className={`font-sans ${orbitron.variable} bg-gray-50 dark:bg-gray-950`}
+        className={`font-sans bg-gray-50 dark:bg-gray-950`}
         suppressHydrationWarning={true}
       >
+        {/* Sentry (옵션) - 환경변수에 DSN이 있으면 자동 초기화 */}
+        <SentryInit />
         {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}
         <a 
           href="#main-content" 
@@ -125,17 +126,19 @@ export default function RootLayout({
           className="sr-only"
         ></div>
         
-        <Providers>
-          <ThemeProvider>
-            <TermsPreloader>
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-            </TermsPreloader>
-            <ServiceWorkerRegister />
-            <PWAInstallPrompt />
-          </ThemeProvider>
-        </Providers>
+        <BetterAuthProvider>
+          <Providers>
+            <ThemeProvider>
+              <TermsPreloader>
+                <LayoutWrapper>
+                  {children}
+                </LayoutWrapper>
+              </TermsPreloader>
+              <ServiceWorkerRegister />
+              <PWAInstallPrompt />
+            </ThemeProvider>
+          </Providers>
+        </BetterAuthProvider>
       </body>
     </html>
   )

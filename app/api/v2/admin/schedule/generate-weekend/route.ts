@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 import { ScheduleService } from '@/lib/services/schedule.service'
 
 export async function POST(_request: NextRequest) {

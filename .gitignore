@@ -77,3 +77,5 @@ node_modules/
 *.jpg
 *.jpeg
 *.webp
+# Sentry Config File
+.env.sentry-build-plugin

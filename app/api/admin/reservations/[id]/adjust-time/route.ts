@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 // 조정된 금액 계산 함수
 function calculateAdjustedAmount(reservation: any, newStartTime: string, newEndTime: string): number {

@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DynamicTermsContent from '../../components/legal/DynamicTermsContent';

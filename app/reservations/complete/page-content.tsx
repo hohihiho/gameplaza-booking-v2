@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle, Calendar, Clock, Hash, Home, List, Gamepad2, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { useSession } from 'next-auth/react';

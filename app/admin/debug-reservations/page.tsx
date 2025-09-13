@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 export default function DebugReservationsPage() {
   const [loading, setLoading] = useState(false);

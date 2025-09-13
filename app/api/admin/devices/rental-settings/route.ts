@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 
 // 대여 설정 업데이트 (생성 또는 수정)
 export async function PUT(request: NextRequest) {

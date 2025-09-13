@@ -35,5 +35,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "worktrees", "**/__tests__/**", "**/tests/**", "tools/**"]
+  "exclude": ["node_modules", "worktrees", "**/__tests__/**", "**/tests/**", "tools/**", "supabase/functions/**"]
 }

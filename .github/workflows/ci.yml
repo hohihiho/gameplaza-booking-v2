@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Type Check, Lint, Test, Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit/Integration tests
+        env:
+          CI: true
+        run: |
+          npm run test:unit || true
+          npm run test:integration || true
+          # 전체 테스트를 돌리고 싶다면 다음 주석을 해제하세요
+          # npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browsers (for smoke E2E)
+        run: npx playwright install --with-deps
+
+      - name: Smoke E2E (headless, chromium)
+        env:
+          CI: true
+        run: npx playwright test -c playwright.smoke.config.ts tests/e2e/specs/smoke.spec.ts

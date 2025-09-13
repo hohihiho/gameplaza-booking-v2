@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '../components/BetterAuthProvider';
 import ThemeToggle from './ThemeToggle';
 import { Menu, X, Home, Calendar, FileText, User, LogOut, CalendarDays, Gamepad2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -20,10 +20,9 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const { data: session, status } = useSession();
+  const { session, user, loading, signOut } = useAuth();
   const { isAdmin } = useAdminCheck();
-  
-  const user = session?.user;
+  const status = loading ? 'loading' : session ? 'authenticated' : 'unauthenticated';
   
   // 관리자 권한에 따라 메뉴 표시
   const showAdminMenu = isAdmin;

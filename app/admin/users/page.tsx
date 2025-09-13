@@ -21,7 +21,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import useToast from '@/hooks/useToast';
 
 type UserType = {

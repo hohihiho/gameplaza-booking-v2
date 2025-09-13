@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (10분 캐시)

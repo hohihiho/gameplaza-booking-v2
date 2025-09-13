@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 // import { RealtimeChannel } from '@supabase/supabase-js';
 import { 
   Calendar,

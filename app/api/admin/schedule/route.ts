@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 import { auth } from "@/auth"
 import { NextResponse } from 'next/server';
 // GET: 일정 목록 조회

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/db'
 import { getKSTNow } from '@/lib/utils/date'
 
 // 대여 설정 조회

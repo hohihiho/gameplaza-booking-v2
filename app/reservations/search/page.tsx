@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Search, Calendar, Clock, Hash, Gamepad2, AlertCircle, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/db';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
 export default function ReservationSearchPage() {

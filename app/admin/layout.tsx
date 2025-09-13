@@ -1,10 +1,8 @@
 // 관리자 레이아웃
 // 비전공자 설명: 관리자 페이지 전체를 감싸는 레이아웃입니다
-'use client';
-
-import { useSession } from 'next-auth/react';
+'use client'
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -26,45 +24,42 @@ import {
   ShieldAlert
 } from 'lucide-react';
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // 관리자 권한 확인
   useEffect(() => {
     const checkAdmin = async () => {
-      if (status === 'loading') return;
-      
-      if (!session?.user) {
-        router.push('/login');
-        return;
-      }
-
       try {
-        const response = await fetch('/api/auth/check-admin');
-        const data = await response.json();
-        
-        if (!response.ok || !data.isAdmin) {
-          router.push('/');
-          return;
+        // 서버 세션 확인(테스트 가장 모드 포함)
+        const s = await fetch('/api/v3/auth/session', { cache: 'no-store' })
+        if (!s.ok) {
+          router.push('/login')
+          return
         }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Admin check error:', error);
-        router.push('/');
+        const js = await s.json()
+        if (!js?.user) {
+          router.push('/login')
+          return
+        }
+        // 관리자 권한 확인
+        const r = await fetch('/api/auth/check-admin', { cache: 'no-store' })
+        const data = await r.json()
+        if (!r.ok || !data?.isAdmin) {
+          router.push('/')
+          return
+        }
+        setIsLoading(false)
+      } catch (e) {
+        console.error('Admin check error:', e)
+        router.push('/')
       }
-    };
-
-    checkAdmin();
-  }, [session, status, router]);
+    }
+    checkAdmin()
+  }, [router])
 
   const menuItems = [
     { href: '/admin', label: '대시보드', icon: LayoutDashboard },
@@ -83,7 +78,7 @@ export default function AdminLayout({
     { href: '/admin/settings', label: '설정', icon: Settings },
   ];
 
-  if (isLoading || status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>

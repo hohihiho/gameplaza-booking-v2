@@ -2,7 +2,7 @@
 // 비전공자 설명: 예약 금액을 수동으로 조정하는 API입니다
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createAdminClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/db';
 
 export async function POST(
   req: NextRequest,

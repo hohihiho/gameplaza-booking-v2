@@ -1,3 +1,144 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "e456b170-6cfd-4e87-83da-6c9ff8678751",
+      "name": "Better Auth 세션 연동",
+      "description": "V3 API와 컴포넌트에서 Better Auth 세션을 사용하도록 업데이트. /api/auth/get-session 엔드포인트 활용",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-12T13:57:49.719Z",
+      "updatedAt": "2025-09-12T13:59:24.524Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/v3/reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "Better Auth 세션 체크 추가"
+        },
+        {
+          "path": "/app/v3/components/MobileLayout.tsx",
+          "type": "TO_MODIFY",
+          "description": "Better Auth 세션 사용"
+        }
+      ],
+      "implementationGuide": "1. V3 API route들에서 Better Auth 세션 체크\n2. MobileLayout에서 Better Auth 세션 사용\n3. 로그인/로그아웃 Better Auth로 전환",
+      "verificationCriteria": "Better Auth 세션으로 인증이 정상 작동하는지 확인",
+      "analysisResult": "V3 예약 시스템에 Better Auth 통합하여 완전한 인증 및 권한 관리 시스템 구축",
+      "summary": "Better Auth 세션 연동 완료 - V3 API routes(reservations, devices, availability)에 세션 체크 추가, MobileLayout에서 Better Auth 세션 사용 및 프로필 이미지 표시 기능 추가",
+      "completedAt": "2025-09-12T13:59:24.523Z"
+    },
+    {
+      "id": "b6a2d7ce-a546-44e6-a867-5e6265f34232",
+      "name": "로그인/회원가입 페이지 연동",
+      "description": "V3에서 기존 Better Auth 로그인/회원가입 페이지로 리다이렉트 및 연동",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "e456b170-6cfd-4e87-83da-6c9ff8678751"
+        }
+      ],
+      "createdAt": "2025-09-12T13:57:49.719Z",
+      "updatedAt": "2025-09-12T15:42:43.481Z",
+      "relatedFiles": [
+        {
+          "path": "/app/v3/components/MobileLayout.tsx",
+          "type": "TO_MODIFY",
+          "description": "로그인 리다이렉트 수정"
+        }
+      ],
+      "implementationGuide": "1. /login 페이지로 리다이렉트\n2. 로그인 후 V3로 돌아오기\n3. 회원가입 플로우 연동",
+      "verificationCriteria": "로그인/회원가입 후 V3로 정상 리턴되는지 확인",
+      "analysisResult": "V3 예약 시스템에 Better Auth 통합하여 완전한 인증 및 권한 관리 시스템 구축",
+      "summary": "로그인/회원가입 페이지 연동 완료 - 로그인 페이지에서 redirect 파라미터 처리, V3에서 현재 경로를 redirect 파라미터로 전달, 로그인/회원가입 후 원래 페이지로 복귀",
+      "completedAt": "2025-09-12T15:42:43.467Z"
+    },
+    {
+      "id": "d293f6bd-82a0-4be0-9bf0-b4259e97f13b",
+      "name": "관리자 권한 체크",
+      "description": "V3 관리 기능에 Better Auth 기반 관리자 권한 체크 추가",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "e456b170-6cfd-4e87-83da-6c9ff8678751"
+        }
+      ],
+      "createdAt": "2025-09-12T13:57:49.719Z",
+      "updatedAt": "2025-09-12T15:47:47.664Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/v3/admin/route.ts",
+          "type": "CREATE",
+          "description": "관리자 전용 API"
+        },
+        {
+          "path": "/app/v3/components/AdminPanel.tsx",
+          "type": "CREATE",
+          "description": "관리자 패널 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. user_metadata의 role 체크\n2. 관리자 전용 기능 보호\n3. 권한 없는 접근 차단",
+      "verificationCriteria": "관리자만 관리 기능에 접근 가능한지 확인",
+      "analysisResult": "V3 예약 시스템에 Better Auth 통합하여 완전한 인증 및 권한 관리 시스템 구축",
+      "summary": "관리자 권한 체크 완료 - V3 관리자 전용 API 생성, AdminPanel 컴포넌트 구현, 관리자 대시보드 통계 표시, 최고 관리자 전용 기능 분리",
+      "completedAt": "2025-09-12T15:47:47.663Z"
+    },
+    {
+      "id": "12d2f13f-a048-4341-9ff6-235ffa6e4264",
+      "name": "정지 유저 관리",
+      "description": "Better Auth user_metadata의 is_banned 플래그로 정지 유저 관리",
+      "status": "in_progress",
+      "dependencies": [
+        {
+          "taskId": "e456b170-6cfd-4e87-83da-6c9ff8678751"
+        },
+        {
+          "taskId": "d293f6bd-82a0-4be0-9bf0-b4259e97f13b"
+        }
+      ],
+      "createdAt": "2025-09-12T13:57:49.719Z",
+      "updatedAt": "2025-09-12T15:50:55.401Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/v3/reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "정지 유저 체크 추가"
+        },
+        {
+          "path": "/app/api/v3/admin/ban-user/route.ts",
+          "type": "CREATE",
+          "description": "유저 정지/해제 API"
+        }
+      ],
+      "implementationGuide": "1. 예약 생성 시 is_banned 체크\n2. 정지 유저 차단 메시지\n3. 관리자의 정지/해제 기능",
+      "verificationCriteria": "정지된 유저가 예약 못하는지 확인",
+      "analysisResult": "V3 예약 시스템에 Better Auth 통합하여 완전한 인증 및 권한 관리 시스템 구축"
+    },
+    {
+      "id": "f41d93be-a65f-4930-a418-3751e904980b",
+      "name": "세션 기반 사용자 식별",
+      "description": "모든 V3 기능에서 Better Auth 세션으로 사용자 자동 식별",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "e456b170-6cfd-4e87-83da-6c9ff8678751"
+        }
+      ],
+      "createdAt": "2025-09-12T13:57:49.719Z",
+      "updatedAt": "2025-09-12T13:57:49.719Z",
+      "relatedFiles": [
+        {
+          "path": "/app/api/v3/reservations/route.ts",
+          "type": "TO_MODIFY",
+          "description": "세션 기반 user_id 사용"
+        },
+        {
+          "path": "/app/v3/components/ReservationList.tsx",
+          "type": "TO_MODIFY",
+          "description": "본인 예약만 표시"
+        }
+      ],
+      "implementationGuide": "1. 예약 생성 시 세션에서 user_id 자동 추출\n2. 예약 목록에서 본인 예약만 표시\n3. 사용자 정보 표시",
+      "verificationCriteria": "세션 기반으로 사용자가 정확히 식별되는지 확인",
+      "analysisResult": "V3 예약 시스템에 Better Auth 통합하여 완전한 인증 및 권한 관리 시스템 구축"
+    }
+  ]
 }
