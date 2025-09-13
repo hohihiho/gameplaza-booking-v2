@@ -3,7 +3,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/db';
 import { 
   Calendar,
   Clock,
@@ -92,7 +91,6 @@ export default function SchedulePage() {
   // const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
-  const [supabase] = useState(() => createClient());
   const [, setIsLoading] = useState(false);
   const [isDefaultHoursOpen, setIsDefaultHoursOpen] = useState(true);
   const [todaySchedule, setTodaySchedule] = useState<{ 
@@ -166,7 +164,7 @@ export default function SchedulePage() {
     };
     
     fetchTodaySchedule();
-  }, [supabase]);
+  }, []);
   
   // 운영 일정 및 예약 데이터 가져오기
   const fetchScheduleData = async () => {
@@ -300,41 +298,42 @@ export default function SchedulePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMonth]);
 
-  // 실시간 업데이트 구독
+  // 실시간 업데이트 구독 (D1은 실시간 기능 미지원으로 비활성화)
+  // TODO: WebSocket 또는 Polling으로 대체 필요
   useEffect(() => {
-    const channel = supabase
-      .channel('schedule-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'schedule_events'
-        },
-        () => {
-          fetchScheduleData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations'
-        },
-        () => {
-          fetchScheduleData();
-        }
-      )
-      .subscribe();
+    // D1 마이그레이션으로 인해 실시간 업데이트 일시 비활성화
+    // const channel = supabase
+    //   .channel('schedule-updates')
+    //   .on(
+    //     'postgres_changes',
+    //     {
+    //       event: '*',
+    //       schema: 'public',
+    //       table: 'schedule_events'
+    //     },
+    //     () => {
+    //       fetchScheduleData();
+    //     }
+    //   )
+    //   .on(
+    //     'postgres_changes',
+    //     {
+    //       event: '*',
+    //       schema: 'public',
+    //       table: 'reservations'
+    //     },
+    //     () => {
+    //       fetchScheduleData();
+    //     }
+    //   )
+    //   .subscribe();
 
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [supabase, currentMonth, fetchScheduleData]);
+    // return () => {
+    //   if (channel) {
+    //     supabase.removeChannel(channel);
+    //   }
+    // };
+  }, [currentMonth, fetchScheduleData]);
   
   // 날짜 관련 유틸리티 함수들
   // const getDaysInMonth = (date: Date) => {

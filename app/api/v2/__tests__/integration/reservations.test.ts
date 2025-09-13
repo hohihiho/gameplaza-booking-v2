@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 /**
  * v2 API 통합 테스트 스위트
  * QA Engineer Agent 작성
@@ -17,16 +18,14 @@ import { POST as createReservation } from '../../reservations/create/route'
 import { GET as getReservations } from '../../reservations/list/route'
 
 // Mock 모듈들
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn()
 }))
 
 jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn()
 }))
 
 jest.mock('@/lib/db', () => ({
-  createClient: jest.fn()
 }))
 
 jest.mock('next/headers', () => ({
@@ -37,9 +36,7 @@ jest.mock('next/headers', () => ({
   }))
 }))
 
-const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
-const { createClient } = require('@/lib/db')
-const { getAuthenticatedUser } = require('@/src/infrastructure/middleware/auth.middleware')
+const { getAuthenticatedUser } = require('@/infrastructure/middleware/auth.middleware')
 
 describe('v2 API Integration Tests - Reservations', () => {
   let mockSupabase: any
@@ -76,10 +73,7 @@ describe('v2 API Integration Tests - Reservations', () => {
         error: null
       })
     }
-    // @supabase/supabase-js의 createClient 모킹
     createSupabaseClient.mockReturnValue(mockSupabase)
-    // @/lib/db의 createClient도 모킹 (일부 테스트에서 사용)
-    createClient.mockResolvedValue(mockSupabase)
     // 기본적으로 인증된 사용자로 설정
     getAuthenticatedUser.mockReturnValue(testUser)
     performanceStart = Date.now()
@@ -227,7 +221,6 @@ describe('v2 API Integration Tests - Reservations', () => {
       getAuthenticatedUser.mockReturnValue(testUser)
       
       // Supabase client가 직접 반환되도록 설정
-      createClient.mockImplementation(() => Promise.resolve(mockSupabase))
       
       // 필요한 mock 설정
       mockSupabase.from.mockImplementation((table: string) => {

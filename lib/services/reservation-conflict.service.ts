@@ -1,11 +1,9 @@
-import { createClient } from '@/lib/db'
 import { Database } from '@/types/database'
 
 type Reservation = Database['public']['Tables']['reservations']['Row']
 type RentalSlot = Database['public']['Tables']['rental_slots']['Row']
 
 export class ReservationConflictService {
-  private supabase = createClient()
   
   /**
    * 예약 충돌 방지를 위한 원자적 예약 생성

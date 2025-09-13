@@ -2,7 +2,7 @@
  * 예약 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-import { SupabaseClient } from '@supabase/supabase-js'
+// import { getDB, supabase } from '@/lib/db'
 import { Database } from '@/types/database'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { DeviceRepository } from '@/lib/repositories/device.repository'

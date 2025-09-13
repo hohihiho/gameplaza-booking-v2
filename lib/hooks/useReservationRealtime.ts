@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/db'
-import { RealtimeChannel } from '@supabase/supabase-js'
+// import { getDB, supabase } from '@/lib/db'
 
 interface UseReservationRealtimeProps {
   onUpdate?: (payload: any) => void
@@ -16,7 +15,7 @@ export function useReservationRealtime({
   userId
 }: UseReservationRealtimeProps) {
   useEffect(() => {
-    const supabase = createClient()
+//     import { getDB, supabase } from '@/lib/db';
     let channel: RealtimeChannel
 
     const setupRealtime = async () => {
@@ -85,7 +84,7 @@ export function useAdminReservationRealtime({
   onDelete
 }: Omit<UseReservationRealtimeProps, 'userId'>) {
   useEffect(() => {
-    const supabase = createClient()
+//     import { getDB, supabase } from '@/lib/db';
     let channel: RealtimeChannel
 
     const setupRealtime = async () => {

@@ -1,5 +1,5 @@
 import { JWTTokenService } from '../src/infrastructure/services/jwt-token.service'
-import { createClient } from '@supabase/supabase-js'
+// // import { createClient } from '@/lib/supabase-mock'
 import { UserSupabaseRepository } from '../src/infrastructure/repositories/user.supabase.repository'
 import { SessionSupabaseRepository } from '../src/infrastructure/repositories/session.supabase.repository'
 import { Session } from '../src/domain/entities/session'
@@ -34,7 +34,7 @@ async function generateTestToken() {
 
     // 서비스 초기화
     const tokenService = new JWTTokenService(accessTokenSecret, refreshTokenSecret)
-    const supabase = createClient(supabaseUrl, supabaseKey)
+//     import { supabase } from '@/lib/supabase-mock';
     const userRepository = new UserSupabaseRepository(supabase)
     const sessionRepository = new SessionSupabaseRepository(supabase)
 

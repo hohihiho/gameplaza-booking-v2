@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     const { data: adminData } = await supabase
       .from('admins')
       .select('role')
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     const { data: adminData } = await supabase
       .from('admins')
       .select('role')

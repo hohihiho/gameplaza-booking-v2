@@ -5,7 +5,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // import removed - using Better Auth;
-import { createClient } from '@/lib/db';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DynamicTermsContent from '../../components/legal/DynamicTermsContent';
@@ -34,7 +33,7 @@ export default function SignupPage() {
   
   const router = useRouter();
   const { data: session, status } = useSession();
-  const supabase = createClient();
+//   import { getDB, supabase } from '@/lib/db';
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {

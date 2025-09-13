@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/db'
-import { ApproveReservationUseCase } from '@/src/application/use-cases/reservation/approve-reservation.use-case'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { ApproveReservationUseCase } from '@/application/use-cases/reservation/approve-reservation.use-case'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { SupabaseDeviceRepositoryV2 } from '@/infrastructure/repositories/supabase-device.repository.v2'
+import { NotificationSupabaseRepository } from '@/infrastructure/repositories/notification.supabase.repository'
 
 // 테스트용 엔드포인트 - 인증 없이 예약 승인 테스트
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const body = await request.json()
     
     // 관리자 사용자 찾기

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+// // import { createClient } from '@/lib/supabase-mock'
 import dotenv from 'dotenv'
 
 // .env.local 파일 로드
@@ -7,7 +7,7 @@ dotenv.config({ path: '.env.local' })
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+// import { supabase } from '@/lib/supabase-mock';
 
 async function createOvernightReservations() {
   console.log('밤샘 예약 생성 시작...')
@@ -15,7 +15,7 @@ async function createOvernightReservations() {
   try {
     // 1. 기존 테스트 사용자 조회
     const testEmail = 'test-reservation@gameplaza.com'
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('users')
       .select('id')
       .eq('email', testEmail)
@@ -29,7 +29,7 @@ async function createOvernightReservations() {
     const userId = userData.id
     
     // 2. 대여 가능한 기기 타입과 실제 기기 조회
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
@@ -97,7 +97,7 @@ async function createOvernightReservations() {
     console.log(`${reservations.length}개의 밤샘 예약을 생성합니다...`)
     
     // 예약 삽입
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('reservations')
       .insert(reservations)
       .select(`

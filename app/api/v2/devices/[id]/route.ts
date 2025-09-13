@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { UpdateDeviceUseCase } from '@/src/application/use-cases/device/update-device.use-case'
-import { GetDeviceDetailUseCase } from '@/src/application/use-cases/device/get-device-detail.use-case'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { UpdateDeviceUseCase } from '@/application/use-cases/device/update-device.use-case'
+import { GetDeviceDetailUseCase } from '@/application/use-cases/device/get-device-detail.use-case'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -21,7 +21,7 @@ export async function GET(
     const { id } = await params
     
     // 1. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
@@ -121,7 +121,7 @@ export async function PUT(
     const { name, specifications, notes } = body
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

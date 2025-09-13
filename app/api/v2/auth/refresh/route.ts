@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { RefreshTokenUseCase } from '@/src/application/use-cases/auth/refresh-token.use-case'
-import { JWTTokenService } from '@/src/infrastructure/services/jwt-token.service'
-import { AuthDomainService } from '@/src/domain/services/auth-domain.service'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
-import { RefreshTokenRequestDto } from '@/src/application/dtos/auth.dto'
+import { RefreshTokenUseCase } from '@/application/use-cases/auth/refresh-token.use-case'
+import { JWTTokenService } from '@/infrastructure/services/jwt-token.service'
+import { AuthDomainService } from '@/domain/services/auth-domain.service'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SessionSupabaseRepository } from '@/infrastructure/repositories/session.supabase.repository'
+import { RefreshTokenRequestDto } from '@/application/dtos/auth.dto'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const tokenService = new JWTTokenService(accessTokenSecret, refreshTokenSecret)
     const authDomainService = new AuthDomainService(tokenService as any)
     const userRepository = new UserSupabaseRepository(supabase)

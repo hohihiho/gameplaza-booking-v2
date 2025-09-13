@@ -1,11 +1,11 @@
 import * as dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+// // import { createClient } from '@/lib/supabase-mock';
 
 // 환경 변수 로드
 dotenv.config({ path: '.env.local' });
 
 // Supabase 클라이언트 생성
-const supabase = createClient(
+// import { supabase } from '@/lib/supabase-mock';
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -161,14 +161,14 @@ async function addSecurityBannedWords() {
   for (const bannedWord of securityBannedWords) {
     try {
       // 이미 존재하는지 확인
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('banned_words')
         .select('id')
         .eq('word', bannedWord.word)
         .single();
       
       if (!existing) {
-        const supabase = createClient();
+//         import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('banned_words')
           .insert({
             word: bannedWord.word,

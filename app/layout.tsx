@@ -86,7 +86,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko">
+    <html lang="ko" data-scroll-behavior="smooth">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -148,7 +148,11 @@ export default function RootLayout({
             </ThemeProvider>
           </Providers>
         </BetterAuthProvider>
-      </body>
+        {process.env.NODE_ENV === 'development' && (
+          <script src="/monitor.js" defer></script>
+        )}
+          <script src="/mega-monitor.js" defer></script>
+        </body>
     </html>
   )
 }

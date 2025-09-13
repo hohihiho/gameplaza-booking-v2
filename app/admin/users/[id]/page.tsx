@@ -26,7 +26,6 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/lib/db';
 
 type UserDetail = {
   id: string;
@@ -220,7 +219,7 @@ export default function UserDetailPage() {
   // 사용자 정보 수정
   const handleSaveUser = async () => {
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
   const { error } = await supabase.from('users')
         .update({
           nickname: editedUser.nickname,
@@ -244,7 +243,7 @@ export default function UserDetailPage() {
     if (!user) return;
     
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
       const { error } = await supabase.from('users')
         .update({ is_banned: !user.is_blacklisted })
         .eq('id', userId);
@@ -265,7 +264,7 @@ export default function UserDetailPage() {
     if (!user) return;
     
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
       
       if (user.role === 'admin') {
         // 관리자 권한 제거
@@ -303,7 +302,7 @@ export default function UserDetailPage() {
   const saveAdminNotes = async () => {
     setIsSavingNotes(true);
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
       const { error } = await supabase.from('users')
         .update({ notes: adminNotes })
         .eq('id', userId);

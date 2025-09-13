@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ProcessCheckOutUseCase } from '@/src/application/use-cases/checkin/process-checkout.use-case'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { ProcessCheckOutUseCase } from '@/application/use-cases/checkin/process-checkout.use-case'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -60,7 +60,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
 

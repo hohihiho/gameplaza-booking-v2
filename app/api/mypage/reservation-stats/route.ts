@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/db'
 export const GET = withAuth(
   async (_req, { user }) => {
     try {
-      const supabase = createAdminClient()
+      import { getDB, supabase } from '@/lib/db';
 
       // 사용자 예약 통계 조회
       const { data: reservations, error } = await supabase

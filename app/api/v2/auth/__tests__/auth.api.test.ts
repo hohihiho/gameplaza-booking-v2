@@ -31,7 +31,6 @@ const mockSupabaseDB: Record<string, any[]> = {
 }
 
 jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
     from: jest.fn((table: string) => ({
       select: jest.fn(() => {
         const filters: { [key: string]: any } = {}
@@ -154,7 +153,7 @@ jest.mock('google-auth-library', () => ({
 }))
 
 // GoogleAuthService mock
-jest.mock('@/src/infrastructure/services/google-auth.service', () => ({
+jest.mock('@/infrastructure/services/google-auth.service', () => ({
   GoogleAuthService: jest.fn().mockImplementation(() => ({
     verifyIdToken: jest.fn().mockResolvedValue({
       id: 'google-123',
@@ -167,7 +166,7 @@ jest.mock('@/src/infrastructure/services/google-auth.service', () => ({
 }))
 
 // JWTTokenService mock
-jest.mock('@/src/infrastructure/services/jwt-token.service', () => ({
+jest.mock('@/infrastructure/services/jwt-token.service', () => ({
   JWTTokenService: jest.fn().mockImplementation(() => ({
     generateToken: jest.fn((payload, options) => {
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -202,7 +201,7 @@ import { POST as googleAuth } from '../google/route'
 import { POST as refreshToken } from '../refresh/route'
 import { POST as logout } from '../logout/route'
 import { GET as getProfile } from '../profile/route'
-import { createClient } from '@supabase/supabase-js'
+// // import { getDB, supabase } from '@/lib/db'
 import * as jwt from 'jsonwebtoken'
 
 // Mock 환경 변수
@@ -355,7 +354,6 @@ const createChainableQuery = (defaultData: any = null) => {
 }
 
 // mocked 함수들을 가져옴
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>
 const mockSupabaseClient = mockCreateClient({} as any, {} as any)
 const mockJWT = jwt as jest.Mocked<typeof jwt>
 

@@ -25,7 +25,6 @@ import {
   Info
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/db';
 
 // 타입 정의
 type Category = {
@@ -464,7 +463,6 @@ const DeviceCard = memo(function DeviceCard({
 export default function DevicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [supabase] = useState(() => createClient());
   
   // 카테고리 관련 상태
   const [categories, setCategories] = useState<Category[]>([]);

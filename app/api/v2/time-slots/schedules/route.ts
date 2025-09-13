@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TimeSlotDomainService } from '@/src/domain/services/time-slot-domain.service'
-import { ScheduleTimeSlotsUseCase, GetTimeSlotSchedulesUseCase } from '@/src/application/use-cases/time-slot'
-import { SupabaseTimeSlotTemplateRepository } from '@/src/infrastructure/repositories/supabase-time-slot-template.repository'
-import { SupabaseTimeSlotScheduleRepository } from '@/src/infrastructure/repositories/supabase-time-slot-schedule.repository'
-import { createClient } from '@/lib/db'
+import { TimeSlotDomainService } from '@/domain/services/time-slot-domain.service'
+import { ScheduleTimeSlotsUseCase, GetTimeSlotSchedulesUseCase } from '@/application/use-cases/time-slot'
+import { SupabaseTimeSlotTemplateRepository } from '@/infrastructure/repositories/supabase-time-slot-template.repository'
+import { SupabaseTimeSlotScheduleRepository } from '@/infrastructure/repositories/supabase-time-slot-schedule.repository'
 import { z } from 'zod'
 
 // 요청 스키마 정의
@@ -28,7 +27,7 @@ const querySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     // 인증 확인
-    const supabase = await createClient()
+//     import { getDB, supabase } from '@/lib/db';
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -94,7 +93,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient()
+//     import { getDB, supabase } from '@/lib/db';
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

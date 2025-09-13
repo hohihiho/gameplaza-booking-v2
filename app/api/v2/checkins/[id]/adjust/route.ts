@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AdjustTimeAndAmountUseCase } from '@/src/application/use-cases/checkin/adjust-time-and-amount.use-case'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { AdjustTimeAndAmountUseCase } from '@/application/use-cases/checkin/adjust-time-and-amount.use-case'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -87,7 +87,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
     // 5. 유스케이스 실행

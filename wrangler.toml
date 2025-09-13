@@ -1,0 +1,17 @@
+name = "gameplaza-v2"
+main = "server.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+D1_ENABLED = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gameplaza"
+database_id = "your-database-id"
+
+[env.development]
+vars = { ENVIRONMENT = "development", D1_ENABLED = "true" }
+
+[env.production]
+vars = { ENVIRONMENT = "production" }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { KSTDateTime } from '@/src/domain/value-objects/kst-datetime';
+import { KSTDateTime } from '@/domain/value-objects/kst-datetime';
 import { 
   waitBeforeApiCall, 
   waitBetweenTests, 

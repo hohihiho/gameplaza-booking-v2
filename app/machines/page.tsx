@@ -5,7 +5,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Gamepad2, Circle, Search, Users, Clock, AlertCircle, ChevronRight, Coins, Calendar, Activity, Wrench, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/lib/db';
 
 type Device = {
   id: string;
@@ -59,7 +58,6 @@ export default function MachinesPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all'); // 기본값을 '전체'로 설정
   const [showRentalOnly, setShowRentalOnly] = useState<boolean>(true); // 대여 가능 기기만 표시 (기본값: true)
   const [expandedType, setExpandedType] = useState<string | null>(null);
-  // const [supabase] = useState(() => createClient());
   const [machineRules, setMachineRules] = useState<any[]>([]);
 
   // Supabase에서 기기 정보 가져오기
@@ -78,212 +76,14 @@ export default function MachinesPage() {
     };
   }, []);
 
-  // 대여 시간이 종료된 기기의 상태를 업데이트하는 함수
-  const updateExpiredRentals = async () => {
-    try {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      
-      // 현재 시간을 분 단위로 변환 (0-5시는 24-29시로 처리)
-      let currentTimeInMinutes = currentHour * 60 + currentMinute;
-      if (currentHour >= 0 && currentHour <= 5) {
-        currentTimeInMinutes += 24 * 60; // 익일 새벽 시간대 처리
-      }
-
-      // 오늘과 어제 날짜 구하기 (새벽 시간대는 어제 날짜의 예약일 수 있음)
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      const todayStr = today.toISOString().split('T')[0];
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      // 종료된 예약 찾기 (오늘 + 어제 새벽 예약 포함)
-      const supabase = createClient();
-      const { data: reservations, error: fetchError } = await supabase.from('reservations')
-        .select('device_id, date, end_time')
-        .in('date', [todayStr, yesterdayStr])
-        .eq('status', 'approved')
-        .not('device_id', 'is', null);
-
-      if (fetchError) {
-        console.error('Error fetching reservations:', fetchError);
-        return;
-      }
-
-      const expiredDeviceIds: string[] = [];
-
-      if (reservations && reservations.length > 0) {
-        reservations.forEach(reservation => {
-          const [endHour, endMinute] = reservation.end_time.split(':').map(Number);
-          let endTimeInMinutes = endHour * 60 + endMinute;
-          
-          // 예약이 어제 날짜이고 종료 시간이 0-5시인 경우
-          if (reservation.date === yesterdayStr && endHour >= 0 && endHour <= 5) {
-            endTimeInMinutes += 24 * 60;
-          }
-          
-          // 예약이 오늘 날짜이고 종료 시간이 0-5시인 경우
-          if (reservation.date === todayStr && endHour >= 0 && endHour <= 5 && currentHour >= 6) {
-            // 이미 다음날이 되었으므로 종료된 것으로 처리
-            expiredDeviceIds.push(reservation.device_id);
-          } else if (currentTimeInMinutes >= endTimeInMinutes) {
-            // 일반적인 경우: 현재 시간이 종료 시간을 지났으면
-            expiredDeviceIds.push(reservation.device_id);
-          }
-        });
-      }
-
-      if (expiredDeviceIds.length > 0) {
-        // 해당 기기들의 현재 상태 확인
-        const { data: devices, error: devicesError } = await supabase.from('devices')
-          .select('id, status')
-          .in('id', expiredDeviceIds)
-          .in('status', ['in_use', 'reserved']); // 사용불가나 점검중은 제외
-
-        if (devicesError) {
-          console.error('Error fetching devices:', devicesError);
-          return;
-        }
-
-        if (devices && devices.length > 0) {
-          // 상태를 available로 업데이트
-          const { error: updateError } = await supabase.from('devices')
-            .update({ status: 'available' })
-            .in('id', devices.map(d => d.id));
-
-          if (updateError) {
-            console.error('Error updating device status:', updateError);
-          } else {
-            console.log(`Updated ${devices.length} devices to available status`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error in updateExpiredRentals:', error);
-    }
-  };
-
   const fetchDeviceTypes = async () => {
     try {
       setLoading(true);
-
-      // 먼저 만료된 대여 상태 업데이트
-      await updateExpiredRentals();
-
-      // 카테고리 정보 가져오기
-      const supabase = createClient();
-      const { data: categories, error: categoriesError } = await supabase.from('device_categories')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (categoriesError) throw categoriesError;
-
-      // device_types와 devices, play_modes를 함께 가져오기
-      const { data: deviceTypes, error: typesError } = await supabase.from('device_types')
-        .select(`
-          *,
-          device_categories!category_id (
-            id,
-            name,
-            display_order
-          ),
-          devices (
-            id,
-            device_number,
-            status
-          ),
-          play_modes (
-            id,
-            name,
-            price,
-            display_order
-          )
-        `)
-        .order('display_order', { ascending: true });
-
-      // 오늘 날짜의 활성 예약 정보 가져오기
-      const today = new Date().toISOString().split('T')[0];
-      const { data: activeReservations, error: reservationsError } = await supabase.from('reservations')
-        .select(`
-          device_id,
-          start_time,
-          end_time,
-          status,
-          users!user_id (
-            name
-          )
-        `)
-        .eq('date', today)
-        .in('status', ['approved', 'checked_in']);
-
-      if (typesError) throw typesError;
-
-      // 카테고리별로 그룹화
-      const categoriesMap = new Map<string, Category>();
-      
-      // 카테고리 초기화
-      (categories || []).forEach(cat => {
-        categoriesMap.set(cat.id, {
-          id: cat.id,
-          name: cat.name,
-          display_order: cat.display_order,
-          deviceTypes: []
-        });
-      });
-
-
-      // 디바이스 타입을 카테고리별로 분류
-      (deviceTypes || []).forEach(type => {
-        const formattedType: DeviceType = {
-          id: type.id,
-          name: type.name,
-          company: type.device_categories?.name || 'Unknown',
-          description: type.description || '',
-          model_name: type.model_name,
-          version_name: type.version_name,
-          play_price: '현장 문의',
-          is_rentable: type.is_rentable || false,
-          total_count: type.devices?.length || 0,
-          devices: (type.devices || []).map((device: any) => {
-            // 해당 기기의 예약 정보 찾기
-            const reservation = activeReservations?.find(r => r.device_id === device.id);
-            
-            return {
-              id: device.id,
-              device_number: device.device_number,
-              status: device.status,
-              current_user: null,
-              reservation_info: reservation ? {
-                start_time: reservation.start_time,
-                end_time: reservation.end_time,
-                user_name: reservation.users?.name || 'Unknown',
-                is_checked_in: reservation.status === 'checked_in'
-              } : undefined
-            };
-          }),
-          category_id: type.category_id,
-          display_order: type.display_order,
-          rental_settings: type.rental_settings,
-          play_modes: type.play_modes ? type.play_modes.sort((a: any, b: any) => 
-            (a.display_order || 0) - (b.display_order || 0)
-          ) : []
-        };
-
-
-        const category = categoriesMap.get(type.category_id);
-        if (category) {
-          category.deviceTypes.push(formattedType);
-        }
-      });
-
-      // Map을 배열로 변환하고 순서대로 정렬
-      const sortedCategories = Array.from(categoriesMap.values())
-        .sort((a, b) => a.display_order - b.display_order)
-        .filter(cat => cat.deviceTypes.length > 0); // 빈 카테고리 제외
-
-      setCategories(sortedCategories);
+      const res = await fetch('/api/public/machines', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`API error (${res.status})`)
+      const data = await res.json()
+      setCategories(data.categories || [])
+      setMachineRules(data.rules || [])
     } catch (error) {
       console.error('기기 정보 불러오기 실패:', error);
       setCategories([]);
@@ -295,25 +95,12 @@ export default function MachinesPage() {
   // 기기 현황 안내사항 불러오기
   const loadMachineRules = async () => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.from('machine_rules')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
-        
-      if (error) {
-        // 테이블이 없는 경우는 무시
-        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
-          setMachineRules([]);
-          return;
-        }
-        console.error('기기 현황 안내사항 로드 실패:', error.message || error);
-        return;
-      }
-      
-      setMachineRules(data || []);
+      const res = await fetch('/api/public/machines', { cache: 'no-store' })
+      if (!res.ok) return
+      const data = await res.json()
+      setMachineRules(data.rules || [])
     } catch (error: any) {
-      console.error('기기 현황 안내사항 로드 에러:', error.message || error);
+      console.error('기기 현황 안내사항 로드 에러:', error.message || error)
     }
   };
 

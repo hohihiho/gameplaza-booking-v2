@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 /**
  * v2 API 통합 테스트 - 관리자 기능
  * QA Engineer Agent 작성
@@ -17,29 +18,28 @@ import { POST as checkInReservation } from '@/app/api/v2/reservations/[id]/check
 import { POST as markAsNoShow } from '@/app/api/v2/reservations/[id]/no-show/route'
 
 // Mock 모듈들
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn(),
   isAdmin: jest.fn()
 }))
 
 jest.mock('@/lib/db', () => ({
-  createClient: jest.fn()
 }))
 
 // Repository mocks
-jest.mock('@/src/infrastructure/repositories/user.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/user.supabase.repository', () => ({
   UserSupabaseRepository: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
+jest.mock('@/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
   SupabaseReservationRepositoryV2: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/supabase-device.repository.v2', () => ({
+jest.mock('@/infrastructure/repositories/supabase-device.repository.v2', () => ({
   SupabaseDeviceRepositoryV2: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/notification.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/notification.supabase.repository', () => ({
   NotificationSupabaseRepository: jest.fn()
 }))
 
@@ -51,12 +51,11 @@ jest.mock('next/headers', () => ({
   }))
 }))
 
-const { createClient } = require('@/lib/db')
-const { getAuthenticatedUser, isAdmin } = require('@/src/infrastructure/middleware/auth.middleware')
-const { UserSupabaseRepository } = require('@/src/infrastructure/repositories/user.supabase.repository')
-const { SupabaseReservationRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-reservation.repository.v2')
-const { SupabaseDeviceRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-device.repository.v2')
-const { NotificationSupabaseRepository } = require('@/src/infrastructure/repositories/notification.supabase.repository')
+const { getAuthenticatedUser, isAdmin } = require('@/infrastructure/middleware/auth.middleware')
+const { UserSupabaseRepository } = require('@/infrastructure/repositories/user.supabase.repository')
+const { SupabaseReservationRepositoryV2 } = require('@/infrastructure/repositories/supabase-reservation.repository.v2')
+const { SupabaseDeviceRepositoryV2 } = require('@/infrastructure/repositories/supabase-device.repository.v2')
+const { NotificationSupabaseRepository } = require('@/infrastructure/repositories/notification.supabase.repository')
 
 // createApiHandler를 모킹하여 원래 함수를 그대로 반환하도록 함
 jest.mock('@/lib/api/handler', () => ({
@@ -116,7 +115,6 @@ describe('v2 API Integration Tests - Admin Functions', () => {
 
       // Mock 클라이언트
       const mockSupabase = {}
-      createClient.mockResolvedValue(mockSupabase)
 
       // Repository mocks 설정
       const mockUserRepo = {
@@ -217,7 +215,6 @@ describe('v2 API Integration Tests - Admin Functions', () => {
 
       // Mock 클라이언트
       const mockSupabase = {}
-      createClient.mockResolvedValue(mockSupabase)
 
       // Repository mocks - 이미 승인된 예약 반환
       const mockUserRepo = {

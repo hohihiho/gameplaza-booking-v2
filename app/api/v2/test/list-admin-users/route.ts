@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/db'
 // 관리자 계정 목록 확인
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // 관리자 계정 조회
     const { data: admins, error } = await supabase

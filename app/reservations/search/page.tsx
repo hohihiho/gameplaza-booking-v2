@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Search, Calendar, Clock, Hash, Gamepad2, AlertCircle, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/db';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
 export default function ReservationSearchPage() {
@@ -27,7 +26,7 @@ export default function ReservationSearchPage() {
     setReservation(null);
 
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
       const { data, error } = await supabase
         .from('reservations')
         .select(`

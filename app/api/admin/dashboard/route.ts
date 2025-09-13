@@ -10,7 +10,7 @@ export const GET = withAuth(
     await autoCheckDeviceStatus()
     
     console.log('Dashboard API: Starting request')
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // 오늘 영업일 날짜 (KST 기준, 06시 이전은 전날 영업일)
     const kstOffset = 9 * 60 * 60 * 1000 // 9시간을 밀리초로

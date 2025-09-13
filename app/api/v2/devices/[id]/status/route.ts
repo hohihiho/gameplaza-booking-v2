@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ChangeDeviceStatusUseCase } from '@/src/application/use-cases/device/change-device-status.use-case'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { ChangeDeviceStatusUseCase } from '@/application/use-cases/device/change-device-status.use-case'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -59,7 +59,7 @@ export async function PUT(
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

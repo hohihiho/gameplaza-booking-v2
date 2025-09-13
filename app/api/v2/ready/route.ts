@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/db';
 
 /**
  * Readiness check endpoint for v2 API
@@ -20,7 +19,7 @@ export async function GET() {
     // 1. 데이터베이스 연결 확인
     const dbCheckStart = Date.now();
     try {
-      const supabase = await createClient();
+//       import { getDB, supabase } from '@/lib/db';
       const { error } = await supabase
         .from('devices')
         .select('id')

@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/db';
+import { getDB, supabase } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 // 메모리 캐시 (30초 캐시)
@@ -15,8 +16,6 @@ export async function GET() {
     if (deviceCountCache && Date.now() - deviceCountCache.timestamp < CACHE_DURATION) {
       return NextResponse.json(deviceCountCache.data);
     }
-    
-    const supabase = createAdminClient();
     
     // 최적화된 쿼리: status만 선택하여 네트워크 트래픽 최소화
     const { data: devices, error: devicesError } = await supabase

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GetDeviceStatisticsUseCase } from '@/src/application/use-cases/statistics/get-device-statistics.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { GetDeviceStatisticsUseCase } from '@/application/use-cases/statistics/get-device-statistics.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { SupabaseDeviceRepositoryV2 } from '@/infrastructure/repositories/supabase-device.repository.v2'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
 import { createAdminClient } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const data = validationResult.data
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)

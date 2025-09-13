@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { createClient } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +10,7 @@ export async function GET(request: NextRequest) {
     console.log('NextAuth 세션:', nextAuthSession)
     
     // Supabase 클라이언트 생성
-    const supabase = await createClient()
+//     import { getDB, supabase } from '@/lib/db';
     
     // Supabase 세션 확인
     let supabaseUser = null

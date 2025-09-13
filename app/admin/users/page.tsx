@@ -21,7 +21,6 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/db';
 import useToast from '@/hooks/useToast';
 
 type UserType = {
@@ -134,7 +133,7 @@ export default function UsersPage() {
   useEffect(() => {
     // 현재 사용자 정보 확인
     const checkUserAndFetch = async () => {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
       const { data: { user } } = await supabase.auth.getUser();
       console.log('현재 사용자:', user);
       

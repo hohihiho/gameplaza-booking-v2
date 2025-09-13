@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CreateReservationV2UseCase } from '@/src/application/use-cases/reservation/create-reservation.v2.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { CreateReservationV2UseCase } from '@/application/use-cases/reservation/create-reservation.v2.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { SupabaseDeviceRepositoryV2 } from '@/infrastructure/repositories/supabase-device.repository.v2'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
 import { createAdminClient } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { z } from 'zod'
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await autoCheckDeviceStatus()
     
     // 0. Supabase 클라이언트 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // 1. 인증 확인
     console.log('Checking authentication...')

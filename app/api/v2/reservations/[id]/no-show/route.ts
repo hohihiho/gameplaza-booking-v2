@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { HandleNoShowUseCase } from '@/src/application/use-cases/check-in/handle-no-show.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { HandleNoShowUseCase } from '@/application/use-cases/check-in/handle-no-show.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/check-in.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -46,7 +46,7 @@ export async function POST(
     const { reason } = body
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)

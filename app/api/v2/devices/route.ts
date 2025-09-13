@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CreateDeviceUseCase } from '@/src/application/use-cases/device/create-device.use-case'
-import { GetDeviceListUseCase } from '@/src/application/use-cases/device/get-device-list.use-case'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { CreateDeviceUseCase } from '@/application/use-cases/device/create-device.use-case'
+import { GetDeviceListUseCase } from '@/application/use-cases/device/get-device-list.use-case'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
 // DeviceTypeSupabaseRepository는 아직 구현되지 않음
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const deviceRepository = new DeviceSupabaseRepository(supabase)
 
     // 4. 유스케이스 실행
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const deviceRepository = new DeviceSupabaseRepository(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceTypeRepository = deviceRepository as any

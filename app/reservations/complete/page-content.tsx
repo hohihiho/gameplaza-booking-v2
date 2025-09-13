@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle, Calendar, Clock, Hash, Home, List, Gamepad2, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/db';
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 // import removed - using Better Auth;
@@ -18,7 +17,6 @@ export default function ReservationCompleteContent() {
   const { lastReservationId } = useReservationStore();
   const [reservation, setReservation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [supabase] = useState(() => createClient());
   const { data: session, status } = useSession();
   
   // URL 파라미터가 있으면 우선 사용, 없으면 store에서 가져옴

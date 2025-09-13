@@ -1,11 +1,11 @@
 import * as dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+// // import { createClient } from '@/lib/supabase-mock';
 
 // 환경 변수 로드
 dotenv.config({ path: '.env.local' });
 
 // Supabase 클라이언트 생성
-const supabase = createClient(
+// import { supabase } from '@/lib/supabase-mock';
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -45,7 +45,7 @@ async function createBannedWordsTable() {
   `;
 
   try {
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.rpc('exec_sql', { sql: createTableSQL });
     
     if (error) {
@@ -78,7 +78,7 @@ async function createBannedWordsTable() {
       
       console.log('기본 금지어 추가 중...');
       for (const word of defaultBannedWords) {
-        const supabase = createClient();
+//         import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('banned_words')
           .insert(word);
         

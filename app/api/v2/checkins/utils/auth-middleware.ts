@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createApiError } from './error-handler'
 
 export interface AuthUser {

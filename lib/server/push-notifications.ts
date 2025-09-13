@@ -57,7 +57,7 @@ export async function sendPushNotification(
 
   try {
     // 사용자의 구독 정보 가져오기
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     const { data: subscription, error } = await supabase
       .from('push_subscriptions')
       .select('subscription')

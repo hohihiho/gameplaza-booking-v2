@@ -3,7 +3,7 @@ import { createServiceRoleClient } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 
 async function handler(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createServiceRoleClient();
+  import { getDB, supabase } from '@/lib/db';
   const userId = params.id;
 
   try {

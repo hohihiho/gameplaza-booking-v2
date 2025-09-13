@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
 import { PATCH as confirmPayment } from '../[id]/payment/route'
@@ -11,12 +12,11 @@ const mockUser = {
   sessionId: 'session-123'
 }
 
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn(() => mockUser)
 }))
 
 jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({}))
 }))
 
 // Repository mocks
@@ -42,15 +42,15 @@ const mockUserRepo = {
 }
 
 // UseCase mocks
-jest.mock('@/src/infrastructure/repositories/checkin.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/checkin.supabase.repository', () => ({
   CheckInSupabaseRepository: jest.fn(() => mockCheckInRepo)
 }))
 
-jest.mock('@/src/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
+jest.mock('@/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
   SupabaseReservationRepositoryV2: jest.fn(() => mockReservationRepo)
 }))
 
-jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => ({
+jest.mock('@/application/use-cases/checkin/confirm-payment.use-case', () => ({
   ConfirmPaymentUseCase: jest.fn().mockImplementation(() => ({
     execute: jest.fn().mockResolvedValue({
       checkIn: {
@@ -62,16 +62,16 @@ jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => 
   }))
 }))
 
-jest.mock('@/src/infrastructure/repositories/device.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/device.supabase.repository', () => ({
   DeviceSupabaseRepository: jest.fn(() => mockDeviceRepo)
 }))
 
-jest.mock('@/src/infrastructure/repositories/user.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/user.supabase.repository', () => ({
   UserSupabaseRepository: jest.fn(() => mockUserRepo)
 }))
 
 // UseCase mocks
-jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => ({
+jest.mock('@/application/use-cases/checkin/confirm-payment.use-case', () => ({
   ConfirmPaymentUseCase: jest.fn().mockImplementation(() => ({
     execute: jest.fn().mockResolvedValue({
       checkIn: {
@@ -85,7 +85,7 @@ jest.mock('@/src/application/use-cases/checkin/confirm-payment.use-case', () => 
   }))
 }))
 
-jest.mock('@/src/application/use-cases/checkin/process-checkout.use-case', () => ({
+jest.mock('@/application/use-cases/checkin/process-checkout.use-case', () => ({
   ProcessCheckOutUseCase: jest.fn().mockImplementation(() => ({
     execute: jest.fn().mockResolvedValue({
       checkIn: {
@@ -138,7 +138,7 @@ describe('CheckIn API', () => {
       }
 
       // ProcessCheckInUseCase의 execute 메서드 모킹
-      const ProcessCheckInUseCase = require('@/src/application/use-cases/checkin/process-checkin.use-case').ProcessCheckInUseCase
+      const ProcessCheckInUseCase = require('@/application/use-cases/checkin/process-checkin.use-case').ProcessCheckInUseCase
       ProcessCheckInUseCase.prototype.execute = jest.fn().mockResolvedValue({
         checkIn: mockCheckIn,
         message: '체크인이 성공적으로 생성되었습니다'
@@ -196,7 +196,7 @@ describe('CheckIn API', () => {
       ]
 
       // GetActiveCheckInsUseCase의 execute 메서드 모킹
-      const GetActiveCheckInsUseCase = require('@/src/application/use-cases/checkin/get-active-checkins.use-case').GetActiveCheckInsUseCase
+      const GetActiveCheckInsUseCase = require('@/application/use-cases/checkin/get-active-checkins.use-case').GetActiveCheckInsUseCase
       GetActiveCheckInsUseCase.prototype.execute = jest.fn().mockResolvedValue({
         data: {
           checkIns: mockCheckIns,

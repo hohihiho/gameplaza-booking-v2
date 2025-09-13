@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { createClient } from '@/lib/db';
+// import { getDB, supabase } from '@/lib/db';
 
 interface UseOptimizedRealtimeConfig {
   channel: string;
@@ -36,7 +35,7 @@ export function useOptimizedRealtime({
   onDisconnect,
   onError
 }: UseOptimizedRealtimeConfig) {
-  const supabase = createClient();
+//   import { getDB, supabase } from '@/lib/db';
   const channelRef = useRef<RealtimeChannel | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);

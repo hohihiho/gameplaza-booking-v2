@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/db';
 export class ReservationStatusService {
   // 예약 목록 조회 시 상태 자동 업데이트
   static async getReservationsWithAutoUpdate() {
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     const now = new Date();
     const currentDate = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -51,7 +51,7 @@ export class ReservationStatusService {
 
   // 단일 예약 조회 시 상태 확인 및 업데이트
   static async checkAndUpdateReservationStatus(reservationId: string) {
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     
     // 예약 조회
     const { data: reservation, error } = await supabase

@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { db } from './better-db';
+import * as schema from './schema';
 
 // JWT 비밀키는 반드시 환경변수에서 설정되어야 함 (보안상 기본값 제거)
 if (!process.env.JWT_SECRET) {
@@ -138,6 +142,21 @@ type AuthHandler = (
 interface WithAuthOptions {
   requireAdmin?: boolean;
 }
+
+// Better Auth configuration
+export const auth = {
+  api: {
+    getSession: async ({ headers }: { headers: Headers }) => {
+      const token = headers.get('authorization')?.replace('Bearer ', '') ||
+                   headers.get('cookie')?.match(/authToken=([^;]+)/)?.[1];
+
+      if (!token) return null;
+
+      const session = await validateSession(token);
+      return session;
+    }
+  }
+};
 
 export function withAuth(
   handler: AuthHandler,

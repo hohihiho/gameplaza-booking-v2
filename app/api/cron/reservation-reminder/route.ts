@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
     
     // 현재 시간에서 1시간 후 시간 계산
     const now = new Date();

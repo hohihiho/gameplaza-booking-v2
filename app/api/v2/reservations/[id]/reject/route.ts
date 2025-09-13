@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/api/handler'
-import { RejectReservationUseCase } from '@/src/application/use-cases/reservation/reject-reservation.use-case'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
+import { RejectReservationUseCase } from '@/application/use-cases/reservation/reject-reservation.use-case'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { NotificationSupabaseRepository } from '@/infrastructure/repositories/notification.supabase.repository'
 import { createAdminClient } from '@/lib/db'
-import { getAuthenticatedUser, isAdmin } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser, isAdmin } from '@/infrastructure/middleware/auth.middleware'
 
 interface RejectRequestBody {
   reason: string
@@ -44,7 +44,7 @@ export const POST = createApiHandler(
       }
 
       // Supabase 클라이언트 생성
-      const supabase = createAdminClient()
+      import { getDB, supabase } from '@/lib/db';
 
       // 리포지토리 생성
       const userRepository = new UserSupabaseRepository(supabase)

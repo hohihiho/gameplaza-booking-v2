@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Real-Time Error Monitor Dashboard</title>
+    <title>🚀 실시간 에러 모니터 대시보드</title>
     <style>
         * {
             margin: 0;
@@ -353,65 +353,65 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚀 Real-Time Error Monitor</h1>
-            <p>Advanced Error Detection & Auto-Fix System</p>
+            <h1>🚀 실시간 에러 모니터</h1>
+            <p>고급 에러 감지 및 자동 수정 시스템</p>
         </header>
 
         <div class="status-bar">
             <div class="status-item active" id="connection-status">
                 <span class="live-indicator"></span>
-                <span>Connected</span>
+                <span>연결됨</span>
             </div>
             <div class="status-item" id="autofix-status">
-                <span>Auto-Fix: ON</span>
+                <span>자동수정: 켜짐</span>
             </div>
             <div class="status-item" id="error-count">
-                <span>Errors: 0</span>
+                <span>에러: 0</span>
             </div>
             <div class="status-item" id="fixed-count">
-                <span>Fixed: 0</span>
+                <span>수정됨: 0</span>
             </div>
         </div>
 
         <div class="controls">
-            <button id="toggle-autofix">Toggle Auto-Fix</button>
-            <button id="clear-errors">Clear Errors</button>
-            <button id="reload-page">Reload Page</button>
-            <button id="export-log">Export Log</button>
-            <button id="toggle-learning">Learning: ON</button>
+            <button id="toggle-autofix">자동수정 토글</button>
+            <button id="clear-errors">에러 지우기</button>
+            <button id="reload-page">페이지 새로고침</button>
+            <button id="export-log">로그 내보내기</button>
+            <button id="toggle-learning">학습모드: 켜짐</button>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="total-errors">0</div>
-                <div class="stat-label">Total Errors</div>
+                <div class="stat-label">총 에러</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="errors-per-minute">0</div>
-                <div class="stat-label">Errors/Min</div>
+                <div class="stat-label">분당 에러</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="fix-rate">100%</div>
-                <div class="stat-label">Fix Rate</div>
+                <div class="stat-label">수정률</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="patterns-learned">0</div>
-                <div class="stat-label">Patterns</div>
+                <div class="stat-label">학습 패턴</div>
             </div>
         </div>
 
         <div class="dashboard">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">🔥 Live Errors</h2>
+                    <h2 class="card-title">🔥 실시간 에러</h2>
                     <span class="badge" id="error-badge">0</span>
                 </div>
                 <div class="filter-bar">
-                    <div class="filter-chip active" data-filter="all">All</div>
-                    <div class="filter-chip" data-filter="runtime">Runtime</div>
-                    <div class="filter-chip" data-filter="console">Console</div>
-                    <div class="filter-chip" data-filter="network">Network</div>
-                    <div class="filter-chip" data-filter="type">Type</div>
+                    <div class="filter-chip active" data-filter="all">전체</div>
+                    <div class="filter-chip" data-filter="runtime">런타임</div>
+                    <div class="filter-chip" data-filter="console">콘솔</div>
+                    <div class="filter-chip" data-filter="network">네트워크</div>
+                    <div class="filter-chip" data-filter="type">타입</div>
                 </div>
                 <div class="error-list" id="error-list">
                     <!-- Errors will be added here -->
@@ -420,16 +420,16 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">📊 Performance</h2>
-                    <span class="badge">Live</span>
+                    <h2 class="card-title">📊 성능</h2>
+                    <span class="badge">실시간</span>
                 </div>
                 <div id="performance-metrics">
                     <div class="performance-metric">
-                        <span class="metric-label">Page Load</span>
+                        <span class="metric-label">페이지 로드</span>
                         <span class="metric-value" id="load-time">-</span>
                     </div>
                     <div class="performance-metric">
-                        <span class="metric-label">Memory Usage</span>
+                        <span class="metric-label">메모리 사용량</span>
                         <span class="metric-value" id="memory-usage">-</span>
                     </div>
                     <div class="performance-metric">
@@ -437,7 +437,7 @@
                         <span class="metric-value" id="fcp">-</span>
                     </div>
                     <div class="performance-metric">
-                        <span class="metric-label">DOM Ready</span>
+                        <span class="metric-label">DOM 준비</span>
                         <span class="metric-value" id="dom-ready">-</span>
                     </div>
                 </div>
@@ -446,7 +446,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">✅ Fixed Errors</h2>
+                    <h2 class="card-title">✅ 수정된 에러</h2>
                     <span class="badge" id="fixed-badge">0</span>
                 </div>
                 <div class="error-list" id="fixed-list">
@@ -456,7 +456,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">🧠 Learned Patterns</h2>
+                    <h2 class="card-title">🧠 학습된 패턴</h2>
                     <span class="badge" id="pattern-badge">0</span>
                 </div>
                 <div id="pattern-list">
@@ -498,7 +498,7 @@
                 this.ws = new WebSocket('ws://localhost:8888');
 
                 this.ws.onopen = () => {
-                    console.log('Connected to error monitor');
+                    console.log('에러 모니터에 연결됨');
                     this.updateConnectionStatus(true);
                     this.ws.send(JSON.stringify({ type: 'query' }));
                 };
@@ -509,14 +509,14 @@
                 };
 
                 this.ws.onclose = () => {
-                    console.log('Disconnected from error monitor');
+                    console.log('에러 모니터 연결 끊김');
                     this.updateConnectionStatus(false);
                     // 재연결 시도
                     setTimeout(() => this.connectWebSocket(), 3000);
                 };
 
                 this.ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
+                    console.error('WebSocket 에러:', error);
                 };
             }
 
@@ -548,7 +548,7 @@
                     this.stats.total++;
                     this.errorTimestamps.push(Date.now());
                     this.renderError(error);
-                    this.showNotification(`New ${error.type} error detected`, 'error');
+                    this.showNotification(`새로운 ${error.type} 에러 감지`, 'error');
                 }
 
                 this.updateStats();
@@ -595,7 +595,7 @@
                     });
 
                     this.renderFixedError(error);
-                    this.showNotification('Error fixed automatically!', 'success');
+                    this.showNotification('에러가 자동으로 수정되었습니다!', 'success');
                 }
 
                 this.updateStats();
@@ -618,8 +618,8 @@
             updateStats() {
                 // 총 에러 수
                 document.getElementById('total-errors').textContent = this.stats.total;
-                document.getElementById('error-count').textContent = `Errors: ${this.errors.size}`;
-                document.getElementById('fixed-count').textContent = `Fixed: ${this.stats.fixed}`;
+                document.getElementById('error-count').textContent = `에러: ${this.errors.size}`;
+                document.getElementById('fixed-count').textContent = `수정됨: ${this.stats.fixed}`;
 
                 // 분당 에러 계산
                 const now = Date.now();
@@ -655,7 +655,7 @@
                     this.autoFix = !this.autoFix;
                     const btn = document.getElementById('toggle-autofix');
                     btn.classList.toggle('active', this.autoFix);
-                    document.getElementById('autofix-status').textContent = `Auto-Fix: ${this.autoFix ? 'ON' : 'OFF'}`;
+                    document.getElementById('autofix-status').textContent = `자동수정: ${this.autoFix ? '켜짐' : '꺼짐'}`;
 
                     this.ws.send(JSON.stringify({
                         type: 'command',
@@ -705,7 +705,7 @@
                 document.getElementById('toggle-learning').onclick = () => {
                     this.learning = !this.learning;
                     const btn = document.getElementById('toggle-learning');
-                    btn.textContent = `Learning: ${this.learning ? 'ON' : 'OFF'}`;
+                    btn.textContent = `학습모드: ${this.learning ? '켜짐' : '꺼짐'}`;
                     btn.classList.toggle('active', this.learning);
                 };
 
@@ -744,11 +744,11 @@
                 const status = document.getElementById('connection-status');
                 if (connected) {
                     status.classList.add('active');
-                    status.innerHTML = '<span class="live-indicator"></span><span>Connected</span>';
+                    status.innerHTML = '<span class="live-indicator"></span><span>연결됨</span>';
                 } else {
                     status.classList.remove('active');
                     status.classList.add('error');
-                    status.innerHTML = '<span>Disconnected</span>';
+                    status.innerHTML = '<span>연결 끊김</span>';
                 }
             }
 
@@ -767,7 +767,7 @@
             }
 
             showErrorDetails(error) {
-                console.log('Error details:', error);
+                console.log('에러 상세정보:', error);
                 // 여기에 상세 정보 모달 구현
             }
 

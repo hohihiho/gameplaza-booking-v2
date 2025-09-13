@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
-import { createClient } from '@/lib/db'
 
 export function useRealtimeReservations(onUpdate: () => void) {
-  const supabase = createClient()
+//   import { getDB, supabase } from '@/lib/db';
 
   useEffect(() => {
     // 예약 테이블의 변경사항 구독

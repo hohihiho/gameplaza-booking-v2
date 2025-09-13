@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GetReservationUseCase } from '@/src/application/use-cases/reservation/get-reservation.use-case'
-import { UpdateReservationUseCase } from '@/src/application/use-cases/reservation/update-reservation.use-case'
-import { CancelReservationUseCase } from '@/src/application/use-cases/reservation/cancel-reservation.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseDeviceRepositoryV2 } from '@/src/infrastructure/repositories/supabase-device.repository.v2'
-import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
-import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
-import { NotificationService } from '@/src/infrastructure/services/notification.service'
+import { GetReservationUseCase } from '@/application/use-cases/reservation/get-reservation.use-case'
+import { UpdateReservationUseCase } from '@/application/use-cases/reservation/update-reservation.use-case'
+import { CancelReservationUseCase } from '@/application/use-cases/reservation/cancel-reservation.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseDeviceRepositoryV2 } from '@/infrastructure/repositories/supabase-device.repository.v2'
+import { PaymentSupabaseRepository } from '@/infrastructure/repositories/payment.supabase.repository'
+import { NotificationSupabaseRepository } from '@/infrastructure/repositories/notification.supabase.repository'
+import { NotificationService } from '@/infrastructure/services/notification.service'
 import { createAdminClient } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { z } from 'zod'
@@ -54,7 +54,7 @@ export async function GET(
     }
 
     // 2. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 
@@ -164,7 +164,7 @@ export async function PATCH(
     const data = validationResult.data
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
@@ -294,7 +294,7 @@ export async function DELETE(
     }
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
     const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)

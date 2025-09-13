@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 /**
  * 관리자 예약 승인 기능 테스트 - 수정된 버전
  */
@@ -10,37 +11,35 @@ jest.mock('@/lib/api/handler', () => ({
   createApiHandler: (handler: any) => handler
 }))
 
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn(),
   isAdmin: jest.fn()
 }))
 
 jest.mock('@/lib/db', () => ({
-  createClient: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/user.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/user.supabase.repository', () => ({
   UserSupabaseRepository: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
+jest.mock('@/infrastructure/repositories/supabase-reservation.repository.v2', () => ({
   SupabaseReservationRepositoryV2: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/supabase-device.repository.v2', () => ({
+jest.mock('@/infrastructure/repositories/supabase-device.repository.v2', () => ({
   SupabaseDeviceRepositoryV2: jest.fn()
 }))
 
-jest.mock('@/src/infrastructure/repositories/notification.supabase.repository', () => ({
+jest.mock('@/infrastructure/repositories/notification.supabase.repository', () => ({
   NotificationSupabaseRepository: jest.fn()
 }))
 
-const { getAuthenticatedUser, isAdmin } = require('@/src/infrastructure/middleware/auth.middleware')
-const { createClient } = require('@/lib/db')
-const { UserSupabaseRepository } = require('@/src/infrastructure/repositories/user.supabase.repository')
-const { SupabaseReservationRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-reservation.repository.v2')
-const { SupabaseDeviceRepositoryV2 } = require('@/src/infrastructure/repositories/supabase-device.repository.v2')
-const { NotificationSupabaseRepository } = require('@/src/infrastructure/repositories/notification.supabase.repository')
+const { getAuthenticatedUser, isAdmin } = require('@/infrastructure/middleware/auth.middleware')
+const { UserSupabaseRepository } = require('@/infrastructure/repositories/user.supabase.repository')
+const { SupabaseReservationRepositoryV2 } = require('@/infrastructure/repositories/supabase-reservation.repository.v2')
+const { SupabaseDeviceRepositoryV2 } = require('@/infrastructure/repositories/supabase-device.repository.v2')
+const { NotificationSupabaseRepository } = require('@/infrastructure/repositories/notification.supabase.repository')
 
 describe('예약 승인 API 테스트 - 수정판', () => {
   const adminUser = {
@@ -78,7 +77,6 @@ describe('예약 승인 API 테스트 - 수정판', () => {
 
     // Mock 클라이언트
     const mockSupabase = {}
-    createClient.mockResolvedValue(mockSupabase)
 
     // Repository mocks
     const mockUserRepo = {

@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/db';
 import { ScheduleService } from '@/lib/services/schedule.service';

@@ -8,7 +8,7 @@ export async function GET() {
   try {
     console.log('Simple dashboard API: Starting request')
     
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     console.log('Simple dashboard API: Created Supabase client')
     
     // 간단한 쿼리 테스트

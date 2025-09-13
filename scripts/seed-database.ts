@@ -13,7 +13,7 @@
  * - SUPABASE_SERVICE_ROLE_KEY (선택사항, 더 높은 권한이 필요한 경우)
  */
 
-import { createClient } from '@supabase/supabase-js'
+// // import { createClient } from '@/lib/supabase-mock'
 import { Database } from '../src/types/supabase'
 import { seedAll, seedSuperAdmins } from '../src/infrastructure/seeds'
 import * as dotenv from 'dotenv'
@@ -31,7 +31,7 @@ function createSupabaseClient() {
     throw new Error('❌ Supabase URL과 Key가 필요합니다. .env.local 파일을 확인하세요.')
   }
 
-  return createClient<Database>(supabaseUrl, supabaseKey, {
+//   return createClient<Database>(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -42,7 +42,7 @@ function createSupabaseClient() {
 // 메인 실행 함수
 async function main() {
   const command = process.argv[2]
-  const supabase = createSupabaseClient()
+  import { supabase } from '@/lib/supabase-mock';
 
   try {
     switch (command) {

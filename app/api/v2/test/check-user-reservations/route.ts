@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/db'
 // 사용자의 예약 현황 확인
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const searchParams = request.nextUrl.searchParams
     const username = searchParams.get('username') || 'ndz5496'
     

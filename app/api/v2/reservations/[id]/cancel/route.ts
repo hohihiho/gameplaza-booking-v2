@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CancelReservationUseCase } from '@/src/application/use-cases/reservation/cancel-reservation.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
+import { CancelReservationUseCase } from '@/application/use-cases/reservation/cancel-reservation.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
 import { createAdminClient } from '@/lib/db'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 
 /**
  * 예약 취소 API
@@ -39,7 +39,7 @@ export async function POST(
     }
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const userRepository = new UserSupabaseRepository(supabase)
 

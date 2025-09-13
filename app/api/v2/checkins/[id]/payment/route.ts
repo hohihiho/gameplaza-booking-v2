@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ConfirmPaymentUseCase } from '@/src/application/use-cases/checkin/confirm-payment.use-case'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { ConfirmPaymentUseCase } from '@/application/use-cases/checkin/confirm-payment.use-case'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
-import { PaymentMethodType } from '@/src/domain/value-objects/payment-method'
+import { PaymentMethodType } from '@/domain/value-objects/payment-method'
 
 /**
  * 결제 확인 API
@@ -73,7 +73,7 @@ export async function PATCH(
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
 
     // 5. 유스케이스 실행

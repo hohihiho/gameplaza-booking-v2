@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+// // import { createClient } from '@/lib/supabase-mock'
 import dotenv from 'dotenv'
 
 // .env.local 파일 로드
@@ -7,7 +7,7 @@ dotenv.config({ path: '.env.local' })
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+// import { supabase } from '@/lib/supabase-mock';
 
 async function seedMachines() {
   console.log('기기 데이터 시드 시작...')
@@ -27,7 +27,7 @@ async function seedMachines() {
     
     console.log('기기 등록 중...')
     for (const machine of machines) {
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('machines')
         .upsert(machine, { onConflict: 'machine_number' })
         
@@ -39,7 +39,7 @@ async function seedMachines() {
     }
     
     // 2. 등록된 기기 조회
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('machines')
       .select('*')
       .order('machine_number')
@@ -62,7 +62,7 @@ async function seedMachines() {
     
     console.log('\n대여 가능 기기 등록 중...')
     for (const rental of rentalMachines || []) {
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('rental_machines')
         .upsert(rental, { onConflict: 'machine_id' })
         

@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
       )
     }
 
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // 날짜 범위 설정 (오늘부터 7일)
     const today = new Date()

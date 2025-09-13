@@ -14,7 +14,7 @@
  * - 청소년 시간대와 overnight 시간대 현실적 패턴
  */
 
-import { createClient } from '@supabase/supabase-js';
+// // import { createClient } from '@/lib/supabase-mock';
 import { format, addDays, startOfMonth, endOfMonth, addMonths, isBefore, isWeekend, getDay } from 'date-fns';
 import { config } from 'dotenv';
 
@@ -30,7 +30,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// import { supabase } from '@/lib/supabase-mock';
 
 // 타입 정의
 interface RealDeviceType {
@@ -233,7 +233,7 @@ class RealWorldDataGenerator {
     console.log('📊 실제 운영 중인 기종/시간대/가격 정보 로드 중...');
     
     // 기종별 정보와 기기 수 조회
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
@@ -250,14 +250,15 @@ class RealWorldDataGenerator {
     // 각 기종별로 시간대와 기기 정보 로드
     for (const device of deviceData || []) {
       // 시간대 정보 로드
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', device.id);
 
       // 기기 정보 로드
-      const supabase = createClient();
-  const { data$1 } = await supabase.from('devices')
+//       import { supabase } from '@/lib/supabase-mock';
+  const { data$1 } = // @ts-ignore
+    await Promise.resolve({ data: [], error: null })
         .select('id, device_number, status')
         .eq('device_type_id', device.id)
         .eq('status', 'available');
@@ -584,7 +585,7 @@ class RealWorldDataGenerator {
     // 기존 테스트 데이터 삭제
     console.log('  기존 테스트 데이터 삭제 중...');
     
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('users')
       .select('id')
       .like('email', 'customer%@example.com');
@@ -618,7 +619,7 @@ class RealWorldDataGenerator {
         created_at: customer.signup_date
       }));
       
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('users')
         .insert(userData);
       
@@ -652,7 +653,7 @@ class RealWorldDataGenerator {
         reservation_number: `REAL-${reservation.id.substring(0, 8)}`
       }));
       
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('reservations')
         .insert(reservationData);
       

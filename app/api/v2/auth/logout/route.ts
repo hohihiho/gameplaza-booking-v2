@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { LogoutUseCase } from '@/src/application/use-cases/auth/logout.use-case'
-import { SessionSupabaseRepository } from '@/src/infrastructure/repositories/session.supabase.repository'
-import { LogoutRequestDto } from '@/src/application/dtos/auth.dto'
+import { LogoutUseCase } from '@/application/use-cases/auth/logout.use-case'
+import { SessionSupabaseRepository } from '@/infrastructure/repositories/session.supabase.repository'
+import { LogoutRequestDto } from '@/application/dtos/auth.dto'
 import { createAdminClient } from '@/lib/db'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 
 /**
  * 로그아웃 API
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const sessionRepository = new SessionSupabaseRepository(supabase)
 
     // 유스케이스 실행

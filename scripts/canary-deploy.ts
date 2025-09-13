@@ -7,7 +7,7 @@
  * Vercel Edge Config를 사용하여 트래픽을 제어합니다.
  */
 
-import { createClient } from '@vercel/edge-config';
+// import { createClient } from '@vercel/edge-config';
 import fetch from 'node-fetch';
 
 interface CanaryConfig {
@@ -30,12 +30,12 @@ interface DeploymentOptions {
 }
 
 class CanaryDeploymentManager {
-  private edgeConfig: ReturnType<typeof createClient>;
+//   private edgeConfig: ReturnType<typeof createClient>;
   private vercelToken: string;
   private projectId: string;
 
   constructor() {
-    this.edgeConfig = createClient(process.env.EDGE_CONFIG!);
+//     this.edgeConfig = createClient(process.env.EDGE_CONFIG!);
     this.vercelToken = process.env.VERCEL_TOKEN!;
     this.projectId = process.env.VERCEL_PROJECT_ID!;
 

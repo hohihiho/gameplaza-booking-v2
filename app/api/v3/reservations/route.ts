@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { listReservations as listRes, createReservation as createRes } from '@/lib/db/adapter'

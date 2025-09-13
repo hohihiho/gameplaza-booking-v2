@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ProcessCheckInUseCase } from '@/src/application/use-cases/checkin/process-checkin.use-case'
-import { GetActiveCheckInsUseCase } from '@/src/application/use-cases/checkin/get-active-checkins.use-case'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { ProcessCheckInUseCase } from '@/application/use-cases/checkin/process-checkin.use-case'
+import { GetActiveCheckInsUseCase } from '@/application/use-cases/checkin/get-active-checkins.use-case'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const includeWaitingPayment = searchParams.get('includeWaitingPayment') === 'true'
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

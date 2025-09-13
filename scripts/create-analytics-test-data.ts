@@ -7,7 +7,7 @@
  * 대상: 예약 통계, 매출 분석, 고객 분석 탭 검증
  */
 
-import { createClient } from '@supabase/supabase-js';
+// // import { createClient } from '@/lib/supabase-mock';
 import { format, addDays, startOfMonth, endOfMonth, addMonths, isBefore, isWeekend } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { config } from 'dotenv';
@@ -25,7 +25,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// import { supabase } from '@/lib/supabase-mock';
 
 // 타입 정의
 interface DeviceType {
@@ -204,7 +204,7 @@ class TestDataGenerator {
   private async loadDeviceTypes() {
     console.log('📱 기종 정보 로드 중...');
     
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('device_types')
       .select(`
         id,
@@ -456,7 +456,7 @@ class TestDataGenerator {
     console.log('  기존 테스트 데이터 삭제 중...');
     
     // 먼저 기존 테스트 사용자 ID 조회
-    const supabase = createClient();
+//     import { supabase } from '@/lib/supabase-mock';
   const { data$1 } = await supabase.from('users')
       .select('id')
       .like('email', 'test%@example.com');
@@ -492,7 +492,7 @@ class TestDataGenerator {
         created_at: new Date().toISOString()
       }));
       
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('users')
         .insert(userData);
       
@@ -526,7 +526,7 @@ class TestDataGenerator {
         reservation_number: `TEST-${reservation.id.substring(0, 8)}`
       }));
       
-      const supabase = createClient();
+//       import { supabase } from '@/lib/supabase-mock';
   const { error$1 } = await supabase.from('reservations')
         .insert(reservationData);
       

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GetProfileUseCase } from '@/src/application/use-cases/auth/get-profile.use-case'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { GetProfileUseCase } from '@/application/use-cases/auth/get-profile.use-case'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const userRepository = new UserSupabaseRepository(supabase)
 
     // 유스케이스 실행

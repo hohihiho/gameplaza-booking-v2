@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/db'
 import { z } from 'zod'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
     // 🔄 자동 기기 상태 체크 실행
     await autoCheckDeviceStatus()
     
-    const supabase = await createClient()
+//     import { getDB, supabase } from '@/lib/db';
     
     // 쿼리 파라미터 파싱 및 검증
     const searchParams = request.nextUrl.searchParams

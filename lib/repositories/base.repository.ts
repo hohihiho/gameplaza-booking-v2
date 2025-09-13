@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js'
+// import { getDB, supabase } from '@/lib/db'
 import { Database } from '@/types/database'
 
 export abstract class BaseRepository<T> {

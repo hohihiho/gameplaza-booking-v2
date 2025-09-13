@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@/lib/db';
 
 export default function CheckAuthPage() {
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   const [adminData, setAdminData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     checkAuth();

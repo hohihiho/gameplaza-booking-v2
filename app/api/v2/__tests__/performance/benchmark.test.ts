@@ -23,7 +23,6 @@ jest.mock('@/lib/auth', () => ({
 }))
 
 jest.mock('@/lib/db', () => ({
-  createClient: jest.fn(() => Promise.resolve({
     auth: {
       getUser: jest.fn(() => Promise.resolve({
         data: {
@@ -67,8 +66,6 @@ describe('v2 API Performance Benchmarks', () => {
     getCurrentUser.mockResolvedValue(testUser)
     
     // Supabase client mock 설정
-    const { createClient } = require('@/lib/db')
-    createClient.mockResolvedValue({
       auth: {
         getUser: jest.fn(() => Promise.resolve({
           data: {

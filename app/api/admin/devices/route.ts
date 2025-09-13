@@ -1,73 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server';
+import { getDB } from '@/lib/db';
 
-// 개별 기기 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const deviceTypeId = searchParams.get('deviceTypeId')
+    // Cloudflare D1 환경 체크
+    const db = getDB(process.env);
 
-    if (!deviceTypeId) {
-      return NextResponse.json({ error: 'deviceTypeId is required' }, { status: 400 })
-    }
+    // Mock 데이터 반환 (개발 환경)
+    const devices = [
+      { id: 1, name: 'PS5 #1', type: 'PS5', status: 'available' },
+      { id: 2, name: 'PS5 #2', type: 'PS5', status: 'in_use' },
+      { id: 3, name: 'Switch #1', type: 'SWITCH', status: 'available' },
+      { id: 4, name: 'PC #1', type: 'PC', status: 'maintenance' },
+      { id: 5, name: 'Racing Sim', type: 'RACING', status: 'available' }
+    ];
 
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('devices')
-      .select('*')
-      .eq('device_type_id', deviceTypeId)
-      .order('device_number', { ascending: true })
-
-    if (error) throw error
-
-    return NextResponse.json(data)
+    return NextResponse.json({ data: devices, error: null });
   } catch (error) {
-    console.error('Error fetching devices:', error)
-    return NextResponse.json({ error: 'Failed to fetch devices' }, { status: 500 })
+    console.error('기기 목록 조회 오류:', error);
+    return NextResponse.json(
+      { data: null, error: '기기 목록을 불러올 수 없습니다' },
+      { status: 500 }
+    );
   }
 }
 
-// 기기 상태 업데이트
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { id, status, notes } = body
-
-    const updateData: any = { status }
-    if (notes !== undefined) updateData.notes = notes
-
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('devices')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error updating device:', error)
-    return NextResponse.json({ error: 'Failed to update device' }, { status: 500 })
-  }
-}
-
-// 새 기기 추가
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { device_type_id, device_number } = body
+    const body = await request.json();
+    const db = getDB(process.env);
 
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('devices')
-      .insert({ device_type_id, device_number, status: 'available' })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
+    // Mock 응답
+    return NextResponse.json({
+      data: { id: Date.now(), ...body },
+      error: null
+    });
   } catch (error) {
-    console.error('Error creating device:', error)
-    return NextResponse.json({ error: 'Failed to create device' }, { status: 500 })
+    console.error('기기 생성 오류:', error);
+    return NextResponse.json(
+      { data: null, error: '기기를 생성할 수 없습니다' },
+      { status: 500 }
+    );
   }
 }

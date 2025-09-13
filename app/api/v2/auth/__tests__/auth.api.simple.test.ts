@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
 import { OPTIONS as googleOPTIONS } from '../google/route'
 
@@ -48,7 +49,7 @@ describe('Auth API - Simple Tests', () => {
 
   describe('도메인 모델 테스트', () => {
     it('User 엔티티를 생성할 수 있어야 한다', async () => {
-      const { User } = await import('@/src/domain/entities/user')
+      const { User } = await import('@/domain/entities/user')
       
       const user = User.create({
         id: 'test-id',

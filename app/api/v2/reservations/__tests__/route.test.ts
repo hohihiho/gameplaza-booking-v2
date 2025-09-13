@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { POST, GET } from '../route'
-import { createClient } from '@/lib/db'
 
 // Mock dependencies
 jest.mock('@/lib/db')
@@ -22,7 +21,6 @@ const mockSupabase = {
   }))
 }
 
-;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
 describe('/api/v2/reservations', () => {
   beforeEach(() => {

@@ -1,12 +1,11 @@
 // 알림 스케줄러 서비스
 // 크론잡 없이 예약 알림을 처리하는 서비스
 
-import { createClient } from '@/lib/db';
 
 export class NotificationSchedulerService {
   // 예약 생성 시 알림 예약
   static async scheduleNotification(reservationId: string, reservationDate: string, startTime: string) {
-    const supabase = await createClient();
+//     import { getDB, supabase } from '@/lib/db';
     
     // 예약 시간 30분 전 알림 시간 계산
     const [year, month, day] = reservationDate.split('-').map(Number);
@@ -33,7 +32,7 @@ export class NotificationSchedulerService {
 
   // 페이지 로드 시 대기 중인 알림 확인 및 발송
   static async checkAndSendPendingNotifications() {
-    const supabase = await createClient();
+//     import { getDB, supabase } from '@/lib/db';
     const now = new Date();
 
     // 현재 시간이 지난 미발송 알림 조회

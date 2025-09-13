@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GetCheckInDetailsUseCase } from '@/src/application/use-cases/checkin/get-checkin-details.use-case'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/checkin.supabase.repository'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { GetCheckInDetailsUseCase } from '@/application/use-cases/checkin/get-checkin-details.use-case'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/checkin.supabase.repository'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 
 /**
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // 3. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

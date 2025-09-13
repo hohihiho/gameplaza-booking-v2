@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/db'
 // no_show 상태의 예약 확인
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // no_show 상태의 예약 조회
     const { data: noShowReservations, error } = await supabase

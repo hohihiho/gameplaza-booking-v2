@@ -55,9 +55,9 @@ async function fixAllDuplicates() {
         }
       }
       
-      // supabase 중복 제거 (createClient)
+//       // supabase 중복 제거 (createClient)
       const supabaseDeclarations: Array<{match: string, index: number}> = [];
-      const supabasePattern = /const\s+supabase\s*=\s*createClient\(\)\s*;/g;
+//       const supabasePattern = /const\s+supabase\s*=\s*createClient\(\)\s*;/g;
       
       while ((match = supabasePattern.exec(funcBody)) !== null) {
         supabaseDeclarations.push({

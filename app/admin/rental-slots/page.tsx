@@ -4,8 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { createClient } from '@/lib/db';
-// import { RealtimeChannel } from '@supabase/supabase-js';
+// import { getDB, supabase } from '@/lib/db';
 import { 
   Calendar,
   Plus,
@@ -57,7 +56,6 @@ export default function RentalSlotManagementPage() {
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   // const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [supabase] = useState(() => createClient());
 
   // 새 시간대 추가 폼 상태
   const [newSlot, setNewSlot] = useState({
@@ -74,7 +72,7 @@ export default function RentalSlotManagementPage() {
   // Supabase에서 대여 가능한 기기 타입 목록 가져오기
   const fetchDeviceTypes = async () => {
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
   const { data: deviceTypesData, error } = await supabase.from('device_types')
         .select('*')
         .eq('is_rentable', true)
@@ -169,7 +167,7 @@ export default function RentalSlotManagementPage() {
       setIsLoading(true);
       const dateStr = formatDate(selectedDate);
       
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
   const { data: slotsData, error } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', selectedDeviceType)
@@ -247,7 +245,7 @@ export default function RentalSlotManagementPage() {
         };
       }
       
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
   const { error } = await supabase.from('rental_time_slots')
         .insert({
           device_type_id: selectedDeviceType,
@@ -285,7 +283,7 @@ export default function RentalSlotManagementPage() {
     if (!confirm('이 시간대를 삭제하시겠습니까?')) return;
     
     try {
-      const supabase = createClient();
+//       import { getDB, supabase } from '@/lib/db';
   const { error } = await supabase.from('rental_time_slots')
         .delete()
         .eq('id', slotId);

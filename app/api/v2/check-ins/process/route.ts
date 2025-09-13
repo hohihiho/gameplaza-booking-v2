@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ProcessCheckInUseCase } from '@/src/application/use-cases/check-in/process-check-in.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/src/infrastructure/repositories/supabase-reservation.repository.v2'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { getAuthenticatedUser } from '@/src/infrastructure/middleware/auth.middleware'
+import { ProcessCheckInUseCase } from '@/application/use-cases/check-in/process-check-in.use-case'
+import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/check-in.supabase.repository'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { getAuthenticatedUser } from '@/infrastructure/middleware/auth.middleware'
 import { createAdminClient } from '@/lib/db'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. 서비스 초기화
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
     const checkInRepository = new CheckInSupabaseRepository(supabase)
     const deviceRepository = new DeviceSupabaseRepository(supabase)

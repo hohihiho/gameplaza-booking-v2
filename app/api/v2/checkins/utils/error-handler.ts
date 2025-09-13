@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextResponse } from 'next/server'
 
 export interface ApiError {

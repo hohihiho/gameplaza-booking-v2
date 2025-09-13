@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
-  const supabase = createAdminClient()
+  import { getDB, supabase } from '@/lib/db';
   
   // 비트매니아 IIDX 정보 조회
   const { data: deviceType } = await supabase

@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 import { NextRequest } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
 import { withAuth } from '@/lib/auth'

@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 /**
  * 관리자 예약 승인 기능 테스트
  * 단순화된 버전
@@ -11,17 +12,15 @@ jest.mock('@/lib/api/handler', () => ({
   createApiHandler: (handler: any) => handler
 }))
 
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn(),
   isAdmin: jest.fn()
 }))
 
 jest.mock('@/lib/db', () => ({
-  createClient: jest.fn()
 }))
 
-const { getAuthenticatedUser, isAdmin } = require('@/src/infrastructure/middleware/auth.middleware')
-const { createClient } = require('@/lib/db')
+const { getAuthenticatedUser, isAdmin } = require('@/infrastructure/middleware/auth.middleware')
 
 describe('예약 승인 API 테스트', () => {
   const adminUser = {
@@ -95,10 +94,9 @@ describe('예약 승인 API 테스트', () => {
       })
     }
 
-    createClient.mockResolvedValue(mockSupabase)
 
     // DeviceRepository mock 추가
-    jest.mock('@/src/infrastructure/repositories/supabase-device.repository.v2', () => ({
+    jest.mock('@/infrastructure/repositories/supabase-device.repository.v2', () => ({
       SupabaseDeviceRepositoryV2: jest.fn().mockImplementation(() => ({
         findByTypeId: jest.fn().mockResolvedValue([
           { 

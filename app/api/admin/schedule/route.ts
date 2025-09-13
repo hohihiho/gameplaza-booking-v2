@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
 
     // 데이터베이스에서 관리자 권한 확인
     const { data: userData } = await supabase.from('users')
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
 
     // 데이터베이스에서 관리자 권한 확인
     const { data: userData } = await supabase.from('users')
@@ -146,7 +146,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
 
     // 데이터베이스에서 관리자 권한 확인
     const { data: userData } = await supabase.from('users')
@@ -219,7 +219,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: '인증되지 않은 사용자입니다' }, { status: 401 });
     }
 
-    const supabase = createAdminClient();
+    import { getDB, supabase } from '@/lib/db';
 
     // 데이터베이스에서 관리자 권한 확인
     const { data: userData } = await supabase.from('users')

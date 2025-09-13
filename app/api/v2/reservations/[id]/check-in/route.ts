@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createResponse, ErrorResponse } from '@/lib/api/response'
 import { withAuth } from '@/lib/auth'
 import { ExtendedUser } from '@/lib/auth/types'
-import { CheckInReservationUseCase } from '@/src/application/use-cases/reservation/check-in.use-case'
-import { UserSupabaseRepository } from '@/src/infrastructure/repositories/user.supabase.repository'
-import { SupabaseReservationRepository } from '@/src/infrastructure/repositories/supabase-reservation.repository'
-import { DeviceSupabaseRepository } from '@/src/infrastructure/repositories/device.supabase.repository'
-import { PaymentSupabaseRepository } from '@/src/infrastructure/repositories/payment.supabase.repository'
-import { NotificationSupabaseRepository } from '@/src/infrastructure/repositories/notification.supabase.repository'
-import { CheckInSupabaseRepository } from '@/src/infrastructure/repositories/check-in.supabase.repository'
+import { CheckInReservationUseCase } from '@/application/use-cases/reservation/check-in.use-case'
+import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
+import { SupabaseReservationRepository } from '@/infrastructure/repositories/supabase-reservation.repository'
+import { DeviceSupabaseRepository } from '@/infrastructure/repositories/device.supabase.repository'
+import { PaymentSupabaseRepository } from '@/infrastructure/repositories/payment.supabase.repository'
+import { NotificationSupabaseRepository } from '@/infrastructure/repositories/notification.supabase.repository'
+import { CheckInSupabaseRepository } from '@/infrastructure/repositories/check-in.supabase.repository'
 import { createAdminClient } from '@/lib/db'
 
 export async function POST(
@@ -33,7 +33,7 @@ export async function POST(
       const { paymentMethod, paymentAmount } = body
 
       // Supabase 클라이언트 생성
-      const supabase = createAdminClient()
+      import { getDB, supabase } from '@/lib/db';
       
       // 리포지토리 초기화
       const userRepository = new UserSupabaseRepository(supabase)

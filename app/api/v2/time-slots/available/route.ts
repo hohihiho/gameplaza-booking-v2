@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/db'
 import { createAdminClient } from '@/lib/db'
 import { z } from 'zod'
 import { autoCheckDeviceStatus } from '@/lib/device-status-manager'
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Supabase 클라이언트 생성 (시간대 조회는 공개 정보이므로 인증 불필요)
-    const supabase = await createClient()
+//     import { getDB, supabase } from '@/lib/db';
     
     // 사용자 정보 조회 (청소년 여부 확인용, 로그인하지 않은 경우 성인으로 간주)
     const { data: { user } } = await supabase.auth.getUser()

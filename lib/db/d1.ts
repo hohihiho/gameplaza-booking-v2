@@ -32,6 +32,8 @@ function getD1(): D1Database | null {
 }
 
 function isEnabled(): boolean {
+  const g = globalThis as any
+  if (g?.env?.DB || g?.DB || g?.__D1__) return true
   return process.env.D1_ENABLED === 'true'
 }
 
@@ -1001,6 +1003,54 @@ export async function d1UpdateScheduleEvent(id: number, patch: any) {
   fields.push('updated_at = ?'); binds.push(new Date().toISOString()); binds.push(id)
   await db.prepare(`UPDATE schedule_events SET ${fields.join(', ')} WHERE id = ?`).bind(...binds).run()
   return d1GetScheduleEventById(id)
+}
+
+// ---- Public Machines helpers (categories, device types, devices, play modes) ----
+export async function d1ListDeviceCategories(): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const res = await db.prepare('SELECT id, name, display_order FROM device_categories ORDER BY display_order ASC, name ASC').all()
+  return res.results ?? []
+}
+
+export async function d1ListDevicesByType(deviceTypeId: number): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const res = await db
+    .prepare('SELECT id, device_number, status, device_type_id FROM devices WHERE device_type_id = ? ORDER BY device_number ASC')
+    .bind(deviceTypeId)
+    .all()
+  return res.results ?? []
+}
+
+export async function d1ListPlayModesByType(deviceTypeId: number): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const res = await db
+    .prepare('SELECT id, name, price, display_order FROM play_modes WHERE device_type_id = ? ORDER BY display_order ASC, name ASC')
+    .bind(deviceTypeId)
+    .all()
+  return res.results ?? []
+}
+
+export async function d1ListActiveReservationsForToday(): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const today = new Date().toISOString().split('T')[0]
+  const res = await db
+    .prepare("SELECT device_id, start_time, end_time, status FROM reservations WHERE date = ? AND status IN ('approved','checked_in')")
+    .bind(today)
+    .all()
+  return res.results ?? []
+}
+
+export async function d1ListActiveMachineRules(): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const res = await db
+    .prepare('SELECT id, title, content, display_order, is_active FROM machine_rules WHERE is_active = 1 ORDER BY display_order ASC, id ASC')
+    .all()
+  return res.results ?? []
 }
 
 export async function d1DeleteScheduleEvent(id: number): Promise<boolean> {

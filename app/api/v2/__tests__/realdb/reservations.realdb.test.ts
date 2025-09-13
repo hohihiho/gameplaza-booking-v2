@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db';
 /**
  * 실제 Supabase 데이터베이스를 사용하는 예약 API 통합 테스트
  * Mock 대신 실제 DB에 직접 데이터를 삽입/조회/수정/삭제하여 테스트
@@ -18,11 +19,11 @@ import {
 } from '@/lib/test-utils/real-supabase'
 
 // 인증 미들웨어 Mock (실제 사용자 인증은 유지)
-jest.mock('@/src/infrastructure/middleware/auth.middleware', () => ({
+jest.mock('@/infrastructure/middleware/auth.middleware', () => ({
   getAuthenticatedUser: jest.fn()
 }))
 
-const { getAuthenticatedUser } = require('@/src/infrastructure/middleware/auth.middleware')
+const { getAuthenticatedUser } = require('@/infrastructure/middleware/auth.middleware')
 
 describe('실제 DB - 예약 API 통합 테스트', () => {
   let testData: any

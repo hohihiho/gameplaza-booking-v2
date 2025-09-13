@@ -15,7 +15,7 @@ export async function POST(_request: NextRequest) {
       )
     }
 
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     
     // 사용자 ID 조회
     const { data: userData } = await supabase

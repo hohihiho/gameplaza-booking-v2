@@ -44,7 +44,7 @@ export async function GET(_req: NextRequest) {
     );
   }
   
-  const supabase = createServiceRoleClient();
+  import { getDB, supabase } from '@/lib/db';
 
   try {
     // 모든 사용자 정보 조회

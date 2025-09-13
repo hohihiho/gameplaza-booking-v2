@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 관리자 권한 확인 (슈퍼관리자만)
-    const supabase = createAdminClient()
+    import { getDB, supabase } from '@/lib/db';
     const { data: me } = await supabase.from('users').select('id').eq('email', session.user.email).single()
     if (!me) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 })
     const { data: admin } = await supabase.from('admins').select('is_super_admin').eq('user_id', me.id).single()
