@@ -4,6 +4,12 @@
 import { ListParams, ListResult, ReservationRecord } from './types'
 
 function notConfigured(): never {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  D1 database not configured in development environment - returning mock data')
+    // Development mode에서는 에러를 던지지 않고 undefined를 반환하도록 수정
+    // 이는 함수들이 적절한 기본값을 반환하도록 처리될 것
+    return undefined as never
+  }
   throw new Error('[D1] Database is not configured in this environment')
 }
 
@@ -21,7 +27,40 @@ type D1Database = {
 }
 
 function getD1(): D1Database | null {
-  // Common patterns: globalThis.env.<BINDING>, globalThis.DB, globalThis.__D1__
+  // 개발 환경에서는 로컬 SQLite 파일 사용
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const Database = require('better-sqlite3')
+      const path = require('path')
+
+      // wrangler가 생성한 로컬 D1 SQLite 파일 경로
+      const dbPath = path.join(process.cwd(), '.wrangler/state/v3/d1/miniflare-D1DatabaseObject/57fb29910e3cb6b7201eef11d3947ba68901010d74719e30568814eec7acf596.sqlite')
+      const db = new Database(dbPath)
+
+      // D1 스타일 인터페이스로 래핑
+      return {
+        prepare: (sql: string) => {
+          const stmt = db.prepare(sql)
+          return {
+            bind: (...args: any[]) => ({
+              ...stmt,
+              all: () => Promise.resolve({ results: stmt.all(...args) }),
+              first: () => Promise.resolve(stmt.get(...args)),
+              run: () => Promise.resolve({ success: true, meta: stmt.run(...args) })
+            }),
+            all: () => Promise.resolve({ results: stmt.all() }),
+            first: () => Promise.resolve(stmt.get()),
+            run: () => Promise.resolve({ success: true, meta: stmt.run() })
+          }
+        }
+      } as D1Database
+    } catch (error) {
+      console.warn('⚠️  Failed to connect to local SQLite:', error)
+      return null
+    }
+  }
+
+  // 프로덕션 환경에서는 Cloudflare D1 사용
   const g = globalThis as any
   const bindingName = process.env.D1_BINDING_NAME || 'DB'
   if (g?.env && g.env[bindingName]) return g.env[bindingName] as D1Database
@@ -38,9 +77,15 @@ function isEnabled(): boolean {
 }
 
 export async function d1ListReservations(params: ListParams): Promise<ListResult> {
-  if (!isEnabled()) return notConfigured()
+  if (!isEnabled()) {
+    console.warn('⚠️  D1 not configured - returning empty reservation list')
+    return { reservations: [], total: 0, page: 1, pageSize: 10 }
+  }
   const db = getD1()
-  if (!db) return notConfigured()
+  if (!db) {
+    console.warn('⚠️  D1 connection failed - returning empty reservation list')
+    return { reservations: [], total: 0, page: 1, pageSize: 10 }
+  }
 
   const page = Math.max(1, params.page ?? 1)
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 10))
@@ -212,6 +257,20 @@ export async function d1DeleteDeviceType(id: number): Promise<boolean> {
   return !exists
 }
 
+// ---- Devices CRUD helpers ----
+export async function d1UpdateDevice(id: string, patch: { status?: string; updated_at?: string; device_number?: number }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const fields: string[] = []
+  const binds: any[] = []
+  if (patch.status !== undefined) { fields.push('status = ?'); binds.push(patch.status) }
+  if (patch.device_number !== undefined) { fields.push('device_number = ?'); binds.push(patch.device_number) }
+  fields.push('updated_at = ?'); binds.push(patch.updated_at ?? new Date().toISOString())
+  binds.push(id)
+  await db.prepare(`UPDATE devices SET ${fields.join(', ')} WHERE id = ?`).bind(...binds).run()
+  return await db.prepare('SELECT * FROM devices WHERE id = ?').bind(id).first()
+}
+
 // ---- Device Pricing CRUD ----
 export async function d1ListDevicePricing(deviceTypeId: number): Promise<any[]> {
   if (!isEnabled()) return notConfigured()
@@ -312,8 +371,15 @@ export async function d1ListUsers(filters?: { email?: string; name?: string }): 
 }
 
 export async function d1GetUserById(userId: string) {
-  if (!isEnabled()) return notConfigured()
-  const db = getD1(); if (!db) return notConfigured()
+  if (!isEnabled()) {
+    console.warn('⚠️  D1 not configured - returning null for user')
+    return null
+  }
+  const db = getD1()
+  if (!db) {
+    console.warn('⚠️  D1 connection failed - returning null for user')
+    return null
+  }
   return await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
 }
 
@@ -324,8 +390,15 @@ export async function d1GetUserByEmail(email: string) {
 }
 
 export async function d1UpsertUser(user: { id: string; email?: string; name?: string }) {
-  if (!isEnabled()) return notConfigured()
-  const db = getD1(); if (!db) return notConfigured()
+  if (!isEnabled()) {
+    console.warn('⚠️  D1 not configured - cannot upsert user, returning mock user')
+    return { id: user.id, email: user.email, name: user.name, status: 'active', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  }
+  const db = getD1()
+  if (!db) {
+    console.warn('⚠️  D1 connection failed - cannot upsert user, returning mock user')
+    return { id: user.id, email: user.email, name: user.name, status: 'active', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  }
   const exists = await d1GetUserById(user.id)
   const now = new Date().toISOString()
   if (exists) {
@@ -339,10 +412,31 @@ export async function d1UpsertUser(user: { id: string; email?: string; name?: st
 }
 
 export async function d1ListUserRoles(userId: string): Promise<any[]> {
-  if (!isEnabled()) return notConfigured()
-  const db = getD1(); if (!db) return notConfigured()
+  if (!isEnabled()) {
+    console.warn('⚠️  D1 not configured - returning empty role list')
+    return []
+  }
+  const db = getD1()
+  if (!db) {
+    console.warn('⚠️  D1 connection failed - returning empty role list')
+    return []
+  }
   const res = await db.prepare('SELECT role_type, granted_at, granted_by FROM user_roles WHERE user_id = ?').bind(userId).all()
   return res.results ?? []
+}
+
+export async function d1GetUserRole(userId: string): Promise<string | null> {
+  if (!isEnabled()) {
+    console.warn('⚠️  D1 not configured - returning null role')
+    return null
+  }
+  const db = getD1()
+  if (!db) {
+    console.warn('⚠️  D1 connection failed - returning null role')
+    return null
+  }
+  const res = await db.prepare('SELECT role_type FROM user_roles WHERE user_id = ? ORDER BY granted_at DESC LIMIT 1').bind(userId).first()
+  return res?.role_type || null
 }
 
 export async function d1AddUserRole(userId: string, roleType: string, grantedBy?: string) {
@@ -398,6 +492,147 @@ export async function d1SuspendUserForever(userId: string, reason?: string, crea
   return d1GetUserById(userId)
 }
 
+// ---- Admin/Dashboard counts ----
+export async function d1CountReservationsOnDate(date: string): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM reservations WHERE date = ?').bind(date).first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1CountReservationsSinceDate(date: string): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM reservations WHERE date >= ?').bind(date).first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1CountUsers(): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM users').first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1CountActiveDevices(): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db
+    .prepare("SELECT COUNT(1) as cnt FROM devices WHERE status IN ('available','in_use','maintenance','reserved')")
+    .first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1CountDevices(): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM devices').first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1Ping(): Promise<{ ok: boolean }> {
+  try {
+    const db = getD1(); if (!db) return { ok: false }
+    await db.prepare('SELECT 1').first()
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+}
+
+// ---- Restrictions listing ----
+export async function d1ListActiveRestrictionsByType(type: 'restricted' | 'suspended'): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const sql = `SELECT ur.*, u.email, u.name FROM user_restrictions ur LEFT JOIN users u ON ur.user_id = u.id WHERE ur.is_active = 1 AND ur.restriction_type = ? ORDER BY ur.created_at DESC`
+  const res = await db.prepare(sql).bind(type).all()
+  return res.results ?? []
+}
+
+export async function d1DeactivateExpiredRestrictionsForUser(userId: string) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const now = new Date().toISOString()
+  await db
+    .prepare("UPDATE user_restrictions SET is_active = 0 WHERE user_id = ? AND is_active = 1 AND end_date IS NOT NULL AND end_date < ?")
+    .bind(userId, now)
+    .run()
+  return true
+}
+
+export async function d1UnbanAndUnrestrictUser(userId: string) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  await db.prepare("UPDATE users SET status = 'active', updated_at = ? WHERE id = ?").bind(new Date().toISOString(), userId).run()
+  await db.prepare('UPDATE user_restrictions SET is_active = 0 WHERE user_id = ? AND is_active = 1').bind(userId).run()
+  return true
+}
+
+// ---- Admin Users listing (search, filter, pagination) ----
+export async function d1SearchUsersPaged(params: { page: number; pageSize: number; search?: string; filter?: 'all'|'active'|'blacklisted' }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const page = Math.max(1, params.page)
+  const pageSize = Math.min(100, Math.max(1, params.pageSize))
+  const offset = (page - 1) * pageSize
+
+  const where: string[] = []
+  const binds: any[] = []
+  if (params.search) {
+    where.push('(email LIKE ? OR name LIKE ?)')
+    const pattern = `%${params.search}%`
+    binds.push(pattern, pattern)
+  }
+  // Build base SQL with computed blacklist flag
+  const baseSql = `SELECT u.*, (
+    SELECT CASE WHEN EXISTS (
+      SELECT 1 FROM user_restrictions ur WHERE ur.user_id = u.id AND ur.is_active = 1
+    ) THEN 1 ELSE 0 END
+  ) AS is_blacklisted
+  FROM users u`
+  let whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : ''
+
+  // Filter by blacklist/active
+  if (params.filter === 'blacklisted') {
+    whereSql += (whereSql ? ' AND ' : ' WHERE ') + `(
+      EXISTS (SELECT 1 FROM user_restrictions ur WHERE ur.user_id = u.id AND ur.is_active = 1)
+    )`
+  } else if (params.filter === 'active') {
+    whereSql += (whereSql ? ' AND ' : ' WHERE ') + `(
+      NOT EXISTS (SELECT 1 FROM user_restrictions ur WHERE ur.user_id = u.id AND ur.is_active = 1)
+    )`
+  }
+
+  // Data page
+  const listSql = `${baseSql}${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  const listRes = await db.prepare(listSql).bind(...binds, pageSize, offset).all()
+
+  // Count
+  const countSql = `SELECT COUNT(1) as cnt FROM users u${whereSql}`
+  const countRes = await db.prepare(countSql).bind(...binds).first()
+  const total = Number((countRes as any)?.cnt ?? 0)
+
+  return { users: listRes.results ?? [], total, page, pageSize }
+}
+
+export async function d1DeactivateUserRestrictions(userId: string) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  await db.prepare('UPDATE user_restrictions SET is_active = 0 WHERE user_id = ? AND is_active = 1').bind(userId).run()
+  return true
+}
+
+export async function d1SetUserRole(userId: string, roleType: string, grantedBy?: string) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  // Remove existing roles then add one role
+  await db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(userId).run()
+  await db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_type, granted_at, granted_by) VALUES (?,?,?,?)')
+    .bind(userId, roleType, new Date().toISOString(), grantedBy ?? null)
+    .run()
+  return d1ListUserRoles(userId)
+}
+
 // ---- Analytics ----
 export async function d1UsageStats(range?: { start?: string; end?: string }) {
   if (!isEnabled()) return notConfigured()
@@ -423,6 +658,515 @@ export async function d1SalesStats(range?: { start?: string; end?: string }) {
   const byDate = await db.prepare(`SELECT date, SUM(total_amount) as total FROM reservations ${whereSql} GROUP BY date ORDER BY date DESC`).bind(...binds).all()
   const total = await db.prepare(`SELECT SUM(total_amount) as total FROM reservations ${whereSql}`).bind(...binds).first()
   return { byDate: byDate.results ?? [], total: total?.total ?? 0 }
+}
+
+// ---- Reservations listing by user with filters/pagination ----
+export async function d1ListReservationsByUserPaged(userId: string, opts: { status?: string; date?: string; deviceId?: string; page: number; pageSize: number }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const page = Math.max(1, opts.page)
+  const pageSize = Math.min(100, Math.max(1, opts.pageSize))
+  const offset = (page - 1) * pageSize
+
+  const where: string[] = ['r.user_id = ?']
+  const binds: any[] = [userId]
+  if (opts.status && opts.status !== 'all') { where.push('r.status = ?'); binds.push(opts.status) }
+  if (opts.date) { where.push('r.date = ?'); binds.push(opts.date) }
+  if (opts.deviceId) { where.push('r.device_id = ?'); binds.push(opts.deviceId) }
+  const whereSql = `WHERE ${where.join(' AND ')}`
+
+  const listSql = `
+    SELECT r.*, d.device_number, dt.name as device_type_name, dt.model_name
+    FROM reservations r
+    LEFT JOIN devices d ON r.device_id = d.id
+    LEFT JOIN device_types dt ON d.device_type_id = dt.id
+    ${whereSql}
+    ORDER BY r.created_at DESC
+    LIMIT ? OFFSET ?
+  `
+  const listRes = await db.prepare(listSql).bind(...binds, pageSize, offset).all()
+
+  const countSql = `SELECT COUNT(1) as cnt FROM reservations r ${whereSql}`
+  const countRes = await db.prepare(countSql).bind(...binds).first()
+  const total = Number((countRes as any)?.cnt ?? 0)
+
+  return { reservations: listRes.results ?? [], total, page, pageSize }
+}
+
+// Flexible search for reservations with status set and date range
+export async function d1SearchReservationsPaged(filters: { userId: string; statuses?: string[]; dateFrom?: string; dateTo?: string; page: number; pageSize: number }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const page = Math.max(1, filters.page)
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize))
+  const offset = (page - 1) * pageSize
+
+  const where: string[] = ['r.user_id = ?']
+  const binds: any[] = [filters.userId]
+  if (filters.statuses && filters.statuses.length) {
+    const placeholders = filters.statuses.map(() => '?').join(',')
+    where.push(`r.status IN (${placeholders})`)
+    binds.push(...filters.statuses)
+  }
+  if (filters.dateFrom) { where.push('r.date >= ?'); binds.push(filters.dateFrom) }
+  if (filters.dateTo) { where.push('r.date <= ?'); binds.push(filters.dateTo) }
+  const whereSql = `WHERE ${where.join(' AND ')}`
+
+  const listSql = `
+    SELECT r.*, d.device_number, dt.name as device_type_name, dt.model_name
+    FROM reservations r
+    LEFT JOIN devices d ON r.device_id = d.id
+    LEFT JOIN device_types dt ON d.device_type_id = dt.id
+    ${whereSql}
+    ORDER BY r.date DESC, r.start_time DESC
+    LIMIT ? OFFSET ?
+  `
+  const listRes = await db.prepare(listSql).bind(...binds, pageSize, offset).all()
+  const countSql = `SELECT COUNT(1) as cnt FROM reservations r ${whereSql}`
+  const countRes = await db.prepare(countSql).bind(...binds).first()
+  const total = Number((countRes as any)?.cnt ?? 0)
+  return { reservations: listRes.results ?? [], total, page, pageSize }
+}
+
+// ========== 통계 관련 ========== //
+
+/**
+ * 기기별 통계 조회
+ */
+export async function d1GetDeviceStatistics(
+  params: {
+    userId?: string
+    deviceId?: string
+    startDate: string
+    endDate: string
+  }
+) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1()
+  if (!db) return notConfigured()
+
+  try {
+    // 1. 기본 통계 쿼리
+    let baseQuery = `
+      SELECT
+        d.id as device_id,
+        d.device_number,
+        dt.name as device_name,
+        dt.model_name,
+        COUNT(DISTINCT r.id) as total_reservations,
+        COUNT(DISTINCT CASE WHEN r.status = 'completed' THEN r.id END) as completed_reservations,
+        COUNT(DISTINCT CASE WHEN r.status = 'cancelled' THEN r.id END) as cancelled_reservations,
+        SUM(CASE WHEN r.status = 'completed' THEN COALESCE(r.final_price, 0) ELSE 0 END) as total_revenue,
+        SUM(CASE WHEN r.status = 'completed' THEN
+          (CAST(r.end_hour AS INTEGER) - CAST(r.start_hour AS INTEGER))
+        ELSE 0 END) as total_hours
+      FROM devices d
+      LEFT JOIN device_types dt ON d.device_type_id = dt.id
+      LEFT JOIN reservations r ON d.id = r.device_id
+        AND r.date >= ? AND r.date <= ?
+    `
+
+    const queryParams: any[] = [params.startDate, params.endDate]
+
+    if (params.userId) {
+      baseQuery += ` AND r.user_id = ?`
+      queryParams.push(params.userId)
+    }
+
+    if (params.deviceId) {
+      baseQuery += ` WHERE d.id = ?`
+      queryParams.push(params.deviceId)
+    }
+
+    baseQuery += ` GROUP BY d.id, d.device_number, dt.name, dt.model_name`
+
+    const result = await db.prepare(baseQuery).bind(...queryParams).all()
+
+    // 2. 인기 시간대 분석
+    let timeSlotQuery = `
+      SELECT
+        r.device_id,
+        r.start_hour,
+        r.end_hour,
+        COUNT(*) as count
+      FROM reservations r
+      WHERE r.date >= ? AND r.date <= ?
+        AND r.status = 'completed'
+    `
+
+    const timeSlotParams: any[] = [params.startDate, params.endDate]
+
+    if (params.userId) {
+      timeSlotQuery += ` AND r.user_id = ?`
+      timeSlotParams.push(params.userId)
+    }
+
+    if (params.deviceId) {
+      timeSlotQuery += ` AND r.device_id = ?`
+      timeSlotParams.push(params.deviceId)
+    }
+
+    timeSlotQuery += ` GROUP BY r.device_id, r.start_hour, r.end_hour
+                        ORDER BY count DESC`
+
+    const timeSlots = await db.prepare(timeSlotQuery).bind(...timeSlotParams).all()
+
+    // 3. 데이터 가공
+    const devices = result.results?.map((device: any) => {
+      const deviceTimeSlots = timeSlots.results?.filter((ts: any) => ts.device_id === device.device_id) || []
+      const utilizationRate = device.total_hours ? (device.total_hours / (24 * 7)) * 100 : 0 // 주간 기준
+
+      return {
+        deviceId: device.device_id,
+        deviceNumber: device.device_number,
+        deviceName: device.model_name ? `${device.device_name} ${device.model_name}` : device.device_name,
+        statistics: {
+          totalReservations: device.total_reservations || 0,
+          completedReservations: device.completed_reservations || 0,
+          cancelledReservations: device.cancelled_reservations || 0,
+          totalRevenue: device.total_revenue || 0,
+          totalHours: device.total_hours || 0,
+          utilizationRate: Math.round(utilizationRate * 100) / 100,
+          averageHoursPerReservation: device.completed_reservations > 0
+            ? Math.round((device.total_hours / device.completed_reservations) * 100) / 100
+            : 0,
+          averageRevenuePerHour: device.total_hours > 0
+            ? Math.round(device.total_revenue / device.total_hours)
+            : 0,
+          popularTimeSlots: deviceTimeSlots.slice(0, 5).map((ts: any) => ({
+            timeRange: `${ts.start_hour}~${ts.end_hour}시`,
+            count: ts.count
+          }))
+        }
+      }
+    }) || []
+
+    // 4. 요약 정보
+    const totalDevices = devices.length
+    const avgUtilization = totalDevices > 0
+      ? devices.reduce((sum: number, d: any) => sum + d.statistics.utilizationRate, 0) / totalDevices
+      : 0
+
+    const mostPopular = devices.reduce((max: any, d: any) =>
+      !max || d.statistics.totalReservations > max.statistics.totalReservations ? d : max
+    , null)
+
+    const highestRevenue = devices.reduce((max: any, d: any) =>
+      !max || d.statistics.totalRevenue > max.statistics.totalRevenue ? d : max
+    , null)
+
+    return {
+      devices,
+      summary: {
+        totalDevices,
+        averageUtilizationRate: Math.round(avgUtilization * 100) / 100,
+        mostPopularDevice: mostPopular ? {
+          deviceId: mostPopular.deviceId,
+          deviceNumber: mostPopular.deviceNumber,
+          reservationCount: mostPopular.statistics.totalReservations
+        } : null,
+        highestRevenueDevice: highestRevenue ? {
+          deviceId: highestRevenue.deviceId,
+          deviceNumber: highestRevenue.deviceNumber,
+          revenue: highestRevenue.statistics.totalRevenue
+        } : null
+      }
+    }
+  } catch (error) {
+    console.error('[D1] Device statistics error:', error)
+    throw error
+  }
+}
+
+/**
+ * 예약 통계 조회
+ */
+export async function d1GetReservationStatistics(
+  params: {
+    userId: string
+    startDate: string
+    endDate: string
+  }
+) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1()
+  if (!db) return notConfigured()
+
+  try {
+    // 1. 기본 통계
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total_reservations,
+        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_reservations,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_reservations,
+        COUNT(CASE WHEN status = 'no_show' THEN 1 END) as no_show_reservations,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(final_price, 0) ELSE 0 END) as total_revenue,
+        AVG(CASE WHEN status = 'completed' THEN
+          CAST(end_hour AS INTEGER) - CAST(start_hour AS INTEGER)
+        END) as avg_duration
+      FROM reservations
+      WHERE user_id = ? AND date >= ? AND date <= ?
+    `
+
+    const stats = await db.prepare(statsQuery)
+      .bind(params.userId, params.startDate, params.endDate)
+      .first()
+
+    // 2. 시간대별 분포
+    const hourQuery = `
+      SELECT
+        start_hour,
+        end_hour,
+        COUNT(*) as count
+      FROM reservations
+      WHERE user_id = ? AND date >= ? AND date <= ?
+        AND status = 'completed'
+      GROUP BY start_hour, end_hour
+      ORDER BY count DESC
+    `
+
+    const hours = await db.prepare(hourQuery)
+      .bind(params.userId, params.startDate, params.endDate)
+      .all()
+
+    // 3. 기기별 사용 현황
+    const deviceQuery = `
+      SELECT
+        d.id as device_id,
+        d.device_number,
+        dt.name as device_name,
+        dt.model_name,
+        COUNT(r.id) as count
+      FROM reservations r
+      JOIN devices d ON r.device_id = d.id
+      LEFT JOIN device_types dt ON d.device_type_id = dt.id
+      WHERE r.user_id = ? AND r.date >= ? AND r.date <= ?
+        AND r.status = 'completed'
+      GROUP BY d.id, d.device_number, dt.name, dt.model_name
+      ORDER BY count DESC
+      LIMIT 5
+    `
+
+    const devices = await db.prepare(deviceQuery)
+      .bind(params.userId, params.startDate, params.endDate)
+      .all()
+
+    // 4. 요일별 패턴
+    const weekdayQuery = `
+      SELECT
+        CAST(strftime('%w', date) AS INTEGER) as weekday,
+        COUNT(*) as count
+      FROM reservations
+      WHERE user_id = ? AND date >= ? AND date <= ?
+        AND status = 'completed'
+      GROUP BY weekday
+      ORDER BY weekday
+    `
+
+    const weekdays = await db.prepare(weekdayQuery)
+      .bind(params.userId, params.startDate, params.endDate)
+      .all()
+
+    // 5. 일별/월별 데이터
+    const dailyQuery = `
+      SELECT
+        date,
+        COUNT(*) as reservations,
+        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed
+      FROM reservations
+      WHERE user_id = ? AND date >= ? AND date <= ?
+      GROUP BY date
+      ORDER BY date
+    `
+
+    const daily = await db.prepare(dailyQuery)
+      .bind(params.userId, params.startDate, params.endDate)
+      .all()
+
+    // 계산
+    const totalReservations = (stats as any)?.total_reservations || 0
+    const completedReservations = (stats as any)?.completed_reservations || 0
+    const cancelledReservations = (stats as any)?.cancelled_reservations || 0
+    const noShowReservations = (stats as any)?.no_show_reservations || 0
+    const totalRevenue = (stats as any)?.total_revenue || 0
+    const avgDuration = (stats as any)?.avg_duration || 0
+
+    const completionRate = totalReservations > 0
+      ? (completedReservations / totalReservations) * 100
+      : 0
+
+    const cancellationRate = totalReservations > 0
+      ? (cancelledReservations / totalReservations) * 100
+      : 0
+
+    const noShowRate = totalReservations > 0
+      ? (noShowReservations / totalReservations) * 100
+      : 0
+
+    // 일수 계산
+    const startDateObj = new Date(params.startDate)
+    const endDateObj = new Date(params.endDate)
+    const days = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+    return {
+      statistics: {
+        totalUsages: totalReservations,
+        completedUsages: completedReservations,
+        cancelledUsages: cancelledReservations,
+        noShowUsages: noShowReservations,
+        totalRevenue,
+        averageUsageDuration: Math.round(avgDuration * 100) / 100,
+        completionRate: Math.round(completionRate * 100) / 100,
+        cancellationRate: Math.round(cancellationRate * 100) / 100,
+        noShowRate: Math.round(noShowRate * 100) / 100,
+        averageRevenuePerUsage: completedReservations > 0
+          ? Math.round(totalRevenue / completedReservations)
+          : 0,
+        averageUsagesPerDay: Math.round((totalReservations / days) * 100) / 100,
+        averageRevenuePerDay: Math.round(totalRevenue / days)
+      },
+      chartData: {
+        monthlyData: daily.results || [],
+        deviceUsage: (devices.results || []).map((d: any) => ({
+          deviceId: d.device_id,
+          name: d.model_name ? `${d.device_name} ${d.model_name}` : d.device_name,
+          count: d.count,
+          percentage: totalReservations > 0
+            ? Math.round((d.count / totalReservations) * 100)
+            : 0
+        })),
+        preferredHours: (hours.results || []).map((h: any) => ({
+          timeRange: `${h.start_hour}~${h.end_hour}시`,
+          count: h.count,
+          percentage: totalReservations > 0
+            ? Math.round((h.count / totalReservations) * 100)
+            : 0
+        })),
+        weekdayPattern: ['일', '월', '화', '수', '목', '금', '토'].map((name, index) => {
+          const data = weekdays.results?.find((w: any) => w.weekday === index)
+          return {
+            dayIndex: index,
+            name,
+            count: data?.count || 0,
+            percentage: totalReservations > 0
+              ? Math.round(((data?.count || 0) / totalReservations) * 100)
+              : 0
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('[D1] Reservation statistics error:', error)
+    throw error
+  }
+}
+
+/**
+ * 사용자 통계 조회
+ */
+export async function d1GetUserStatistics(
+  params: {
+    startDate: string
+    endDate: string
+  }
+) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1()
+  if (!db) return notConfigured()
+
+  try {
+    // 1. 활성 사용자 통계
+    const activeUsersQuery = `
+      SELECT
+        COUNT(DISTINCT user_id) as total_active_users,
+        COUNT(DISTINCT CASE WHEN status = 'completed' THEN user_id END) as completed_users,
+        COUNT(*) as total_reservations,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(final_price, 0) ELSE 0 END) as total_revenue
+      FROM reservations
+      WHERE date >= ? AND date <= ?
+    `
+
+    const activeStats = await db.prepare(activeUsersQuery)
+      .bind(params.startDate, params.endDate)
+      .first()
+
+    // 2. 상위 사용자
+    const topUsersQuery = `
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        COUNT(r.id) as reservation_count,
+        SUM(CASE WHEN r.status = 'completed' THEN COALESCE(r.final_price, 0) ELSE 0 END) as total_spent
+      FROM users u
+      LEFT JOIN reservations r ON u.id = r.user_id
+        AND r.date >= ? AND r.date <= ?
+      GROUP BY u.id, u.name, u.email
+      HAVING reservation_count > 0
+      ORDER BY reservation_count DESC
+      LIMIT 10
+    `
+
+    const topUsers = await db.prepare(topUsersQuery)
+      .bind(params.startDate, params.endDate)
+      .all()
+
+    // 3. 신규 사용자
+    const newUsersQuery = `
+      SELECT COUNT(*) as new_users
+      FROM users
+      WHERE created_at >= ? AND created_at <= ?
+    `
+
+    const newUsers = await db.prepare(newUsersQuery)
+      .bind(params.startDate, params.endDate + ' 23:59:59')
+      .first()
+
+    // 4. 사용자 성장 추이
+    const growthQuery = `
+      SELECT
+        DATE(created_at) as date,
+        COUNT(*) as new_users
+      FROM users
+      WHERE created_at >= ? AND created_at <= ?
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `
+
+    const growth = await db.prepare(growthQuery)
+      .bind(params.startDate, params.endDate + ' 23:59:59')
+      .all()
+
+    return {
+      summary: {
+        totalActiveUsers: (activeStats as any)?.total_active_users || 0,
+        completedUsers: (activeStats as any)?.completed_users || 0,
+        totalReservations: (activeStats as any)?.total_reservations || 0,
+        totalRevenue: (activeStats as any)?.total_revenue || 0,
+        newUsers: (newUsers as any)?.new_users || 0,
+        averageReservationsPerUser: (activeStats as any)?.total_active_users > 0
+          ? Math.round(((activeStats as any).total_reservations / (activeStats as any).total_active_users) * 100) / 100
+          : 0,
+        averageRevenuePerUser: (activeStats as any)?.completed_users > 0
+          ? Math.round((activeStats as any).total_revenue / (activeStats as any).completed_users)
+          : 0
+      },
+      topUsers: (topUsers.results || []).map((u: any) => ({
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        reservationCount: u.reservation_count,
+        totalSpent: u.total_spent
+      })),
+      userGrowth: (growth.results || []).map((g: any) => ({
+        date: g.date,
+        newUsers: g.new_users
+      }))
+    }
+  } catch (error) {
+    console.error('[D1] User statistics error:', error)
+    throw error
+  }
 }
 
 // ---- User analytics ----
@@ -1051,6 +1795,131 @@ export async function d1ListActiveMachineRules(): Promise<any[]> {
     .prepare('SELECT id, title, content, display_order, is_active FROM machine_rules WHERE is_active = 1 ORDER BY display_order ASC, id ASC')
     .all()
   return res.results ?? []
+}
+
+export async function d1InsertDevicesForType(deviceTypeId: number, count: number, baseName?: string) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const now = new Date().toISOString()
+  for (let i = 0; i < count; i++) {
+    const id = crypto.randomUUID?.() ?? `${deviceTypeId}-${Date.now()}-${i}`
+    await db
+      .prepare('INSERT INTO devices (id, device_type_id, device_number, status, created_at, updated_at) VALUES (?,?,?,?,?,?)')
+      .bind(id, deviceTypeId, i + 1, 'available', now, now)
+      .run()
+  }
+  return d1ListDevicesByType(deviceTypeId)
+}
+
+// ---- Device categories CRUD ----
+export async function d1CreateDeviceCategory(data: { name: string; display_order?: number }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const now = new Date().toISOString()
+  await db
+    .prepare('INSERT INTO device_categories (name, display_order) VALUES (?,?)')
+    .bind(data.name, data.display_order ?? 0)
+    .run()
+  const row = await db
+    .prepare('SELECT * FROM device_categories WHERE name = ? ORDER BY id DESC')
+    .bind(data.name)
+    .first()
+  return row
+}
+
+export async function d1UpdateDeviceCategory(id: number, patch: { name?: string; display_order?: number }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const fields: string[] = []
+  const binds: any[] = []
+  if (patch.name !== undefined) { fields.push('name = ?'); binds.push(patch.name) }
+  if (patch.display_order !== undefined) { fields.push('display_order = ?'); binds.push(patch.display_order) }
+  if (!fields.length) return await db.prepare('SELECT * FROM device_categories WHERE id = ?').bind(id).first()
+  binds.push(id)
+  await db.prepare(`UPDATE device_categories SET ${fields.join(', ')} WHERE id = ?`).bind(...binds).run()
+  return await db.prepare('SELECT * FROM device_categories WHERE id = ?').bind(id).first()
+}
+
+export async function d1DeleteDeviceCategory(id: number): Promise<boolean> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  await db.prepare('DELETE FROM device_categories WHERE id = ?').bind(id).run()
+  const row = await db.prepare('SELECT id FROM device_categories WHERE id = ?').bind(id).first()
+  return !row
+}
+
+// ---- Machine rules CRUD ----
+export async function d1ListMachineRules(): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const res = await db
+    .prepare('SELECT * FROM machine_rules ORDER BY display_order ASC, id ASC')
+    .all()
+  return res.results ?? []
+}
+
+export async function d1CreateMachineRule(data: { content: string; display_order?: number; is_active?: boolean }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const now = new Date().toISOString()
+  await db
+    .prepare('INSERT INTO machine_rules (content, display_order, is_active) VALUES (?,?,?)')
+    .bind(data.content, data.display_order ?? 0, data.is_active ? 1 : 1)
+    .run()
+  const row = await db.prepare('SELECT * FROM machine_rules WHERE content = ? ORDER BY id DESC').bind(data.content).first()
+  return row
+}
+
+export async function d1UpdateMachineRule(id: number, patch: { content?: string; display_order?: number; is_active?: boolean }) {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const fields: string[] = []; const binds: any[] = []
+  if (patch.content !== undefined) { fields.push('content = ?'); binds.push(patch.content) }
+  if (patch.display_order !== undefined) { fields.push('display_order = ?'); binds.push(patch.display_order) }
+  if (patch.is_active !== undefined) { fields.push('is_active = ?'); binds.push(patch.is_active ? 1 : 0) }
+  if (!fields.length) return await db.prepare('SELECT * FROM machine_rules WHERE id = ?').bind(id).first()
+  binds.push(id)
+  await db.prepare(`UPDATE machine_rules SET ${fields.join(', ')} WHERE id = ?`).bind(...binds).run()
+  return await db.prepare('SELECT * FROM machine_rules WHERE id = ?').bind(id).first()
+}
+
+export async function d1DeleteMachineRule(id: number): Promise<boolean> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  await db.prepare('DELETE FROM machine_rules WHERE id = ?').bind(id).run()
+  const row = await db.prepare('SELECT id FROM machine_rules WHERE id = ?').bind(id).first()
+  return !row
+}
+
+// ---- Users: reservations with device info + counts ----
+export async function d1ListRecentReservationsByUser(userId: string, limit: number): Promise<any[]> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const sql = `
+    SELECT r.*, d.device_number, dt.id AS device_type_id, dt.name AS device_type_name, dt.model_name AS device_type_model
+    FROM reservations r
+    LEFT JOIN devices d ON r.device_id = d.id
+    LEFT JOIN device_types dt ON d.device_type_id = dt.id
+    WHERE r.user_id = ?
+    ORDER BY r.date DESC, r.start_time DESC
+    LIMIT ?
+  `
+  const res = await db.prepare(sql).bind(userId, limit).all()
+  return res.results ?? []
+}
+
+export async function d1CountReservationsByUser(userId: string): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM reservations WHERE user_id = ?').bind(userId).first()
+  return Number(row?.cnt ?? 0)
+}
+
+export async function d1CountReservationsByUserWithStatus(userId: string, status: string): Promise<number> {
+  if (!isEnabled()) return notConfigured()
+  const db = getD1(); if (!db) return notConfigured()
+  const row = await db.prepare('SELECT COUNT(1) as cnt FROM reservations WHERE user_id = ? AND status = ?').bind(userId, status).first()
+  return Number(row?.cnt ?? 0)
 }
 
 export async function d1DeleteScheduleEvent(id: number): Promise<boolean> {

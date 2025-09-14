@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { createAdminClient } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
@@ -12,7 +13,6 @@ export async function POST() {
   }
 
   try {
-    import { getDB, supabase } from '@/lib/db';
     
     // 첫 번째 사용자를 관리자로 설정
     const { data: users, error: userError } = await supabase

@@ -83,17 +83,17 @@ export function withAuth(
     }
     
     // Supabase 토큰 검증
-    import { getDB, supabase } from '@/lib/db';
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           get(name: string) {
-            return req.cookies.get(name)?.value;
-          },
-        },
+            return req.cookies.get(name)?.value
+          }
+        }
       }
-    );
+    )
     
     const { data: { user }, error } = await supabase.auth.getUser();
     

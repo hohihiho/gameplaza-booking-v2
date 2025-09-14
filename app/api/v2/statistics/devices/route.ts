@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GetDeviceStatisticsUseCase } from '@/application/use-cases/statistics/get-device-statistics.use-case'
-import { SupabaseReservationRepositoryV2 } from '@/infrastructure/repositories/supabase-reservation.repository.v2'
-import { SupabaseDeviceRepositoryV2 } from '@/infrastructure/repositories/supabase-device.repository.v2'
-import { UserSupabaseRepository } from '@/infrastructure/repositories/user.supabase.repository'
-import { createAdminClient } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
+import { d1GetDeviceStatistics } from '@/lib/db/d1'
 
 // 쿼리 파라미터 스키마 정의
 const getDeviceStatisticsSchema = z.object({
@@ -28,9 +24,9 @@ export async function GET(request: NextRequest) {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json(
-        { 
+        {
           error: 'Unauthorized',
-          message: '인증이 필요합니다' 
+          message: '인증이 필요합니다'
         },
         { status: 401 }
       )
@@ -53,9 +49,9 @@ export async function GET(request: NextRequest) {
     if (!validationResult.success) {
       const firstError = validationResult.error.errors[0]
       return NextResponse.json(
-        { 
+        {
           error: 'Bad Request',
-          message: firstError?.message ?? '유효하지 않은 요청입니다' 
+          message: firstError?.message ?? '유효하지 않은 요청입니다'
         },
         { status: 400 }
       )
@@ -63,70 +59,86 @@ export async function GET(request: NextRequest) {
 
     const data = validationResult.data
 
-    // 3. 서비스 초기화
-    import { getDB, supabase } from '@/lib/db';
-    const reservationRepository = new SupabaseReservationRepositoryV2(supabase)
-    const deviceRepository = new SupabaseDeviceRepositoryV2(supabase)
-    const userRepository = new UserSupabaseRepository(supabase)
+    // 3. 기간 계산
+    let startDate: string
+    let endDate: string
 
-    // 4. 유스케이스 실행
-    const useCase = new GetDeviceStatisticsUseCase(
-      reservationRepository,
-      deviceRepository,
-      userRepository
-    )
+    const today = new Date()
+    const kstOffset = 9 * 60 * 60 * 1000
+    const kstToday = new Date(today.getTime() + kstOffset)
+    const todayStr = kstToday.toISOString().split('T')[0]
 
-    const result = await useCase.execute({
+    if (data.periodType === 'day') {
+      startDate = data.date || todayStr
+      endDate = startDate
+    } else if (data.periodType === 'week') {
+      const date = data.date ? new Date(data.date) : kstToday
+      const dayOfWeek = date.getDay()
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() - dayOfWeek)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+
+      startDate = weekStart.toISOString().split('T')[0]
+      endDate = weekEnd.toISOString().split('T')[0]
+    } else if (data.periodType === 'month') {
+      const year = data.year || kstToday.getFullYear()
+      const month = data.month || (kstToday.getMonth() + 1)
+
+      startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    } else {
+      // custom
+      startDate = data.startDate || todayStr
+      endDate = data.endDate || todayStr
+    }
+
+    // 4. D1에서 통계 조회
+    const result = await d1GetDeviceStatistics({
       userId: session.user.id,
       deviceId: data.deviceId,
-      periodType: data.periodType,
-      date: data.date,
-      year: data.year,
-      month: data.month,
-      startDate: data.startDate,
-      endDate: data.endDate
+      startDate,
+      endDate
     })
 
-    // 6. 응답 형식화
+    if (!result || 'error' in result) {
+      return NextResponse.json(
+        {
+          error: 'Service Unavailable',
+          message: 'D1 데이터베이스를 사용할 수 없습니다'
+        },
+        { status: 503 }
+      )
+    }
+
+    // 5. 응답 형식화
     const response: any = {
       period: {
         type: data.periodType,
-        startDate: result.statistics[0]?.period.startDate.toISOString(),
-        endDate: result.statistics[0]?.period.endDate.toISOString()
+        startDate,
+        endDate
       },
-      devices: result.statistics.map(stat => ({
-        deviceId: stat.deviceData.deviceId,
-        deviceNumber: stat.deviceData.deviceNumber,
-        deviceName: stat.deviceData.deviceName,
+      devices: result.devices.map((device: any) => ({
+        deviceId: device.deviceId,
+        deviceNumber: device.deviceNumber,
+        deviceName: device.deviceName,
         statistics: {
-          totalReservations: stat.deviceData.totalReservations,
-          totalRevenue: stat.deviceData.totalRevenue,
-          totalHours: stat.deviceData.totalHours,
-          utilizationRate: Math.round(stat.deviceData.utilizationRate * 100) / 100,
-          averageHoursPerReservation: Math.round(stat.getAverageHoursPerReservation() * 100) / 100,
-          averageRevenuePerHour: Math.round(stat.getAverageRevenuePerHour()),
-          mostPopularTimeSlot: stat.getMostPopularTimeSlot(),
-          popularTimeSlots: stat.deviceData.popularTimeSlots.slice(0, 5) // 상위 5개
+          totalReservations: device.statistics.totalReservations,
+          totalRevenue: device.statistics.totalRevenue,
+          totalHours: device.statistics.totalHours,
+          utilizationRate: device.statistics.utilizationRate,
+          averageHoursPerReservation: device.statistics.averageHoursPerReservation,
+          averageRevenuePerHour: device.statistics.averageRevenuePerHour,
+          mostPopularTimeSlot: device.statistics.popularTimeSlots[0]?.timeRange || null,
+          popularTimeSlots: device.statistics.popularTimeSlots
         }
       }))
     }
 
     // 요약 정보 추가
     if (result.summary) {
-      response.summary = {
-        totalDevices: result.summary.totalDevices,
-        averageUtilizationRate: Math.round(result.summary.averageUtilizationRate * 100) / 100,
-        mostPopularDevice: {
-          deviceId: result.summary.mostPopularDevice.deviceId,
-          deviceNumber: result.summary.mostPopularDevice.deviceNumber,
-          reservationCount: result.summary.mostPopularDevice.reservationCount
-        },
-        highestRevenueDevice: {
-          deviceId: result.summary.highestRevenueDevice.deviceId,
-          deviceNumber: result.summary.highestRevenueDevice.deviceNumber,
-          revenue: result.summary.highestRevenueDevice.revenue
-        }
-      }
+      response.summary = result.summary
     }
 
     return NextResponse.json(response, { status: 200 })
@@ -138,9 +150,9 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message.includes('찾을 수 없습니다')) {
         return NextResponse.json(
-          { 
+          {
             error: 'Not Found',
-            message: error.message 
+            message: error.message
           },
           { status: 404 }
         )
@@ -148,9 +160,9 @@ export async function GET(request: NextRequest) {
 
       if (error.message.includes('권한') || error.message.includes('관리자만')) {
         return NextResponse.json(
-          { 
+          {
             error: 'Forbidden',
-            message: error.message 
+            message: error.message
           },
           { status: 403 }
         )
@@ -158,9 +170,9 @@ export async function GET(request: NextRequest) {
 
       if (error.message.includes('필요합니다') || error.message.includes('올바르지 않은')) {
         return NextResponse.json(
-          { 
+          {
             error: 'Bad Request',
-            message: error.message 
+            message: error.message
           },
           { status: 400 }
         )
@@ -169,9 +181,9 @@ export async function GET(request: NextRequest) {
 
     // 기본 에러 응답
     return NextResponse.json(
-      { 
+      {
         error: 'Internal Server Error',
-        message: '서버 오류가 발생했습니다' 
+        message: '서버 오류가 발생했습니다'
       },
       { status: 500 }
     )

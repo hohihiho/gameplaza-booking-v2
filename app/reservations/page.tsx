@@ -1,6 +1,7 @@
 // 예약 목록 페이지
 // 비전공자 설명: 사용자의 예약 내역을 확인하는 페이지입니다
 'use client';
+import { useSession } from '@/lib/hooks/useAuth'
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -91,15 +92,23 @@ export default function ReservationsPage() {
     if (typeof startTime === 'number') {
       hour = startTime;
     } else {
-      [hour] = startTime.split(':').map(Number);
+      const parts = (startTime as string).split(':');
+      const hh = Number(parts[0] || '0');
+      hour = Number.isFinite(hh) ? hh : 0;
     }
     
     // 0~5시는 전날 영업일로 간주
     if (hour >= 0 && hour <= 5) {
-      const businessDate = new Date(year, month - 1, day - 1);
+      const y = Number.isFinite(year) ? (year as number) : 0;
+      const m = Number.isFinite(month) ? (month as number) : 1;
+      const d = Number.isFinite(day) ? (day as number) : 1;
+      const businessDate = new Date(y, m - 1, d - 1);
       return businessDate;
     } else {
-      const businessDate = new Date(year, month - 1, day);
+      const y = Number.isFinite(year) ? (year as number) : 0;
+      const m = Number.isFinite(month) ? (month as number) : 1;
+      const d = Number.isFinite(day) ? (day as number) : 1;
+      const businessDate = new Date(y, m - 1, d);
       return businessDate;
     }
   };
@@ -244,8 +253,9 @@ export default function ReservationsPage() {
           // 승인된 예약은 완료로
           if (reservation.status === 'approved') {
             try {
-              const response = await fetch(`/api/v2/reservations/${reservation.id}`, {
-                method: 'PATCH',
+              const response = await fetch(`/api/v3/reservations/${reservation.id}/complete`, {
+                method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'completed' })
               });
@@ -264,12 +274,12 @@ export default function ReservationsPage() {
           // 대기중인 예약은 취소로
           else if (reservation.status === 'pending') {
             try {
-              const response = await fetch(`/api/v2/reservations/${reservation.id}`, {
-                method: 'PATCH',
+              const response = await fetch(`/api/v3/reservations/${reservation.id}/cancel`, {
+                method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  status: 'cancelled',
-                  rejection_reason: '예약일이 지나 자동 취소되었습니다.'
+                body: JSON.stringify({
+                  reason: '예약일이 지나 자동 취소되었습니다.'
                 })
               });
               

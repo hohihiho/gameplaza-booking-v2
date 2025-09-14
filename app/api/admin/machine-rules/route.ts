@@ -1,23 +1,10 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextResponse } from 'next/server'
 import { auth } from "@/auth"
-import { createAdminClient } from '@/lib/db'
+import { d1ListMachineRules, d1CreateMachineRule, d1UpdateMachineRule, d1DeleteMachineRule } from '@/lib/db/d1'
 
 export async function GET() {
   try {
-    const supabaseAdmin = createAdminClient();
-  const { data: rules, error } = await supabaseAdmin.from('machine_rules')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    if (error) {
-      // 테이블이 없는 경우 빈 배열 반환
-      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
-        return NextResponse.json({ rules: [] })
-      }
-      throw error
-    }
-
+    const rules = await d1ListMachineRules()
     return NextResponse.json({ rules: rules || [] })
   } catch (error: any) {
     console.error('기기 현황 안내사항 조회 오류:', error)
@@ -36,19 +23,7 @@ export async function POST(request: Request) {
     }
 
     const { content, display_order } = await request.json()
-
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('machine_rules')
-      .insert([{ 
-        content,
-        display_order: display_order || 0,
-        is_active: true
-      }])
-      .select()
-      .single()
-
-    if (error) throw error
-
+    const data = await d1CreateMachineRule({ content, display_order, is_active: true })
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('안내사항 추가 오류:', error)
@@ -70,18 +45,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 })
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('machine_rules')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
+    const data = await d1UpdateMachineRule(Number(id), updateData)
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('안내사항 수정 오류:', error)
@@ -103,13 +67,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 })
     }
 
-    const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('machine_rules')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
+    await d1DeleteMachineRule(Number(id))
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('안내사항 삭제 오류:', error)

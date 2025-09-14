@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { NextResponse } from 'next/server';
 import { createAdminClient, handleSupabaseError } from '@/lib/db';
 
@@ -10,7 +11,6 @@ export async function GET() {
   const startTime = Date.now();
   
   try {
-    import { getDB, supabase } from '@/lib/db';
     const metrics = {
       status: 'healthy',
       responseTime: 0,

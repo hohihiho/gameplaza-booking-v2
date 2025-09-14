@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth'
 import { createAdminClient } from '@/lib/db'
@@ -5,7 +6,6 @@ import { createAdminClient } from '@/lib/db'
 export const GET = withAuth(
   async (_req, { user }) => {
     try {
-      import { getDB, supabase } from '@/lib/db';
 
       // 사용자 예약 통계 조회
       const { data: reservations, error } = await supabase

@@ -7,10 +7,11 @@ import { Clock, Gamepad2, ChevronLeft, Loader2, AlertCircle, CreditCard, Users, 
 // import removed - using Better Auth;
 import { parseKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
-import { useCreateReservation } from '@/lib/hooks/useReservations';
+import { useCreateReservation } from '@/lib/hooks/useCreateReservation';
 import { TimeSlotListSkeleton } from '@/app/components/mobile/ReservationSkeleton';
 import { Calendar } from '@/components/ui/Calendar';
-import { DeviceSelector } from '@/components/ui/DeviceSelector';
+import { useSession } from '@/lib/hooks/useAuth';
+// supabase 의존 제거: API fetch와 폴링으로 대체
 
 type DeviceType = {
   id: string;
@@ -72,7 +73,7 @@ export default function NewReservationPage() {
   const onBehalfUserId = searchParams.get('onBehalf');
   const onBehalfUserName = searchParams.get('userName');
   const isOnBehalfMode = !!onBehalfUserId;
-  const isAdmin = session?.user?.role === 'admin';
+  const isAdmin = !!session?.user?.isAdmin;
   
   // 현재 단계
   const [currentStep, setCurrentStep] = useState(1);
@@ -107,10 +108,10 @@ export default function NewReservationPage() {
   // 선택된 시간대 정보
   const selectedTimeSlotInfo = timeSlots.find(s => s.id === selectedTimeSlot);
 
-  // 기기 타입 불러오기
+  // 날짜 선택 후 기기 타입 불러오기
   useEffect(() => {
-    fetchDeviceTypes();
-  }, []);
+    if (selectedDate) fetchDeviceTypes();
+  }, [selectedDate]);
 
   // 날짜 선택 시 타임슬롯 불러오기
   useEffect(() => {
@@ -119,91 +120,39 @@ export default function NewReservationPage() {
     }
   }, [selectedDate, selectedDeviceInfo]);
 
-  // 실시간 예약 업데이트 구독
+  // supabase realtime 제거: 간단한 폴링으로 대체
   useEffect(() => {
-//     import { getDB, supabase } from '@/lib/db';
-    const channel = supabase
-      .channel('reservations')
-      .on(
-        'broadcast',
-        { event: 'new_reservation' },
-        (payload) => {
-          console.log('New reservation broadcast received:', payload);
-          
-          // 현재 선택된 날짜와 기기 타입이 일치하는 경우만 업데이트
-          if (payload.payload?.date === selectedDate && 
-              selectedDeviceInfo?.typeId === payload.payload?.deviceTypeId) {
-            console.log('Refreshing time slots due to new reservation');
-            fetchTimeSlots();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedDate, selectedDeviceInfo]);
+    if (!selectedDate || !selectedDeviceInfo?.id) return
+    const id = setInterval(() => {
+      fetchTimeSlots()
+    }, 15000)
+    return () => clearInterval(id)
+  }, [selectedDate, selectedDeviceInfo])
 
   const fetchDeviceTypes = async () => {
     console.log('=== fetchDeviceTypes started ===');
     setIsLoadingDevices(true);
     try {
-      // device_types와 관련 정보 가져오기
-//       import { getDB, supabase } from '@/lib/db';
-      // 모든 렌탈 가능한 기기 타입 조회 (일단 시간대 필터링 제거)
-      const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
-        .select(`
-          *,
-          device_categories!category_id (
-            id,
-            name,
-            display_order
-          ),
-          devices (
-            id,
-            device_number,
-            status
-          )
-        `)
-        .eq('is_rentable', true)
-        .order('display_order', { ascending: true });
-
-      console.log('Fetched device types:', deviceTypesData?.length || 0, 'types');
-
-      if (typesError) {
-        console.error('Supabase query error:', typesError);
-        throw typesError;
+      if (!selectedDate) {
+        setDeviceTypes([])
+        return
       }
-
-      console.log('Raw device types data:', deviceTypesData);
-
-      const processedTypes = (deviceTypesData || []).map(type => {
-        // rental_settings가 JSONB인 경우 처리
-        const rentalSettings = type.rental_settings || {};
-        
-        return {
-          ...type,
-          devices: (type.devices || []).sort((a: any, b: any) => a.device_number - b.device_number), // 기기 번호 순서대로 정렬
-          category: type.device_categories?.name || '',
-          active_device_count: type.devices?.filter((d: any) => d.status === 'available').length || 0,
-          total_device_count: type.devices?.length || 0,
-          rental_display_order: rentalSettings.display_order,
-          max_rental_units: rentalSettings.max_rental_units,
-          max_players: rentalSettings.max_players,
-          price_multiplier_2p: rentalSettings.price_multiplier_2p
-        };
-      });
-
-      // rental_settings의 display_order로 정렬
-      const sortedTypes = processedTypes.sort((a, b) => {
-        const orderA = a.rental_display_order ?? a.display_order ?? 999;
-        const orderB = b.rental_display_order ?? b.display_order ?? 999;
-        return orderA - orderB;
-      });
-
-      console.log('=== Processed device types:', sortedTypes?.length || 0, 'types ===');
-      setDeviceTypes(sortedTypes);
+      // 기본 시간 범위(06~07시)로 가용 기기 타입 목록 조회
+      const url = `/api/v3/devices/available?date=${encodeURIComponent(selectedDate)}&start_hour=6&end_hour=7`
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      const types = Array.isArray(json.data) ? json.data : []
+      // 정렬 유지
+      const sorted = types.sort((a: any, b: any) => {
+        const orderA = a.rental_display_order ?? a.display_order ?? 999
+        const orderB = b.rental_display_order ?? b.display_order ?? 999
+        return orderA - orderB
+      })
+      setDeviceTypes(sorted)
     } catch (error) {
       console.error('=== Error fetching device types:', error, '===');
       setError('기기 정보를 불러올 수 없습니다');
@@ -223,9 +172,10 @@ export default function NewReservationPage() {
     }
 
     try {
-      // 실제 API 호출로 변경
-      const response = await fetch(`/api/v2/time-slots/available?date=${selectedDate}&deviceId=${selectedDeviceInfo.id}`, {
+      // V3 API 호출로 변경
+      const response = await fetch(`/api/v3/devices/available?date=${selectedDate}&deviceId=${selectedDeviceInfo.id}`, {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         }
@@ -296,8 +246,8 @@ export default function NewReservationPage() {
         if (firstAvailableDevice) {
           finalDeviceInfo = {
             id: firstAvailableDevice.id,
-            name: selectedDeviceTypeObj.name,
-            typeId: selectedDeviceTypeObj.id,
+            name: selectedDeviceTypeObj?.name ?? '',
+            typeId: selectedDeviceTypeObj?.id ?? '',
             deviceNumber: firstAvailableDevice.device_number
           };
         }
@@ -309,8 +259,8 @@ export default function NewReservationPage() {
       }
 
       // API v2 형식에 맞게 데이터 변환
-      const startHour = parseInt(selectedTimeSlotInfo.start_time.split(':')[0]);
-      const endHour = parseInt(selectedTimeSlotInfo.end_time.split(':')[0]);
+      const startHour = Number((selectedTimeSlotInfo!.start_time ?? '0:00').split(':')[0])
+      const endHour = Number((selectedTimeSlotInfo!.end_time ?? '0:00').split(':')[0])
       
       // 선택된 시간대의 크레딧 옵션 가져오기
       const creditOption = selectedTimeSlotInfo.credit_options?.[0];
@@ -830,8 +780,8 @@ export default function NewReservationPage() {
                               if (!isReserved) {
                                 const newDeviceInfo = {
                                   id: device.id,
-                                  name: selectedDeviceTypeObj.name,
-                                  typeId: selectedDeviceTypeObj.id,
+                                  name: selectedDeviceTypeObj?.name ?? '',
+                                  typeId: selectedDeviceTypeObj?.id ?? '',
                                   deviceNumber: device.device_number
                                 };
                                 setSelectedDeviceInfo(newDeviceInfo);

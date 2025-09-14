@@ -1,10 +1,9 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { listReservations as listRes, createReservation as createRes } from '@/lib/db/adapter'
 import { computeTotalFromSlotId, CreditOptionType, computeTotalFromDeviceType } from '@/lib/pricing/index'
 import { auth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/db'
+import { d1GetUserByEmail, d1ListUserRestrictions } from '@/lib/db/d1'
 
 // Zod 스키마 정의
 const GetReservationsSchema = z.object({
@@ -100,23 +99,18 @@ export async function POST(req: NextRequest) {
       }, { status: 401 })
     }
     
-    // 사용자 정보 조회 (정지 여부 확인)
-    const supabaseAdmin = createAdminClient()
-    const { data: userData } = await supabaseAdmin
-      .from('users')
-      .select('id, is_blacklisted, role')
-      .eq('email', session.user.email)
-      .single()
-    
+    // 사용자 정보 조회 (정지 여부 확인) - D1
+    const userData = await d1GetUserByEmail(session.user.email)
     if (!userData) {
       return NextResponse.json({
         success: false,
         error: '사용자 정보를 찾을 수 없습니다'
       }, { status: 404 })
     }
-    
-    // 정지 사용자 체크
-    if (userData.is_blacklisted) {
+    // 정지 사용자 체크: active restriction 존재 시 차단
+    const restrictions = await d1ListUserRestrictions(userData.id)
+    const isBlacklisted = Array.isArray(restrictions) && restrictions.some((r: any) => r.is_active === 1)
+    if (isBlacklisted) {
       return NextResponse.json({
         success: false,
         error: '정지된 계정입니다. 관리자에게 문의하세요.'

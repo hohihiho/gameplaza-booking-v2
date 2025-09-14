@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Zap, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggleWithMenu } from './ThemeToggleWithMenu';
 
 export default function QuickReservationWidget() {
   const [availableCount, setAvailableCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // 카드 확장 상태
   const [todaySchedule, setTodaySchedule] = useState<{ 
     floor1Start: string; 
     floor1End: string; 
@@ -171,75 +172,110 @@ export default function QuickReservationWidget() {
                 </h1>
               </div>
               
-              {/* 모바일용 간단한 상태 정보 */}
-              <motion.div 
+              {/* 모바일용 간단한 상태 정보 - 토글 가능 */}
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="hero-cards lg:hidden space-y-1.5 xs:space-y-2 sm:space-y-3 max-w-xs xs:max-w-sm sm:max-w-md mx-auto lg:mx-0 px-2 xs:px-0"
+                onClick={() => setIsExpanded(!isExpanded)}
+                style={{ cursor: 'pointer' }}
               >
-                {/* 이용 가능 기기 */}
+                {/* 토글 헤더 */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
-                  <div className="flex items-center gap-1.5 xs:gap-2 mb-2 sm:mb-3">
-                    <Zap className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-yellow-300" aria-hidden="true" />
-                    <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">현재 이용 가능</span>
-                    <div className="flex items-center gap-1 ml-auto">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-2xs xs:text-xs text-white/70">실시간</span>
-                    </div>
-                  </div>
-                  
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-white text-lg xs:text-xl sm:text-2xl font-bold">
-                          {loading ? <div className="w-8 h-6 bg-white/20 rounded animate-pulse inline-block" /> : availableCount}
-                        </span>
-                        <span className="text-white/80 text-xs xs:text-sm font-medium">
-                          /{loading ? <div className="w-4 h-4 bg-white/20 rounded animate-pulse inline-block" /> : totalCount}대
-                        </span>
-                        <span className="text-white text-xs xs:text-sm sm:text-base font-bold ml-2">
-                          {loading ? <div className="w-8 h-4 bg-white/20 rounded animate-pulse inline-block" /> : `${Math.round(availablePercentage)}%`}
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-1000 ease-out"
-                          style={{ width: `${availablePercentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* 운영시간 */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
-                  <div className="flex items-center gap-1.5 xs:gap-2 mb-2">
-                    <Clock className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-white" aria-hidden="true" />
-                    <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">오늘 영업시간</span>
-                    <div className="flex items-center gap-1 ml-auto">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-2xs xs:text-xs text-white/70">영업중</span>
-                    </div>
-                  </div>
-                  
-                  {/* 1층/2층 시간 - 컴팩트 버전 */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs xs:text-sm">
-                      <span className="text-blue-300 font-medium">1층</span>
-                      <span className="text-white font-medium">
-                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)}-${formatTime24Hour(todaySchedule.floor1End)}` : <div className="w-16 h-4 bg-white/20 rounded animate-pulse inline-block" />}
+                    <div className="flex items-center gap-1.5 xs:gap-2">
+                      <Zap className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-yellow-300" aria-hidden="true" />
+                      <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">
+                        현재 이용 가능: {loading ? '...' : `${availableCount}/${totalCount}대`}
                       </span>
                     </div>
-                    
-                    <div className="flex items-center justify-between text-xs xs:text-sm">
-                      <span className="text-purple-300 font-medium">2층</span>
-                      <span className="text-white font-medium">
-                        {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)}-${formatTime24Hour(todaySchedule.floor2End)}` : <div className="w-16 h-4 bg-white/20 rounded animate-pulse inline-block" />}
-                      </span>
-                    </div>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown className="w-4 h-4 xs:w-5 xs:h-5 text-white/70" />
+                    </motion.div>
                   </div>
                 </div>
+
+                {/* 확장 가능한 콘텐츠 */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-1.5 xs:space-y-2 overflow-hidden"
+                    >
+                      {/* 이용 가능 기기 상세 */}
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-white text-lg xs:text-xl sm:text-2xl font-bold">
+                                {loading ? <div className="w-8 h-6 bg-white/20 rounded animate-pulse inline-block" /> : availableCount}
+                              </span>
+                              <span className="text-white/80 text-xs xs:text-sm font-medium">
+                                /{loading ? <div className="w-4 h-4 bg-white/20 rounded animate-pulse inline-block" /> : totalCount}대
+                              </span>
+                              <span className="text-white text-xs xs:text-sm sm:text-base font-bold ml-2">
+                                {loading ? <div className="w-8 h-4 bg-white/20 rounded animate-pulse inline-block" /> : `${Math.round(availablePercentage)}%`}
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+                              <div
+                                className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${availablePercentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 운영시간 - 컴팩트 버전 */}
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 xs:p-2.5 sm:p-3 md:p-4 border border-white/20">
+                        <div className="flex items-center gap-1.5 xs:gap-2 mb-2">
+                          <Clock className="w-3.5 xs:w-4 h-3.5 xs:h-4 text-white" aria-hidden="true" />
+                          <span className="hero-card-content text-white text-xs xs:text-sm sm:text-base font-medium">오늘 영업시간</span>
+                          <div className="flex items-center gap-1 ml-auto">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                            <span className="text-2xs xs:text-xs text-white/70">영업중</span>
+                          </div>
+                        </div>
+
+                        {/* 1층/2층 시간 - 컴팩트 그리드 */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-white/5 rounded-lg p-1.5 xs:p-2 text-center">
+                            <span className="text-blue-300 text-2xs xs:text-xs font-medium block">1층</span>
+                            <span className="text-white text-xs xs:text-sm font-bold block">
+                              {todaySchedule ? formatTime24Hour(todaySchedule.floor1Start) : '-'}
+                            </span>
+                            <span className="text-white/60 text-2xs block">~</span>
+                            <span className="text-white text-xs xs:text-sm font-bold block">
+                              {todaySchedule ? formatTime24Hour(todaySchedule.floor1End) : '-'}
+                            </span>
+                          </div>
+
+                          <div className="bg-white/5 rounded-lg p-1.5 xs:p-2 text-center">
+                            <span className="text-purple-300 text-2xs xs:text-xs font-medium block">2층</span>
+                            <span className="text-white text-xs xs:text-sm font-bold block">
+                              {todaySchedule ? formatTime24Hour(todaySchedule.floor2Start) : '-'}
+                            </span>
+                            <span className="text-white/60 text-2xs block">~</span>
+                            <span className="text-white text-xs xs:text-sm font-bold block">
+                              {todaySchedule ? formatTime24Hour(todaySchedule.floor2End) : '-'}
+                              {todaySchedule?.floor2EventType === 'overnight' && (
+                                <span className="text-yellow-300 text-2xs ml-1">🌙</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </motion.div>
 
@@ -276,7 +312,7 @@ export default function QuickReservationWidget() {
                     </div>
                     
                     <div className="relative w-28 h-28">
-                      <svg className="w-full h-full transform -rotate-90">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 112 112">
                         <circle
                           cx="56"
                           cy="56"
@@ -328,43 +364,52 @@ export default function QuickReservationWidget() {
                 </div>
               </div>
 
-              {/* 영업 시간 카드 */}
+              {/* 영업 시간 카드 - 컴팩트 버전 */}
               <div className="relative bg-gradient-to-br from-white/20 via-white/15 to-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-xl overflow-hidden flex-1">
                 {/* 배경 패턴 */}
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/15 to-purple-400/15 rounded-full blur-xl" />
-                
+
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500/30 to-purple-500/30 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-                      <Clock className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 to-purple-500/30 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                      <Clock className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-white/90 text-sm font-semibold tracking-wide">오늘 영업시간</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="bg-white/10 rounded-xl p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/80 text-sm font-medium">1층</span>
-                        <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)} - ${formatTime24Hour(todaySchedule.floor1End)}` : <div className="w-20 h-6 bg-white/20 rounded animate-pulse inline-block" />}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="bg-white/10 rounded-xl p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/80 text-sm font-medium">2층</span>
-                        <span className="text-lg font-bold text-white">
-                          {todaySchedule ? `${formatTime24Hour(todaySchedule.floor2Start)} - ${formatTime24Hour(todaySchedule.floor2End)}` : <div className="w-20 h-6 bg-white/20 rounded animate-pulse inline-block" />}
-                        </span>
+                    <div className="flex-1">
+                      <p className="text-white/90 text-sm font-semibold">오늘 영업시간</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                        <span className="text-xs text-white/70">영업 중</span>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* 현재 상태 표시 */}
-                  <div className="flex items-center justify-center mt-4 pt-4 border-t border-white/20">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-xs text-white/80 font-medium">지금 영업 중</span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/10 rounded-xl p-3 text-center">
+                      <span className="text-blue-300 text-xs font-medium block mb-2">1층</span>
+                      <div className="space-y-1">
+                        <span className="text-xl font-bold text-white block">
+                          {todaySchedule ? formatTime24Hour(todaySchedule.floor1Start) : '-'}
+                        </span>
+                        <span className="text-white/40 text-xs block">~</span>
+                        <span className="text-xl font-bold text-white block">
+                          {todaySchedule ? formatTime24Hour(todaySchedule.floor1End) : '-'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-3 text-center">
+                      <span className="text-purple-300 text-xs font-medium block mb-2">2층</span>
+                      <div className="space-y-1">
+                        <span className="text-xl font-bold text-white block">
+                          {todaySchedule ? formatTime24Hour(todaySchedule.floor2Start) : '-'}
+                        </span>
+                        <span className="text-white/40 text-xs block">~</span>
+                        <span className="text-xl font-bold text-white block">
+                          {todaySchedule ? formatTime24Hour(todaySchedule.floor2End) : '-'}
+                          {todaySchedule?.floor2EventType === 'overnight' && (
+                            <span className="text-yellow-300 text-xs ml-1" title="밤샘 영업">🌙</span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

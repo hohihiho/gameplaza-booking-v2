@@ -10,13 +10,13 @@ export default function Home() {
     <div className="min-h-screen">
       {/* 히어로 섹션 */}
       <QuickReservationWidget />
-      
+
       {/* 메인 액션 버튼들 */}
       <MainActionButtons />
-      
+
       {/* PWA 설치 배너 */}
       <PWAInstallBanner />
-      
+
       {/* Footer */}
       <Footer />
     </div>

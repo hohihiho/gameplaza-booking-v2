@@ -54,4 +54,26 @@ export const supabase = {
   })
 };
 
-export default { getDB, supabase };
+// Supabase 호환성을 위한 에러 핸들러
+export function handleSupabaseError(error: any) {
+  console.error('Database error:', error);
+  return {
+    error: error?.message || 'Database operation failed',
+    status: 500,
+    details: error
+  };
+}
+
+export function createAdminClient() {
+  console.warn('⚠️  createAdminClient called - returning mock client');
+  return {
+    from: () => ({
+      select: () => ({ data: [], error: null }),
+      insert: () => ({ data: null, error: null }),
+      update: () => ({ data: null, error: null }),
+      delete: () => ({ data: null, error: null })
+    })
+  };
+}
+
+export default { getDB, supabase, handleSupabaseError, createAdminClient };

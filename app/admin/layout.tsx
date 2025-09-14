@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const checkAdmin = async () => {
       try {
         // 서버 세션 확인(테스트 가장 모드 포함)
-        const s = await fetch('/api/v3/auth/session', { cache: 'no-store' })
+        const s = await fetch('/api/auth/session', { cache: 'no-store' })
         if (!s.ok) {
           router.push('/login')
           return

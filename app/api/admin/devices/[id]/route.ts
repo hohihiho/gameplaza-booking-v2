@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/db'
 
@@ -8,7 +9,6 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    import { getDB, supabase } from '@/lib/db';
     const body = await request.json()
 
     // 업데이트할 데이터 준비
@@ -52,7 +52,6 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    import { getDB, supabase } from '@/lib/db';
 
     // 기기 상태 확인
     const { data: device, error: fetchError } = // @ts-ignore

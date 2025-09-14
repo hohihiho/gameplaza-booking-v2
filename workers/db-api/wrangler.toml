@@ -8,6 +8,11 @@ binding = "DB"
 database_name = "gameplaza-development"
 database_id = "d8bb6ff7-b731-4d5a-b22f-4b3e41c9ed8e"
 
+# KV cache (development)
+[[kv_namespaces]]
+binding = "CACHE"
+id = "3aaf9a0e37ae4a80baa64ce14e104d1c"
+
 [env.production]
 name = "gameplaza-db-api"
 
@@ -16,11 +21,7 @@ binding = "DB"
 database_name = "gameplaza-production"
 database_id = "1d59afcb-f4c2-4d1c-9532-a63bd124bf97"
 
-# Optional KV cache binding (create via: npx wrangler kv namespace create GAMEPLAZA_DB_API_CACHE)
-[[kv_namespaces]]
-binding = "CACHE"
-# id = "<your-dev-kv-namespace-id>"  # fill after creation
-
+# KV cache (production)
 [[env.production.kv_namespaces]]
 binding = "CACHE"
-# id = "<your-prod-kv-namespace-id>"  # fill after creation
+id = "766f8df2d323478791ebb2caff36662b"

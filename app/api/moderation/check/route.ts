@@ -38,7 +38,6 @@ const WARNING_PATTERNS = [
 
 // 닉네임 중복 체크
 async function checkNicknameDuplicate(nickname: string) {
-  import { getDB, supabase } from '@/lib/db';
   const { data } = await supabase
     .from('users')
     .select('nickname')

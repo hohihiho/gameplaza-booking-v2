@@ -89,32 +89,84 @@ export async function GET() {
 
 /**
  * POST - 메트릭 기록
- * 
- * 내부적으로 미들웨어나 다른 API 엔드포인트에서 호출됩니다.
+ *
+ * 내부적으로 미들웨어나 다른 API 엔드포인트에서 호출되며,
+ * 클라이언트 사이드에서도 성능 메트릭을 전송받습니다.
  */
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
-    // 요청 수 증가
-    if (data.type === 'request') {
+
+    // 클라이언트 메트릭 처리
+    if (data.type === 'client-metrics' && data.metrics) {
+      // 집계된 메트릭 각각을 개별 메트릭으로 처리
+      data.metrics.forEach((metric: any) => {
+        metricsStore.requests += metric.count || 1;
+        if (metric.errors > 0) {
+          metricsStore.errors += metric.errors;
+        }
+
+        // 응답 시간 추가
+        if (metric.avgDuration) {
+          metricsStore.responseTimes.push(metric.avgDuration);
+        }
+        if (metric.maxDuration) {
+          metricsStore.responseTimes.push(metric.maxDuration);
+        }
+        if (metric.minDuration && metric.minDuration !== Infinity) {
+          metricsStore.responseTimes.push(metric.minDuration);
+        }
+      });
+
+      // 원시 데이터 처리
+      if (data.raw && Array.isArray(data.raw)) {
+        data.raw.forEach((raw: any) => {
+          if (raw.duration) {
+            metricsStore.responseTimes.push(raw.duration);
+          }
+          if (raw.error) {
+            metricsStore.errors++;
+            metricsStore.errorDetails.push({
+              timestamp: raw.timestamp || new Date().toISOString(),
+              error: raw.error,
+              path: raw.endpoint || 'unknown',
+            });
+          }
+        });
+      }
+
+      // 메모리 관리
+      if (metricsStore.responseTimes.length > 1000) {
+        metricsStore.responseTimes = metricsStore.responseTimes.slice(-1000);
+      }
+      if (metricsStore.errorDetails.length > 100) {
+        metricsStore.errorDetails = metricsStore.errorDetails.slice(-100);
+      }
+
+      console.log('클라이언트 메트릭 수집:', {
+        메트릭수: data.metrics.length,
+        총요청수: metricsStore.requests,
+        에러수: metricsStore.errors
+      });
+    }
+    // 기존 서버 메트릭 처리
+    else if (data.type === 'request') {
       metricsStore.requests++;
-      
+
       // 응답 시간 기록
       if (data.responseTime) {
         metricsStore.responseTimes.push(data.responseTime);
-        
+
         // 메모리 관리: 최대 1000개의 샘플만 유지
         if (metricsStore.responseTimes.length > 1000) {
           metricsStore.responseTimes = metricsStore.responseTimes.slice(-1000);
         }
       }
     }
-    
     // 에러 기록
-    if (data.type === 'error') {
+    else if (data.type === 'error') {
       metricsStore.errors++;
-      
+
       // 에러 상세 정보 저장
       if (data.error) {
         metricsStore.errorDetails.push({
@@ -122,24 +174,36 @@ export async function POST(request: Request) {
           error: data.error,
           path: data.path || 'unknown',
         });
-        
+
         // 최대 100개의 에러만 유지
         if (metricsStore.errorDetails.length > 100) {
           metricsStore.errorDetails = metricsStore.errorDetails.slice(-100);
         }
       }
+
+      console.error('에러 메트릭 수집:', {
+        에러: data.error,
+        경로: data.path,
+        응답시간: data.responseTime
+      });
     }
-    
+
     // 메트릭 리셋 (1시간마다)
     const hoursSinceReset = (Date.now() - new Date(metricsStore.lastReset).getTime()) / (1000 * 60 * 60);
     if (hoursSinceReset > 1) {
       resetMetrics();
     }
-    
-    return NextResponse.json({ success: true });
+
+    return NextResponse.json({
+      success: true,
+      stored: {
+        requests: metricsStore.requests,
+        errors: metricsStore.errors
+      }
+    });
   } catch (error) {
     console.error('Failed to record metric:', error);
-    
+
     return NextResponse.json(
       { error: 'Failed to record metric' },
       { status: 500 }

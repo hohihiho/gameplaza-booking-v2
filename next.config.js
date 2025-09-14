@@ -142,8 +142,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http: https://lh3.googleusercontent.com https://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co",
-              // Supabase 연결 허용 (개발/운영 DB 모두 포함) + 로컬 WebSocket 모니터링
-              "connect-src 'self' ws://localhost:8080 wss://localhost:8080 https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co wss://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co wss://rfcxbqlgvppqjxgpwnzd.supabase.co https://www.google-analytics.com https://cdn.jsdelivr.net",
+              // Supabase 연결 허용 (개발/운영 DB 모두 포함)
+              "connect-src 'self' https://accounts.google.com https://rupeyejnfurlcpgneekg.supabase.co wss://rupeyejnfurlcpgneekg.supabase.co https://nymgkiatkfoziluqiijw.supabase.co wss://nymgkiatkfoziluqiijw.supabase.co https://rfcxbqlgvppqjxgpwnzd.supabase.co wss://rfcxbqlgvppqjxgpwnzd.supabase.co https://www.google-analytics.com https://cdn.jsdelivr.net",
               "frame-src 'self' https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",

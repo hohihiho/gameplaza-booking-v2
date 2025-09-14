@@ -1,8 +1,6 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-
-import { createAdminClient } from '@/lib/db';
+import { d1GetUserByEmail, d1ListUserRoles, d1GetReservationById, d1UpdateReservation } from '@/lib/db/d1'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,23 +10,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 관리자 권한 확인
-    const supabaseAdmin = createAdminClient();
-    const { data: userData } = await supabaseAdmin.from('users')
-      .select('id')
-      .eq('email', session.user.email)
-      .single();
-
-    if (!userData) {
+    // 관리자 권한 확인 (D1)
+    const me = await d1GetUserByEmail(session.user.email)
+    if (!me) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    const { data: adminData } = await supabaseAdmin.from('admins')
-      .select('is_super_admin')
-      .eq('user_id', userData.id)
-      .single();
-
-    if (!adminData) {
+    const roles = await d1ListUserRoles(me.id)
+    const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+    if (!isSuperAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -42,16 +31,10 @@ export async function POST(request: NextRequest) {
 
     // 먼저 현재 예약 상태 확인
     
-    const { data: currentReservation, error: fetchError } = await supabaseAdmin.from('reservations')
-      .select('*')
-      .eq('id', reservationId)
-      .single();
-
-    if (fetchError || !currentReservation) {
-      console.error('예약 조회 실패:', fetchError);
+    const currentReservation = await d1GetReservationById(reservationId)
+    if (!currentReservation) {
       return NextResponse.json({ 
         error: 'Reservation not found',
-        details: fetchError?.message 
       }, { status: 404 });
     }
 
@@ -63,38 +46,13 @@ export async function POST(request: NextRequest) {
 
     // 결제 확인 업데이트
     
-    const { data: updatedReservation, error: updateError } = await supabaseAdmin.from('reservations')
-      .update({
-        payment_status: 'paid',
-        payment_method: paymentMethod || 'cash',
-        payment_confirmed_at: new Date().toISOString(),
-        payment_confirmed_by: userData.id
-      })
-      .eq('id', reservationId)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error('Payment confirmation error:', updateError);
-      console.error('Update data:', {
-        payment_status: 'paid',
-        payment_method: paymentMethod || 'cash',
-        payment_confirmed_at: new Date().toISOString(),
-        payment_confirmed_by: userData.id
-      });
-      console.error('Error details:', {
-        code: updateError.code,
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint
-      });
-      return NextResponse.json({ 
-        error: 'Failed to confirm payment',
-        details: updateError.message,
-        code: updateError.code,
-        hint: updateError.hint
-      }, { status: 500 });
-    }
+    const updatedReservation = await d1UpdateReservation(reservationId, {
+      payment_status: 'paid',
+      payment_method: paymentMethod || 'cash',
+      payment_confirmed_at: new Date().toISOString(),
+      payment_confirmed_by: me.id,
+      updated_at: new Date().toISOString()
+    })
 
     return NextResponse.json({ 
       success: true,

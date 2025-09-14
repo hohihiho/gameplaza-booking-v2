@@ -30,14 +30,21 @@ export async function GET() {
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const isFriday = dayOfWeek === 5;
     const isSaturday = dayOfWeek === 6;
-    
-    // 기본 영업시간
-    // 2층: 금요일, 토요일은 밤샘 영업(익일 05:00까지), 그 외는 24:00까지
+    const isSunday = dayOfWeek === 0;
+
+    // 기본 영업시간 (특별 일정이 없으면 이대로 사용)
+    // 1층: 주말 11:00-22:00, 평일 12:00-22:00
+    // 2층:
+    //   - 월~목: 12:00-24:00
+    //   - 금요일: 12:00-29:00 (밤샘)
+    //   - 토요일: 11:00-29:00 (밤샘)
+    //   - 일요일: 11:00-24:00
+    //   - 공휴일 전날: 11:00-29:00 (TODO: 공휴일 체크 로직 필요)
     const defaultSchedule = {
       floor1Start: isWeekend ? '11:00' : '12:00',
       floor1End: '22:00',
-      floor2Start: isWeekend ? '11:00' : '12:00',
-      floor2End: (isFriday || isSaturday) ? '05:00' : '24:00',
+      floor2Start: isSaturday || isSunday ? '11:00' : '12:00',  // 토,일은 11시, 나머지는 12시
+      floor2End: isFriday || isSaturday ? '29:00' : '24:00',  // 금,토는 29시(익일 5시), 나머지는 24시
       floor1EventType: null,
       floor2EventType: (isFriday || isSaturday) ? 'overnight' : null
     };

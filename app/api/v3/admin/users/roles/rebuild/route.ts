@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/db'
-import { d1MonthlyRanking, d1AddUserRole, d1RemoveUserRole, d1ListUserRoles, d1ListUserRestrictions } from '@/lib/db/d1'
+import { d1GetUserByEmail, d1ListUserRoles, d1MonthlyRanking, d1AddUserRole, d1RemoveUserRole, d1ListUserRestrictions } from '@/lib/db/d1'
 
 // 수동 랭킹 기반 직급 재부여(미리보기 + 적용 옵션)
 // GET /api/v3/admin/users/roles/rebuild?period=month&apply=false
@@ -12,12 +11,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ code: 'UNAUTHORIZED' }, { status: 401 })
     }
 
-    // 관리자 권한 확인 (슈퍼관리자만)
-    import { getDB, supabase } from '@/lib/db';
-    const { data: me } = await supabase.from('users').select('id').eq('email', session.user.email).single()
+    // 관리자 권한 확인 (슈퍼관리자만, D1)
+    const me = await d1GetUserByEmail(session.user.email)
     if (!me) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 })
-    const { data: admin } = await supabase.from('admins').select('is_super_admin').eq('user_id', me.id).single()
-    if (!admin?.is_super_admin) return NextResponse.json({ code: 'FORBIDDEN' }, { status: 403 })
+    const roles = await d1ListUserRoles(me.id)
+    const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+    if (!isSuperAdmin) return NextResponse.json({ code: 'FORBIDDEN' }, { status: 403 })
 
     const { searchParams } = new URL(req.url)
     const period = (searchParams.get('period') as 'month' | 'year') || 'month'

@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from '@/lib/hooks/useAuth'
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -145,11 +146,8 @@ export default function ReservationDetailPage() {
       setIsLoading(true);
       setError(null);
       
-      // v2 API 사용 여부 확인
-      const isV2Enabled = localStorage.getItem('use_v2_api') === 'true';
-      const apiUrl = isV2Enabled
-        ? `/api/v2/reservations/${params.id}`
-        : `/api/reservations/${params.id}`;
+      // V3 API 사용
+      const apiUrl = `/api/v3/reservations/${params.id}`;
       
       const headers: HeadersInit = {};
       if (isV2Enabled && (session as any).accessToken) {
@@ -192,7 +190,10 @@ export default function ReservationDetailPage() {
     const kstNow = new Date(now.getTime() + (now.getTimezoneOffset() + kstOffset) * 60 * 1000);
     
     const [year, month, day] = reservation.reservation.date.split('-').map(Number);
-    const startHour = reservation.reservation.timeSlot.startHour;
+    const startHour = reservation.reservation.timeSlot.startHour ?? 0;
+    const y = Number.isFinite(year) ? (year as number) : 0
+    const m = Number.isFinite(month) ? (month as number) : 1
+    const d = Number.isFinite(day) ? (day as number) : 1
     
     // month와 day가 undefined인 경우 처리
     if (!month || !day) {
@@ -200,7 +201,7 @@ export default function ReservationDetailPage() {
     }
     
     // 예약 시작 시간 계산
-    const reservationStart = new Date(year, month - 1, day, startHour % 24, 0, 0);
+    const reservationStart = new Date(y, m - 1, d, startHour % 24, 0, 0);
     
     // 24시간 이상인 경우 다음날로 처리
     if (startHour >= 24) {
@@ -218,22 +219,15 @@ export default function ReservationDetailPage() {
     
     setIsCancelling(true);
     try {
-      // v2 API 사용 여부 확인
-      const isV2Enabled = localStorage.getItem('use_v2_api') === 'true';
-      const apiUrl = isV2Enabled
-        ? `/api/v2/reservations/${reservation.reservation.id}`
-        : `/api/reservations/${reservation.reservation.id}`;
-      
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (isV2Enabled && (session as any)?.accessToken) {
-        headers['Authorization'] = `Bearer ${(session as any).accessToken}`;
-      }
-      
+      // V3 API 사용
+      const apiUrl = `/api/v3/reservations/${reservation.reservation.id}/cancel`;
+
       const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers,
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ reason: cancelReason }),
       });
       

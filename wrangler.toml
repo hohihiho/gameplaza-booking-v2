@@ -15,3 +15,12 @@ vars = { ENVIRONMENT = "development", D1_ENABLED = "true" }
 
 [env.production]
 vars = { ENVIRONMENT = "production" }
+
+[durable_objects]
+bindings = [
+  { name = "DEVICES_HUB", class_name = "DevicesHub" }
+]
+
+[[migrations]]
+tag = "devices-hub-v1"
+new_classes = ["DevicesHub"]

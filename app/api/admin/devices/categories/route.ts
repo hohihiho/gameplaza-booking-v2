@@ -1,17 +1,10 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/db'
+import { d1ListDeviceCategories, d1CreateDeviceCategory, d1UpdateDeviceCategory, d1DeleteDeviceCategory } from '@/lib/db/d1'
 
 // 카테고리 목록 조회
 export async function GET() {
   try {
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('device_categories')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    if (error) throw error
-
+    const data = await d1ListDeviceCategories()
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error fetching categories:', error)
@@ -24,15 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { name, display_order } = body
-
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('device_categories')
-      .insert({ name, display_order })
-      .select()
-      .single()
-
-    if (error) throw error
-
+    const data = await d1CreateDeviceCategory({ name, display_order })
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error creating category:', error)
@@ -45,16 +30,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
     const { id, name } = body
-
-    const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from('device_categories')
-      .update({ name })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
+    const data = await d1UpdateDeviceCategory(Number(id), { name })
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error updating category:', error)
@@ -67,23 +43,10 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { categories } = body // [{id, display_order}, ...]
-
-    // 트랜잭션처럼 처리
-    const supabaseAdmin = createAdminClient();
-    const updates = categories.map((cat: any) => 
-      supabaseAdmin
-        .from('device_categories')
-        .update({ display_order: cat.display_order })
-        .eq('id', cat.id)
-    )
-
-    const results = await Promise.all(updates)
-    const hasError = results.some(r => r.error)
-
-    if (hasError) {
-      throw new Error('Failed to update some categories')
+    // 순차 업데이트 (D1)
+    for (const cat of categories) {
+      await d1UpdateDeviceCategory(Number(cat.id), { display_order: Number(cat.display_order) })
     }
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error updating categories:', error)
@@ -96,14 +59,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
     const { id } = body
-
-    const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from('device_categories')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
+    await d1DeleteDeviceCategory(Number(id))
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting category:', error)

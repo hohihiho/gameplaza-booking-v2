@@ -1,7 +1,6 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/db'
+import { d1GetUserByEmail, d1ListUserRoles, d1ListUserRestrictions, d1CountReservationsOnDate, d1CountReservationsSinceDate, d1CountUsers, d1CountActiveDevices } from '@/lib/db/d1'
 
 // 관리자 권한 체크 헬퍼 함수
 async function checkAdminAuth(request: NextRequest) {
@@ -15,13 +14,8 @@ async function checkAdminAuth(request: NextRequest) {
     }
   }
 
-  // Supabase에서 사용자 정보 및 권한 조회
-  const supabaseAdmin = createAdminClient()
-  const { data: userData } = await supabaseAdmin
-    .from('users')
-    .select('id, email, role, is_blacklisted')
-    .eq('email', session.user.email)
-    .single()
+  // D1 사용자 정보 및 권한
+  const userData = await d1GetUserByEmail(session.user.email)
 
   if (!userData) {
     return { 
@@ -31,8 +25,10 @@ async function checkAdminAuth(request: NextRequest) {
     }
   }
 
-  // 정지된 사용자 체크
-  if (userData.is_blacklisted) {
+  // 정지된 사용자 체크 (활성 제한 존재 여부)
+  const restrictions = await d1ListUserRestrictions(userData.id)
+  const isBlacklisted = Array.isArray(restrictions) && restrictions.some((r: any) => r.is_active === 1)
+  if (isBlacklisted) {
     return { 
       authorized: false, 
       error: '정지된 계정입니다',
@@ -40,8 +36,9 @@ async function checkAdminAuth(request: NextRequest) {
     }
   }
 
-  // 관리자 권한 체크 (role이 admin 또는 super_admin)
-  const isAdmin = userData.role === 'admin' || userData.role === 'super_admin'
+  // 관리자 권한 체크 (super_admin 보유)
+  const roles = await d1ListUserRoles(userData.id)
+  const isAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
   
   if (!isAdmin) {
     return { 
@@ -51,11 +48,7 @@ async function checkAdminAuth(request: NextRequest) {
     }
   }
 
-  return { 
-    authorized: true, 
-    user: userData,
-    isSuperAdmin: userData.role === 'super_admin'
-  }
+  return { authorized: true, user: userData, isSuperAdmin: isAdmin }
 }
 
 // GET /api/v3/admin - 관리자 정보 조회
@@ -70,34 +63,20 @@ export async function GET(req: NextRequest) {
       }, { status: authResult.status })
     }
 
-    // 관리자 대시보드 데이터 조회
-    const supabaseAdmin = createAdminClient()
-    
-    // 오늘 예약 통계
+    // 관리자 대시보드 데이터 조회 (D1)
     const today = new Date().toISOString().split('T')[0]
-    const { data: todayReservations, count: todayCount } = await supabaseAdmin
-      .from('reservations')
-      .select('*', { count: 'exact', head: false })
-      .eq('date', today)
+    const todayCount = await d1CountReservationsOnDate(today)
 
     // 이번 주 예약 통계
     const weekStart = new Date()
     weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-    const { data: weekReservations, count: weekCount } = await supabaseAdmin
-      .from('reservations')
-      .select('*', { count: 'exact', head: false })
-      .gte('date', weekStart.toISOString().split('T')[0])
+    const weekCount = await d1CountReservationsSinceDate(weekStart.toISOString().split('T')[0])
 
     // 전체 사용자 수
-    const { count: userCount } = await supabaseAdmin
-      .from('users')
-      .select('*', { count: 'exact', head: true })
+    const userCount = await d1CountUsers()
 
     // 활성 기기 수
-    const { count: deviceCount } = await supabaseAdmin
-      .from('devices')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
+    const deviceCount = await d1CountActiveDevices()
 
     return NextResponse.json({
       success: true,

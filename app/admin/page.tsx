@@ -3,9 +3,9 @@
 'use client';
 
 import Link from 'next/link';
-import { 
-  Calendar, 
-  Gamepad2, 
+import {
+  Calendar,
+  Gamepad2,
   Clock,
   ChevronRight,
   Timer,
@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import RealtimeDeviceWidget from './components/RealtimeDeviceWidget';
+import RealtimeReservationWidget from './components/RealtimeReservationWidget';
 
 type StatCard = {
   title: string;
@@ -424,11 +426,29 @@ export default function AdminDashboard() {
           })}
         </div>
 
+        {/* 실시간 위젯 섹션 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <RealtimeDeviceWidget />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <RealtimeReservationWidget />
+          </motion.div>
+        </div>
+
         {/* 빠른 작업 - 데스크톱에서만 표시 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
@@ -564,7 +584,7 @@ export default function AdminDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.7 }}
             className="mt-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
           >
             <div className="flex items-center justify-between mb-6">

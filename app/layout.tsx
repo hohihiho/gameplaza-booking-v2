@@ -9,18 +9,20 @@ import ServiceWorkerRegister from './components/service-worker-register'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 // import DynamicFavicon from './components/DynamicFavicon'
 import { checkDatabaseEnvironment } from '@/lib/server/check-db-env'
-import SentryInit from './components/SentryInit'
-import DevErrorWatcher from './components/dev-error-watcher'
-import ToasterHost from './components/toaster-host'
+// import SentryInit from './components/SentryInit'
+// import DevErrorWatcher from './components/dev-error-watcher'
+// import ToasterHost from './components/toaster-host'
 
 // 서버 시작 시 DB 환경 체크
 if (typeof window === 'undefined') {
   checkDatabaseEnvironment();
 }
 
-// NOTE: Avoid next/font.google during restricted network builds
-// Use system fonts; add local font later if needed
-const orbitron = { variable: '' } as { variable: string }
+// Orbitron 폰트 - 로컬 폰트 파일 사용 (네트워크 독립적)
+// CSS에서 @font-face로 정의되어 있음
+const orbitron = {
+  variable: '--font-orbitron'
+}
 
 export const metadata: Metadata = {
   title: '광주 게임플라자 - Gwangju Game Plaza',
@@ -98,12 +100,12 @@ export default function RootLayout({
         <meta name="privacy-policy-url" content="https://gameplaza-v2.vercel.app/privacy" />
         <meta name="terms-of-service-url" content="https://gameplaza-v2.vercel.app/terms" />
       </head>
-      <body 
+      <body
         className={`font-sans bg-gray-50 dark:bg-gray-950`}
         suppressHydrationWarning={true}
       >
         {/* Sentry (옵션) - 환경변수에 DSN이 있으면 자동 초기화 */}
-        <SentryInit />
+        {/* <SentryInit /> */}
         {/* 스킵 링크 - 키보드 사용자를 위한 빠른 네비게이션 */}
         <a 
           href="#main-content" 
@@ -141,17 +143,14 @@ export default function RootLayout({
               {/* Dev/Test only helpers */}
               {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_TEST_MODE === 'true') && (
                 <>
-                  <ToasterHost />
-                  <DevErrorWatcher />
+                  {/* <ToasterHost /> */}
+                  {/* <DevErrorWatcher /> */}
                 </>
               )}
             </ThemeProvider>
           </Providers>
         </BetterAuthProvider>
-        {process.env.NODE_ENV === 'development' && (
-          <script src="/monitor.js" defer></script>
-        )}
-          <script src="/mega-monitor.js" defer></script>
+        {/* 모니터링 스크립트 제거됨 */}
         </body>
     </html>
   )

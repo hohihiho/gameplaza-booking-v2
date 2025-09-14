@@ -47,7 +47,7 @@ export function BetterAuthProvider({ children }: { children: ReactNode }) {
   // 세션 가져오기
   const fetchSession = async () => {
     try {
-      const response = await fetch('/api/v3/auth/session');
+      const response = await fetch('/api/auth/session');
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
@@ -97,8 +97,6 @@ export function BetterAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        // 쿠키 삭제
-        document.cookie = 'authToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         setSession(null);
         router.push('/');
       }

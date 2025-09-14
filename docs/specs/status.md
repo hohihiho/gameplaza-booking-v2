@@ -56,6 +56,72 @@
 - Moderation 통합 가이드 — ✅ (`docs/specs/deployment/moderation-integration.md`)
  - 랭킹 직급 크론 훅 — ✅ (`/api/cron/rebuild-roles`, CRON_SECRET 필요)
 
+## Admin UI (2025-09-14 추가)
+- 관리자 대시보드 메인 — ✅ (`/admin` - 실시간 기기/예약 현황 위젯)
+- 기기 관리 UI — ✅ (`/admin/devices` - 일괄 편집, 필터링, CSV 내보내기)
+- 예약 관리 UI — ✅ (`/admin/reservations` - 검색/필터/일괄 처리)
+- 사용자 권한 관리 UI — ✅ (`/admin/users` - Better Auth 통합, 역할 변경, 제재 관리)
+- AI 비속어 필터링 UI — ✅ (`/admin/banned-words` - AI 분석, 7개 카테고리, 4단계 심각도)
+- 실시간 알림 시스템 UI — ✅ (`/admin/notifications` - 5개 채널 관리, 템플릿 시스템, 발송 로그)
+- 통계 및 분석 대시보드 — ✅ (`/admin/analytics` - 시간대별/기기별/사용자별 분석)
+
+## Realtime Features (2025-09-14 추가)
+- WebSocket 클라이언트 — ✅ (`/lib/realtime/ws-client.ts` - 10초 폴백 패턴)
+- 실시간 기기 상태 위젯 — ✅ (`/admin/components/RealtimeDeviceWidget.tsx`)
+- 실시간 예약 현황 위젯 — ✅ (`/admin/components/RealtimeReservationWidget.tsx`)
+- 실시간 동기화 — ✅ (WebSocket + Cloudflare Durable Objects 통합)
+
+## API Migration & Optimization (2025-09-14 완료)
+- V2→V3 API 클라이언트 전환 — ✅ (`/lib/api/reservations.ts`, `/lib/hooks/useCreateReservation.ts` 등)
+- 사용자 예약 페이지 V3 연동 — ✅ (`/app/reservations/*` - 전체 예약 플로우 V3 통합)
+- V2 API 정리 및 분석 — ✅ (비즈니스 로직 100% V3, 운영 API V2 유지)
+- 성능 모니터링 대시보드 — ✅ (`/app/admin/monitoring/page.tsx` - 실시간 메트릭 수집)
+- 클라이언트 성능 메트릭 통합 — ✅ (`/lib/monitoring/performance.ts` 활용)
+- API 응답시간 최적화 — ✅ (평균 345ms 달성, D1 마이그레이션 효과 검증)
+
+## Performance & Operations (2025-09-14 추가)
+- 자동화된 성능 테스트 — ✅ (`/scripts/performance-test.js` - 8개 엔드포인트 벤치마크)
+- 성능 리포트 시스템 — ✅ (`/docs/PERFORMANCE_REPORT.md` - 345ms 평균 응답시간)
+- V2 API 전환 분석 — ✅ (`/docs/V2_API_ANALYSIS.md` - 100% 마이그레이션 완료)
+- 실시간 기능 고도화 설계 — ✅ (`/docs/REALTIME_ENHANCEMENT_PLAN.md` - Durable Objects 아키텍처)
+
+## Testing & Quality Assurance (2025-09-14 추가)
+- 전체 기능 분석 및 테스트 요구사항 도출 — ✅ (15개 specs 파일 완전 분석)
+- 포괄적 QA 테스트 계획 수립 — ✅ (`/docs/testing/complete-qa-test-plan.md` - 10개 주요 영역, 400+ 라인)
+- 실제 API 엔드포인트 기반 테스트 시나리오 — ✅ (Better Auth, Cloudflare D1, AI 모더레이션 통합)
+- 모바일 퍼스트 테스트 케이스 — ✅ (3G 환경, 터치 인터페이스, 접근성 WCAG 2.1 AA)
+- KST 시간대 + 24-29시 표기법 검증 — ✅ (시간대 처리 전문 테스트 포함)
+- 랭킹 시스템 자동화 테스트 — ✅ (일일 크론 작업, 역할 부여 로직)
+- GitHub Actions 자동화 워크플로우 — ✅ (CI/CD 파이프라인 포함)
+
+## 앞으로 해야 할 작업 (Todo)
+### 사용자 UI 개선
+- 메인 페이지 리디자인 — ⬜ (모바일 최적화, 빠른 예약 위젯)
+- 예약 생성 UI 개선 — ⬜ (단계별 가이드, 실시간 가용성 체크)
+- 마이페이지 통합 — ⬜ (예약 내역, 이용 통계, 프로필 관리)
+- 실시간 기기 현황 보기 — ⬜ (사용자용 실시간 대시보드)
+
+### 추가 기능 구현
+- 포인트/크레딧 시스템 — ⬜ (적립, 사용, 이력 관리)
+- 리뷰 및 평점 시스템 — ⬜ (기기별 리뷰, 평점, 추천)
+- 소셜 로그인 확장 — ⬜ (네이버, 카카오 로그인 추가)
+- 푸시 알림 고도화 — ⬜ (세분화된 알림 설정, 개인화)
+
+### 성능 및 인프라
+- CDN 최적화 — ⬜ (이미지, 정적 자원 CDN 배포)
+- 데이터베이스 샤딩 — ⬜ (대용량 트래픽 대비)
+- 로드 밸런싱 구현 — ⬜ (다중 워커 분산 처리)
+- 백업 자동화 — ⬜ (일일 백업, 복구 시스템)
+
+### 보안 강화
+- 2FA 인증 구현 — ⬜ (관리자 계정 2단계 인증)
+- API Rate Limiting 강화 — ⬜ (사용자별 제한, DDoS 방어)
+- 데이터 암호화 확장 — ⬜ (민감 정보 E2E 암호화)
+- 보안 감사 로그 — ⬜ (모든 관리자 작업 추적)
+
 ## Notes
-- 프론트(UI)는 손대지 않음. 관리자/사용자 화면은 요청 시 API로 바로 연결 가능.
-- 스펙 상세는 `docs/specs/database/*.md` 참고.
+- 프론트(UI)는 ~~손대지 않음~~ → **2025-09-14 관리자 UI 전면 개선 완료**
+- 관리자 화면 모두 v3 API 연결 완료
+- **사용자 화면 V3 API 연결 완료** → **2025-09-14 예약 시스템 전체 V3 통합**
+- **운영최적화 체크리스트 100% 완료** → 성능/모니터링/최적화 모든 영역 달성
+- 스펙 상세는 `docs/specs/database/*.md` 참고

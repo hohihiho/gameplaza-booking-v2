@@ -2,7 +2,10 @@ Cloudflare Worker: DB API (D1)
 
 Overview
 - Exposes D1-backed endpoints for the Next.js app to consume via HTTP.
-- Current route: `GET /public/schedule?year&month` returning scheduleEvents, reservations, devices.
+- Routes:
+  - Public: `GET /public/schedule?year&month` (scheduleEvents, reservations, devices)
+  - CMS Contents: `GET /guide-contents?category=slug`, `POST /guide-contents`, `PUT /guide-contents/:id`, `DELETE /guide-contents/:id`
+  - CMS Categories: `GET /guide-categories`, `POST /guide-categories`, `PUT /guide-categories/:id`, `DELETE /guide-categories/:id`
 
 Prerequisites
 - Cloudflare account with D1 enabled
@@ -35,6 +38,16 @@ Setup Steps
 Notes
 - You can override the DB name used by migration scripts with `D1_DB_NAME` env var.
 - CORS is permissive (`*`) for ease of local dev; consider locking down origins for production.
+
+Admin protection
+- The worker expects an admin token on POST/PUT/DELETE for CMS routes:
+  - Header: `Authorization: Bearer <token>`
+  - Configure secret in Worker: `npx wrangler secret put ADMIN_API_TOKEN`
+- Next.js proxies will forward `CMS_ADMIN_TOKEN` if set in `.env.local`.
+
+Seeding CMS categories
+- Dev: `npm run db-api:seed-cms:dev`
+- Prod: `npm run db-api:seed-cms:prod`
 
 KV Cache (optional)
 - Create namespaces:

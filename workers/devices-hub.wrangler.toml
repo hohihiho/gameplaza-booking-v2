@@ -1,0 +1,27 @@
+name = "devices-hub"
+main = "./devices-hub.ts"
+compatibility_date = "2024-01-01"
+
+[durable_objects]
+bindings = [
+  { name = "DEVICES_HUB", class_name = "DevicesHub" }
+]
+
+[[migrations]]
+tag = "devices-hub-v1"
+new_sqlite_classes = ["DevicesHub"]
+
+[vars]
+# Set via `wrangler secret put PUBLISH_SECRET` for auth-protected publish.
+
+[env.development]
+routes = [
+  { pattern = "dev.gameplaza.kr/ws/*", zone_id = "bec19190c3aadcb866d5e3311a18dab6" },
+  { pattern = "dev.gameplaza.kr/internal/*", zone_id = "bec19190c3aadcb866d5e3311a18dab6" }
+]
+
+[env.production]
+routes = [
+  { pattern = "gameplaza.kr/ws/*", zone_id = "bec19190c3aadcb866d5e3311a18dab6" },
+  { pattern = "gameplaza.kr/internal/*", zone_id = "bec19190c3aadcb866d5e3311a18dab6" }
+]

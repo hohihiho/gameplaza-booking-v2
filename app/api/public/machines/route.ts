@@ -104,7 +104,12 @@ export async function GET() {
     })
   } catch (error) {
     console.error('GET /api/public/machines error:', error)
+    const message = (error as Error)?.message || ''
+    // In dev, gracefully degrade when D1 is not configured
+    if (process.env.NODE_ENV !== 'production' && message.includes('Database is not configured')) {
+      console.warn('[machines] D1 not configured; returning empty dataset for development')
+      return NextResponse.json({ success: true, categories: [], rules: [] })
+    }
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
   }
 }
-

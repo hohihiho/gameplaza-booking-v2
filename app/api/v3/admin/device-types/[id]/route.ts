@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/utils'
-import { d1GetDeviceTypeById, d1UpdateDeviceType, d1DeleteDeviceType } from '@/lib/db/d1'
+import { getD1, d1First, d1Run } from '@/lib/db/d1-utils'
 
-export const GET = withAuth(async (_req: NextRequest, { params }: any) => {
-  const id = Number((await params).id)
-  const item = await d1GetDeviceTypeById(id)
-  if (!item) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 })
-  return NextResponse.json({ device_type: item })
-}, { requireAdmin: true })
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const db = getD1()
+  if (!db) return NextResponse.json({ error: 'D1 not configured' }, { status: 500 })
+  const row = await d1First(db, `SELECT * FROM device_types WHERE id = ?`, params.id)
+  if (!row) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+  return NextResponse.json({ data: row })
+}
 
-export const PUT = withAuth(async (req: NextRequest, { params }: any) => {
-  const id = Number((await params).id)
-  const patch = await req.json()
-  const updated = await d1UpdateDeviceType(id, patch)
-  if (!updated) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 })
-  return NextResponse.json({ device_type: updated })
-}, { requireAdmin: true })
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const db = getD1()
+  if (!db) return NextResponse.json({ error: 'D1 not configured' }, { status: 500 })
+  const body = await req.json()
+  const fields: string[] = []
+  const binds: any[] = []
+  const allowed = ['name','is_rentable','display_order','model_name','version_name','description','rental_settings']
+  for (const k of allowed) {
+    if (body[k] !== undefined) {
+      fields.push(`${k} = ?`)
+      if (k === 'rental_settings') binds.push(JSON.stringify(body[k]))
+      else if (k === 'is_rentable') binds.push(body[k] ? 1 : 0)
+      else binds.push(body[k])
+    }
+  }
+  if (fields.length === 0) return NextResponse.json({ error: 'No fields' }, { status: 400 })
+  const sql = `UPDATE device_types SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+  binds.push(params.id)
+  await d1Run(db, sql, ...binds)
+  return NextResponse.json({ ok: true })
+}
 
-export const DELETE = withAuth(async (_req: NextRequest, { params }: any) => {
-  const id = Number((await params).id)
-  const ok = await d1DeleteDeviceType(id)
-  return new NextResponse(null, { status: ok ? 204 : 404 })
-}, { requireAdmin: true })
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const db = getD1()
+  if (!db) return NextResponse.json({ error: 'D1 not configured' }, { status: 500 })
+  await d1Run(db, `DELETE FROM device_types WHERE id = ?`, params.id)
+  return NextResponse.json({ ok: true })
+}
 

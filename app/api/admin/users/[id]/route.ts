@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db';
+import { getDB, supabase } from '@/lib/db'
 import { withAuth } from '@/lib/auth';
+import { d1GetUserById, d1ListUserRoles, d1ListRecentReservationsByUser, d1CountReservationsByUser, d1CountReservationsByUserWithStatus } from '@/lib/db/d1'
 
 async function handler(_req: NextRequest, { params }: { params: { id: string } }) {
-  import { getDB, supabase } from '@/lib/db';
   const userId = params.id;
 
   try {
-    // 사용자 정보 조회
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (userError) {
-      console.error('사용자 조회 오류:', userError);
-      return NextResponse.json(
-        { error: userError.message },
-        { status: 404 }
-      );
-    }
-
+    // 사용자 정보
+    const user = await d1GetUserById(userId)
     if (!user) {
       return NextResponse.json(
         { error: '사용자를 찾을 수 없습니다' },
@@ -29,60 +16,23 @@ async function handler(_req: NextRequest, { params }: { params: { id: string } }
       );
     }
 
-    // 관리자 정보 확인
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    // 역할 정보 확인 (super_admin 여부)
+    const roles = await d1ListUserRoles(userId)
+    const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
 
-    // 예약 정보 조회
-    const { data: reservations, error: reservationError } = await supabase
-      .from('reservations')
-      .select(`
-        *,
-        devices(
-          id,
-          device_number,
-          device_types(
-            id,
-            name,
-            model_name
-          )
-        )
-      `)
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .order('start_time', { ascending: false })
-      .limit(50);
-
-    if (reservationError) {
-      console.error('예약 조회 오류:', reservationError);
-    }
+    // 예약 정보(+기기/기종) 최근 50건
+    const reservations = await d1ListRecentReservationsByUser(userId, 50)
 
     // 예약 통계
-    const { count: totalReservations } = await supabase
-      .from('reservations')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    const { count: completedReservations } = await supabase
-      .from('reservations')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'completed');
-
-    const { count: cancelledReservations } = await supabase
-      .from('reservations')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'cancelled');
+    const totalReservations = await d1CountReservationsByUser(userId)
+    const completedReservations = await d1CountReservationsByUserWithStatus(userId, 'completed')
+    const cancelledReservations = await d1CountReservationsByUserWithStatus(userId, 'cancelled')
 
     return NextResponse.json({
       user: {
         ...user,
-        isAdmin: !!adminData,
-        isSuperAdmin: adminData?.is_super_admin || false
+        isAdmin: isSuperAdmin,
+        isSuperAdmin: isSuperAdmin
       },
       reservations: reservations || [],
       stats: {

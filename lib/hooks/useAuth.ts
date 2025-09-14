@@ -25,7 +25,7 @@ export function useSession() {
   const fetchSession = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v3/auth/session');
+      const response = await fetch('/api/auth/session');
       const data = await response.json();
 
       if (data.user) {
@@ -63,7 +63,7 @@ export function useSession() {
 // 로그아웃 함수
 export async function signOut(options?: { callbackUrl?: string }) {
   try {
-    const response = await fetch('/api/v3/auth/signout', {
+    const response = await fetch('/api/auth/logout', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,9 +71,6 @@ export async function signOut(options?: { callbackUrl?: string }) {
     });
 
     if (response.ok) {
-      // 브라우저에서 토큰 쿠키 제거
-      document.cookie = 'auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-
       // 리다이렉트
       const callbackUrl = options?.callbackUrl || '/';
       window.location.href = callbackUrl;

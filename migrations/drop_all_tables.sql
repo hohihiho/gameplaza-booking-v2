@@ -1,0 +1,26 @@
+-- Drop all existing tables to start fresh
+DROP TABLE IF EXISTS user_terms_agreements;
+DROP TABLE IF EXISTS terms;
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS time_slots;
+DROP TABLE IF EXISTS reservations;
+DROP TABLE IF EXISTS user_profiles;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS system_settings;
+DROP TABLE IF EXISTS notification_templates;
+DROP TABLE IF EXISTS push_subscriptions;
+DROP TABLE IF EXISTS admin_logs;
+DROP TABLE IF EXISTS holidays;
+DROP TABLE IF EXISTS time_slot_templates;
+DROP TABLE IF EXISTS checkins;
+DROP TABLE IF EXISTS device_types;
+DROP TABLE IF EXISTS device_categories;
+DROP TABLE IF EXISTS play_modes;
+DROP TABLE IF EXISTS machine_rules;
+DROP TABLE IF EXISTS rental_time_blocks;
+DROP TABLE IF EXISTS device_pricing;

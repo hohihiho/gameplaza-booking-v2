@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { HolidayService } from '@/lib/services/holiday.service';
@@ -21,7 +22,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Supabase Admin Client 사용
-    import { getDB, supabase } from '@/lib/db';
     
     // 사용자 ID 조회
     const { data: userData, error: userError } = await supabase

@@ -5,10 +5,16 @@
   },
   "include": [
     "next-env.d.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "lib/**/*.ts",
-    "lib/**/*.tsx",
+    "app/reservations/new/page.tsx",
+    "app/reservations/page.tsx",
+    "app/reservations/[id]/page.tsx",
+    "app/components/mobile/ReservationSkeleton.tsx",
+    "app/components/ui/Calendar.tsx",
+    "app/store/**/*.ts",
+    "lib/utils/kst-date.ts",
+    "lib/hooks/useCreateReservation.ts",
+    "lib/hooks/useAuth.ts",
+    "lib/db.ts",
     "types/**/*.d.ts"
   ],
   "exclude": [
@@ -17,7 +23,15 @@
     "supabase/**",
     "scripts/**",
     "tests/**",
-    "**/__tests__/**"
+    "**/__tests__/**",
+    "app/api/**",
+    "app/admin/**",
+    "app/v3/**",
+    "lib/repositories/**",
+    "lib/services/**",
+    "lib/middleware/**",
+    "lib/better-db.ts",
+    "lib/auth.ts",
+    "lib/server/**"
   ]
 }
-

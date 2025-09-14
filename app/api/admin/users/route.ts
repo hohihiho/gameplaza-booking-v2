@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDB, supabase } from '@/lib/db'
 import { createServiceRoleClient, createAdminClient } from '@/lib/db';
 import { auth } from '@/lib/auth';
 
@@ -44,7 +45,6 @@ export async function GET(_req: NextRequest) {
     );
   }
   
-  import { getDB, supabase } from '@/lib/db';
 
   try {
     // 모든 사용자 정보 조회

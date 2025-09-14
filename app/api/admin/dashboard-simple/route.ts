@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/db'
+import { d1CountDevices, d1CountUsers } from '@/lib/db/d1'
 
 /**
  * 단순화된 관리자 대시보드 API - 디버깅용
@@ -8,21 +8,9 @@ export async function GET() {
   try {
     console.log('Simple dashboard API: Starting request')
     
-    import { getDB, supabase } from '@/lib/db';
-    console.log('Simple dashboard API: Created Supabase client')
-    
-    // 간단한 쿼리 테스트
-    const { count: deviceCount, error: deviceError } = await supabase
-      .from('devices')
-      .count()
-
-    console.log('Device count query result:', { count: deviceCount, error: deviceError })
-
-    const { count: userCount, error: userError } = await supabase
-      .from('users')
-      .count()
-
-    console.log('User count query result:', { count: userCount, error: userError })
+    // D1 집계
+    const deviceCount = await d1CountDevices()
+    const userCount = await d1CountUsers()
     
     return NextResponse.json({
       message: 'Simple dashboard API working',

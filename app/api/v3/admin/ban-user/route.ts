@@ -1,8 +1,7 @@
-import { getDB, supabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
-import { createAdminClient } from '@/lib/db'
+import { d1GetUserByEmail, d1GetUserById, d1ListUserRoles, d1AddUserRestriction, d1DeactivateUserRestrictions, d1SuspendUserForever, d1ListActiveRestrictionsByType, d1DeactivateExpiredRestrictionsForUser, d1UnbanAndUnrestrictUser } from '@/lib/db/d1'
 
 // 스키마 정의
 const BanUserSchema = z.object({
@@ -13,68 +12,24 @@ const BanUserSchema = z.object({
   restrictUntil: z.string().optional() // 제한 해제 날짜 (ISO 8601 format)
 })
 
-// 관리자 권한 체크
+// 관리자 권한 체크 (super_admin)
 async function checkAdminAuth() {
   const session = await auth()
   if (!session?.user?.email) {
     return { authorized: false, error: '로그인이 필요합니다', status: 401 }
   }
-
-  const supabaseAdmin = createAdminClient()
-  const { data: adminData } = await supabaseAdmin
-    .from('users')
-    .select('id, role')
-    .eq('email', session.user.email)
-    .single()
-
-  if (!adminData || (adminData.role !== 'admin' && adminData.role !== 'super_admin')) {
-    return { authorized: false, error: '관리자 권한이 필요합니다', status: 403 }
-  }
-
-  return { authorized: true, adminId: adminData.id, isSuperAdmin: adminData.role === 'super_admin' }
+  const me = await d1GetUserByEmail(session.user.email)
+  if (!me) return { authorized: false, error: '사용자 정보를 찾을 수 없습니다', status: 404 }
+  const roles = await d1ListUserRoles(me.id)
+  const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+  if (!isSuperAdmin) return { authorized: false, error: '관리자 권한이 필요합니다', status: 403 }
+  return { authorized: true, adminId: me.id, isSuperAdmin }
 }
 
-// 제한 상태 체크 및 자동 해제
-async function checkAndUpdateRestriction(userId: string, email: string) {
-  const supabaseAdmin = createAdminClient()
-  
-  // 사용자 정보 조회
-  const { data: userData } = await supabaseAdmin
-    .from('users')
-    .select('is_blacklisted, is_restricted, restricted_until')
-    .eq('id', userId)
-    .single()
-
-  if (!userData) return null
-
-  // 제한 기간이 지났는지 체크
-  if (userData.is_restricted && userData.restricted_until) {
-    const restrictedUntil = new Date(userData.restricted_until)
-    const now = new Date()
-    
-    if (now > restrictedUntil) {
-      // 제한 기간이 지났으므로 자동 해제
-      await supabaseAdmin
-        .from('users')
-        .update({ 
-          is_restricted: false,
-          restricted_until: null,
-          restriction_reason: null
-        })
-        .eq('id', userId)
-
-      // 블랙리스트 이메일에서도 비활성화
-      await supabaseAdmin
-        .from('blacklist_emails')
-        .update({ is_active: false })
-        .eq('email', email)
-        .eq('ban_type', 'restrict')
-
-      return { ...userData, is_restricted: false }
-    }
-  }
-
-  return userData
+// 제한 상태 체크 및 자동 해제 (만료된 제한 비활성화)
+async function checkAndUpdateRestriction(userId: string) {
+  await d1DeactivateExpiredRestrictionsForUser(userId)
+  return true
 }
 
 // POST /api/v3/admin/ban-user - 유저 정지/제한/해제
@@ -91,25 +46,13 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const validated = BanUserSchema.parse(body)
-    
-    const supabaseAdmin = createAdminClient()
-    
+
     // 유저 정보 조회 (userId 또는 email로)
-    let userData
+    let userData: any
     if (validated.userId) {
-      const { data } = await supabaseAdmin
-        .from('users')
-        .select('id, email, role, is_blacklisted, is_restricted')
-        .eq('id', validated.userId)
-        .single()
-      userData = data
+      userData = await d1GetUserById(validated.userId)
     } else if (validated.email) {
-      const { data } = await supabaseAdmin
-        .from('users')
-        .select('id, email, role, is_blacklisted, is_restricted')
-        .eq('email', validated.email)
-        .single()
-      userData = data
+      userData = await d1GetUserByEmail(validated.email)
     } else {
       return NextResponse.json({
         success: false,
@@ -124,8 +67,10 @@ export async function POST(req: NextRequest) {
       }, { status: 404 })
     }
 
-    // 관리자는 정지/제한할 수 없음
-    if (userData.role === 'admin' || userData.role === 'super_admin') {
+    // super_admin(관리자)은 정지/제한 불가
+    const roles = await d1ListUserRoles(userData.id)
+    const isAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+    if (isAdmin) {
       return NextResponse.json({
         success: false,
         error: '관리자 계정은 정지하거나 제한할 수 없습니다'
@@ -133,40 +78,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (validated.action === 'ban') {
-      // 영구 정지 처리
-      // 1. users 테이블 업데이트
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({ 
-          is_blacklisted: true,
-          is_restricted: false, // 제한 해제 (정지가 우선)
-          blacklisted_at: new Date().toISOString(),
-          blacklist_reason: validated.reason || '관리자에 의한 영구 정지',
-          restricted_until: null,
-          restriction_reason: null
-        })
-        .eq('id', userData.id)
-
-      if (updateError) throw updateError
-
-      // 2. 블랙리스트 이메일 기록 (재가입 방지)
-      await supabaseAdmin
-        .from('blacklist_emails')
-        .upsert({
-          email: userData.email,
-          ban_type: 'permanent',
-          reason: validated.reason || '관리자에 의한 영구 정지',
-          banned_at: new Date().toISOString(),
-          banned_by: authResult.adminId,
-          is_active: true,
-          expires_at: null // 영구 정지는 만료 없음
-        })
-
-      // 3. 활성 세션 종료
-      await supabaseAdmin
-        .from('sessions')
-        .delete()
-        .eq('userId', userData.id)
+      // 영구 정지 처리 (D1)
+      await d1SuspendUserForever(userData.id, validated.reason, authResult.adminId)
 
       return NextResponse.json({
         success: true,
@@ -196,39 +109,13 @@ export async function POST(req: NextRequest) {
         }, { status: 400 })
       }
 
-      // 1. users 테이블 업데이트
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({ 
-          is_restricted: true,
-          is_blacklisted: false, // 영구 정지 해제 (제한으로 변경)
-          restricted_until: restrictUntil.toISOString(),
-          restriction_reason: validated.reason || '관리자에 의한 임시 제한',
-          blacklisted_at: null,
-          blacklist_reason: null
-        })
-        .eq('id', userData.id)
-
-      if (updateError) throw updateError
-
-      // 2. 블랙리스트 이메일 기록 (제한 기간 동안 재가입 방지)
-      await supabaseAdmin
-        .from('blacklist_emails')
-        .upsert({
-          email: userData.email,
-          ban_type: 'restrict',
-          reason: validated.reason || '관리자에 의한 임시 제한',
-          banned_at: new Date().toISOString(),
-          banned_by: authResult.adminId,
-          is_active: true,
-          expires_at: restrictUntil.toISOString()
-        })
-
-      // 3. 활성 세션 종료
-      await supabaseAdmin
-        .from('sessions')
-        .delete()
-        .eq('userId', userData.id)
+      await d1AddUserRestriction(userData.id, {
+        restriction_type: 'restricted',
+        reason: validated.reason,
+        start_date: new Date().toISOString(),
+        end_date: restrictUntil.toISOString(),
+        created_by: authResult.adminId
+      })
 
       // 제한 기간 계산
       const days = Math.ceil((restrictUntil.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -246,27 +133,8 @@ export async function POST(req: NextRequest) {
       })
       
     } else {
-      // 정지/제한 해제
-      // 1. users 테이블 업데이트
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({ 
-          is_blacklisted: false,
-          is_restricted: false,
-          blacklisted_at: null,
-          blacklist_reason: null,
-          restricted_until: null,
-          restriction_reason: null
-        })
-        .eq('id', userData.id)
-
-      if (updateError) throw updateError
-
-      // 2. 블랙리스트 이메일 비활성화
-      await supabaseAdmin
-        .from('blacklist_emails')
-        .update({ is_active: false })
-        .eq('email', userData.email)
+      // 정지/제한 해제 (D1)
+      await d1UnbanAndUnrestrictUser(userData.id)
 
       return NextResponse.json({
         success: true,
@@ -309,59 +177,27 @@ export async function GET(req: NextRequest) {
       }, { status: authResult.status })
     }
 
-    const supabaseAdmin = createAdminClient()
-    
-    // 정지된 사용자 목록 조회
-    const { data: bannedUsers, error: bannedError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, name, is_blacklisted, blacklisted_at, blacklist_reason, created_at')
-      .eq('is_blacklisted', true)
-      .order('blacklisted_at', { ascending: false })
-
-    if (bannedError) throw bannedError
-
-    // 제한된 사용자 목록 조회
-    const { data: restrictedUsers, error: restrictedError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, name, is_restricted, restricted_until, restriction_reason, created_at')
-      .eq('is_restricted', true)
-      .order('restricted_until', { ascending: true }) // 해제 날짜가 가까운 순
-
-    if (restrictedError) throw restrictedError
+    // 정지/제한 사용자 목록 (D1)
+    const bannedUsers = await d1ListActiveRestrictionsByType('suspended')
+    const restrictedUsers = await d1ListActiveRestrictionsByType('restricted')
 
     // 제한 기간이 지난 사용자 자동 해제
     const now = new Date()
     const autoUnbanned = []
     
-    for (const user of restrictedUsers || []) {
-      if (user.restricted_until && new Date(user.restricted_until) <= now) {
-        // 자동 해제
-        await checkAndUpdateRestriction(user.id, user.email)
-        autoUnbanned.push(user.email)
+    for (const ur of restrictedUsers || []) {
+      if (ur.end_date && new Date(ur.end_date) <= now) {
+        await checkAndUpdateRestriction(ur.user_id)
+        autoUnbanned.push(ur.email)
       }
     }
-
-    // 블랙리스트 이메일 목록 조회 (재가입 방지용)
-    const { data: blacklistEmails } = await supabaseAdmin
-      .from('blacklist_emails')
-      .select('email, ban_type, reason, banned_at, expires_at')
-      .eq('is_active', true)
-      .order('banned_at', { ascending: false })
-
-    // 업데이트된 제한 사용자 목록 재조회
-    const { data: updatedRestrictedUsers } = await supabaseAdmin
-      .from('users')
-      .select('id, email, name, is_restricted, restricted_until, restriction_reason, created_at')
-      .eq('is_restricted', true)
-      .order('restricted_until', { ascending: true })
 
     return NextResponse.json({
       success: true,
       bannedUsers: bannedUsers || [],
-      restrictedUsers: updatedRestrictedUsers || [],
-      blacklistEmails: blacklistEmails || [],
+      restrictedUsers: restrictedUsers || [],
       totalBanned: bannedUsers?.length || 0,
-      totalRestricted: updatedRestrictedUsers?.length || 0,
+      totalRestricted: restrictedUsers?.length || 0,
       autoUnbanned: autoUnbanned.length > 0 ? autoUnbanned : undefined
     })
   } catch (error) {

@@ -145,25 +145,30 @@ export default function MainActionButtons() {
         )}
         
         {/* 메인 액션 카드들 - 5개 버튼 레이아웃 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6 mb-8">
           {mainActions.map((action, index) => (
             <motion.div
               key={action.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={index === 4 ? 'col-span-2 md:col-span-1' : ''}
+              className={
+                index === 4
+                  ? 'col-span-2 sm:col-span-3 md:col-span-1 justify-self-stretch sm:justify-self-stretch md:justify-self-auto'
+                  : ''
+              }
             >
               <Link
                 href={action.href}
-                className="block relative group"
+                className="block relative group h-full"
               >
                 <div className={`
-                  relative overflow-hidden rounded-3xl p-6 h-full
+                  relative overflow-hidden rounded-3xl p-4 sm:p-5 md:p-6 h-full min-h-[160px]
                   bg-white dark:bg-gray-800 backdrop-blur-sm
                   border border-gray-200 dark:border-gray-700
                   shadow-lg hover:shadow-2xl ${action.shadowColor}
                   transform transition-all duration-300 hover:-translate-y-2
+                  flex flex-col
                 `}>
                   {/* 배경 그라데이션 */}
                   <div className={`
@@ -171,35 +176,35 @@ export default function MainActionButtons() {
                     bg-gradient-to-br ${action.gradient}
                     transition-opacity duration-300
                   `} />
-                  
+
                   {/* 플로팅 아이콘 */}
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.2 }}
                     className={`
                       inline-flex items-center justify-center
-                      w-16 h-16 rounded-2xl mb-4
+                      w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl mb-3 sm:mb-4
                       ${action.iconBg}
                       transition-transform duration-300
                     `}
                   >
-                    <action.icon className={`w-8 h-8 ${action.iconColor} flex-shrink-0`} />
+                    <action.icon className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 ${action.iconColor} flex-shrink-0`} />
                   </motion.div>
-                  
+
                   {/* 텍스트 콘텐츠 */}
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     {action.label}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm line-clamp-2">
                     {action.description}
                   </p>
                   
                   
                   {/* 호버 시 화살표 */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className={`
-                      w-10 h-10 rounded-full bg-gradient-to-r ${action.gradient}
-                      flex items-center justify-center text-white
+                      w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r ${action.gradient}
+                      flex items-center justify-center text-white text-sm sm:text-base
                       transform group-hover:translate-x-1 transition-transform duration-300
                     `}>
                       →

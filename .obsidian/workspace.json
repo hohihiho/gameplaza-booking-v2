@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "CLAUDE.md",
+                "file": "docs/specs/rhythm-rental.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "CLAUDE"
+              "title": "rhythm-rental"
             }
           }
         ]
@@ -171,18 +171,20 @@
   },
   "active": "7b45eab121eb9ee0",
   "lastOpenFiles": [
+    "app/layout.tsx.tmp.66752.1757820557448",
+    "app/admin/page.tsx.tmp.72572.1757820237827",
+    "app/admin/components/RealtimeReservationWidget.tsx",
+    "app/admin/components/RealtimeDeviceWidget.tsx",
+    "migrations/drop_all_tables.sql",
+    "docs/ops/handoff-gameplaza-realtime.md",
+    "docs/ops",
+    "app/api/guide-categories/[id]/route.ts",
+    "app/api/guide-categories/[id]",
+    "app/api/guide-categories/route.ts",
+    "app/api/guide-categories",
+    "CLAUDE.md",
     "package.json.tmp.22066.1757795469645",
-    "scripts/integrated-monitor.js",
-    "scripts/simple-ws-server.js",
-    "node_modules/chokidar/index.d.ts",
-    "node_modules/chokidar/handler.d.ts",
-    "node_modules/chalk/source/index.d.ts",
     "node_modules/unplugin/node_modules/chokidar/README.md",
-    "node_modules/unplugin/node_modules/chokidar/types/index.d.ts",
-    "node_modules/unplugin/node_modules/chokidar/types",
-    "node_modules/chalk/source/utilities.js",
-    "node_modules/unplugin/node_modules/chokidar/package.json",
-    "node_modules/chokidar/handler.js",
     "node_modules/mimic-function/readme.md",
     "node_modules/@jest/console/node_modules/chalk/readme.md",
     "node_modules/babel-jest/node_modules/chalk/readme.md",
@@ -205,8 +207,6 @@
     "node_modules/@jest/types/node_modules/supports-color/readme.md",
     "node_modules/eslint/node_modules/supports-color/readme.md",
     "node_modules/jest-util/node_modules/supports-color/readme.md",
-    "node_modules/jest-runtime/node_modules/supports-color/readme.md",
-    "node_modules/unplugin/node_modules/glob-parent/README.md",
     "node_modules/concurrently/docs/demo.gif",
     "test-results/specs-site-pages-auth-Admi-ce604-tics-reservations-for-admin-chromium/test-failed-1.png",
     "playwright-report/data/bd27d5eb053cbdc266a788100da7b960f963d868.png",

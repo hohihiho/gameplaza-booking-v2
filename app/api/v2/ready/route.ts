@@ -1,3 +1,4 @@
+import { d1Ping } from '@/lib/db/d1'
 import { NextResponse } from 'next/server';
 
 /**
@@ -16,16 +17,11 @@ export async function GET() {
   const details: Record<string, any> = {};
 
   try {
-    // 1. 데이터베이스 연결 확인
+    // 1. 데이터베이스 연결 확인 (D1)
     const dbCheckStart = Date.now();
     try {
-//       import { getDB, supabase } from '@/lib/db';
-      const { error } = await supabase
-        .from('devices')
-        .select('id')
-        .limit(1);
-
-      if (!error) {
+      const ping = await d1Ping()
+      if (ping.ok) {
         checks.database = true;
         details.database = {
           status: 'connected',
@@ -34,7 +30,7 @@ export async function GET() {
       } else {
         details.database = {
           status: 'error',
-          error: error.message,
+          error: 'D1 ping failed',
           responseTime: Date.now() - dbCheckStart,
         };
       }
@@ -48,8 +44,7 @@ export async function GET() {
 
     // 2. 환경 설정 확인
     const requiredEnvVars = [
-      'NEXT_PUBLIC_SUPABASE_URL',
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'D1_ENABLED'
     ];
 
     const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);

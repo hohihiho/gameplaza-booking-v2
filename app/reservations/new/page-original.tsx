@@ -1,6 +1,8 @@
 // 예약 신청 페이지
 // 비전공자 설명: 새로운 게임기 예약을 신청하는 페이지입니다
 'use client';
+import { useSession } from '@/lib/hooks/useAuth'
+// supabase 의존 제거
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';

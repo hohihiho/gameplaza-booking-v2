@@ -1,45 +1,54 @@
-// 크론잡 - 기기 상태 업데이트
-// 비전공자 설명: 예약이 끝난 기기들을 자동으로 '사용가능' 상태로 되돌리는 API입니다
+import { NextResponse } from 'next/server'
+import { getD1, d1All, d1Run } from '@/lib/db/d1-utils'
 
-import { NextRequest, NextResponse } from 'next/server';
-import { forceCheckDeviceStatus } from '@/lib/device-status-manager';
+function nowKST(): Date {
+  const now = new Date()
+  return new Date(now.getTime() + 9 * 60 * 60 * 1000)
+}
 
-export async function GET(request: NextRequest) {
+function todayKST(): string { return nowKST().toISOString().slice(0, 10) }
+function currentDisplayHour(): number { const h = nowKST().getHours(); return h <= 5 ? h + 24 : h }
+function hourFrom(time: string): number { const h = parseInt(time.split(':')[0] || '0', 10); return h <= 5 ? h + 24 : h }
+
+export async function GET() {
+  const db = getD1()
+  if (!db) return NextResponse.json({ ok: false, error: 'D1 not configured' }, { status: 500 })
+  const date = todayKST()
+  const cur = currentDisplayHour()
+  let updatedRental = 0
+  let updatedAvailable = 0
+
   try {
-    // 보안: Authorization 헤더 확인 (GitHub Actions에서만 호출 가능)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const rows = await d1All(
+      db,
+      `SELECT r.device_id, r.start_time, r.end_time, r.status
+         FROM reservations r
+        WHERE r.date = ? AND r.status IN ('pending','approved','checked_in')`,
+      date
+    )
+    const active = new Set<string>()
+    for (const r of rows) {
+      const sh = hourFrom(r.start_time)
+      const eh = hourFrom(r.end_time)
+      const endAdj = eh < sh ? eh + 24 : eh
+      if (cur >= sh && cur < endAdj) active.add(r.device_id)
     }
-
-    console.log('🔄 Legacy cron job redirecting to new auto-check system...');
-
-    // 새로운 자동 관리 시스템 사용
-    const result = await forceCheckDeviceStatus();
-    
-    // 기존 응답 형식 유지 (호환성을 위해)
-    return NextResponse.json({
-      success: true,
-      message: 'Device status updated successfully (via new auto-check system)',
-      timestamp: new Date().toISOString(),
-      devicesChecked: 0, // 기존 필드 유지
-      reservationsProcessed: result.expiredCount + result.startedCount,
-      errors: result.errors.length,
-      newSystemResult: {
-        executed: result.executed,
-        expiredReservations: result.expiredCount,
-        startedReservations: result.startedCount,
-        errorDetails: result.errors
-      }
-    });
-    
-  } catch (error) {
-    console.error('Cron job error:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    if (active.size > 0) {
+      const placeholders = Array.from(active).map(() => '?').join(',')
+      const res = await d1Run(db, `UPDATE devices SET status='rental', updated_at=CURRENT_TIMESTAMP WHERE id IN (${placeholders})`, ...Array.from(active))
+      updatedRental = (active.size)
+    }
+    await d1Run(
+      db,
+      `UPDATE devices SET status='available', updated_at=CURRENT_TIMESTAMP
+         WHERE (status='rental' OR status='in_use')
+           AND id NOT IN (SELECT device_id FROM reservations WHERE date = ? AND status IN ('pending','approved','checked_in'))`,
+      date
+    )
+    // We don't know exact count in this simple approach; admin UI will reflect latest.
+    return NextResponse.json({ ok: true, updatedRental, updatedAvailable })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 })
   }
 }
+

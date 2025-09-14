@@ -1,3 +1,4 @@
+import { getDB, supabase } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server';
 
 // 활성 약관 조회 API (content_pages 테이블 사용)
@@ -14,21 +15,33 @@ export async function GET(request: NextRequest) {
     
 //     import { getDB, supabase } from '@/lib/db';
     
-    let query = supabase
-      .from('content_pages')
-      .select('*')
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false });
-    
-    // 특정 타입이 요청된 경우 필터링
-    if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
-      query = query.eq('slug', type);
+    // 호환 레이어: 실제 Supabase 클라이언트 또는 목 객체 모두 지원
+    // 1) 체이너블 쿼리 빌더가 있으면 그대로 사용
+    const base = (supabase as any).from('content_pages').select('*')
+    let data: any[] | null = null
+    let error: any = null
+    if (base && typeof (base as any).eq === 'function') {
+      let qb = (base as any).eq('is_published', true).order('updated_at', { ascending: false })
+      if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
+        qb = qb.eq('slug', type)
+      } else {
+        qb = qb.in('slug', ['terms_of_service', 'privacy_policy'])
+      }
+      const res = await qb
+      data = res?.data ?? null
+      error = res?.error ?? null
     } else {
-      // type이 지정되지 않은 경우 약관 관련 페이지만 조회
-      query = query.in('slug', ['terms_of_service', 'privacy_policy']);
+      // 2) 체이닝이 불가능한 목: 전체를 받아 필터링
+      const res = await (supabase as any).from('content_pages').select('*')
+      data = (res?.data ?? []).filter((row: any) => !!row?.is_published)
+      if (type && ['terms_of_service', 'privacy_policy'].includes(type)) {
+        data = data.filter((row: any) => row?.slug === type)
+      } else {
+        data = data.filter((row: any) => ['terms_of_service', 'privacy_policy'].includes(row?.slug))
+      }
+      // 최신순 정렬 흉내
+      data.sort((a: any, b: any) => String(b?.updated_at || '').localeCompare(String(a?.updated_at || '')))
     }
-    
-    const { data, error } = await query;
     
     if (error) {
       console.error('약관 조회 오류:', error);

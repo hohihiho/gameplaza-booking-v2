@@ -1,62 +1,46 @@
-// 예약 관리 페이지
-// 비전공자 설명: 관리자가 예약을 승인, 거절, 관리하는 페이지입니다
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from '@/hooks/useToast';
-// Supabase Auth는 사용하지 않음 - NextAuth 사용
-import { 
-  Calendar,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Timer,
-  Search,
-  // Filter,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  User,
-  Gamepad2,
-  Phone,
-  MessageCircle,
-  Eye,
-  X,
-  Trash2
-} from 'lucide-react';
-import { useAdminReservationRealtime } from '@/lib/hooks/useReservationRealtime';
+import React, { useState, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Calendar, Clock, CheckCircle, XCircle, Timer, Search, Filter,
+  ChevronLeft, ChevronRight, AlertCircle, User, Gamepad2, Phone,
+  MessageCircle, Eye, X, Trash2, Download, Edit3, RefreshCw,
+  CheckSquare, Square, MoreVertical, Mail, CreditCard, Users,
+  TrendingUp, Loader2, FileText, ArrowUpDown
+} from 'lucide-react'
+import { format, addDays, subDays, startOfWeek, endOfWeek, isToday } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 // 24시간 이상 시간 포맷팅
 const formatTime = (time: string) => {
-  if (!time) return '';
-  // 초가 포함된 경우 제거 (HH:MM:SS -> HH:MM)
-  const timeParts = time.split(':');
-  const hour = timeParts[0];
-  const minute = timeParts[1] || '00';
-  
-  if (!hour) return '';
-  const h = parseInt(hour);
+  if (!time) return ''
+  const timeParts = time.split(':')
+  const hour = timeParts[0]
+  const minute = timeParts[1] || '00'
+
+  if (!hour) return ''
+  const h = parseInt(hour)
   // 0~5시는 24~29시로 표시
   if (h >= 0 && h <= 5) {
-    return `${h + 24}:${minute}`;
+    return `${h + 24}:${minute}`
   }
-  return `${hour}:${minute}`;
-};
+  return `${hour}:${minute}`
+}
 
-// 시간대 구분 함수
+// 시간대 구분
 const getShiftType = (startTime: string) => {
-  if (!startTime) return null;
-  const [hour] = startTime.split(':');
-  const h = parseInt(hour || '0');
-  
+  if (!startTime) return null
+  const [hour] = startTime.split(':')
+  const h = parseInt(hour || '0')
+
   if (h >= 6 && h <= 23) {
-    return 'early'; // 조기영업 (06:00-23:59)
+    return 'early' // 조기영업
   } else if (h >= 0 && h <= 5) {
-    return 'night'; // 밤샘영업 (00:00-05:59)
+    return 'night' // 밤샘영업
   }
-  return null;
-};
+  return null
+}
 
 // 시간대 뱃지 스타일
 const getShiftBadgeStyle = (shiftType: string | null) => {
@@ -66,1785 +50,1037 @@ const getShiftBadgeStyle = (shiftType: string | null) => {
         bg: 'bg-orange-100 dark:bg-orange-900/30',
         text: 'text-orange-700 dark:text-orange-300',
         label: '조기'
-      };
+      }
     case 'night':
       return {
         bg: 'bg-indigo-100 dark:bg-indigo-900/30',
         text: 'text-indigo-700 dark:text-indigo-300',
         label: '밤샘'
-      };
+      }
     default:
-      return null;
+      return null
   }
-};
+}
+
+type ReservationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed' | 'checked_in' | 'no_show'
 
 type Reservation = {
-  id: string;
+  id: string
+  reservation_number: string
   user: {
-    id: string;
-    name: string;
-    phone: string;
-    email: string;
-  };
+    id: string
+    name: string
+    phone: string
+    email: string
+  }
   device: {
-    type_name: string;
-    device_number: number;
-    model_name?: string;
-    version_name?: string;
-  };
-  date: string;
-  time_slot: string;
-  player_count: number;
-  credit_option: string;
-  total_price: number;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed' | 'checked_in' | 'no_show';
-  notes?: string;
-  admin_notes?: string;
-  created_at: string;
-  reviewed_at?: string;
-  reviewed_by?: string;
-};
+    type_name: string
+    device_number: number
+    model_name?: string
+    version_name?: string
+  }
+  date: string
+  start_time: string
+  end_time: string
+  people_count: number
+  credit_option: string
+  total_price: number
+  status: ReservationStatus
+  created_at: string
+  updated_at: string
+  memo?: string
+  payment_method?: string
+}
+
+const statusConfig = {
+  pending: {
+    label: '승인대기',
+    icon: Timer,
+    color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30',
+    dotColor: 'bg-yellow-500'
+  },
+  approved: {
+    label: '승인됨',
+    icon: CheckCircle,
+    color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
+    dotColor: 'bg-blue-500'
+  },
+  rejected: {
+    label: '거절됨',
+    icon: XCircle,
+    color: 'text-red-600 bg-red-100 dark:bg-red-900/30',
+    dotColor: 'bg-red-500'
+  },
+  cancelled: {
+    label: '취소됨',
+    icon: X,
+    color: 'text-gray-600 bg-gray-100 dark:bg-gray-900/30',
+    dotColor: 'bg-gray-500'
+  },
+  checked_in: {
+    label: '체크인',
+    icon: User,
+    color: 'text-green-600 bg-green-100 dark:bg-green-900/30',
+    dotColor: 'bg-green-500'
+  },
+  completed: {
+    label: '완료',
+    icon: CheckCircle,
+    color: 'text-gray-600 bg-gray-100 dark:bg-gray-800/30',
+    dotColor: 'bg-gray-400'
+  },
+  no_show: {
+    label: '노쇼',
+    icon: AlertCircle,
+    color: 'text-red-600 bg-red-100 dark:bg-red-900/30',
+    dotColor: 'bg-red-500'
+  }
+}
+
+type SortField = 'date' | 'status' | 'created_at' | 'user_name' | 'device_name'
+type SortOrder = 'asc' | 'desc'
 
 export default function ReservationManagementPage() {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [allReservations, setAllReservations] = useState<Reservation[]>([]); // 전체 예약 데이터 저장
-  const [tabCounts, setTabCounts] = useState<Record<string, number>>({}); // 각 탭의 개수 저장
-  const [selectedStatus, setSelectedStatus] = useState<string>('pending');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedYear, setSelectedYear] = useState('all'); // 기본값을 'all'로 변경
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectingReservationId, setRejectingReservationId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  // NextAuth 세션 정보는 API가 자동으로 처리
-  
-  // 복수 선택 상태
-  const [selectedReservationIds, setSelectedReservationIds] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
-  
-  // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // 한 페이지에 10개씩 표시
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [selectedReservations, setSelectedReservations] = useState<Set<string>>(new Set())
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [dateRange, setDateRange] = useState<'day' | 'week' | 'month'>('day')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<ReservationStatus | 'all'>('all')
+  const [filterShift, setFilterShift] = useState<'early' | 'night' | 'all'>('all')
+  const [sortField, setSortField] = useState<SortField>('created_at')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
+  const [showDetail, setShowDetail] = useState(false)
+  const [bulkEditMode, setBulkEditMode] = useState(false)
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | 'cancel' | ''>('')
 
-  // 영업일 기준 날짜 변환 함수
-  const getBusinessDate = (date: string, startTime: string) => {
-    const [year, month, day] = date.split('-').map(Number);
-    const [hour] = startTime.split(':').map(Number);
-    
-    // 기본값 설정
-    const safeYear = year || new Date().getFullYear();
-    const safeMonth = month || 1;
-    const safeDay = day || 1;
-    
-    // 0~5시는 전날 영업일로 간주
-    if (hour !== undefined && hour >= 0 && hour <= 5) {
-      const businessDate = new Date(safeYear, safeMonth - 1, safeDay - 1);
-      return businessDate;
-    } else {
-      const businessDate = new Date(safeYear, safeMonth - 1, safeDay);
-      return businessDate;
-    }
-  };
+  // 예약 데이터 로드
+  const loadReservations = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      let startDate: string, endDate: string
 
-  // 데이터 정렬 함수 (공통 사용)
-  const sortReservationsData = (data: any[]) => {
-    console.log('정렬 전 데이터:', data.map(d => ({ id: d.id, status: d.status, date: d.date, start_time: d.start_time })));
-    console.log('오늘 날짜:', new Date().toISOString().split('T')[0]);
-    
-    // 현재 시점 계산 (KST 기준)
-    const now = new Date();
-    const currentDate = now.toISOString().split('T')[0] || '';
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTotalMinutes = currentHour * 60 + currentMinute;
-    
-    const sorted = [...data].sort((a, b) => {
-      // 1. 상태별 우선순위 (기획서 기준: 대기중 → 승인 → 체크인 → 완료/취소)
-      const statusPriority: Record<string, number> = {
-        'pending': 1,    // 대기중
-        'approved': 2,   // 승인됨
-        'checked_in': 3, // 체크인
-        'completed': 4,  // 완료
-        'cancelled': 4,  // 취소 (완료와 동일 순위)
-        'rejected': 4,   // 거절 (완료와 동일 순위)
-        'no_show': 5     // 노쇼
-      };
-
-      const aPriority = statusPriority[a.status] || 999;
-      const bPriority = statusPriority[b.status] || 999;
-
-      // 상태가 다르면 우선순위로 정렬
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority;
-      }
-
-      // 같은 상태 내에서 정렬
-      if (a.status === 'pending' || a.status === 'approved' || a.status === 'checked_in') {
-        // 대기중/승인됨/체크인: 대여일이 가까운 순
-        
-        // 날짜가 없는 경우 기본값 처리
-        if (!a.date || !b.date) {
-          return a.date ? -1 : (b.date ? 1 : 0);
-        }
-        
-        // 과거/미래 여부 판단
-        const todayStr = currentDate;
-        
-        const aIsPast = a.date < todayStr || 
-                        (a.date === todayStr && 
-                         a.start_time && 
-                         parseInt(a.start_time.split(':')[0]) * 60 + parseInt(a.start_time.split(':')[1] || '0') < currentTotalMinutes);
-        
-        const bIsPast = b.date < todayStr || 
-                        (b.date === todayStr && 
-                         b.start_time && 
-                         parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1] || '0') < currentTotalMinutes);
-        
-        // 과거와 미래가 섞여있으면, 미래가 먼저 (과거는 후순위)
-        if (aIsPast !== bIsPast) {
-          return aIsPast ? 1 : -1;  // 미래 예약이 먼저
-        }
-        
-        // 둘 다 과거 예약이면 최신순(내림차순)으로 정렬
-        if (aIsPast && bIsPast) {
-          // 날짜가 최신인 것이 먼저 (내림차순)
-          const dateDiff = b.date.localeCompare(a.date);
-          if (dateDiff !== 0) {
-            return dateDiff;
-          }
-          // 같은 날짜면 시간이 늦은 것이 먼저
-          const aMinutes = parseInt(a.start_time?.split(':')[0] || '0') * 60 + parseInt(a.start_time?.split(':')[1] || '0');
-          const bMinutes = parseInt(b.start_time?.split(':')[0] || '0') * 60 + parseInt(b.start_time?.split(':')[1] || '0');
-          return bMinutes - aMinutes;
-        }
-        
-        // 둘 다 미래 예약이면 기존 로직대로 (가까운 날짜 먼저)
-        // 영업일 기준으로 날짜 계산
-        const aBusinessDate = getBusinessDate(a.date, a.start_time || '00:00:00');
-        const bBusinessDate = getBusinessDate(b.date, b.start_time || '00:00:00');
-        
-        // 시간 파싱
-        let aHour = 0, aMinute = 0, bHour = 0, bMinute = 0;
-        if (a.start_time) {
-          const timeParts = a.start_time.split(':');
-          aHour = parseInt(timeParts[0] || '0');
-          aMinute = parseInt(timeParts[1] || '0');
-        }
-        if (b.start_time) {
-          const timeParts = b.start_time.split(':');
-          bHour = parseInt(timeParts[0] || '0');
-          bMinute = parseInt(timeParts[1] || '0');
-        }
-        
-        // 먼저 영업일 비교
-        const businessDateDiff = aBusinessDate.getTime() - bBusinessDate.getTime();
-        if (businessDateDiff !== 0) {
-          return businessDateDiff;
-        }
-        
-        // 같은 영업일이면 시간대별로 구분
-        // 조기영업(06:00-23:59)과 밤샘영업(00:00-05:59) 구분
-        const aIsNightShift = aHour >= 0 && aHour <= 5;
-        const bIsNightShift = bHour >= 0 && bHour <= 5;
-        
-        // 같은 영업일에서 조기영업이 먼저, 밤샘영업이 뒤로
-        if (aIsNightShift !== bIsNightShift) {
-          return aIsNightShift ? 1 : -1; // 조기영업(false)이 먼저, 밤샘영업(true)이 뒤로
-        }
-        
-        // 같은 시간대 내에서는 실제 시간 순서로
-        const aActualMinutes = aHour * 60 + aMinute;
-        const bActualMinutes = bHour * 60 + bMinute;
-        
-        // 논리적 시간 계산 (밤샘시간은 24~29시로 표시)
-        const aLogicalHour = aIsNightShift ? aHour + 24 : aHour;
-        const bLogicalHour = bIsNightShift ? bHour + 24 : bHour;
-        
-        // 같은 시간대면 신청 순서(created_at)로 정렬
-        if (aActualMinutes === bActualMinutes) {
-          const aCreated = new Date(a.created_at);
-          const bCreated = new Date(b.created_at);
-          return aCreated.getTime() - bCreated.getTime(); // 먼저 신청한 순서
-        }
-        
-        const result = aActualMinutes - bActualMinutes;
-        console.log(`정렬 비교 (영업일 기준): ${a.date} ${a.start_time} (영업일: ${aBusinessDate.toDateString()}, 논리시간: ${aLogicalHour}:${aMinute.toString().padStart(2,'0')}) vs ${b.date} ${b.start_time} (영업일: ${bBusinessDate.toDateString()}, 논리시간: ${bLogicalHour}:${bMinute.toString().padStart(2,'0')}) = ${result}`);
-        
-        return result;
+      if (dateRange === 'day') {
+        startDate = format(selectedDate, 'yyyy-MM-dd')
+        endDate = startDate
+      } else if (dateRange === 'week') {
+        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
+        startDate = format(weekStart, 'yyyy-MM-dd')
+        endDate = format(weekEnd, 'yyyy-MM-dd')
       } else {
-        // 완료/취소/거절/노쇼: 최신순 (생성일 기준)
-        const aCreated = new Date(a.created_at || a.updated_at);
-        const bCreated = new Date(b.created_at || b.updated_at);
-        return bCreated.getTime() - aCreated.getTime();
-      }
-    });
-    
-    console.log('정렬 후 데이터:', sorted.map(d => ({ id: d.id, status: d.status, date: d.date, start_time: d.start_time })));
-    return sorted;
-  };
-
-  // Supabase에서 예약 데이터 가져오기
-  const fetchReservations = async (year?: string) => {
-    try {
-      setIsLoading(true);
-      
-      // URL 파라미터 구성
-      const params = new URLSearchParams();
-      if (year && year !== 'all') {
-        params.append('year', year);
-      }
-      params.append('limit', '200'); // 성능을 위해 200건으로 제한
-      
-      // v2 API 사용 (v1은 deprecated)
-      const apiUrl = `/api/v2/admin/reservations?${params}`;
-      
-      console.log('API 호출 시작:', apiUrl);
-      
-      // NextAuth는 쿠키 기반 인증을 사용하므로 별도의 헤더가 필요 없음
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' // 쿠키 포함 (NextAuth 세션 쿠키)
-      });
-      console.log('API 응답 상태:', response.status);
-      console.log('API 응답 헤더:', response.headers);
-      
-      // 응답 텍스트를 먼저 가져오기
-      const responseText = await response.text();
-      console.log('API 응답 텍스트:', responseText);
-      
-      if (!response.ok) {
-        console.error('API 응답 에러:', responseText);
-        // 인증 에러인 경우 처리
-        if (response.status === 401 || response.status === 403) {
-          console.error('인증 에러: 관리자 권한이 필요합니다');
-          alert('관리자 권한이 필요합니다. 다시 로그인해주세요.');
-          // 로그인 페이지로 리다이렉트
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(responseText || '예약 데이터를 불러올 수 없습니다');
-      }
-      
-      // JSON 파싱 시도
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON 파싱 에러:', parseError);
-        console.error('파싱 실패한 텍스트:', responseText);
-        throw new Error('응답 데이터 파싱 실패');
-      }
-      
-      console.log('API 응답 전체:', responseData);
-      console.log('API 응답 success:', responseData.success);
-      console.log('API 응답 data:', responseData.data);
-      
-      // v2 API 응답 형식
-      const reservationsData = responseData.data?.reservations || [];
-      
-      console.log('예약 데이터 개수:', reservationsData.length);
-      console.log('예약 데이터:', reservationsData);
-      
-      // 첫 번째 예약 데이터의 구조 확인
-      if (reservationsData && reservationsData.length > 0) {
-        console.log('첫 번째 예약 데이터 구조:', reservationsData[0]);
+        startDate = format(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1), 'yyyy-MM-dd')
+        endDate = format(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0), 'yyyy-MM-dd')
       }
 
-
-      // 정렬된 데이터
-      const sortedData = sortReservationsData(reservationsData || []);
-
-      // 데이터 포맷팅 (v2 API 형식)
-      const formattedData: Reservation[] = sortedData.map((res: any) => {
-        // 디버깅: 시간과 금액 정보 로그
-        console.log('예약 데이터 변환:', {
-          id: res.id,
-          start_time: res.start_time,
-          end_time: res.end_time, 
-          total_amount: res.total_amount,
-          type: typeof res.total_amount
-        });
-        
-        // v2 API 형식 (snake_case)
-        return {
-            id: res.id,
-            user: {
-              id: res.user_id,
-              name: res.user_name || '알 수 없음',
-              phone: res.user_phone || '',
-              email: res.user_email || ''
-            },
-            device: {
-              type_name: res.device_type_name || '알 수 없음',
-              device_number: res.device_number || res.assigned_device_number || 0,
-              model_name: res.device_model_name,
-              version_name: res.device_version_name
-            },
-            date: res.date || '',
-            time_slot: res.start_time && res.end_time ? 
-              `${formatTime(res.start_time)}-${formatTime(res.end_time)}` : '',
-            player_count: res.player_count || 1,
-            credit_option: (() => {
-              if (res.credit_type === 'fixed') return '고정크레딧';
-              if (res.credit_type === 'freeplay') return '프리플레이';
-              if (res.credit_type === 'unlimited') return '무한크레딧';
-              return res.credit_type || '알 수 없음';
-            })(),
-            total_price: typeof res.total_amount === 'string' ? parseFloat(res.total_amount) : (res.total_amount || 0),
-            status: res.status,
-            notes: res.user_notes || res.notes,  // user_notes가 있으면 사용, 없으면 notes 사용
-            admin_notes: res.admin_notes,
-            created_at: res.created_at,
-            reviewed_at: res.approved_at || res.updated_at,
-            reviewed_by: res.approved_by || (res.status !== 'pending' ? '관리자' : undefined)
-          };
-        // v1 API 지원 제거됨
-      });
-
-      // 디버깅: user_notes 확인
-      console.log('관리자 예약 데이터 샘플:', formattedData.slice(0, 3).map(r => ({
-        id: r.id,
-        notes: r.notes,
-        raw_data: r
-      })));
-      
-      setAllReservations(formattedData);
-      
-      // 각 탭의 개수 계산
-      const counts: Record<string, number> = {
-        all: formattedData.length,
-        pending: formattedData.filter(r => r.status === 'pending').length,
-        approved: formattedData.filter(r => r.status === 'approved').length,
-        checked_in: formattedData.filter(r => r.status === 'checked_in').length,
-        cancelled: formattedData.filter(r => r.status === 'cancelled' || r.status === 'rejected').length,
-        completed: formattedData.filter(r => r.status === 'completed').length,
-        no_show: formattedData.filter(r => r.status === 'no_show').length
-      };
-      setTabCounts(counts);
-    } catch (error) {
-      console.error('예약 데이터 불러오기 실패:', error);
-      console.error('에러 상세:', error instanceof Error ? error.message : error);
-      setAllReservations([]);
-      setReservations([]);
-      setTabCounts({});
+      const res = await fetch(`/api/v3/reservations?startDate=${startDate}&endDate=${endDate}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      setReservations(json.reservations || [])
+    } catch (e: any) {
+      setError(e?.message || '불러오기 실패')
     } finally {
-      setIsLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-
-  // 초기 로드
   useEffect(() => {
-    fetchReservations(selectedYear);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  // 연도 변경 시 데이터 다시 로드
-  useEffect(() => {
-    if (selectedYear) {
-      fetchReservations(selectedYear);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear]);
+    loadReservations()
+  }, [selectedDate, dateRange])
 
-  // 실시간 동기화 설정
-  useAdminReservationRealtime({
-    onUpdate: (payload) => {
-      // 예약 상태가 업데이트되면 목록 새로고침
-      if (payload.new) {
-        setAllReservations(prev => 
-          prev.map(res => res.id === payload.new.id ? {
-            ...res,
-            status: payload.new.status,
-            admin_notes: payload.new.admin_notes,
-            approved_at: payload.new.approved_at,
-            updated_at: payload.new.updated_at,
-            payment_status: payload.new.payment_status,
-            check_in_at: payload.new.check_in_at
-          } : res)
-        );
-      }
-    },
-    onInsert: (payload) => {
-      // 새 예약이 추가되면 데이터 다시 로드
-      if (payload.new) {
-        fetchReservations(selectedYear);
-      }
-    },
-    onDelete: (payload) => {
-      // 예약이 삭제되면 목록에서 제거
-      if (payload.old) {
-        setAllReservations(prev => 
-          prev.filter(res => res.id !== payload.old.id)
-        );
-      }
-    }
-  });
-
-  // 필터링 및 검색 처리
-  useEffect(() => {
-    if (allReservations.length > 0) {
-      filterReservations();
-    }
-    // 필터링 시 선택 해제
-    clearSelection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStatus, searchQuery, selectedDate, allReservations]);
-
-  // 선택된 항목이 있을 때 일괄 처리 버튼 표시
-  useEffect(() => {
-    setShowBulkActions(selectedReservationIds.length > 0);
-  }, [selectedReservationIds]);
-
-  // 필터링 함수
-  const filterReservations = () => {
-    let filtered = [...allReservations];
-    
-    // 상태 필터링
-    if (selectedStatus !== 'all') {
-      if (selectedStatus === 'cancelled') {
-        filtered = filtered.filter(r => r.status === 'cancelled' || r.status === 'rejected');
-      } else {
-        filtered = filtered.filter(r => r.status === selectedStatus);
-      }
-    }
-    
-    // 검색 필터링
-    if (searchQuery) {
-      filtered = filtered.filter(r => 
-        r.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.user.phone.includes(searchQuery) ||
-        r.device.type_name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    // 연도별 필터링 (특정 날짜가 선택되지 않은 경우)
-    if (!selectedDate && selectedYear !== 'all') {
-      filtered = filtered.filter(r => {
-        if (!r.date) return false;
-        const reservationYear = new Date(r.date).getFullYear().toString();
-        return reservationYear === selectedYear;
-      });
-    }
-    
-    // 특정 날짜 필터링 (연도 필터보다 우선)
-    if (selectedDate) {
-      filtered = filtered.filter(r => r.date === selectedDate);
-    }
-    
-    // 필터링 후 정렬 적용
-    const sortedFiltered = sortReservationsData(filtered);
-    
-    setReservations(sortedFiltered);
-    setCurrentPage(1); // 필터 변경 시 첫 페이지로
-  };
-
-  // 실시간 업데이트는 useAdminReservationRealtime 훅이 처리
-
-
-  const getStatusBadge = (status: Reservation['status']) => {
-    switch (status) {
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
-            <Timer className="w-4 h-4" />
-            승인 대기
-          </span>
-        );
-      case 'approved':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-            <CheckCircle className="w-4 h-4" />
-            승인됨
-          </span>
-        );
-      case 'rejected':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
-            <XCircle className="w-4 h-4" />
-            취소됨
-          </span>
-        );
-      case 'cancelled':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400">
-            <XCircle className="w-4 h-4" />
-            취소됨
-          </span>
-        );
-      case 'completed':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-            <CheckCircle className="w-4 h-4" />
-            완료됨
-          </span>
-        );
-      case 'checked_in':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
-            <CheckCircle className="w-4 h-4" />
-            체크인
-          </span>
-        );
-      case 'no_show':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-            <AlertCircle className="w-4 h-4" />
-            노쇼
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const handleApprove = async (reservationId: string) => {
+  // 예약 상태 변경
+  const updateReservationStatus = async (id: string, status: ReservationStatus) => {
     try {
-      setIsLoading(true);
-      
-      // v2 API 사용
-      const apiUrl = '/api/v2/admin/reservations';
-      
-      const response = await fetch(apiUrl, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // NextAuth 세션 쿠키 포함
-        body: JSON.stringify({
-          id: reservationId,
-          status: 'approved',
-          reviewedBy: '관리자'
-        }),
-      });
+      let endpoint = ''
+      if (status === 'approved') endpoint = `/api/v3/reservations/${id}/approve`
+      else if (status === 'rejected') endpoint = `/api/v3/reservations/${id}/reject`
+      else if (status === 'cancelled') endpoint = `/api/v3/reservations/${id}/cancel`
+      else if (status === 'no_show') endpoint = `/api/v3/reservations/${id}/no-show`
+      else return
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '예약 승인에 실패했습니다');
+      const res = await fetch(endpoint, { method: 'POST' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      await loadReservations()
+    } catch (e) {
+      console.error('Status update error:', e)
+      setError('상태 변경 실패')
+    }
+  }
+
+  // 일괄 상태 변경
+  const updateBulkStatus = async () => {
+    if (selectedReservations.size === 0 || !bulkAction) {
+      setError('선택된 예약이 없거나 작업이 선택되지 않았습니다')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    try {
+      const promises = Array.from(selectedReservations).map(id => {
+        const reservation = reservations.find(r => r.id === id)
+        if (!reservation) return Promise.resolve()
+
+        let status: ReservationStatus
+        if (bulkAction === 'approve') status = 'approved'
+        else if (bulkAction === 'reject') status = 'rejected'
+        else if (bulkAction === 'cancel') status = 'cancelled'
+        else return Promise.resolve()
+
+        return updateReservationStatus(id, status)
+      })
+
+      await Promise.all(promises)
+      await loadReservations()
+      setSelectedReservations(new Set())
+      setBulkEditMode(false)
+      setBulkAction('')
+    } catch (e) {
+      console.error('Bulk update error:', e)
+      setError('일괄 변경 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // 필터링 및 정렬
+  const filteredAndSorted = useMemo(() => {
+    let filtered = [...reservations]
+
+    // 검색 필터
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      filtered = filtered.filter(r =>
+        r.user.name.toLowerCase().includes(search) ||
+        r.user.phone.includes(search) ||
+        r.user.email.toLowerCase().includes(search) ||
+        r.device.type_name.toLowerCase().includes(search) ||
+        r.reservation_number.toLowerCase().includes(search)
+      )
+    }
+
+    // 상태 필터
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(r => r.status === filterStatus)
+    }
+
+    // 시간대 필터
+    if (filterShift !== 'all') {
+      filtered = filtered.filter(r => getShiftType(r.start_time) === filterShift)
+    }
+
+    // 정렬
+    filtered.sort((a, b) => {
+      let compareValue = 0
+
+      switch (sortField) {
+        case 'date':
+          compareValue = new Date(`${a.date} ${a.start_time}`).getTime() -
+                        new Date(`${b.date} ${b.start_time}`).getTime()
+          break
+        case 'status':
+          compareValue = a.status.localeCompare(b.status)
+          break
+        case 'created_at':
+          compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          break
+        case 'user_name':
+          compareValue = a.user.name.localeCompare(b.user.name)
+          break
+        case 'device_name':
+          compareValue = a.device.type_name.localeCompare(b.device.type_name)
+          break
       }
 
-      // 로컬 상태 업데이트
-      const updatedReservations = allReservations.map(r => 
-        r.id === reservationId 
-          ? { 
-              ...r, 
-              status: 'approved' as const, 
-              reviewed_at: new Date().toISOString(),
-              reviewed_by: '관리자'
-            }
-          : r
-      );
-      setAllReservations(updatedReservations);
-      
-      // 탭 개수 업데이트
-      const counts = { ...tabCounts };
-      counts.pending = (counts.pending || 1) - 1;
-      counts.approved = (counts.approved || 0) + 1;
-      setTabCounts(counts);
-      
-      // 성공 토스트 표시
-      toast.success('예약이 승인되었습니다');
-    } catch (error) {
-      console.error('예약 승인 실패:', error);
-      toast.error('예약 승인에 실패했습니다');
-    } finally {
-      setIsLoading(false);
+      return sortOrder === 'asc' ? compareValue : -compareValue
+    })
+
+    return filtered
+  }, [reservations, searchTerm, filterStatus, filterShift, sortField, sortOrder])
+
+  // 통계 계산
+  const stats = useMemo(() => {
+    const statusCounts: Record<ReservationStatus, number> = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      checked_in: 0,
+      completed: 0,
+      no_show: 0
     }
-  };
 
-  const handleReject = async (reservationId: string) => {
-    setRejectingReservationId(reservationId);
-    setShowRejectModal(true);
-  };
+    filteredAndSorted.forEach(r => {
+      statusCounts[r.status]++
+    })
 
-  // 복수 선택 관련 함수들
-  const handleSelectReservation = (reservationId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedReservationIds(prev => [...prev, reservationId]);
+    return {
+      total: filteredAndSorted.length,
+      ...statusCounts,
+      revenue: filteredAndSorted
+        .filter(r => r.status === 'completed' || r.status === 'checked_in')
+        .reduce((sum, r) => sum + r.total_price, 0)
+    }
+  }, [filteredAndSorted])
+
+  // 전체 선택/해제
+  const toggleSelectAll = () => {
+    if (selectedReservations.size === filteredAndSorted.length) {
+      setSelectedReservations(new Set())
     } else {
-      setSelectedReservationIds(prev => prev.filter(id => id !== reservationId));
+      setSelectedReservations(new Set(filteredAndSorted.map(r => r.id)))
     }
-  };
+  }
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const pendingIds = reservations
-        .filter(r => r.status === 'pending')
-        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-        .map(r => r.id);
-      setSelectedReservationIds(pendingIds);
+  // 정렬 토글
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
     } else {
-      setSelectedReservationIds([]);
+      setSortField(field)
+      setSortOrder('asc')
     }
-  };
+  }
 
-  const clearSelection = () => {
-    setSelectedReservationIds([]);
-    setShowBulkActions(false);
-  };
+  // CSV 다운로드
+  const downloadCSV = () => {
+    const headers = ['예약번호', '날짜', '시간', '사용자', '연락처', '기기', '인원', '요금', '상태']
+    const rows = filteredAndSorted.map(r => [
+      r.reservation_number,
+      r.date,
+      `${formatTime(r.start_time)}~${formatTime(r.end_time)}`,
+      r.user.name,
+      r.user.phone,
+      `${r.device.type_name} #${r.device.device_number}`,
+      r.people_count,
+      r.total_price,
+      statusConfig[r.status].label
+    ])
 
-  // 복수 승인 처리
-  const handleBulkApprove = async () => {
-    if (selectedReservationIds.length === 0) return;
-
-    try {
-      setIsLoading(true);
-      
-      // 각 예약을 순차적으로 승인 처리
-      const promises = selectedReservationIds.map(async (reservationId) => {
-        const response = await fetch('/api/v2/admin/reservations', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            id: reservationId,
-            status: 'approved',
-            reviewedBy: '관리자'
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`예약 ${reservationId} 승인 실패`);
-        }
-        return reservationId;
-      });
-
-      await Promise.all(promises);
-
-      // 로컬 상태 업데이트
-      const updatedReservations = allReservations.map(r => 
-        selectedReservationIds.includes(r.id)
-          ? { 
-              ...r, 
-              status: 'approved' as const, 
-              reviewed_at: new Date().toISOString(),
-              reviewed_by: '관리자'
-            }
-          : r
-      );
-      setAllReservations(updatedReservations);
-      
-      // 탭 개수 업데이트
-      const counts = { ...tabCounts };
-      counts.pending = (counts.pending || selectedReservationIds.length) - selectedReservationIds.length;
-      counts.approved = (counts.approved || 0) + selectedReservationIds.length;
-      setTabCounts(counts);
-      
-      clearSelection();
-      toast.success(`${selectedReservationIds.length}건의 예약이 승인되었습니다`);
-    } catch (error) {
-      console.error('복수 승인 실패:', error);
-      toast.error('일부 예약 승인에 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 복수 거절 처리
-  const handleBulkReject = () => {
-    setShowBulkRejectModal(true);
-  };
-
-  const confirmBulkReject = async () => {
-    if (selectedReservationIds.length === 0) return;
-
-    const finalReason = rejectReason.trim() || '기타';
-
-    try {
-      setIsLoading(true);
-      
-      // 각 예약을 순차적으로 거절 처리
-      const promises = selectedReservationIds.map(async (reservationId) => {
-        const response = await fetch('/api/v2/admin/reservations', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            id: reservationId,
-            status: 'rejected',
-            reviewedBy: '관리자',
-            notes: `취소 사유: ${finalReason}`,
-            rejection_reason: finalReason
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`예약 ${reservationId} 거절 실패`);
-        }
-        return reservationId;
-      });
-
-      await Promise.all(promises);
-
-      // 로컬 상태 업데이트
-      const updatedReservations = allReservations.map(r => 
-        selectedReservationIds.includes(r.id)
-          ? { 
-              ...r, 
-              status: 'rejected' as const, 
-              reviewed_at: new Date().toISOString(),
-              reviewed_by: '관리자',
-              notes: `취소 사유: ${finalReason}`
-            }
-          : r
-      );
-      setAllReservations(updatedReservations);
-      
-      // 탭 개수 업데이트
-      const counts = { ...tabCounts };
-      counts.pending = (counts.pending || selectedReservationIds.length) - selectedReservationIds.length;
-      counts.cancelled = (counts.cancelled || 0) + selectedReservationIds.length;
-      setTabCounts(counts);
-      
-      setShowBulkRejectModal(false);
-      setRejectReason('');
-      clearSelection();
-      toast.success(`${selectedReservationIds.length}건의 예약이 취소되었습니다`);
-    } catch (error) {
-      console.error('복수 거절 실패:', error);
-      toast.error('일부 예약 취소에 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const confirmReject = async () => {
-    // 사유가 비어있으면 기타로 설정
-    const finalReason = rejectReason.trim() || '기타';
-
-    try {
-      setIsLoading(true);
-      
-      // v2 API 사용
-      const apiUrl = '/api/v2/admin/reservations';
-      
-      const response = await fetch(apiUrl, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // NextAuth 세션 쿠키 포함
-        body: JSON.stringify({
-          id: rejectingReservationId,
-          status: 'rejected',
-          reviewedBy: '관리자',
-          notes: `취소 사유: ${finalReason}`,
-          rejection_reason: finalReason
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '예약 거절에 실패했습니다');
-      }
-
-      // 로컬 상태 업데이트
-      const updatedReservations = allReservations.map(r => 
-        r.id === rejectingReservationId 
-          ? { 
-              ...r, 
-              status: 'rejected' as const, 
-              reviewed_at: new Date().toISOString(),
-              reviewed_by: '관리자',
-              notes: `취소 사유: ${finalReason}`
-            }
-          : r
-      );
-      setAllReservations(updatedReservations);
-      
-      // 탭 개수 업데이트
-      const counts = { ...tabCounts };
-      counts.pending = (counts.pending || 1) - 1;
-      counts.cancelled = (counts.cancelled || 0) + 1;
-      setTabCounts(counts);
-      
-      setShowRejectModal(false);
-      setRejectingReservationId(null);
-      setRejectReason('');
-      
-      // 성공 토스트 표시
-      toast.success('예약이 취소되었습니다');
-    } catch (error) {
-      console.error('예약 취소 실패:', error);
-      toast.error('예약 취소에 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `reservations_${format(selectedDate, 'yyyy-MM-dd')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
-    <>
-      {/* 상단 고정 헤더 */}
-      <div className="sticky top-0 z-40 bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
-        <div className="w-full px-3 sm:px-6">
-          {/* 페이지 타이틀 */}
-          <div className="pt-4 pb-3">
-            <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* 헤더 */}
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold dark:text-white mb-1">예약 관리</h1>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  예약 요청을 검토하고 승인/취소합니다 (최근 200건 표시, 더 많은 데이터는 검색 사용)
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  예약 관리
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  총 {stats.total}건 • 매출 ₩{stats.revenue.toLocaleString()}
                 </p>
               </div>
-              {/* 조기영업 일정 관리 버튼 */}
+            </div>
+            <div className="flex items-center gap-3">
+              {bulkEditMode && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-2"
+                >
+                  <select
+                    value={bulkAction}
+                    onChange={(e) => setBulkAction(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">작업 선택</option>
+                    <option value="approve">일괄 승인</option>
+                    <option value="reject">일괄 거절</option>
+                    <option value="cancel">일괄 취소</option>
+                  </select>
+                  <button
+                    onClick={updateBulkStatus}
+                    disabled={saving || selectedReservations.size === 0 || !bulkAction}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckSquare className="w-4 h-4" />
+                    )}
+                    실행 ({selectedReservations.size})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setBulkEditMode(false)
+                      setSelectedReservations(new Set())
+                      setBulkAction('')
+                    }}
+                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </motion.div>
+              )}
               <button
-                onClick={async () => {
-                  if (confirm('누락된 조기영업 일정을 검사하고 자동 생성하시겠습니까?')) {
-                    try {
-                      const response = await fetch('/api/admin/schedule/check-missing', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ autoFix: true })
-                      });
-                      const result = await response.json();
-                      if (result.success) {
-                        toast.success(`${result.summary.created}개의 조기영업 일정이 생성되었습니다`);
-                      } else {
-                        toast.error(result.message || '일정 생성에 실패했습니다');
-                      }
-                    } catch (error) {
-                      toast.error('오류가 발생했습니다');
-                      console.error(error);
-                    }
-                  }
-                }}
-                className="px-3 py-2 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={() => setBulkEditMode(!bulkEditMode)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  bulkEditMode
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
               >
-                <AlertCircle className="w-4 h-4 inline mr-1" />
-                조기영업 일정 점검
+                <Edit3 className="w-4 h-4 inline mr-2" />
+                일괄 편집
+              </button>
+              <button
+                onClick={downloadCSV}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
+              <button
+                onClick={loadReservations}
+                disabled={loading}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                새로고침
               </button>
             </div>
           </div>
+        </div>
 
-          {/* 상태 필터 탭 - 모바일 최적화 */}
-          <div className="w-full overflow-x-auto">
-            <div className="flex gap-1 pb-2 min-w-max">
-              {Object.entries(tabCounts).map(([status, count]) => {
-                // rejected 상태와 동일한 경우 cancelled로 처리
-                const isActive = selectedStatus === status || 
-                                (selectedStatus === 'rejected' && status === 'cancelled');
-                
-                return (
-                  <button
-                    key={status}
-                    onClick={() => {
-                      setSelectedStatus(status);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-3 py-2 text-xs font-medium whitespace-nowrap relative rounded-lg transition-all ${
-                      isActive
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {status === 'all' && '전체'}
-                    {status === 'pending' && '대기'}
-                    {status === 'approved' && '승인'}
-                    {status === 'checked_in' && '체크인'}
-                    {status === 'cancelled' && '취소'}
-                    {status === 'completed' && '완료'}
-                    {status === 'no_show' && '노쇼'}
-                    {status === 'pending' && <span className="ml-1 text-[10px]">({count})</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 검색 및 필터 */}
-          <div className="py-2 sm:py-3 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex flex-col gap-2 sm:gap-3">
-              {/* 첫 번째 줄: 검색 */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="이름, 전화번호, 기종명 검색 (Enter 키로 검색)"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              {/* 두 번째 줄: 기간 필터 */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <div className="flex-1 sm:flex-none">
-                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">연도 선택</label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => {
-                      setSelectedYear(e.target.value);
-                      if (e.target.value !== 'all') {
-                        setSelectedDate(''); // 연도 선택시 특정 날짜 초기화
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">전체 연도</option>
-                    {Array.from({ length: 5 }, (_, i) => {
-                      const year = new Date().getFullYear() - i;
-                      return (
-                        <option key={year} value={year}>
-                          {year}년
-                        </option>
-                      );
-                    })}
-                  </select>
+        {/* 날짜 선택 및 필터 */}
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4">
+          <div className="space-y-4">
+            {/* 날짜 선택 */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedDate(subDays(selectedDate, dateRange === 'day' ? 1 : dateRange === 'week' ? 7 : 30))}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {dateRange === 'day' && format(selectedDate, 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}
+                    {dateRange === 'week' && `${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'MM/dd')} - ${format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'MM/dd')}`}
+                    {dateRange === 'month' && format(selectedDate, 'yyyy년 MM월', { locale: ko })}
+                  </span>
+                  {isToday(selectedDate) && (
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-lg">
+                      오늘
+                    </span>
+                  )}
                 </div>
-                
-                <div className="flex-1 sm:flex-none">
-                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">특정 날짜</label>
+                <button
+                  onClick={() => setSelectedDate(addDays(selectedDate, dateRange === 'day' ? 1 : dateRange === 'week' ? 7 : 30))}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDateRange('day')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    dateRange === 'day'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  일간
+                </button>
+                <button
+                  onClick={() => setDateRange('week')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    dateRange === 'week'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  주간
+                </button>
+                <button
+                  onClick={() => setDateRange('month')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    dateRange === 'month'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  월간
+                </button>
+              </div>
+            </div>
+
+            {/* 필터 */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* 검색 */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value);
-                      if (e.target.value) {
-                        setSelectedYear('all'); // 특정 날짜 선택시 연도 필터 초기화
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    type="text"
+                    placeholder="이름, 연락처, 이메일, 예약번호로 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
-                
-                {/* 필터 초기화 버튼 */}
-                {(selectedYear !== 'all' || selectedDate) && (
-                  <button
-                    onClick={() => {
-                      setSelectedYear('all');
-                      setSelectedDate('');
-                    }}
-                    className="self-end px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    초기화
-                  </button>
-                )}
+              </div>
+
+              {/* 상태 필터 */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-400" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="all">모든 상태</option>
+                  {Object.entries(statusConfig).map(([status, config]) => (
+                    <option key={status} value={status}>
+                      {config.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 시간대 필터 */}
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-gray-400" />
+                <select
+                  value={filterShift}
+                  onChange={(e) => setFilterShift(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="all">모든 시간대</option>
+                  <option value="early">조기영업</option>
+                  <option value="night">밤샘영업</option>
+                </select>
               </div>
             </div>
           </div>
-
-          {/* 대기 중인 예약에서만 일괄 처리 도구 표시 */}
-          {selectedStatus === 'pending' && reservations.some(r => r.status === 'pending') && (
-            <div className="py-3 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                {/* 전체 선택 체크박스 */}
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={
-                        reservations
-                          .filter(r => r.status === 'pending')
-                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                          .length > 0 &&
-                        reservations
-                          .filter(r => r.status === 'pending')
-                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                          .every(r => selectedReservationIds.includes(r.id))
-                      }
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      전체 선택 (현재 페이지)
-                    </span>
-                  </label>
-                  {selectedReservationIds.length > 0 && (
-                    <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                      {selectedReservationIds.length}개 선택됨
-                    </span>
-                  )}
-                </div>
-
-                {/* 일괄 처리 버튼들 */}
-                {showBulkActions && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleBulkApprove}
-                      disabled={isLoading}
-                      className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      일괄 승인 ({selectedReservationIds.length})
-                    </button>
-                    <button
-                      onClick={handleBulkReject}
-                      disabled={isLoading}
-                      className="flex items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      일괄 거절 ({selectedReservationIds.length})
-                    </button>
-                    <button
-                      onClick={clearSelection}
-                      className="flex items-center gap-1 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      선택 해제
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 페이지네이션 (상단) */}
-          {reservations.length > itemsPerPage && (
-            <div className="py-3 flex items-center justify-center border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setCurrentPage(prev => Math.max(prev - 1, 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                
-                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  {currentPage} / {Math.ceil(reservations.length / itemsPerPage)} 페이지
-                </span>
-                
-                <button
-                  onClick={() => {
-                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(reservations.length / itemsPerPage)));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === Math.ceil(reservations.length / itemsPerPage)}
-                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* 컨텐츠 영역 */}
-      <div className="w-full px-3 py-3 sm:px-6 sm:py-4 min-h-screen bg-gray-50 dark:bg-gray-950">
-        {/* 예약 목록 */}
-        {reservations.length > 0 ? (
-          <div className="grid gap-3 sm:gap-4 md:gap-6">
-            {reservations
-              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-              .map((reservation, index) => (
+        {/* 통계 카드 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+          {Object.entries(statusConfig).map(([status, config]) => {
+            const count = stats[status as ReservationStatus]
+            return (
               <motion.div
-                key={reservation.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.02 }}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                key={status}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`p-3 rounded-xl ${config.color} text-center`}
               >
-                {/* 모바일: 카드 레이아웃 */}
-                <div className="md:hidden">
-                  <div className="px-4 py-4">
-                    {/* 상단: 체크박스, 상태와 액션 버튼 */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {reservation.status === 'pending' && (
-                          <input
-                            type="checkbox"
-                            checked={selectedReservationIds.includes(reservation.id)}
-                            onChange={(e) => handleSelectReservation(reservation.id, e.target.checked)}
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                        )}
-                        {getStatusBadge(reservation.status)}
-                      </div>
-                      <div className="flex items-center gap-1.5" style={{ paddingRight: '8px' }}>
-                        {reservation.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(reservation.id)}
-                              disabled={isLoading}
-                              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50 transition-colors"
-                              title="승인"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(reservation.id)}
-                              disabled={isLoading}
-                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg disabled:opacity-50 transition-colors"
-                              title="거절"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => setSelectedReservation(reservation)}
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                          title="상세 보기"
-                        >
-                          <Eye className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 예약자 정보 */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 dark:text-white truncate">{reservation.user.name}</h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                          <Phone className="w-3 h-3 flex-shrink-0" />
-                          <span>{reservation.user.phone}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 예약 정보 */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Gamepad2 className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-400">기기:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {reservation.device.type_name} #{reservation.device.device_number}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-400">날짜:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {new Date(reservation.date).toLocaleDateString('ko-KR')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-400">시간:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {(() => {
-                            const parts = reservation.time_slot.split('-');
-                            const start = parts[0] || '';
-                            const end = parts[1] || '';
-                            return `${formatTime(start)} - ${formatTime(end)}`;
-                          })()}
-                        </span>
-                        {(() => {
-                          const parts = reservation.time_slot.split('-');
-                          const start = parts[0] || '';
-                          const shiftType = getShiftType(start);
-                          const badgeStyle = getShiftBadgeStyle(shiftType);
-                          
-                          if (badgeStyle) {
-                            return (
-                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
-                                {badgeStyle.label}
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* 하단: 금액 */}
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">결제 금액</span>
-                        <span className="text-lg font-bold text-gray-900 dark:text-white">
-                          ₩{reservation.total_price.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 사용자 요청사항 */}
-                    {reservation.notes && (
-                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-start gap-2">
-                          <MessageCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-0.5">사용자 메모</p>
-                            <p className="text-sm text-blue-700 dark:text-blue-300 break-words">
-                              {reservation.notes}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <config.icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{config.label}</span>
                 </div>
-
-                {/* 데스크톱: 테이블 형태 레이아웃 */}
-                <div className="hidden md:block">
-                  <div className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-6 flex-1">
-                      {/* 체크박스 */}
-                      {reservation.status === 'pending' && (
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedReservationIds.includes(reservation.id)}
-                            onChange={(e) => handleSelectReservation(reservation.id, e.target.checked)}
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* 예약자 정보 */}
-                      <div className="flex items-center gap-3 min-w-[200px]">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">{reservation.user.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{reservation.user.phone}</p>
-                        </div>
-                      </div>
-
-                      {/* 기기 정보 */}
-                      <div className="min-w-[150px]">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {reservation.device.type_name} #{reservation.device.device_number}
-                        </p>
-                        {reservation.device.model_name && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {reservation.device.model_name}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* 날짜/시간 */}
-                      <div className="min-w-[180px]">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {new Date(reservation.date).toLocaleDateString('ko-KR')}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {(() => {
-                            const parts = reservation.time_slot.split('-');
-                            const start = parts[0] || '';
-                            const end = parts[1] || '';
-                            return `${formatTime(start)} - ${formatTime(end)}`;
-                          })()}
-                        </p>
-                      </div>
-
-                      {/* 상태 */}
-                      <div className="min-w-[100px]">
-                        {getStatusBadge(reservation.status)}
-                      </div>
-
-                      {/* 금액 */}
-                      <div className="min-w-[100px] text-right">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          ₩{reservation.total_price.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 액션 버튼 */}
-                    <div className="flex items-center gap-2 ml-4">
-                      {reservation.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(reservation.id)}
-                            disabled={isLoading}
-                            className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50 transition-colors"
-                            title="승인"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleReject(reservation.id)}
-                            disabled={isLoading}
-                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg disabled:opacity-50 transition-colors"
-                            title="거절"
-                          >
-                            <XCircle className="w-5 h-5" />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => setSelectedReservation(reservation)}
-                        className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                        title="상세보기"
-                      >
-                        <Eye className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 사용자 메모가 있는 경우 */}
-                  {reservation.notes && (
-                    <div className="px-4 pb-4">
-                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-start gap-2">
-                          <MessageCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <span className="text-xs font-medium text-blue-900 dark:text-blue-100 block mb-0.5">사용자 메모</span>
-                            <span className="text-sm text-blue-700 dark:text-blue-300">
-                              {reservation.notes}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <div className="text-xl font-bold">{count}</div>
               </motion.div>
-            ))}
+            )
+          })}
+        </div>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg flex items-center gap-2"
+          >
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <span className="text-red-700 dark:text-red-300">{error}</span>
+          </motion.div>
+        )}
+
+        {/* 예약 목록 테이블 */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </div>
         ) : (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
-              해당하는 예약이 없습니다
-            </p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            {/* 전체 선택 */}
+            {bulkEditMode && (
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedReservations.size === filteredAndSorted.length && filteredAndSorted.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    전체 선택 ({selectedReservations.size}/{filteredAndSorted.length})
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* 테이블 헤더 */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                  <tr>
+                    {bulkEditMode && (
+                      <th className="px-4 py-3 text-left">
+                        <Square className="w-5 h-5 text-gray-400" />
+                      </th>
+                    )}
+                    <th className="px-4 py-3 text-left">
+                      <button
+                        onClick={() => toggleSort('date')}
+                        className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        시간
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <button
+                        onClick={() => toggleSort('user_name')}
+                        className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        사용자
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left">
+                      <button
+                        onClick={() => toggleSort('device_name')}
+                        className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        기기
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left">정보</th>
+                    <th className="px-4 py-3 text-left">
+                      <button
+                        onClick={() => toggleSort('status')}
+                        className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        상태
+                        <ArrowUpDown className="w-4 h-4" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredAndSorted.map((reservation) => {
+                    const config = statusConfig[reservation.status]
+                    const shiftType = getShiftType(reservation.start_time)
+                    const shiftBadge = getShiftBadgeStyle(shiftType)
+
+                    return (
+                      <tr
+                        key={reservation.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                      >
+                        {bulkEditMode && (
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedReservations.has(reservation.id)}
+                              onChange={(e) => {
+                                const newSelected = new Set(selectedReservations)
+                                if (e.target.checked) {
+                                  newSelected.add(reservation.id)
+                                } else {
+                                  newSelected.delete(reservation.id)
+                                }
+                                setSelectedReservations(newSelected)
+                              }}
+                              className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+                            />
+                          </td>
+                        )}
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {formatTime(reservation.start_time)}~{formatTime(reservation.end_time)}
+                              </span>
+                              {shiftBadge && (
+                                <span className={`px-2 py-0.5 text-xs rounded-full ${shiftBadge.bg} ${shiftBadge.text}`}>
+                                  {shiftBadge.label}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {reservation.date}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {reservation.user.name}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
+                              <Phone className="w-3 h-3" />
+                              {reservation.user.phone}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Gamepad2 className="w-4 h-4 text-gray-400" />
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {reservation.device.type_name} #{reservation.device.device_number}
+                              </span>
+                            </div>
+                            {(reservation.device.model_name || reservation.device.version_name) && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                {reservation.device.model_name} {reservation.device.version_name}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Users className="w-3 h-3 text-gray-400" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {reservation.people_count}명
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <CreditCard className="w-3 h-3 text-gray-400" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {reservation.credit_option}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                ₩{reservation.total_price.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+                            <span className={`px-2 py-1 rounded-lg text-sm font-medium ${config.color}`}>
+                              {config.label}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {reservation.reservation_number}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {!bulkEditMode && reservation.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => updateReservationStatus(reservation.id, 'approved')}
+                                  className="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                  title="승인"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => updateReservationStatus(reservation.id, 'rejected')}
+                                  className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                  title="거절"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedReservation(reservation)
+                                setShowDetail(true)
+                              }}
+                              className="p-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="상세보기"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="더보기"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 결과 없음 */}
+            {filteredAndSorted.length === 0 && (
+              <div className="p-12 text-center">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  {searchTerm || filterStatus !== 'all' || filterShift !== 'all'
+                    ? '검색 결과가 없습니다'
+                    : '예약이 없습니다'}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-
-        {/* 안내 메시지 */}
-        <div className="mt-4 sm:mt-6 space-y-3">
-          {/* 대기 중인 예약 안내 */}
-          {(tabCounts.pending || 0) > 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm sm:text-base font-medium text-yellow-800 dark:text-yellow-200 mb-0.5 sm:mb-1">
-                  승인 대기중인 예약이 {tabCounts.pending}건 있습니다
-                </h4>
-                <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300">
-                  가능한 빨리 검토하여 고객에게 알림을 보내주세요.
-                </p>
-              </div>
-            </div>
-          </div>
-          )}
-          
-          {/* 검색 안내 */}
-          {!searchQuery && !selectedDate && selectedYear === 'all' && allReservations.length >= 200 && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm sm:text-base font-medium text-blue-800 dark:text-blue-200 mb-0.5 sm:mb-1">
-                  성능 최적화를 위해 최근 200건만 표시됩니다
-                </h4>
-                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                  더 많은 데이터를 보려면 검색 기능을 사용하거나 연도/날짜 필터를 활용하세요.
-                </p>
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
-
-      {/* 예약 상세 모달 - 모바일 최적화 */}
-      <AnimatePresence>
-        {selectedReservation && (
-          <motion.div 
-            className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedReservation(null)}
-          >
+        {/* 상세보기 모달 */}
+        <AnimatePresence>
+          {showDetail && selectedReservation && (
             <motion.div
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-900 w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-xl"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowDetail(false)}
             >
-              {/* 모달 헤더 */}
-              <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 sm:px-6 sm:py-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold dark:text-white">예약 상세</h2>
-                  <button
-                    onClick={() => setSelectedReservation(null)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 컨텐츠 영역 */}
-              <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-                {/* 상태 및 예약자 정보 */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    {getStatusBadge(selectedReservation.status)}
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(selectedReservation.created_at).toLocaleString('ko-KR', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                      예약 상세정보
+                    </h2>
+                    <button
+                      onClick={() => setShowDetail(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                    </div>
+
+                  <div className="space-y-6">
+                    {/* 예약 정보 */}
                     <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">{selectedReservation.user.name}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{selectedReservation.user.phone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 예약 정보 카드 */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-5 mb-4">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">예약 정보</h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">기기</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {selectedReservation.device.type_name} #{selectedReservation.device.device_number}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">날짜</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {new Date(selectedReservation.date).toLocaleDateString('ko-KR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          weekday: 'short'
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">시간</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {(() => {
-                            const parts = selectedReservation.time_slot.split('-');
-                            const start = parts[0] || '';
-                            const end = parts[1] || '';
-                            return `${formatTime(start)} - ${formatTime(end)}`;
-                          })()}
-                        </span>
-                        {(() => {
-                          const parts = selectedReservation.time_slot.split('-');
-                          const start = parts[0] || '';
-                          const shiftType = getShiftType(start);
-                          const badgeStyle = getShiftBadgeStyle(shiftType);
-                          
-                          if (badgeStyle) {
-                            return (
-                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
-                                {badgeStyle.label}
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        예약 정보
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">예약번호</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.reservation_number}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">날짜</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.date}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">시간</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {formatTime(selectedReservation.start_time)}~{formatTime(selectedReservation.end_time)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">상태</span>
+                          <span className={`px-2 py-1 rounded-lg text-sm font-medium ${statusConfig[selectedReservation.status].color}`}>
+                            {statusConfig[selectedReservation.status].label}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">인원</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {selectedReservation.player_count}명
-                      </span>
+
+                    {/* 사용자 정보 */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        사용자 정보
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">이름</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.user.name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">연락처</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.user.phone}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">이메일</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.user.email}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">크레디트</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {selectedReservation.credit_option}
-                      </span>
+
+                    {/* 기기 정보 */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        기기 정보
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">기기</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.device.type_name} #{selectedReservation.device.device_number}
+                          </span>
+                        </div>
+                        {selectedReservation.device.model_name && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">모델</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {selectedReservation.device.model_name}
+                            </span>
+                          </div>
+                        )}
+                        {selectedReservation.device.version_name && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">버전</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {selectedReservation.device.version_name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">금액</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        ₩{selectedReservation.total_price.toLocaleString()}
-                      </span>
+
+                    {/* 결제 정보 */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        결제 정보
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">인원</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.people_count}명
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">크레딧 옵션</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {selectedReservation.credit_option}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">총 금액</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            ₩{selectedReservation.total_price.toLocaleString()}
+                          </span>
+                        </div>
+                        {selectedReservation.payment_method && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">결제 방법</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {selectedReservation.payment_method}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* 메모 */}
+                    {selectedReservation.memo && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                          메모
+                        </h3>
+                        <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                          {selectedReservation.memo}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 타임스탬프 */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        기록
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">생성일시</span>
+                          <span className="text-gray-900 dark:text-white">
+                            {new Date(selectedReservation.created_at).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">수정일시</span>
+                          <span className="text-gray-900 dark:text-white">
+                            {new Date(selectedReservation.updated_at).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 액션 버튼 */}
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                    {selectedReservation.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            updateReservationStatus(selectedReservation.id, 'approved')
+                            setShowDetail(false)
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                          승인
+                        </button>
+                        <button
+                          onClick={() => {
+                            updateReservationStatus(selectedReservation.id, 'rejected')
+                            setShowDetail(false)
+                          }}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        >
+                          거절
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setShowDetail(false)}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      닫기
+                    </button>
                   </div>
                 </div>
-
-                {/* 메모 */}
-                {selectedReservation.notes && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">고객 메모</h3>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {selectedReservation.notes}
-                    </p>
-                  </div>
-                )}
-                
-                {/* 관리자 메모 */}
-                {selectedReservation.admin_notes && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">관리자 메모</h3>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {selectedReservation.admin_notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* 처리 정보 */}
-                {selectedReservation.reviewed_at && (
-                  <div className="text-center py-3 text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(selectedReservation.reviewed_at).toLocaleString('ko-KR')} 처리됨
-                    {selectedReservation.reviewed_by && ` (${selectedReservation.reviewed_by})`}
-                  </div>
-                )}
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 취소 사유 입력 모달 */}
-      <AnimatePresence>
-        {showRejectModal && (
-          <motion.div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowRejectModal(false);
-              setRejectingReservationId(null);
-              setRejectReason('');
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">예약 취소</h2>
-            </div>
-            
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-              예약을 취소하는 사유를 선택해주세요. (선택사항)
-            </p>
-
-            <div className="mb-4 sm:mb-6 space-y-3">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                취소 사유
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="rejectReason"
-                  value="대여 인원 부족"
-                  checked={rejectReason === '대여 인원 부족'}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">대여 인원 부족</span>
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="rejectReason"
-                  value="회원 요청"
-                  checked={rejectReason === '회원 요청'}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">회원 요청</span>
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="rejectReason"
-                  value="기타"
-                  checked={rejectReason === '기타' || (!['대여 인원 부족', '회원 요청'].includes(rejectReason) && rejectReason !== '')}
-                  onChange={() => setRejectReason('기타')}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">기타 (직접 입력)</span>
-              </label>
-              
-              {(rejectReason === '기타' || (!['대여 인원 부족', '회원 요청', ''].includes(rejectReason))) && (
-                <textarea
-                  value={rejectReason === '기타' ? '' : rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="취소 사유를 입력해주세요"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  rows={3}
-                  autoFocus
-                />
-              )}
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 sm:mb-6">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                  취소 사유는 고객에게 알림으로 전송됩니다.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectingReservationId(null);
-                  setRejectReason('');
-                }}
-                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
-              >
-                취소
-              </button>
-              <button
-                onClick={confirmReject}
-                disabled={isLoading}
-                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? '처리 중...' : '예약 취소'}
-              </button>
-            </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 복수 취소 사유 입력 모달 */}
-      <AnimatePresence>
-        {showBulkRejectModal && (
-          <motion.div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowBulkRejectModal(false);
-              setRejectReason('');
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">일괄 예약 취소</h2>
-            </div>
-            
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-              선택한 {selectedReservationIds.length}개의 예약을 일괄 취소합니다. 취소 사유를 선택해주세요. (선택사항)
-            </p>
-
-            <div className="mb-4 sm:mb-6 space-y-3">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                취소 사유
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="bulkRejectReason"
-                  value="대여 인원 부족"
-                  checked={rejectReason === '대여 인원 부족'}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">대여 인원 부족</span>
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="bulkRejectReason"
-                  value="회원 요청"
-                  checked={rejectReason === '회원 요청'}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">회원 요청</span>
-              </label>
-              
-              <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <input
-                  type="radio"
-                  name="bulkRejectReason"
-                  value="기타"
-                  checked={rejectReason === '기타' || (!['대여 인원 부족', '회원 요청'].includes(rejectReason) && rejectReason !== '')}
-                  onChange={() => setRejectReason('기타')}
-                  className="mr-3 text-red-600 focus:ring-red-500"
-                />
-                <span className="text-sm dark:text-white">기타 (직접 입력)</span>
-              </label>
-              
-              {(rejectReason === '기타' || (!['대여 인원 부족', '회원 요청', ''].includes(rejectReason))) && (
-                <textarea
-                  value={rejectReason === '기타' ? '' : rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="취소 사유를 입력해주세요"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  rows={3}
-                  autoFocus
-                />
-              )}
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 sm:mb-6">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                  취소 사유는 고객에게 알림으로 전송됩니다. 선택한 모든 예약에 동일한 사유가 적용됩니다.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowBulkRejectModal(false);
-                  setRejectReason('');
-                }}
-                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
-              >
-                취소
-              </button>
-              <button
-                onClick={confirmBulkReject}
-                disabled={isLoading}
-                className="flex-1 py-2.5 sm:py-3 text-sm sm:text-base bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? '처리 중...' : `${selectedReservationIds.length}개 일괄 취소`}
-              </button>
-            </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
       </div>
-    </>
-  );
+    </div>
+  )
 }

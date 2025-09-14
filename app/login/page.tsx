@@ -47,7 +47,7 @@ export default function LoginPage() {
       // Better Auth를 통한 Google 로그인 - redirect 파라미터 처리
       const redirect = searchParams.get('redirect') || '/';
       await signIn('google');
-      
+
       // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
     } catch (error) {
       console.error('Login error:', error);
@@ -89,7 +89,7 @@ export default function LoginPage() {
       <div className="relative z-10 flex min-h-screen">
         {/* 왼쪽: 로그인 폼 */}
         <div className="flex-1 flex items-center justify-center p-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -118,7 +118,7 @@ export default function LoginPage() {
               className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-8 overflow-visible"
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">환영합니다!</h2>
-              
+
               <div className="space-y-4">
                 <LoadingButton
                   onClick={handleGoogleLogin}
@@ -182,7 +182,7 @@ export default function LoginPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-center mt-6"
             >
-              <a 
+              <a
                 href="https://open.kakao.com/o/sJPbo3Sb"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -209,7 +209,7 @@ export default function LoginPage() {
               광주 최고의 리듬게임 성지
               <Sparkles className="inline w-8 h-8 ml-2 text-yellow-300" />
             </h2>
-            
+
             <div className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

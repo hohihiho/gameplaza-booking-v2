@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autoCheckDeviceStatus, forceCheckDeviceStatus, getStatusInfo } from '@/lib/device-status-manager';
 import { auth } from '@/lib/auth';
-import { createAdminClient } from '@/lib/db';
+import { d1ListUserRoles } from '@/lib/db/d1'
 
 // GET: 현재 자동 상태 관리 시스템 정보 조회
 export async function GET(request: NextRequest) {
@@ -19,15 +19,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 관리자 권한 확인
-    import { getDB, supabase } from '@/lib/db';
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (!adminData) {
+    // 관리자 권한 확인 (super_admin 기준)
+    const roles = await d1ListUserRoles(session.user.id)
+    const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+    if (!isSuperAdmin) {
       return NextResponse.json(
         { error: '관리자 권한이 필요합니다' },
         { status: 403 }
@@ -75,14 +70,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    import { getDB, supabase } from '@/lib/db';
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (!adminData) {
+    const roles = await d1ListUserRoles(session.user.id)
+    const isSuperAdmin = Array.isArray(roles) && roles.some((r: any) => r.role_type === 'super_admin')
+    if (!isSuperAdmin) {
       return NextResponse.json(
         { error: '관리자 권한이 필요합니다' },
         { status: 403 }

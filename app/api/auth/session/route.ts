@@ -25,12 +25,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 세션 정보 반환
+    // Return session with JWT data
     return NextResponse.json({
       user: {
         id: payload.userId,
         email: payload.email,
+        name: payload.name || payload.email.split('@')[0], // Use name from JWT or extract from email
         role: payload.role,
+        image: payload.image || null, // Google profile image from JWT
+        status: 'active'
       },
       expires: new Date(payload.exp * 1000).toISOString(),
     });

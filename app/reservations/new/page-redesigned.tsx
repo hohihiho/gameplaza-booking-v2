@@ -1,4 +1,6 @@
 'use client';
+import { useSession } from '@/lib/hooks/useAuth'
+// supabase 의존 제거
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';

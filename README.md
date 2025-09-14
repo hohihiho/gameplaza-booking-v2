@@ -32,10 +32,10 @@
 - **API 통신**: Tanstack Query
 
 ### Backend & Database
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: NextAuth.js + Google OAuth
-- **실시간**: Supabase Realtime
-- **파일 저장**: Supabase Storage
+- **Database**: Cloudflare D1 (SQLite)
+- **Authentication**: Better Auth + Google OAuth
+- **Edge Runtime**: Cloudflare Workers
+- **실시간**: Cloudflare Durable Objects (예정)
 - **알림**: Firebase Cloud Messaging (FCM)
 
 ### DevOps
@@ -48,6 +48,7 @@
 
 ### 필수 요구사항
 - Node.js 18.0 이상
+- Wrangler CLI (Cloudflare D1용)
 
 ## 🪝 Claude Code Hooks
 
@@ -82,22 +83,65 @@
 
 ### 훅 설정 파일
 `.claude/project-settings.json` 파일에서 프로젝트별 훅을 관리합니다.
-- npm 또는 yarn
-- Supabase 계정
-- Google Cloud Console 계정
-- Firebase 프로젝트
+
+### 필수 계정
+- Cloudflare 계정 (D1, Workers)
+- Google Cloud Console 계정 (OAuth)
+- Firebase 프로젝트 (FCM)
+
+## 🗄️ Cloudflare D1 설정
+
+### 1. Wrangler 설치
+```bash
+npm install -g wrangler
+wrangler login
+```
+
+### 2. D1 데이터베이스 생성
+```bash
+# 데이터베이스 생성
+wrangler d1 create gameplaza-db
+
+# 출력된 database_id를 wrangler.toml에 추가
+```
+
+### 3. 마이그레이션 실행
+```bash
+# Better Auth 스키마
+wrangler d1 execute gameplaza-db --file=./migrations/001_init.sql
+wrangler d1 execute gameplaza-db --file=./migrations/002_better_auth.sql
+wrangler d1 execute gameplaza-db --file=./migrations/003_indexes.sql
+```
+
+### 4. wrangler.toml 설정
+```toml
+name = "gameplaza-v2"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gameplaza-db"
+database_id = "your-database-id-here"
+```
 
 ### 환경 변수 설정
 
 `.env.local` 파일을 생성하고 다음 변수들을 설정하세요:
 
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# Cloudflare D1
+D1_DB_NAME=gameplaza-db
+D1_ENABLED=true
 
-# NextAuth
+# Better Auth
+BETTER_AUTH_SECRET=your-secret-key-here
+BETTER_AUTH_URL=http://localhost:3000
+
+# Google OAuth
+AUTH_GOOGLE_ID=your-google-client-id
+AUTH_GOOGLE_SECRET=your-google-client-secret
+
+# NextAuth (레거시 - 제거 예정)
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 
