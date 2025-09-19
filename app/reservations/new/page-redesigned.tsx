@@ -1,12 +1,12 @@
 'use client';
-import { useSession } from '@/lib/hooks/useAuth'
-// supabase 의존 제거
 
 import { useState, useEffect } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Loader2, AlertCircle, Check } from 'lucide-react';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
+// Supabase 제거됨 - Cloudflare D1 사용
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 import { BottomSheet, TouchRipple, SkeletonCard } from '@/app/components/mobile';
@@ -73,6 +73,7 @@ interface ReservationData {
 export default function NewReservationPageRedesigned() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  // const supabase = getDb() // D1 사용);
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 현재 단계 (1-3)
@@ -115,7 +116,7 @@ export default function NewReservationPageRedesigned() {
     try {
       setIsLoadingDevices(true);
       
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
       const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
         .select(`
           *,
@@ -181,7 +182,7 @@ export default function NewReservationPageRedesigned() {
       setIsLoadingSlots(true);
       setError(null);
       
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
       const { data: slotsData, error: slotsError } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
@@ -346,9 +347,8 @@ export default function NewReservationPageRedesigned() {
       setIsSubmitting(true);
       setError(null);
       
-//       import { getDB, supabase } from '@/lib/db';
-  const { data: availableDevice, error: deviceError } = // @ts-ignore
-    await Promise.resolve({ data: [], error: null })
+      // const supabase = getDb() // D1 사용;
+  const { data: availableDevice, error: deviceError } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', reservationData.deviceType)
         .eq('device_number', reservationData.deviceNumber)
@@ -366,7 +366,7 @@ export default function NewReservationPageRedesigned() {
         throw new Error('로그인이 필요합니다');
       }
 
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { data: userData } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
@@ -388,7 +388,7 @@ export default function NewReservationPageRedesigned() {
         notes: ''
       };
       
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { data: newReservation, error: reservationError } = await supabase.from('reservations')
         .insert(reservationPayload)
         .select()

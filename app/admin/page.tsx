@@ -3,9 +3,9 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  Calendar,
-  Gamepad2,
+import { 
+  Calendar, 
+  Gamepad2, 
   Clock,
   ChevronRight,
   Timer,
@@ -20,12 +20,12 @@ import {
   TrendingUp,
   Bell,
   Settings,
-  UserPlus
+  UserPlus,
+  Shield,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import RealtimeDeviceWidget from './components/RealtimeDeviceWidget';
-import RealtimeReservationWidget from './components/RealtimeReservationWidget';
 
 type StatCard = {
   title: string;
@@ -426,29 +426,11 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* 실시간 위젯 섹션 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <RealtimeDeviceWidget />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <RealtimeReservationWidget />
-          </motion.div>
-        </div>
-
         {/* 빠른 작업 - 데스크톱에서만 표시 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.5 }}
           className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
         >
           <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
@@ -568,6 +550,26 @@ export default function AdminDashboard() {
             </Link>
             
             <Link
+              href="/admin/auth-management"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-700/20 dark:to-indigo-600/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-600/30 dark:hover:to-indigo-500/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">Better Auth</span>
+            </Link>
+            
+            <Link
+              href="/admin/user-management"
+              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-violet-50 to-violet-100 dark:from-violet-700/20 dark:to-violet-600/20 hover:from-violet-100 hover:to-violet-200 dark:hover:from-violet-600/30 dark:hover:to-violet-500/30 transition-all group"
+            >
+              <div className="p-3 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white text-center">사용자 권한</span>
+            </Link>
+            
+            <Link
               href="/admin/settings"
               className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/20 dark:to-slate-600/20 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600/30 dark:hover:to-slate-500/30 transition-all group"
             >
@@ -584,7 +586,7 @@ export default function AdminDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 0.6 }}
             className="mt-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-6"
           >
             <div className="flex items-center justify-between mb-6">

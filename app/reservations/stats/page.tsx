@@ -1,10 +1,9 @@
 // 개인 예약 통계 페이지
 // 비전공자 설명: 사용자의 개인 예약 패턴과 통계를 분석하는 페이지입니다
 'use client';
-import { useSession } from '@/lib/hooks/useAuth'
 
 import { useState, useEffect } from 'react';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
 import { motion } from 'framer-motion';
 import { 
   Clock,
@@ -77,7 +76,7 @@ export default function ReservationStatsPage() {
         queryParams.set('endDate', endDate.toISOString().split('T')[0]);
       }
       
-      const response = await fetch(`/api/v3/me/analytics/summary?${queryParams.toString()}`);
+      const response = await fetch(`/api/v2/statistics/reservations?${queryParams.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

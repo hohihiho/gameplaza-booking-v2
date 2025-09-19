@@ -70,8 +70,7 @@ export default function OfflinePage() {
         </motion.button>
 
         <div className="mt-12 text-sm text-gray-500 dark:text-gray-500">
-          <p>오프라인 상태에서도 일부 기능을 사용할 수 있습니다.</p>
-          <p>캐시된 페이지를 탐색해 보세요.</p>
+          <p>5초마다 자동으로 연결 상태를 확인합니다.</p>
         </div>
       </motion.div>
     </div>

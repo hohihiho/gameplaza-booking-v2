@@ -1,16 +1,16 @@
 // 예약 완료 페이지 컨텐츠
 // 비전공자 설명: 예약이 성공적으로 완료되었을 때 보여주는 페이지의 실제 내용입니다
 'use client';
-import { useSession } from '@/lib/hooks/useAuth'
-// supabase 의존 제거: API fetch 사용
 
 import { useEffect, useState } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle, Calendar, Clock, Hash, Home, List, Gamepad2, AlertCircle } from 'lucide-react';
+// Supabase 제거됨 - Cloudflare D1 사용
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
 
 export default function ReservationCompleteContent() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function ReservationCompleteContent() {
   const { lastReservationId } = useReservationStore();
   const [reservation, setReservation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // const supabase = getDb() // D1 사용);
   const { data: session, status } = useSession();
   
   // URL 파라미터가 있으면 우선 사용, 없으면 store에서 가져옴
@@ -58,19 +59,34 @@ export default function ReservationCompleteContent() {
   const loadReservation = async () => {
     try {
       console.log('예약 정보 로드 시작 - ID:', reservationId);
-      // V3 상세 API 시도
-      const res = await fetch(`/api/v3/reservations/${reservationId}`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      if (!res.ok) {
-        console.warn('예약 상세 API 실패', res.status)
-        setReservation(null)
+      
+      // 예약 정보와 관련 데이터를 한 번에 가져오기
+      const { data, error } = await supabase.from('reservations')
+        .select(`
+          *,
+          devices (
+            device_number,
+            device_types (
+              name,
+              device_categories (
+                name
+              )
+            )
+          )
+        `)
+        .eq('id', reservationId)
+        .maybeSingle(); // single() 대신 maybeSingle() 사용
+
+      if (error) {
+        console.error('예약 정보 로드 에러:', error);
+        // 에러가 나도 페이지는 유지
+        setReservation(null);
+      } else if (!data) {
+        console.log('예약 정보를 찾을 수 없습니다');
+        setReservation(null);
       } else {
-        const json = await res.json()
-        // 다양한 응답 형태를 대비해 유연하게 매핑
-        const data = json?.data || json?.reservation || json
-        setReservation(data)
+        console.log('예약 데이터 로드 성공:', data);
+        setReservation(data);
       }
     } catch (error) {
       console.error('예약 정보 로드 실패:', error);

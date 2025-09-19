@@ -60,7 +60,7 @@ export default function MachinesPage() {
   const [expandedType, setExpandedType] = useState<string | null>(null);
   const [machineRules, setMachineRules] = useState<any[]>([]);
 
-  // Supabase에서 기기 정보 가져오기
+  // D1 API에서 기기 정보 가져오기
   useEffect(() => {
     fetchDeviceTypes();
     loadMachineRules();
@@ -76,14 +76,72 @@ export default function MachinesPage() {
     };
   }, []);
 
+  // 만료된 예약 처리는 서버 API에서 자동으로 처리됨
+
   const fetchDeviceTypes = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/public/machines', { cache: 'no-store' })
-      if (!res.ok) throw new Error(`API error (${res.status})`)
-      const data = await res.json()
-      setCategories(data.categories || [])
-      setMachineRules(data.rules || [])
+
+      // D1 API를 통해 기기 타입 정보 가져오기
+      const response = await fetch('/api/admin/devices/types');
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`);
+      }
+      
+      const deviceTypes = await response.json();
+
+      // 카테고리 정보 가져오기
+      const categoriesResponse = await fetch('/api/devices/categories');
+      if (!categoriesResponse.ok) {
+        throw new Error(`카테고리 API 요청 실패: ${categoriesResponse.status}`);
+      }
+      
+      const categories = await categoriesResponse.json();
+
+      // 카테고리별로 그룹화
+      const categoriesMap = new Map<string, Category>();
+      
+      // 카테고리 초기화
+      (categories || []).forEach((cat: any) => {
+        categoriesMap.set(cat.id, {
+          id: cat.id,
+          name: cat.name,
+          display_order: cat.display_order,
+          deviceTypes: []
+        });
+      });
+
+      // 디바이스 타입을 카테고리별로 분류
+      (deviceTypes || []).forEach((type: any) => {
+        const formattedType: DeviceType = {
+          id: type.id,
+          name: type.name,
+          company: type.version_name || type.description?.split(' ')[0] || 'Unknown', // API에서 제조사 정보 매핑
+          description: type.description || '',
+          model_name: type.model_name,
+          version_name: type.version_name,
+          play_price: '현장 문의',
+          is_rentable: type.is_rentable || false,
+          total_count: type.device_count || 0,
+          devices: [], // 개별 기기 정보는 별도 API 필요시 구현
+          category_id: type.category_id,
+          display_order: type.display_order || 0,
+          rental_settings: type.rental_settings || {},
+          play_modes: type.play_modes || []
+        };
+
+        const category = categoriesMap.get(type.category_id);
+        if (category) {
+          category.deviceTypes.push(formattedType);
+        }
+      });
+
+      // Map을 배열로 변환하고 순서대로 정렬
+      const sortedCategories = Array.from(categoriesMap.values())
+        .sort((a, b) => a.display_order - b.display_order)
+        .filter(cat => cat.deviceTypes.length > 0); // 빈 카테고리 제외
+
+      setCategories(sortedCategories);
     } catch (error) {
       console.error('기기 정보 불러오기 실패:', error);
       setCategories([]);
@@ -92,15 +150,14 @@ export default function MachinesPage() {
     }
   };
 
-  // 기기 현황 안내사항 불러오기
+  // 기기 현황 안내사항 불러오기 (D1 마이그레이션 후 비활성화)
   const loadMachineRules = async () => {
     try {
-      const res = await fetch('/api/public/machines', { cache: 'no-store' })
-      if (!res.ok) return
-      const data = await res.json()
-      setMachineRules(data.rules || [])
+      // TODO: D1에서 machine_rules API 구현 필요시 활성화
+      setMachineRules([]);
     } catch (error: any) {
-      console.error('기기 현황 안내사항 로드 에러:', error.message || error)
+      console.error('기기 현황 안내사항 로드 에러:', error.message || error);
+      setMachineRules([]);
     }
   };
 
@@ -499,179 +556,159 @@ export default function MachinesPage() {
                                 <span className="flex flex-wrap gap-1">
                                   {deviceType.play_modes.map((mode, index) => (
                                     <span key={mode.name}>
-                                      <span className="font-semibold text-gray-900 dark:text-white">{mode.name}:</span>
-                                      <span className="ml-1 text-indigo-600 dark:text-indigo-400 font-bold">{mode.price.toLocaleString()}원</span>
-                                      {index < deviceType.play_modes!.length - 1 && <span className="mx-1 text-gray-400">/</span>}
+                                      {mode.name}: {mode.price.toLocaleString()}원
+                                      {index < deviceType.play_modes.length - 1 && ', '}
                                     </span>
                                   ))}
                                 </span>
                               </div>
                             ) : (
-                              // play_modes가 없는 경우 기본 가격 표시
                               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Coins className="w-4 h-4 text-gray-400" />
-                                <span className="font-medium">현장 문의</span>
+                                <Coins className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <span>{deviceType.play_price}</span>
                               </div>
                             )}
                           </div>
-                          
-                          {/* 이용 가능 및 대여 가능 정보 */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <div className={`p-1.5 rounded-lg ${availableCount > 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                                <Circle className={`w-4 h-4 ${availableCount > 0 ? 'text-green-600 dark:text-green-400 fill-current' : 'text-gray-400'}`} />
-                              </div>
-                              <span className={`text-sm font-semibold ${availableCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-                                {availableCount}대 이용 가능
+
+                          {/* 상태별 개수 표시 */}
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1.5">
+                              <Circle className="w-3 h-3 text-green-500 fill-current" />
+                              <span className="text-green-600 dark:text-green-400 font-medium">
+                                {availableCount}대 이용가능
                               </span>
                             </div>
-                            {deviceType.is_rentable && (
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                  대여 가능
+                            {deviceType.devices.filter(d => d.status === 'in_use').length > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <Users className="w-3 h-3 text-blue-500" />
+                                <span className="text-blue-600 dark:text-blue-400">
+                                  {deviceType.devices.filter(d => d.status === 'in_use').length}대 대여중
+                                </span>
+                              </div>
+                            )}
+                            {deviceType.devices.filter(d => d.status === 'maintenance').length > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <Wrench className="w-3 h-3 text-amber-500" />
+                                <span className="text-amber-600 dark:text-amber-400">
+                                  {deviceType.devices.filter(d => d.status === 'maintenance').length}대 점검중
                                 </span>
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 90 : 0 }}
-                        transition={{ duration: 0.3 }}
-                        className={`p-2 rounded-xl transition-colors ${
-                          isExpanded 
-                            ? 'bg-indigo-100 dark:bg-indigo-900/30' 
-                            : 'bg-gray-100 dark:bg-gray-700'
-                        }`}
-                      >
-                        <ChevronRight className={`w-5 h-5 transition-colors ${
-                          isExpanded 
-                            ? 'text-indigo-600 dark:text-indigo-400' 
-                            : 'text-gray-600 dark:text-gray-300'
-                        }`} />
-                      </motion.div>
+                      <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     </div>
                   </button>
-                  
-                  {/* 개별 기기 목록 (확장시) */}
+
+                  {/* 확장된 기기 목록 */}
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ 
-                          height: { duration: 0.3, ease: 'easeInOut' },
-                          opacity: { duration: 0.2 }
-                        }}
-                        className="overflow-hidden"
+                        transition={{ duration: 0.3 }}
+                        className="border-t border-gray-200 dark:border-gray-700"
                       >
-                        <div className="border-t border-gray-200 dark:border-gray-800">
-                          <div className="p-6 pt-4 bg-gray-50 dark:bg-gray-900/50">
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                              {deviceType.devices
-                                .sort((a, b) => a.device_number - b.device_number)
-                                .map((device, index) => (
-                                <motion.div
-                                  key={device.id}
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: index * 0.03 }}
-                                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-lg font-bold text-gray-900 dark:text-white">
-                                      {device.device_number}번
-                                    </span>
-                                    <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(device.status)}`}>
-                                      {getStatusIcon(device.status)}
-                                      {getStatusLabel(device)}
-                                    </span>
-                                  </div>
-                                  {device.reservation_info && (
-                                    <div className="mt-2 text-xs space-y-1">
-                                      <p className="text-gray-600 dark:text-gray-400">
-                                        <Users className="inline w-3 h-3 mr-1" />
-                                        {device.reservation_info.user_name}
-                                      </p>
-                                      <p className="text-gray-500 dark:text-gray-500">
-                                        <Clock className="inline w-3 h-3 mr-1" />
-                                        {device.reservation_info.start_time.slice(0,5)} - {device.reservation_info.end_time.slice(0,5)}
-                                      </p>
-                                      {device.status === 'reserved' && device.reservation_info.is_checked_in && (
-                                        <p className="text-amber-600 dark:text-amber-400 font-medium">
-                                          체크인 완료 (예약 시간 대기 중)
-                                        </p>
-                                      )}
+                        <div className="p-6 bg-gray-50 dark:bg-gray-900/50">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            기기별 상태
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {deviceType.devices.map((device) => (
+                              <motion.div
+                                key={device.id}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.05 * device.device_number }}
+                                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-shadow"
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                    #{device.device_number}
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${getStatusColor(device.status)}`}>
+                                    {getStatusIcon(device.status)}
+                                    {getStatusLabel(device)}
+                                  </span>
+                                </div>
+                                
+                                {/* 예약 정보가 있는 경우 표시 */}
+                                {device.reservation_info && (
+                                  <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        <span>
+                                          {device.reservation_info.start_time} - {device.reservation_info.end_time}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Users className="w-3 h-3" />
+                                        <span>{device.reservation_info.user_name}</span>
+                                      </div>
                                     </div>
-                                  )}
-                                </motion.div>
-                              ))}
-                            </div>
+                                  </div>
+                                )}
+                              </motion.div>
+                            ))}
                           </div>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.div>
-                  );
-                  })}
+              );
+            })}
                 </div>
               </motion.div>
             ))}
           </div>
         )}
 
-        {/* 안내 메시지 */}
-        {machineRules.length > 0 && (
+        {/* 기기 현황 안내사항 */}
+        {machineRules && machineRules.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-12 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-3xl p-6 border border-blue-200/50 dark:border-blue-700/50 shadow-lg"
+            transition={{ delay: 0.5 }}
+            className="mt-12 bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-200/50 dark:border-gray-700/50"
           >
-            <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2">
-              <div className="p-2 bg-blue-100 dark:bg-blue-800/30 rounded-xl">
-                <Info className="w-5 h-5" />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              안내사항
-            </h3>
-            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
-              {machineRules.map((rule) => (
-                <li key={rule.id} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></span>
-                  <span className="whitespace-pre-wrap leading-relaxed">{rule.content}</span>
-                </li>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">기기 현황 안내사항</h3>
+            </div>
+            <div className="space-y-4">
+              {machineRules.map((rule, index) => (
+                <motion.div
+                  key={rule.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
+                >
+                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                      {rule.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {rule.content}
+                    </p>
+                  </div>
+                </motion.div>
               ))}
-            </ul>
+            </div>
           </motion.div>
         )}
-
-        {/* 예약하기 CTA */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 text-center"
-        >
-          <div className="bg-indigo-100 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-3xl p-8 shadow-xl">
-            <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mb-6">기기를 예약하고 싶으신가요?</h3>
-            <motion.a 
-              href="/reservations/new" 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <Calendar className="w-5 h-5" />
-              대여 예약하기
-            </motion.a>
-          </div>
-        </motion.div>
       </div>
-      
     </div>
   );
 }

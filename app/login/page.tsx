@@ -3,8 +3,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../components/BetterAuthProvider';
+import { useSession } from '@/components/providers/AuthProvider';
+import { authClient } from '@/lib/auth/cloudflare-client';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Sparkles, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingButton } from '@/app/components/mobile';
@@ -14,8 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { session, loading, signIn } = useAuth();
-  const status = loading ? 'loading' : session ? 'authenticated' : 'unauthenticated';
+  const { data: session, isPending } = useSession();
 
   // URL 파라미터로 전달된 에러 메시지 처리
   useEffect(() => {
@@ -31,32 +32,33 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  // 이미 로그인한 사용자는 redirect 파라미터 또는 홈으로 리다이렉트
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const redirect = searchParams.get('redirect');
-      router.push(redirect || '/');
-    }
-  }, [status, router, searchParams]);
+  // 로그인 상태 확인 - 리다이렉트 제거
+  // useEffect(() => {
+  //   if (!isPending && session?.user) {
+  //     router.push('/');
+  //   }
+  // }, [session, isPending, router]);
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Better Auth를 통한 Google 로그인 - redirect 파라미터 처리
-      const redirect = searchParams.get('redirect') || '/';
-      await signIn('google');
-
-      // signIn이 자동으로 리다이렉트하므로 이 코드는 실행되지 않음
+      // Better Auth를 통한 Google 로그인
+      await authClient.signIn.social({
+        provider: 'google',
+        callbackURL: '/'
+      });
+      
     } catch (error) {
       console.error('Login error:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       setIsLoading(false);
     }
   };
-  // 로딩 중이거나 이미 로그인한 경우
-  if (status === 'loading' || status === 'authenticated') {
+
+  // 로딩 중
+  if (isPending) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4">
         <div className="flex flex-col items-center gap-4">
@@ -64,9 +66,69 @@ export default function LoginPage() {
             <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 rounded-full animate-pulse"></div>
             <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">
-            {status === 'authenticated' ? '리다이렉트 중...' : '로딩 중...'}
-          </p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">로딩 중...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // 이미 로그인한 경우 - 로그아웃 버튼 표시
+  if (session?.user) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4">
+        <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              이미 로그인되어 있습니다
+            </h2>
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                {session.user.image && (
+                  <Image 
+                    src={session.user.image}
+                    alt="Profile"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">
+                    {session.user.name || session.user.email}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {session.user.email}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                >
+                  홈으로 이동
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await authClient.signOut();
+                      router.push('/login');
+                    } catch (error) {
+                      console.error('로그아웃 실패:', error);
+                    }
+                    setIsLoading(false);
+                  }}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? '로그아웃 중...' : '로그아웃'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -74,22 +136,43 @@ export default function LoginPage() {
 
   return (
     <main className="relative min-h-screen">
-      {/* 배경 그라데이션 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-white to-cyan-100 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
+      {/* 홈으로 가는 버튼 */}
+      <button
+        onClick={() => router.push('/')}
+        className="absolute top-4 left-4 z-20 p-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        aria-label="홈으로 이동"
+      >
+        <svg 
+          className="w-6 h-6 text-gray-700 dark:text-gray-300" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M15 19l-7-7 7-7" 
+          />
+        </svg>
+      </button>
+
+      {/* 배경 그라데이션 - 스플래시와 동일 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-100 to-purple-200 dark:from-purple-950 dark:via-indigo-900 dark:to-purple-900">
         <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
       </div>
 
       {/* 배경 장식 요소 */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
       </div>
 
       {/* 메인 콘텐츠 */}
       <div className="relative z-10 flex min-h-screen">
         {/* 왼쪽: 로그인 폼 */}
         <div className="flex-1 flex items-center justify-center p-8">
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -101,10 +184,28 @@ export default function LoginPage() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="w-24 h-24 bg-white/20 dark:bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl relative overflow-hidden border border-white/30 dark:border-white/20"
+                className="w-24 h-24 bg-white/30 dark:bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl relative overflow-hidden border border-white/40 dark:border-white/20"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20" />
-                <span className="relative text-6xl font-black text-indigo-600 dark:text-white drop-shadow-lg font-orbitron">G</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-indigo-500/20" />
+                {/* 스플래시와 동일한 이미지 사용 - 패딩 제거 */}
+                <div className="relative w-24 h-24">
+                  <Image
+                    src="/light.png"
+                    alt="Gameplaza logo"
+                    fill
+                    sizes="96px"
+                    priority
+                    className="object-contain drop-shadow-lg dark:hidden"
+                  />
+                  <Image
+                    src="/dark.png"
+                    alt="Gameplaza logo"
+                    fill
+                    sizes="96px"
+                    priority
+                    className="hidden object-contain drop-shadow-lg dark:block"
+                  />
+                </div>
               </motion.div>
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">게임플라자</h1>
               <p className="text-lg text-gray-600 dark:text-gray-400">리듬게임의 성지, 광주 게임플라자</p>
@@ -115,10 +216,10 @@ export default function LoginPage() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-8 overflow-visible"
+              className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-purple-500/30 p-8 overflow-visible dark:shadow-purple-900/20"
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">환영합니다!</h2>
-
+              
               <div className="space-y-4">
                 <LoadingButton
                   onClick={handleGoogleLogin}
@@ -155,10 +256,10 @@ export default function LoginPage() {
 
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white/80 dark:bg-gray-900/80 text-gray-500">또는</span>
+                    <span className="px-4 bg-white/90 dark:bg-gray-800/90 text-gray-500">또는</span>
                   </div>
                 </div>
 
@@ -182,7 +283,7 @@ export default function LoginPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-center mt-6"
             >
-              <a
+              <a 
                 href="https://open.kakao.com/o/sJPbo3Sb"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -198,7 +299,7 @@ export default function LoginPage() {
         </div>
 
         {/* 오른쪽: 특징 소개 (데스크톱만) */}
-        <div className="hidden lg:flex flex-1 items-center justify-center p-8 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800">
+        <div className="hidden lg:flex flex-1 items-center justify-center p-8 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-gray-800 dark:via-gray-900 dark:to-black">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -209,7 +310,7 @@ export default function LoginPage() {
               광주 최고의 리듬게임 성지
               <Sparkles className="inline w-8 h-8 ml-2 text-yellow-300" />
             </h2>
-
+            
             <div className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { 
   ChevronLeft,
   Phone,
@@ -26,6 +27,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
+// Supabase 제거됨 - Cloudflare D1 사용
 
 type UserDetail = {
   id: string;
@@ -219,7 +221,7 @@ export default function UserDetailPage() {
   // 사용자 정보 수정
   const handleSaveUser = async () => {
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { error } = await supabase.from('users')
         .update({
           nickname: editedUser.nickname,
@@ -243,7 +245,7 @@ export default function UserDetailPage() {
     if (!user) return;
     
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
       const { error } = await supabase.from('users')
         .update({ is_banned: !user.is_blacklisted })
         .eq('id', userId);
@@ -264,7 +266,7 @@ export default function UserDetailPage() {
     if (!user) return;
     
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
       
       if (user.role === 'admin') {
         // 관리자 권한 제거
@@ -302,7 +304,7 @@ export default function UserDetailPage() {
   const saveAdminNotes = async () => {
     setIsSavingNotes(true);
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
       const { error } = await supabase.from('users')
         .update({ notes: adminNotes })
         .eq('id', userId);

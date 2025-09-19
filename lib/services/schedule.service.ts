@@ -1,4 +1,5 @@
-import { createAdminClient } from '@/lib/db';
+import { createAdminClient } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 
 export class ScheduleService {
   /**
@@ -21,7 +22,6 @@ export class ScheduleService {
       console.log(`조기영업 시간 계산 시작 - 날짜: ${date}`);
       
       // rental_time_slot_id가 없는 경우도 처리하기 위해 직접 시간대로 조회
-      const supabaseAdmin = createAdminClient();
       
       // 먼저 7시 예약이 있는지 확인
       const { data: sevenAmReservations, error: sevenAmError } = await supabaseAdmin
@@ -121,7 +121,6 @@ export class ScheduleService {
       console.log(`스케줄 정보: ${title}, ${startTime} - ${endTime}`);
 
       // 기존 자동 생성 일정 확인
-      const supabaseAdmin = createAdminClient();
       const { data: existingSchedule } = await supabaseAdmin
         .from('schedule_events')
         .select('id')
@@ -205,7 +204,6 @@ export class ScheduleService {
       console.log(`자동 스케줄 삭제 검사 시작 - 날짜: ${date}`);
       
       // 해당 날짜의 활성 예약 조회 (pending, approved, checked_in)
-      const supabaseAdmin = createAdminClient();
       const { data: activeReservations, error: reservationError } = await supabaseAdmin
         .from('reservations')
         .select('id, start_time, end_time')
@@ -334,7 +332,6 @@ export class ScheduleService {
     try {
       console.log('주말 밤샘영업 3주치 자동 생성 시작');
       
-      const supabaseAdmin = createAdminClient();
       const today = new Date();
       let created = 0;
       let skipped = 0;
@@ -387,7 +384,6 @@ export class ScheduleService {
    */
   private static async createWeekendOvernightSchedule(date: string, title: string): Promise<boolean> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       // 이미 해당 날짜에 밤샘영업 스케줄이 있는지 확인
       const { data: existing } = await supabaseAdmin
@@ -440,7 +436,6 @@ export class ScheduleService {
       console.log('예약 승인 처리 시작:', reservationId);
       
       // 예약 정보 조회 (start_time 포함)
-      const supabaseAdmin = createAdminClient();
       const { data: reservation, error } = await supabaseAdmin
         .from('reservations')
         .select('id, date, start_time, end_time')

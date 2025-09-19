@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { handleApiError, reportError, TrackedError, ErrorSeverity, ErrorCategory } from '@/lib/monitoring/error-tracking'
 import { createServerClient } from '@supabase/ssr'
 
@@ -89,13 +90,14 @@ export function withAuth(
       {
         cookies: {
           get(name: string) {
-            return req.cookies.get(name)?.value
-          }
-        }
+            return req.cookies.get(name)?.value;
+          },
+        },
       }
-    )
+    );
     
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // TODO: getDb() 사용 - auth.getUser();
+    const { data: { user }, error } = { data: { user: null }, error: new Error('Not implemented') };
     
     if (error || !user) {
       throw new TrackedError(

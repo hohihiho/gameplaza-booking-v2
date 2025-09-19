@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './useAuth';
+import { useSession } from '@/app/components/BetterAuthProvider';
 
 interface AdminAuthState {
   isAdmin: boolean;
@@ -18,16 +18,16 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
     loading: true,
     error: null
   });
-
-  const { isAuthenticated, loading: authLoading, isAdmin, isSuperAdmin } = useAuth();
+  
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (authLoading) return;
+    if (status === 'loading') return;
 
     const checkAdminAuth = async () => {
       try {
-        if (!isAuthenticated) {
+        if (!session) {
           setAuthState({
             isAdmin: false,
             role: null,
@@ -38,11 +38,7 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
           return;
         }
 
-        const response = await fetch('/api/admin/auth/check', {
-          headers: {
-            'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)authToken\s*\=\s*([^;]*).*$)|^.*$/, "$1")}`
-          }
-        });
+        const response = await fetch('/api/admin/auth/check');
         const data = await response.json();
 
         if (!response.ok || !data.isAdmin) {
@@ -87,7 +83,7 @@ export function useAdminAuth(requiredRole?: 'admin' | 'super_admin') {
     };
 
     checkAdminAuth();
-  }, [isAuthenticated, authLoading, router, requiredRole, isAdmin, isSuperAdmin]);
+  }, [session, status, router, requiredRole]);
 
   return authState;
 }

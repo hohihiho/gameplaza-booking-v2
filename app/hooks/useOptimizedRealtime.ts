@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-// import { getDB, supabase } from '@/lib/db';
+// D1은 실시간 기능을 지원하지 않으므로 폴링 또는 웹소켓으로 대체 필요
+interface RealtimeChannel {}
+interface RealtimePostgresChangesPayload<T = any> {
+  type: 'INSERT' | 'UPDATE' | 'DELETE';
+  table: string;
+  schema: string;
+  new: T;
+  old: T;
+}
+import { createClient } from '@/lib/supabase/client';
 
 interface UseOptimizedRealtimeConfig {
   channel: string;
@@ -35,7 +44,7 @@ export function useOptimizedRealtime({
   onDisconnect,
   onError
 }: UseOptimizedRealtimeConfig) {
-//   import { getDB, supabase } from '@/lib/db';
+  const supabase = createClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -85,7 +94,7 @@ export function useOptimizedRealtime({
     setState(prev => ({ ...prev, isReconnecting: true }));
     
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+    supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
     
@@ -182,7 +191,7 @@ export function useOptimizedRealtime({
       
       // 채널 정리
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+    supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       

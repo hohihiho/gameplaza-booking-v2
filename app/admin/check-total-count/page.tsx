@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createAdminClient } from '@/lib/db';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
+// Supabase 제거됨 - Cloudflare D1 사용
 
 export default function CheckTotalCountPage() {
   const [loading, setLoading] = useState(false);
@@ -9,14 +10,14 @@ export default function CheckTotalCountPage() {
 
   const checkCounts = async () => {
     setLoading(true);
-    const supabaseAdmin = createAdminClient();
+    // const supabase = getDb() // D1 사용;
     const counts: any = {};
 
     try {
       // 1. 전체 예약 수 확인
       const { count: totalCount, error: totalError } = await supabaseAdmin
         .from('reservations')
-        .count();
+        .select('*', { count: 'exact', head: true });
       
       counts.total = { count: totalCount, error: totalError };
 
@@ -27,9 +28,9 @@ export default function CheckTotalCountPage() {
       for (const status of statuses) {
         const { count, error } = await supabaseAdmin
           .from('reservations')
-          .count()
+          .select('*', { count: 'exact', head: true })
           .eq('status', status);
-
+        
         counts.byStatus[status] = { count, error };
       }
 
@@ -40,7 +41,7 @@ export default function CheckTotalCountPage() {
       for (let year = currentYear - 2; year <= currentYear; year++) {
         const { count, error } = await supabaseAdmin
           .from('reservations')
-          .count()
+          .select('*', { count: 'exact', head: true })
           .gte('date', `${year}-01-01`)
           .lte('date', `${year}-12-31`);
         

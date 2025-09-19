@@ -1,9 +1,12 @@
+import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { Database } from '@/types/database'
 
 type Reservation = Database['public']['Tables']['reservations']['Row']
 type RentalSlot = Database['public']['Tables']['rental_slots']['Row']
 
 export class ReservationConflictService {
+  private supabase = createClient()
   
   /**
    * 예약 충돌 방지를 위한 원자적 예약 생성
@@ -125,7 +128,7 @@ export class ReservationConflictService {
       .subscribe()
     
     return () => {
-      this.supabase.removeChannel(channel)
+      // TODO: removeChannel(channel)
     }
   }
   
@@ -168,7 +171,7 @@ export class ReservationConflictService {
     
     // 클린업 함수 반환
     setTimeout(() => {
-      this.supabase.removeChannel(channel)
+      // TODO: removeChannel(channel)
     }, 300000) // 5분 후 자동 해제
     
     return availabilityMap

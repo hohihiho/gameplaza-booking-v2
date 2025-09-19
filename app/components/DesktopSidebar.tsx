@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-// Better Auth imports
-import { useSession, signOut } from '@/lib/hooks/useAuth';
+import { useSession, signOut } from './BetterAuthProvider';
 import { 
   Home, Calendar, FileText, Gamepad2, Clock, User, LogOut, 
   ChevronRight, Sparkles, Shield, HelpCircle

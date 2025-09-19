@@ -15,7 +15,8 @@ type Terms = {
   effective_date: string;
   created_at: string;
   updated_at: string;
-  is_active: boolean;
+  created_by?: string | null;
+  updated_by?: string | null;
 };
 
 
@@ -54,9 +55,12 @@ export default function AdminTermsPage() {
     fetchTerms();
   }, []);
 
-  // 현재 활성화된 약관 가져오기
+  // 현재 활성화된 약관 가져오기 (최신 버전이 활성)
   const getActiveTerms = (type: TermsType) => {
-    return terms.find(t => t.type === type && t.is_active);
+    const typeTerms = terms
+      .filter(t => t.type === type)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return typeTerms[0] || null;
   };
 
   // 약관 생성/수정
@@ -128,29 +132,12 @@ export default function AdminTermsPage() {
     }
   };
 
-  // 약관 활성화
-  const handleActivate = async (id: string) => {
-    try {
-      setLoading(true);
-      
-      const response = await fetch('/api/admin/terms/activate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || '약관 활성화에 실패했습니다.');
-      }
-
-      await fetchTerms();
-    } catch (err) {
-      console.error('약관 활성화 오류:', err);
-      setError(err instanceof Error ? err.message : '약관 활성화 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+  // 최신 버전인지 확인
+  const isLatestVersion = (term: Terms) => {
+    const typeTerms = terms
+      .filter(t => t.type === term.type)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return typeTerms[0]?.id === term.id;
   };
 
   const termTypeLabels = {
@@ -241,7 +228,7 @@ export default function AdminTermsPage() {
                         <span>버전: {activeTerms.version}</span>
                         <span>시행일: {activeTerms.effective_date}</span>
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                          활성
+                          현재 적용 중
                         </span>
                       </div>
                     </div>
@@ -368,8 +355,7 @@ export default function AdminTermsPage() {
                 version: '1.0',
                 effective_date: new Date().toISOString().split('T')[0] || '',
                 created_at: '',
-                updated_at: '',
-                is_active: true
+                updated_at: ''
               });
               setIsEditing(true);
             }}
@@ -395,9 +381,9 @@ export default function AdminTermsPage() {
                   <div>
                     <div className="flex items-center gap-3">
                       <span className="font-medium dark:text-white">버전 {term.version}</span>
-                      {term.is_active && (
+                      {isLatestVersion(term) && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                          활성
+                          현재 적용 중
                         </span>
                       )}
                     </div>
@@ -408,14 +394,6 @@ export default function AdminTermsPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {!term.is_active && (
-                      <button
-                        onClick={() => handleActivate(term.id)}
-                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                      >
-                        활성화
-                      </button>
-                    )}
                     <button
                       onClick={() => {
                         setEditingTerms(term);
@@ -428,9 +406,9 @@ export default function AdminTermsPage() {
                     <button
                       onClick={() => setShowDeleteConfirm(term.id)}
                       className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                      disabled={term.is_active}
+                      disabled={isLatestVersion(term)}
                     >
-                      <Trash2 className={`w-4 h-4 ${term.is_active ? 'opacity-50' : ''}`} />
+                      <Trash2 className={`w-4 h-4 ${isLatestVersion(term) ? 'opacity-50' : ''}`} />
                     </button>
                   </div>
                 </div>

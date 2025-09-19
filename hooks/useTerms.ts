@@ -8,7 +8,8 @@ interface TermsData {
   type: string;
   title: string;
   content: any;
-  is_active: boolean;
+  version: string;
+  effective_date: string;
   created_at: string;
   updated_at: string;
 }

@@ -1,8 +1,9 @@
 // 로딩 컴포넌트
 // 페이지가 로딩 중일 때 보여주는 화면입니다
-
-import { PageSkeleton } from '@/app/components/ui/Skeleton';
+// 홈페이지에서는 스플래시 화면이 있으므로 로딩 스켈레톤을 표시하지 않습니다
 
 export default function Loading() {
-  return <PageSkeleton content="list" />;
+  // 홈페이지의 경우 스플래시 화면이 있으므로 로딩 스켈레톤 미표시
+  // 빈 화면 반환
+  return null;
 }

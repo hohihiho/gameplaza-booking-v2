@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// Supabase 제거됨 - 추후 D1/Better Auth로 대체 예정
 import { 
   Calendar,
   Clock,
@@ -15,7 +16,8 @@ import {
   Moon,
   Coffee,
   XCircle,
-  Gamepad2
+  Gamepad2,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -88,7 +90,6 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
-  // const [reservations, setReservations] = useState<any[]>([]);
   const [deviceColors, setDeviceColors] = useState<Record<string, string>>({});
   const [deviceOrder, setDeviceOrder] = useState<Record<string, number>>({});
   const [, setIsLoading] = useState(false);
@@ -151,14 +152,16 @@ export default function SchedulePage() {
         // 오류 발생시 기본 영업시간 사용
         const dayOfWeek = new Date().getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
+        const isFriday = dayOfWeek === 5;
+        const isSaturday = dayOfWeek === 6;
+
         setTodaySchedule({
           floor1Start: isWeekend ? '11:00' : '12:00',
           floor1End: '22:00',
           floor2Start: isWeekend ? '11:00' : '12:00',
-          floor2End: isWeekend ? '24:00' : '05:00',
+          floor2End: (isFriday || isSaturday) ? '05:00' : '24:00',
           floor1EventType: null,
-          floor2EventType: null
+          floor2EventType: (isFriday || isSaturday) ? 'overnight' : null
         });
       }
     };
@@ -251,7 +254,7 @@ export default function SchedulePage() {
 
       // 5. 예약 이벤트 생성
       console.log('reservationsByDate:', reservationsByDate);
-      const reservationEvents: ScheduleEvent[] = Object.entries(reservationsByDate).map(([date, reservations]) => {
+      const reservationEvents: ScheduleEvent[] = Object.entries(reservationsByDate || {}).map(([date, reservations]) => {
         const reservationList = reservations as any[];
         const earlyCount = reservationList.filter(r => r.slotType === 'early').length;
         const overnightCount = reservationList.filter(r => r.slotType === 'overnight').length;
@@ -297,43 +300,6 @@ export default function SchedulePage() {
     fetchScheduleData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMonth]);
-
-  // 실시간 업데이트 구독 (D1은 실시간 기능 미지원으로 비활성화)
-  // TODO: WebSocket 또는 Polling으로 대체 필요
-  useEffect(() => {
-    // D1 마이그레이션으로 인해 실시간 업데이트 일시 비활성화
-    // const channel = supabase
-    //   .channel('schedule-updates')
-    //   .on(
-    //     'postgres_changes',
-    //     {
-    //       event: '*',
-    //       schema: 'public',
-    //       table: 'schedule_events'
-    //     },
-    //     () => {
-    //       fetchScheduleData();
-    //     }
-    //   )
-    //   .on(
-    //     'postgres_changes',
-    //     {
-    //       event: '*',
-    //       schema: 'public',
-    //       table: 'reservations'
-    //     },
-    //     () => {
-    //       fetchScheduleData();
-    //     }
-    //   )
-    //   .subscribe();
-
-    // return () => {
-    //   if (channel) {
-    //     supabase.removeChannel(channel);
-    //   }
-    // };
-  }, [currentMonth, fetchScheduleData]);
   
   // 날짜 관련 유틸리티 함수들
   // const getDaysInMonth = (date: Date) => {
@@ -517,7 +483,7 @@ export default function SchedulePage() {
                 <div className="text-center">
                   <div className="text-xs text-white/80 mb-1">1층</div>
                   <div className="text-lg md:text-xl font-bold text-white">
-                    {todaySchedule ? `${formatTime24Hour(todaySchedule.floor1Start)}-${formatTime24Hour(todaySchedule.floor1End)}` : '...'}
+                    {todaySchedule ? `${todaySchedule.floor1Start}-${todaySchedule.floor1End}` : '...'}
                   </div>
                 </div>
                 <div className="w-px h-10 bg-white/30" />
@@ -533,123 +499,126 @@ export default function SchedulePage() {
         </div>
       </section>
       
-      <div className="max-w-6xl mx-auto px-5 py-4">
-        {/* 기본 영업시간 */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+      <div className="max-w-6xl mx-auto px-5 py-8">
+        {/* 기본 영업시간 - 축소 버전 */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-4 relative z-10"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 p-3 mb-4 mt-4"
         >
-          <div 
-            className={`flex items-center justify-between cursor-pointer select-none ${isDefaultHoursOpen ? 'mb-6' : ''}`}
-            onClick={() => setIsDefaultHoursOpen(!isDefaultHoursOpen)}
+          <button
+            type="button"
+            onClick={() => setIsDefaultHoursOpen((prev) => !prev)}
+            aria-expanded={isDefaultHoursOpen}
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
           >
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </div>
-              기본 영업시간
-            </h2>
-            <div
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <motion.div
-                animate={{ rotate: isDefaultHoursOpen ? 0 : -90 }}
-                transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-              >
-                <ChevronDown className="w-5 h-5 text-gray-500" />
-              </motion.div>
+              <div className="text-left">
+                <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">기본 영업시간</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">탭하여 확인</p>
+              </div>
             </div>
-          </div>
+            <motion.span
+              animate={{ rotate: isDefaultHoursOpen ? 0 : -90 }}
+              transition={{ duration: 0.2 }}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700/60"
+            >
+              <ChevronDown className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" />
+            </motion.span>
+          </button>
           
-          <motion.div 
+          <motion.div
             initial={false}
-            animate={{ 
+            animate={{
               height: isDefaultHoursOpen ? 'auto' : 0,
               opacity: isDefaultHoursOpen ? 1 : 0
             }}
-            transition={{ 
-              duration: 0.3,
+            transition={{
+              duration: 0.4,
               ease: [0.04, 0.62, 0.23, 0.98]
             }}
             style={{ overflow: 'hidden' }}
           >
-            {/* 컴팩트한 테이블 형식 */}
-            <div>
-              <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-900/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">층</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 dark:text-gray-400">월~목</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 dark:text-gray-400">금</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 dark:text-gray-400">토</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 dark:text-gray-400">일, 공휴일</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 dark:text-gray-400">공휴일 전날</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr className="bg-white dark:bg-gray-800">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 text-xs font-bold">1F</span>
-                        </div>
-                        1층
-                      </td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">12-22시</td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">12-22시</td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">11-22시</td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">11-22시</td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">12-22시</td>
-                    </tr>
-                    <tr className="bg-white dark:bg-gray-800">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-purple-600 dark:text-purple-400 text-xs font-bold">2F</span>
-                        </div>
-                        2층
-                      </td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">12-24시</td>
-                      <td className="px-3 py-3 text-center">
-                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">12-29시</span>
-                          <Moon className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">11-29시</span>
-                          <Moon className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">11-22시</td>
-                      <td className="px-3 py-3 text-center">
-                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                          <span className="text-sm font-medium text-amber-700 dark:text-amber-300">11-29시</span>
-                          <Moon className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div className="flex flex-col gap-5 pt-3">
+              <div className="grid gap-4 md:grid-cols-2">
+                <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/70 px-5 py-4">
+                  <header className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/10 text-sm font-semibold text-blue-600 dark:text-blue-300">1층</span>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">정규 운영</h3>
+                  </header>
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">월~금, 공휴일 전날</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">12:00 ~ 22:00</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">토, 일, 공휴일</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">11:00 ~ 22:00</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-gray-100/80 dark:bg-gray-800/70 px-3 py-3 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                    <Info className="w-4 h-4 text-indigo-500 dark:text-indigo-300 flex-shrink-0 mt-0.5" />
+                    <span>1층은 위 시간으로 고정 운영합니다.</span>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/70 px-5 py-4">
+                  <header className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-purple-500/10 text-sm font-semibold text-purple-600 dark:text-purple-300">2층</span>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">변동 운영</h3>
+                  </header>
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">일~목, 공휴일</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">12:00 ~ 24:00</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">금, 공휴일 전날</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">12:00 ~ 29:00</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">토</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">11:00 ~ 29:00</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <dt className="text-gray-600 dark:text-gray-300">일, 공휴일</dt>
+                      <dd className="text-base font-bold text-indigo-600 dark:text-indigo-300">11:00 ~ 24:00</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-purple-50/80 dark:bg-purple-900/20 px-3 py-3 text-xs sm:text-sm text-purple-900 dark:text-purple-100">
+                    <Info className="w-4 h-4 text-purple-500 dark:text-purple-300 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p>22시 이후 손님이 없으면 조기 마감할 수 있으며,</p>
+                      <p>대여 예약 시 주중에도 추가 영업이 진행될 수 있습니다.</p>
+                    </div>
+                  </div>
+                </section>
               </div>
 
-              {/* 영업 안내 - 테이블 아래에 컴팩트하게 배치 */}
-              <div className="mt-4 grid md:grid-cols-2 gap-3">
-                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                  <Moon className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-amber-800 dark:text-amber-200 space-y-1">
-                    <div className="font-medium">밤샘 영업 안내</div>
-                    <div>• 29시 = 익일 새벽 5시</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/60 bg-amber-50/80 dark:bg-amber-900/20 px-5 py-4 text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+                  <div className="mb-2 flex items-center gap-2 font-semibold">
+                    <Moon className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+                    밤샘 영업 안내
                   </div>
+                  <ul className="space-y-1.5">
+                    <li>토·일 넘어가는 새벽은 대여 없이도 밤샘 영업을 진행합니다.</li>
+                    <li>24시 이후에는 손님 상황에 따라 조기 마감될 수 있습니다.</li>
+                  </ul>
                 </div>
-                <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                  <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                    <div className="font-medium">추가 안내</div>
-                    <div>• 2층: 22시 이후 손님 없으면 조기 마감</div>
-                    <div>• 대여 확정시 영업시간 연장 가능</div>
+
+                <div className="rounded-xl border border-blue-200/60 dark:border-blue-800/60 bg-blue-50/80 dark:bg-blue-900/20 px-5 py-4 text-sm leading-relaxed text-blue-900 dark:text-blue-100">
+                  <div className="mb-2 flex items-center gap-2 font-semibold">
+                    <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                    추가 영업 알림
+                  </div>
+                  <div className="space-y-1">
+                    <p>대여 예약이 열리면 주중에도 조기 또는 밤샘 영업이 추가될 수 있습니다.</p>
+                    <p>아래 일정표를 함께 확인해 주세요.</p>
                   </div>
                 </div>
               </div>

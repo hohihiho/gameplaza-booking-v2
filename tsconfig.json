@@ -26,7 +26,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/components/*": ["./app/components/*"],
+      "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
       "@/hooks/*": ["./hooks/*"],
       "@/types/*": ["./types/*"],
@@ -35,5 +35,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "worktrees", "**/__tests__/**", "**/tests/**", "tools/**", "supabase/functions/**"]
+  "exclude": ["node_modules", "worktrees", "**/__tests__/**", "**/tests/**", "tools/**"]
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

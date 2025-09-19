@@ -1,6 +1,6 @@
 'use client';
 
-// import removed - using Better Auth;
+import { useSession } from '@/app/components/BetterAuthProvider';
 
 export function useIsAdmin() {
   const { data: session, status } = useSession();

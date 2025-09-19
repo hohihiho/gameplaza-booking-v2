@@ -4,7 +4,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-// import removed - using Better Auth;
+import { useSession } from '@/components/providers/AuthProvider';
+import { authClient } from '@/lib/auth/cloudflare-client';
 import { /* User, Phone, */ Loader2, Check, ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DynamicTermsContent from '../../components/legal/DynamicTermsContent';
@@ -32,13 +33,12 @@ export default function SignupPage() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   
   const router = useRouter();
-  const { data: session, status } = useSession();
-//   import { getDB, supabase } from '@/lib/db';
+  const { data: session, isPending } = useSession();
   const nicknameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 세션 확인
-    if (status === 'loading') return;
+    if (isPending) return;
     
     if (!session?.user) {
       router.push('/login');
@@ -56,7 +56,7 @@ export default function SignupPage() {
     };
     
     checkProfile();
-  }, [session, status, router, supabase]);
+  }, [session, isPending, router]);
 
 
   // 페이지 이탈 감지
@@ -74,7 +74,7 @@ export default function SignupPage() {
     const handleRouteChange = () => {
       // 회원가입이 완료되지 않은 상태에서 다른 페이지로 이동하려고 할 때
       if (session?.user && !nickname) {
-        signOut({ redirect: false }).then(() => {
+        authClient.signOut().then(() => {
           router.push('/');
         });
       }
@@ -230,7 +230,7 @@ export default function SignupPage() {
     }
   };
 
-  if (status === 'loading') {
+  if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -254,7 +254,8 @@ export default function SignupPage() {
                 '회원가입 취소'
               );
               if (confirmed) {
-                signOut({ callbackUrl: '/' });
+                await authClient.signOut();
+                router.push('/');
               }
             }}
             className="mb-6 inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"

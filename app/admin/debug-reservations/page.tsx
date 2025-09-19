@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createAdminClient } from '@/lib/db';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
+// Supabase 제거됨 - Cloudflare D1 사용
 
 export default function DebugReservationsPage() {
   const [loading, setLoading] = useState(false);
@@ -39,12 +40,12 @@ export default function DebugReservationsPage() {
       // 2. 직접 Supabase 조회 (Admin Client)
       console.log('=== 2. Supabase Admin Client 조회 ===');
       try {
-        const supabaseAdmin = createAdminClient();
+        // const supabase = getDb() // D1 사용;
         
         // 예약 테이블 전체 카운트
         const { count: totalCount, error: countError } = await supabaseAdmin
           .from('reservations')
-          .count();
+          .select('*', { count: 'exact', head: true });
         
         debugResults.totalCount = { count: totalCount, error: countError };
         console.log('전체 예약 수:', totalCount, '에러:', countError);
@@ -70,9 +71,9 @@ export default function DebugReservationsPage() {
         for (const status of statuses) {
           const { count, error } = await supabaseAdmin
             .from('reservations')
-            .count()
+            .select('*', { count: 'exact', head: true })
             .eq('status', status);
-
+          
           debugResults.statusCounts[status] = { count, error };
         }
         console.log('상태별 카운트:', debugResults.statusCounts);

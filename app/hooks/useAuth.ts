@@ -1,32 +1,29 @@
 'use client';
 
-import { useAuth as useBetterAuth, useIsAdmin, usePermission } from '../components/BetterAuthProvider';
+// Better Auth 사용 - useSession 제거;
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 /**
- * 인증 관련 커스텀 훅 - Better Auth 버전
+ * 인증 관련 커스텀 훅
  */
 export function useAuth(requireAuth = false) {
-  const { user, session, loading, signIn, signOut } = useBetterAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const { isAdmin, isSuperAdmin } = useIsAdmin();
 
   useEffect(() => {
-    if (requireAuth && !loading && !session) {
+    if (requireAuth && status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [requireAuth, loading, session, router]);
+  }, [requireAuth, status, router]);
 
   return {
-    user: user || null,
+    user: session?.user || null,
     isAuthenticated: !!session?.user,
-    isAdmin,
-    isSuperAdmin,
-    loading,
-    status: loading ? 'loading' : session ? 'authenticated' : 'unauthenticated',
-    signIn,
-    signOut
+    isAdmin: session?.user?.isAdmin || false,
+    isSuperAdmin: session?.user?.isSuperAdmin || false,
+    loading: status === 'loading',
+    status
   };
 }
 
@@ -34,15 +31,14 @@ export function useAuth(requireAuth = false) {
  * 관리자 권한이 필요한 경우 사용
  */
 export function useRequireAdmin() {
-  const { isAdmin, loading } = useIsAdmin();
-  const { session } = useBetterAuth();
+  const { isAdmin, loading, status } = useAuth(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && session && !isAdmin) {
+    if (!loading && status === 'authenticated' && !isAdmin) {
       router.push('/');
     }
-  }, [isAdmin, loading, session, router]);
+  }, [isAdmin, loading, status, router]);
 
   return { isAdmin, loading };
 }
@@ -51,56 +47,14 @@ export function useRequireAdmin() {
  * 슈퍼 관리자 권한이 필요한 경우 사용
  */
 export function useRequireSuperAdmin() {
-  const { isSuperAdmin, loading } = useIsAdmin();
-  const { session } = useBetterAuth();
+  const { isSuperAdmin, loading, status } = useAuth(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && session && !isSuperAdmin) {
+    if (!loading && status === 'authenticated' && !isSuperAdmin) {
       router.push('/');
     }
-  }, [isSuperAdmin, loading, session, router]);
+  }, [isSuperAdmin, loading, status, router]);
 
   return { isSuperAdmin, loading };
-}
-
-/**
- * 특정 권한이 필요한 경우 사용
- */
-export function useRequirePermission(requiredRole: string) {
-  const { hasPermission, loading } = usePermission(requiredRole);
-  const { session } = useBetterAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && session && !hasPermission) {
-      router.push('/');
-    }
-  }, [hasPermission, loading, session, router]);
-
-  return { hasPermission, loading };
-}
-
-/**
- * 제재 상태 체크 훅
- */
-export function useSanctionCheck() {
-  const { user, loading } = useBetterAuth();
-  
-  const isBanned = user?.is_blacklisted || false;
-  const isRestricted = user?.is_restricted || false;
-  
-  let restrictedUntil: Date | null = null;
-  if (user?.restricted_until) {
-    restrictedUntil = new Date(user.restricted_until);
-  }
-  
-  const isCurrentlyRestricted = isRestricted && restrictedUntil && restrictedUntil > new Date();
-  
-  return {
-    isBanned,
-    isRestricted: isCurrentlyRestricted,
-    restrictedUntil,
-    loading
-  };
 }

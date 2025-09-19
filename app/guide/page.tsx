@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Clock, 
   MapPin, 
@@ -23,51 +23,8 @@ import {
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-interface GuideContent {
-  id: string;
-  category: 'arcade' | 'reservation';
-  section: string;
-  title: string;
-  content: string[];
-  order_index: number;
-  is_active: boolean;
-}
-
 export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<'arcade' | 'reservation'>('arcade');
-  const [guideContents, setGuideContents] = useState<GuideContent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // 데이터 로드
-  useEffect(() => {
-    const fetchGuideContents = async () => {
-      try {
-        const response = await fetch('/api/guide-contents');
-        const data = await response.json();
-        
-        if (response.ok) {
-          setGuideContents(data.contents);
-        } else {
-          console.error('가이드 콘텐츠 로드 실패:', data.error);
-        }
-      } catch (error) {
-        console.error('가이드 콘텐츠 로드 오류:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGuideContents();
-  }, []);
-
-  // 섹션별 콘텐츠 가져오기
-  const getContentBySection = (category: 'arcade' | 'reservation', section: string) => {
-    return guideContents.find(content => 
-      content.category === category && 
-      content.section === section && 
-      content.is_active
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -199,27 +156,45 @@ export default function GuidePage() {
                   <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <h2 className="text-xl font-bold dark:text-white">
-                    {getContentBySection('arcade', 'rules')?.title || '이용 수칙'}
-                  </h2>
+                  <h2 className="text-xl font-bold dark:text-white">이용 수칙</h2>
                 </div>
                 <div className="space-y-2">
-                  {(getContentBySection('arcade', 'rules')?.content || [
-                    '게임기는 소중히 다뤄주세요',
-                    '다른 이용자를 배려해주세요', 
-                    '쓰레기는 쓰레기통에 버려주세요',
-                    '대기카드 놓은 순서대로 이용해주시고, 순서가 되면 바로 플레이해주세요',
-                    '유령카드를 만들지 마시고 실제 플레이할 때만 대기카드를 놓아주세요',
-                    '게임기에 음료수를 흘리지 않도록 주의해주세요',
-                    '음료수를 흘리거나 쏟으셨을 시 기기 닦는 걸레로 닦지 마시고 현장 관리자에게 알려주세요',
-                    '게임 플레이 중 프리징 문제 발생 시 현장 관리자에게 문의해주세요',
-                    '보수가 필요한 문제의 경우 1:1 카카오톡 문의에 남겨주세요'
-                  ]).map((rule, index) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-sm dark:text-gray-300">{rule}</span>
+                      <span className="text-sm dark:text-gray-300">게임기는 소중히 다뤄주세요</span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">다른 이용자를 배려해주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">쓰레기는 쓰레기통에 버려주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">대기카드 놓은 순서대로 이용해주시고, 순서가 되면 바로 플레이해주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">유령카드를 만들지 마시고 실제 플레이할 때만 대기카드를 놓아주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">게임기에 음료수를 흘리지 않도록 주의해주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">음료수를 흘리거나 쏟으셨을 시 기기 닦는 걸레로 닦지 마시고 현장 관리자에게 알려주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">게임 플레이 중 프리징 문제 발생 시 현장 관리자에게 문의해주세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm dark:text-gray-300">보수가 필요한 문제의 경우 1:1 카카오톡 문의에 남겨주세요</span>
+                    </div>
                 </div>
               </div>
 

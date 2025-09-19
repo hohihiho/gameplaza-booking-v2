@@ -2,7 +2,8 @@
 // 비전공자 설명: 사용자가 API를 호출할 때마다 자동으로 만료된 예약을 확인하고
 // 기기 상태를 업데이트하는 시스템입니다. 크론잡 대신 사용자 액션으로 작동합니다.
 
-import { createAdminClient } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 // 마지막 체크 시간을 메모리에 저장 (서버리스 환경에서는 재시작 시 초기화됨)
 let lastCheckTime: number = 0;
@@ -64,7 +65,7 @@ function getTodayDateString(): string {
  */
 async function processExpiredReservations(): Promise<StatusUpdateLog[]> {
   const logs: StatusUpdateLog[] = [];
-  import { getDB, supabase } from '@/lib/db';
+  const supabase = createServiceRoleClient();
   
   try {
     // 현재 KST 시간 기준으로 종료되어야 할 예약들 찾기
@@ -149,7 +150,7 @@ async function processExpiredReservations(): Promise<StatusUpdateLog[]> {
  */
 async function processRentalStartTimes(): Promise<StatusUpdateLog[]> {
   const logs: StatusUpdateLog[] = [];
-  import { getDB, supabase } from '@/lib/db';
+  const supabase = createServiceRoleClient();
   
   try {
     const currentTime = getCurrentTimeString();
@@ -302,7 +303,7 @@ export async function forceCheckDeviceStatus() {
  * 현재 상태 정보 조회
  */
 export async function getStatusInfo() {
-  import { getDB, supabase } from '@/lib/db';
+  const supabase = createServiceRoleClient();
   const nowISO = getCurrentKSTTime().toISOString();
   const currentTime = getCurrentTimeString();
   const today = getTodayDateString();

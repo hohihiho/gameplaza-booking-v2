@@ -3,8 +3,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { motion } from 'framer-motion';
-// import { getDB, supabase } from '@/lib/db';
+// Supabase 제거됨 - Cloudflare D1 사용
+// import { RealtimeChannel } from '@supabase/supabase-js';
 import { 
   Calendar,
   Plus,
@@ -56,6 +58,7 @@ export default function RentalSlotManagementPage() {
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   // const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // const supabase = getDb() // D1 사용);
 
   // 새 시간대 추가 폼 상태
   const [newSlot, setNewSlot] = useState({
@@ -72,7 +75,7 @@ export default function RentalSlotManagementPage() {
   // Supabase에서 대여 가능한 기기 타입 목록 가져오기
   const fetchDeviceTypes = async () => {
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { data: deviceTypesData, error } = await supabase.from('device_types')
         .select('*')
         .eq('is_rentable', true)
@@ -131,7 +134,7 @@ export default function RentalSlotManagementPage() {
           schema: 'public',
           table: 'rental_time_slots'
         },
-        (payload: { new?: any; old?: any; eventType?: string }) => {
+        (payload) => {
           // 현재 선택된 기기와 날짜에 해당하는 변경사항만 처리
           if (payload.new && 
               'device_type_id' in payload.new &&
@@ -167,7 +170,7 @@ export default function RentalSlotManagementPage() {
       setIsLoading(true);
       const dateStr = formatDate(selectedDate);
       
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { data: slotsData, error } = await supabase.from('rental_time_slots')
         .select('*')
         .eq('device_type_id', selectedDeviceType)
@@ -245,7 +248,7 @@ export default function RentalSlotManagementPage() {
         };
       }
       
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { error } = await supabase.from('rental_time_slots')
         .insert({
           device_type_id: selectedDeviceType,
@@ -283,7 +286,7 @@ export default function RentalSlotManagementPage() {
     if (!confirm('이 시간대를 삭제하시겠습니까?')) return;
     
     try {
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { error } = await supabase.from('rental_time_slots')
         .delete()
         .eq('id', slotId);

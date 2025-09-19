@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from '@/lib/hooks/useSession';
+// Better Auth 사용 - useSession 제거;
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User, LogOut, UserX, ChevronRight, Edit2, Trophy, Calendar, CheckCircle, XCircle, Sparkles, Shield } from 'lucide-react';
@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useIsAdmin } from '@/app/hooks/useIsAdmin';
 import NotificationSettings from '@/app/components/notification-settings';
 import PWAInstallButton from '@/app/components/PWAInstallButton';
-import { getRoleDisplayName, getRoleColor, isSuperAdmin } from '@/lib/auth';
 
 export default function MyPage() {
   const { data: session } = useSession();
@@ -96,15 +95,7 @@ export default function MyPage() {
   }, [session]);
 
   const handleLogout = async () => {
-    try {
-      // Clear auth cookie and redirect to home
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Force redirect even if logout API fails
-      router.push('/');
-    }
+    await signOut({ callbackUrl: '/' });
   };
 
   const handleWithdraw = async () => {
@@ -121,12 +112,7 @@ export default function MyPage() {
       if (response.ok) {
         showToast('회원탈퇴가 완료되었습니다', 'success');
         setTimeout(async () => {
-          try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            router.push('/');
-          } catch (error) {
-            router.push('/');
-          }
+          await signOut({ callbackUrl: '/' });
         }, 1000);
       } else {
         showToast(data.error || '회원탈퇴 처리 중 오류가 발생했습니다', 'error');
@@ -312,30 +298,23 @@ export default function MyPage() {
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{session?.user?.email || ''}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  {session?.user?.role && (() => {
-                    const roleColors = getRoleColor(session.user.role);
-                    const roleDisplayName = getRoleDisplayName(session.user.role);
-                    const isSuper = isSuperAdmin(session.user);
-
-                    return (
-                      <>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${roleColors.bg} ${roleColors.text} border ${roleColors.border}`}>
-                          {isSuper ? (
-                            <Shield className="w-3 h-3 mr-1" />
-                          ) : (
-                            <Trophy className="w-3 h-3 mr-1" />
-                          )}
-                          {roleDisplayName}
-                        </span>
-                        {session.user.role !== 'restricted' && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            광주겜플 멤버
-                          </span>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {isAdmin ? (
+                    <>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm">
+                        <Shield className="w-3 h-3 mr-1" />
+                        관리자
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                        <Trophy className="w-3 h-3 mr-1" />
+                        광주겜플 멤버
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                      <Trophy className="w-3 h-3 mr-1" />
+                      광주겜플 멤버
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

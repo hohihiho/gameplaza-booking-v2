@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-// import removed - using Better Auth;
+import { useSession } from '@/app/components/BetterAuthProvider';
 import { toast } from 'react-hot-toast';
 
 export function useReservationReminder() {

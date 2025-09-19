@@ -2,7 +2,7 @@
 
 // 기기 타입 목록 조회
 export async function getDeviceTypes() {
-  const response = await fetch('/api/v3/admin/device-types')
+  const response = await fetch('/api/v2/devices/types')
   if (!response.ok) {
     throw new Error('기기 목록을 불러올 수 없습니다')
   }
@@ -13,8 +13,8 @@ export async function getDeviceTypes() {
 export async function getTimeSlots(date: string, deviceTypeId?: string) {
   const params = new URLSearchParams({ date })
   if (deviceTypeId) params.append('deviceTypeId', deviceTypeId)
-
-  const response = await fetch(`/api/v3/devices/available?${params}`)
+  
+  const response = await fetch(`/api/v2/time-slots?${params}`)
   if (!response.ok) {
     throw new Error('시간대를 불러올 수 없습니다')
   }
@@ -39,7 +39,7 @@ export async function createReservation(data: {
   
   console.log('예약 API 요청 데이터:', apiData);
   
-  const response = await fetch('/api/v3/reservations', {
+  const response = await fetch('/api/v2/reservations', {
     method: 'POST',
     credentials: 'include', // 쿠키 포함
     headers: { 'Content-Type': 'application/json' },
@@ -72,8 +72,8 @@ export async function getMyReservations(status?: string) {
     const params = new URLSearchParams()
     if (status) params.append('status', status)
     
-    // v3 API 사용
-    const apiUrl = `/api/v3/reservations${params.toString() ? `?${params.toString()}` : ''}`
+    // v2 API 사용
+    const apiUrl = `/api/v2/reservations${params.toString() ? `?${params.toString()}` : ''}`
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -131,11 +131,11 @@ export async function getMyReservations(status?: string) {
 
 // 예약 취소
 export async function cancelReservation(id: string, reason?: string) {
-  // v3 API 사용
-  const apiUrl = `/api/v3/reservations/${id}/cancel`
+  // v2 API 사용
+  const apiUrl = `/api/v2/reservations/${id}`
   
   const response = await fetch(apiUrl, {
-    method: 'POST',
+    method: 'DELETE',
     credentials: 'include', // 쿠키 포함
     headers: reason ? { 'Content-Type': 'application/json' } : {},
     body: reason ? JSON.stringify({ reason }) : undefined

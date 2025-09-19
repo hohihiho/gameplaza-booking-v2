@@ -1,4 +1,5 @@
-import { createAdminClient } from '@/lib/db';
+import { createAdminClient } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 
 export interface Holiday {
   id?: string;
@@ -188,7 +189,6 @@ export class HolidayService {
    */
   static async getHolidaysForYear(year: number): Promise<Holiday[]> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       const { data, error } = await supabaseAdmin
         .from('holidays')
@@ -212,7 +212,6 @@ export class HolidayService {
    */
   static async getHolidaysForMonth(year: number, month: number): Promise<Holiday[]> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
       const endDate = month === 12 
@@ -242,7 +241,6 @@ export class HolidayService {
    */
   static async isHoliday(date: string): Promise<boolean> {
     try {
-      const supabaseAdmin = createAdminClient();
       const { data, error } = await supabaseAdmin
         .from('holidays')
         .select('id')
@@ -283,7 +281,6 @@ export class HolidayService {
         }
       }
 
-      const supabaseAdmin = createAdminClient();
 
       // 기존 공휴일 조회
       const { data: existingHolidays } = await supabaseAdmin
@@ -354,7 +351,6 @@ export class HolidayService {
    */
   static async createOvernightSchedulesForHolidays(year: number): Promise<void> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       // 오늘부터 3주 후까지의 날짜 범위 계산
       const today = new Date();
@@ -455,7 +451,6 @@ export class HolidayService {
     createdBy: string
   ): Promise<Holiday | null> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       const year = new Date(date).getFullYear();
       
@@ -490,7 +485,6 @@ export class HolidayService {
    */
   static async deleteHoliday(id: string): Promise<boolean> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       // 임시공휴일인지 확인
       const { data: holiday } = await supabaseAdmin
@@ -531,7 +525,6 @@ export class HolidayService {
    */
   static async checkNewHolidays(): Promise<Holiday[]> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       // 최근 24시간 내에 추가된 공휴일 조회
       const yesterday = new Date();
@@ -559,7 +552,6 @@ export class HolidayService {
    */
   static async getLastSyncTime(): Promise<Date | null> {
     try {
-      const supabaseAdmin = createAdminClient();
       
       const { data, error } = await supabaseAdmin
         .from('holidays')

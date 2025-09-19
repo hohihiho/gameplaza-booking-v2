@@ -1,6 +1,7 @@
 // 서버 사이드 푸시 알림 유틸리티
 import webpush from 'web-push';
-import { createAdminClient } from '@/lib/db';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
+import { createAdminClient } from '@/lib/supabase';
 import { notificationTemplates } from '@/lib/push-notifications';
 
 // VAPID 설정 - 환경 변수가 있을 때만 설정
@@ -57,7 +58,6 @@ export async function sendPushNotification(
 
   try {
     // 사용자의 구독 정보 가져오기
-    import { getDB, supabase } from '@/lib/db';
     const { data: subscription, error } = await supabase
       .from('push_subscriptions')
       .select('subscription')

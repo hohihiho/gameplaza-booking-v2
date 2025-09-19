@@ -1,4 +1,5 @@
 // PWA 푸시 알림 관리
+import { createClient } from '@/lib/supabase';
 
 // 알림 권한 요청
 export async function requestNotificationPermission(): Promise<boolean> {

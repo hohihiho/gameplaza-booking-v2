@@ -3,8 +3,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+// Supabase 제거됨 - Cloudflare D1 사용
 import { ToastContainer, toast } from '@/app/components/Toast';
 import { 
   CheckCircle,
@@ -95,6 +97,7 @@ export default function CheckInPage() {
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [checkInAmount, setCheckInAmount] = useState('');
+  // const supabase = getDb() // D1 사용);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showTimeAdjustModal, setShowTimeAdjustModal] = useState(false);
   const [adjustingReservation, setAdjustingReservation] = useState<CheckInReservation | null>(null);
@@ -568,7 +571,7 @@ export default function CheckInPage() {
       }
       
       // 예약 상태 업데이트
-//       import { getDB, supabase } from '@/lib/db';
+      // const supabase = getDb() // D1 사용;
   const { error } = await supabase.from('reservations')
         .update({
           status: 'approved',
@@ -586,9 +589,8 @@ export default function CheckInPage() {
 
       // 기기 상태를 사용 가능으로 변경
       if (reservation.device_id) {
-//         import { getDB, supabase } from '@/lib/db';
-  const { error: deviceError } = // @ts-ignore
-    await Promise.resolve({ data: [], error: null })
+        // const supabase = getDb() // D1 사용;
+  const { error: deviceError } = await supabase.from('devices')
           .update({ status: 'available' })
           .eq('id', reservation.device_id);
           
@@ -1660,7 +1662,7 @@ export default function CheckInPage() {
                       const adjustedAmount = hourlyRate * hours;
                       
                       // 데이터베이스 업데이트
-//                       import { getDB, supabase } from '@/lib/db';
+                      // const supabase = getDb() // D1 사용;
   const { error } = await supabase.from('reservations')
                         .update({
                           actual_start_time: actualStartTime.toISOString(),

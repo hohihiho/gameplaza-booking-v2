@@ -15,24 +15,25 @@ export default function Footer() {
             리듬게임 전문 아케이드 게임센터
           </p>
         </div>
-
+        
         {/* 법적 링크들 */}
         <div className="flex flex-wrap justify-center items-center gap-3 mb-6">
-          <Link
-            href="/privacy"
+          <Link 
+            href="/privacy" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             개인정보처리방침
           </Link>
           <span className="text-gray-400 dark:text-gray-500">•</span>
-          <Link
-            href="/terms"
+          <Link 
+            href="/terms" 
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             이용약관
           </Link>
         </div>
-
+        
+        
         {/* 저작권 */}
         <div className="text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">

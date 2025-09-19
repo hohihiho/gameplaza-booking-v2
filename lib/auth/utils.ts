@@ -1,190 +1,254 @@
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/better-db';
-import { users } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
+import { auth } from "@/lib/auth/server";
+
+import { createAdminClient } from '@/lib/supabase';
+import { ExtendedSession, ExtendedUser, AuthResponse, AuthenticatedRequest } from './types';
+
+export type { AuthenticatedRequest };
 
 /**
- * 인증된 사용자 정보를 가져오는 유틸리티 함수
+ * 세션에서 현재 사용자 정보를 가져옵니다.
+ * @returns 확장된 세션 정보 또는 null
  */
-export async function getAuthenticatedUser() {
+export async function getSession(): Promise<ExtendedSession | null> {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    const user = await getCurrentUser();
+    if (!session?.user?.email) {
+      return null;
+    }
+    
+    return session as ExtendedSession;
+  } catch (error) {
+    console.error('Session error:', error);
+    return null;
+  }
+}
 
-    if (!session?.user?.id) {
+/**
+ * 현재 사용자의 상세 정보를 가져옵니다.
+ * @returns 확장된 사용자 정보 또는 null
+ */
+export async function getCurrentUser(): Promise<ExtendedUser | null> {
+  try {
+    const session = await getSession();
+    if (!session?.user?.email) {
       return null;
     }
 
-    // DB에서 사용자 정보 조회
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
+    
+    // 사용자 정보 조회
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, name, nickname, phone, role')
+      .eq('email', session.user.email)
+      .single();
 
-    return user[0] || null;
+    if (userError || !userData) {
+      return null;
+    }
+
+    // 관리자 권한 확인
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
+
+    // 세션의 isAdmin 정보도 확인 (NextAuth에서 이미 확인했을 수 있음)
+    const isAdmin = !!adminData || (session.user as any).isAdmin === true;
+
+    return {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      nickname: userData.nickname || undefined,
+      phone: userData.phone || undefined,
+      image: session.user.image,
+      role: isAdmin ? 'admin' : 'user',
+      isAdmin: isAdmin,
+      isSuperAdmin: adminData?.is_super_admin || false
+    };
   } catch (error) {
-    console.error('getAuthenticatedUser error:', error);
+    console.error('Get current user error:', error);
     return null;
   }
 }
 
 /**
- * 관리자 권한 확인
+ * 인증이 필요한 경우 사용합니다.
+ * @returns 인증된 사용자 정보
+ * @throws 인증되지 않은 경우 예외 발생
  */
-export async function requireAdmin() {
-  const user = await getAuthenticatedUser();
-
+export async function requireAuth(): Promise<ExtendedUser> {
+  const user = await getCurrentUser();
+  
   if (!user) {
-    return NextResponse.json(
-      { error: '인증이 필요합니다' },
-      { status: 401 }
-    );
+    throw new Error('Authentication required');
   }
-
-  if (user.role !== 'admin' && user.role !== 'super_admin') {
-    return NextResponse.json(
-      { error: '관리자 권한이 필요합니다' },
-      { status: 403 }
-    );
-  }
-
+  
   return user;
 }
 
 /**
- * 슈퍼 관리자 권한 확인
+ * 관리자 권한이 필요한 경우 사용합니다.
+ * @returns 관리자 사용자 정보
+ * @throws 관리자가 아닌 경우 예외 발생
  */
-export async function requireSuperAdmin() {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: '인증이 필요합니다' },
-      { status: 401 }
-    );
+export async function requireAdmin(): Promise<ExtendedUser> {
+  const user = await requireAuth();
+  
+  if (!user.isAdmin) {
+    throw new Error('Admin access required');
   }
-
-  if (user.role !== 'super_admin') {
-    return NextResponse.json(
-      { error: '슈퍼 관리자 권한이 필요합니다' },
-      { status: 403 }
-    );
-  }
-
+  
   return user;
 }
 
 /**
- * 사용자 인증 확인 (일반 사용자 포함)
+ * 슈퍼 관리자 권한이 필요한 경우 사용합니다.
+ * @returns 슈퍼 관리자 사용자 정보
+ * @throws 슈퍼 관리자가 아닌 경우 예외 발생
  */
-export async function requireAuth() {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: '인증이 필요합니다' },
-      { status: 401 }
-    );
+export async function requireSuperAdmin(): Promise<ExtendedUser> {
+  const user = await requireAdmin();
+  
+  if (!user.isSuperAdmin) {
+    throw new Error('Super admin access required');
   }
-
+  
   return user;
 }
 
 /**
- * 사용자 역할 확인
+ * API 라우트용 인증 헬퍼
+ * @param handler API 핸들러 함수
+ * @param options 인증 옵션
+ * @returns 래핑된 API 핸들러
  */
-export function hasRole(user: any, roles: string[]) {
-  if (!user || !user.role) return false;
-  return roles.includes(user.role);
+export function withAuth<T = any>(
+  handler: (req: NextRequest, context: { user: ExtendedUser }) => Promise<NextResponse<T>>,
+  options: {
+    requireAdmin?: boolean;
+    requireSuperAdmin?: boolean;
+  } = {}
+) {
+  return async (req: NextRequest): Promise<NextResponse<AuthResponse<T>>> => {
+    try {
+      let user: ExtendedUser | null = null;
+
+      if (options.requireSuperAdmin) {
+        user = await requireSuperAdmin();
+      } else if (options.requireAdmin) {
+        user = await requireAdmin();
+      } else {
+        user = await requireAuth();
+      }
+
+      return await handler(req, { user });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Authentication failed';
+      
+      if (message.includes('Authentication required')) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' },
+          { status: 401 }
+        );
+      }
+      
+      if (message.includes('Admin access required') || message.includes('Super admin access required')) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden', code: 'FORBIDDEN' },
+          { status: 403 }
+        );
+      }
+      
+      return NextResponse.json(
+        { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
+        { status: 500 }
+      );
+    }
+  };
 }
 
 /**
- * 사용자가 특정 리소스의 소유자인지 확인
+ * 사용자 ID로 사용자 정보를 가져옵니다.
+ * @param userId 사용자 ID
+ * @returns 사용자 정보 또는 null
  */
-export function isOwner(user: any, resourceOwnerId: string) {
-  if (!user || !user.id) return false;
-  return user.id === resourceOwnerId;
-}
-
-/**
- * 사용자가 리소스에 접근 권한이 있는지 확인
- * (소유자이거나 관리자인 경우)
- */
-export function canAccess(user: any, resourceOwnerId: string) {
-  if (!user) return false;
-
-  // 관리자는 모든 리소스 접근 가능
-  if (hasRole(user, ['admin', 'super_admin'])) {
-    return true;
-  }
-
-  // 소유자인 경우 접근 가능
-  return isOwner(user, resourceOwnerId);
-}
-
-/**
- * 세션에서 사용자 ID 추출
- */
-export async function getUserIdFromSession() {
+export async function getUserById(userId: string): Promise<ExtendedUser | null> {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    
+    const { data: userData, error } = await supabaseAdmin
+      .from('users')
+      .select('id, email, name, nickname, phone, role')
+      .eq('id', userId)
+      .single();
 
-    return session?.user?.id || null;
+    if (error || !userData) {
+      return null;
+    }
+
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userId)
+      .single();
+
+    return {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      nickname: userData.nickname || undefined,
+      phone: userData.phone || undefined,
+      image: null,
+      role: adminData ? 'admin' : 'user',
+      isAdmin: !!adminData,
+      isSuperAdmin: adminData?.is_super_admin || false
+    };
   } catch (error) {
-    console.error('getUserIdFromSession error:', error);
+    console.error('Get user by ID error:', error);
     return null;
   }
 }
 
 /**
- * API 응답 헬퍼
+ * 이메일로 사용자 정보를 가져옵니다.
+ * @param email 사용자 이메일
+ * @returns 사용자 정보 또는 null
  */
-export const apiResponse = {
-  unauthorized: () => NextResponse.json(
-    { error: '인증이 필요합니다' },
-    { status: 401 }
-  ),
+export async function getUserByEmail(email: string): Promise<ExtendedUser | null> {
+  try {
+    
+    const { data: userData, error } = await supabaseAdmin
+      .from('users')
+      .select('id, email, name, nickname, phone, role')
+      .eq('email', email)
+      .single();
 
-  forbidden: () => NextResponse.json(
-    { error: '권한이 없습니다' },
-    { status: 403 }
-  ),
+    if (error || !userData) {
+      return null;
+    }
 
-  notFound: (message = '리소스를 찾을 수 없습니다') => NextResponse.json(
-    { error: message },
-    { status: 404 }
-  ),
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('is_super_admin')
+      .eq('user_id', userData.id)
+      .single();
 
-  badRequest: (message = '잘못된 요청입니다') => NextResponse.json(
-    { error: message },
-    { status: 400 }
-  ),
-
-  serverError: (message = '서버 오류가 발생했습니다') => NextResponse.json(
-    { error: message },
-    { status: 500 }
-  ),
-
-  success: (data: any, status = 200) => NextResponse.json(
-    data,
-    { status }
-  )
-};
-
-export default {
-  getAuthenticatedUser,
-  requireAdmin,
-  requireSuperAdmin,
-  requireAuth,
-  hasRole,
-  isOwner,
-  canAccess,
-  getUserIdFromSession,
-  apiResponse
-};
+    return {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      nickname: userData.nickname || undefined,
+      phone: userData.phone || undefined,
+      image: null,
+      role: adminData ? 'admin' : 'user',
+      isAdmin: !!adminData,
+      isSuperAdmin: adminData?.is_super_admin || false
+    };
+  } catch (error) {
+    console.error('Get user by email error:', error);
+    return null;
+  }
+}

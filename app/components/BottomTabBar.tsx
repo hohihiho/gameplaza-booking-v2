@@ -2,29 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Gamepad2, Clock, User, LogIn, Trophy } from 'lucide-react';
+import { Home, Calendar, Gamepad2, Clock, User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSession } from './BetterAuthProvider';
 import { useState } from 'react';
 import ReservationBottomSheet from './ReservationBottomSheet';
-import { useAuth } from '../hooks/useAuth';
 
 export default function BottomTabBar() {
   const pathname = usePathname();
-  const { session, isAuthenticated } = useAuth();
-  const isLoggedIn = isAuthenticated;
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   const [isReservationSheetOpen, setIsReservationSheetOpen] = useState(false);
 
-  // 로그인 상태에 따라 다른 탭 구성
+  // 로그인 상태에 따라 다른 탭 구성 - 예약 탭을 중앙에 배치
   const tabs = isLoggedIn ? [
     { href: '/', icon: Home, label: '홈' },
-    { id: 'reservation', icon: Calendar, label: '예약', isSpecial: true },
-    { href: '/ranking', icon: Trophy, label: '랭킹' },
     { href: '/machines', icon: Gamepad2, label: '기기' },
+    { id: 'reservation', icon: Calendar, label: '예약', isSpecial: true },
+    { href: '/schedule', icon: Clock, label: '일정' },
     { href: '/mypage', icon: User, label: 'MY' },
   ] : [
     { href: '/', icon: Home, label: '홈' },
-    { href: '/ranking', icon: Trophy, label: '랭킹' },
     { href: '/machines', icon: Gamepad2, label: '기기' },
+    { href: '/schedule', icon: Clock, label: '일정' },
     { href: '/login', icon: LogIn, label: '로그인', featured: true },
   ];
 

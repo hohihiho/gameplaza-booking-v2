@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-
 import { ModalProvider, modal } from '@/hooks/useModal'
 import { ToastProvider } from '@/hooks/useToast'
+import { AuthProvider } from '@/components/providers/AuthProvider'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -71,10 +71,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <>
+    <AuthProvider>
       {children}
       <ModalProvider />
       <ToastProvider />
-    </>
+    </AuthProvider>
   )
 }

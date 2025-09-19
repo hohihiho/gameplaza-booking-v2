@@ -1,167 +1,50 @@
-// 개선된 데이터베이스 연결 및 쿼리 매니저
-import { DatabaseResult, DatabaseClient, TransactionCallback } from './types';
+// D1 데이터베이스 연결 설정
+// Cloudflare D1 SQLite 전용
 
-// PostgreSQL 관련 타입 정의 (서버 사이드에서만 사용)
-let Pool: any;
-let PoolClient: any;
-let pool: any;
+import { drizzle } from 'drizzle-orm/d1';
+import { createClient } from '@libsql/client';
+import * as schema from '@/drizzle/schema';
 
-// 서버 사이드에서만 pg 모듈 로드
-if (typeof window === 'undefined') {
-  const pg = require('pg');
-  Pool = pg.Pool;
-  PoolClient = pg.PoolClient;
-
-  // 연결 풀 설정 - 최적화된 설정값
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    // 연결 풀 최적화 설정
-    max: 20, // 최대 연결 수
-    idleTimeoutMillis: 30000, // 유휴 연결 타임아웃
-    connectionTimeoutMillis: 2000, // 연결 타임아웃
-  });
+// D1 데이터베이스 연결 타입 정의
+export interface D1Database {
+  prepare(query: string): D1PreparedStatement;
+  dump(): Promise<ArrayBuffer>;
+  batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
+  exec(query: string): Promise<D1ExecResult>;
 }
 
-/**
- * 기본 쿼리 실행 함수
- * 연결 풀에서 클라이언트를 가져와 쿼리 실행 후 자동으로 반환
- */
-export async function query<T = any>(text: string, params?: any[]): Promise<DatabaseResult<T>> {
-  if (typeof window !== 'undefined') {
-    throw new Error('Database operations cannot be performed on the client side');
+// 환경별 데이터베이스 연결 함수
+export function getDatabase() {
+  if (process.env.NODE_ENV === 'development') {
+    // 개발 환경: 로컬 SQLite 파일 사용
+    const client = createClient({
+      url: 'file:./drizzle/dev.db'
+    });
+    return drizzle(client, { schema });
   }
-  if (!pool) {
-    throw new Error('Database pool not initialized');
-  }
-  const client = await pool.connect();
-  try {
-    const startTime = Date.now();
-    const result = await client.query(text, params);
-    const duration = Date.now() - startTime;
 
-    // 성능 로깅 (개발 환경에서만)
-    if (process.env.NODE_ENV === 'development' && duration > 100) {
-      console.log(`🐌 [DB] Slow query (${duration}ms):`, text.substring(0, 100));
-    }
-
-    return {
-      data: result.rows as T,
-      error: null,
-      count: result.rowCount || 0
-    };
-  } catch (error) {
-    console.error('🚨 [DB] Query error:', error);
-    return {
-      data: null,
-      error: error as Error,
-      count: 0
-    };
-  } finally {
-    client.release();
+  // 프로덕션 환경: Cloudflare D1 사용
+  // Workers 런타임에서 env.DB를 통해 D1 인스턴스에 접근
+  if (typeof globalThis !== 'undefined' && 'DB' in globalThis.env) {
+    const d1Database = (globalThis.env as any).DB as D1Database;
+    return drizzle(d1Database, { schema });
   }
+
+  // 빌드 시점이나 서버 사이드 렌더링에서는 null 반환
+  console.warn('데이터베이스 연결을 사용할 수 없습니다. 개발 환경이나 Workers 런타임에서만 사용 가능합니다.');
+  return null;
 }
 
-/**
- * 단일 행 쿼리 실행 함수
- */
-export async function queryOne<T = any>(text: string, params?: any[]): Promise<DatabaseResult<T>> {
-  if (typeof window !== 'undefined') {
-    throw new Error('Database operations cannot be performed on the client side');
+// 데이터베이스 인스턴스 (개발 환경에서만 사용)
+let db: ReturnType<typeof getDatabase> | null = null;
+
+export function getDb() {
+  if (!db) {
+    db = getDatabase();
   }
-  const result = await query<T[]>(text, params);
-
-  return {
-    data: result.data?.[0] || null,
-    error: result.error,
-    count: result.count
-  };
+  return db;
 }
 
-/**
- * 트랜잭션 실행 함수
- * 여러 쿼리를 원자적으로 실행할 때 사용
- */
-export async function transaction<T>(callback: TransactionCallback<T>): Promise<DatabaseResult<T>> {
-  if (typeof window !== 'undefined') {
-    throw new Error('Database operations cannot be performed on the client side');
-  }
-  if (!pool) {
-    throw new Error('Database pool not initialized');
-  }
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    // 트랜잭션 컨텍스트에서 사용할 쿼리 함수들을 제공
-    const transactionContext = {
-      query: async <R = any>(text: string, params?: any[]) => {
-        const result = await client.query(text, params);
-        return {
-          data: result.rows as R,
-          error: null,
-          count: result.rowCount || 0
-        };
-      },
-      queryOne: async <R = any>(text: string, params?: any[]) => {
-        const result = await client.query(text, params);
-        return {
-          data: result.rows[0] || null,
-          error: null,
-          count: result.rowCount || 0
-        };
-      }
-    };
-
-    // 콜백 함수에 트랜잭션 컨텍스트를 전달
-    const result = await callback.call(transactionContext);
-
-    await client.query('COMMIT');
-
-    return {
-      data: result,
-      error: null
-    };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('🚨 [DB] Transaction error:', error);
-
-    return {
-      data: null,
-      error: error as Error
-    };
-  } finally {
-    client.release();
-  }
-}
-
-/**
- * 연결 풀에서 클라이언트를 직접 가져오기
- * 복잡한 작업이나 스트리밍이 필요한 경우 사용
- */
-export async function getClient(): Promise<PoolClient> {
-  return await pool.connect();
-}
-
-/**
- * 연결 풀 상태 확인
- */
-export function getPoolStatus() {
-  return {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
-  };
-}
-
-/**
- * 애플리케이션 종료 시 연결 풀 정리
- */
-export async function closePool() {
-  await pool.end();
-}
-
-// 프로세스 종료 시 연결 풀 정리
-process.on('SIGTERM', closePool);
-process.on('SIGINT', closePool);
+// 타입 내보내기
+export type Database = NonNullable<ReturnType<typeof getDatabase>>;
+export { schema };

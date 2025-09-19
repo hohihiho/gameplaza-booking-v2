@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 
 import { 
   ApiResponse, 
@@ -51,7 +51,7 @@ export function apiHandler<T>(
 
       // 인증 확인
       if (options?.requireAuth || options?.requireAdmin) {
-        const session = await auth();
+        const user = await getCurrentUser();
         
         if (!session?.user) {
           throw new AppError(

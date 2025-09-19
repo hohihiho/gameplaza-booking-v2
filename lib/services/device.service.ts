@@ -2,8 +2,6 @@
  * 기기 관련 비즈니스 로직을 처리하는 서비스 레이어
  */
 
-// import { getDB, supabase } from '@/lib/db'
-import { Database } from '@/types/database'
 import { DeviceRepository } from '@/lib/repositories/device.repository'
 import { ReservationRepository } from '@/lib/repositories/reservation.repository'
 import { 
@@ -11,6 +9,7 @@ import {
   ErrorCodes 
 } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
+import { getDB } from '@/lib/db/server'
 
 export interface CreateDeviceDto {
   deviceNumber: string
@@ -28,9 +27,20 @@ export class DeviceService {
   private deviceRepo: DeviceRepository
   private reservationRepo: ReservationRepository
 
-  constructor(supabase: SupabaseClient<Database>) {
-    this.deviceRepo = new DeviceRepository(supabase)
-    this.reservationRepo = new ReservationRepository(supabase)
+  constructor() {
+    const db = getDB()
+    this.deviceRepo = new DeviceRepository(db)
+    this.reservationRepo = new ReservationRepository(db)
+  }
+
+  // 싱글톤 인스턴스
+  private static instance: DeviceService | null = null
+
+  static getInstance(): DeviceService {
+    if (!DeviceService.instance) {
+      DeviceService.instance = new DeviceService()
+    }
+    return DeviceService.instance
   }
 
   /**

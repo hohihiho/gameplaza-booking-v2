@@ -6,8 +6,8 @@
  * - Vercel 프로덕션: 운영 DB
  */
 
-const PRODUCTION_DB_URL = 'rfcxbqlgvppqjxgpwnzd.supabase.co';
-const DEVELOPMENT_DB_URL = 'rupeyejnfurlcpgneekg.supabase.co';
+const PRODUCTION_DB_URL = 'rfcxbqlgvppqjxgpwnzd.// TODO: getDb() 사용 - co';
+const DEVELOPMENT_DB_URL = 'rupeyejnfurlcpgneekg.// TODO: getDb() 사용 - co';
 
 export function checkDatabaseEnvironment() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

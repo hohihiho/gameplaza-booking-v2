@@ -1,6 +1,6 @@
 'use client';
 
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
 import { useState, useEffect } from 'react';
 
 export default function DebugAdminPage() {

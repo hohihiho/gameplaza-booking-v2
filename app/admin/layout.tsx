@@ -1,9 +1,10 @@
 // 관리자 레이아웃
 // 비전공자 설명: 관리자 페이지 전체를 감싸는 레이아웃입니다
-'use client'
+'use client';
+
+import { useSession } from '@/lib/auth/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react'
-import { useAdminAuth } from '@/app/hooks/useAdminAuth'
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -25,43 +26,45 @@ import {
   ShieldAlert
 } from 'lucide-react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const { user, isAdmin, loading } = useAdminAuth('admin')
-  const [isLoading, setIsLoading] = useState(true)
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { data: session, isPending: isLoading, error } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(true);
 
   // 관리자 권한 확인
   useEffect(() => {
     const checkAdmin = async () => {
-      try {
-        // 서버 세션 확인(테스트 가장 모드 포함)
-        const s = await fetch('/api/auth/session', { cache: 'no-store' })
-        if (!s.ok) {
-          router.push('/login')
-          return
-        }
-        const js = await s.json()
-        if (!js?.user) {
-          router.push('/login')
-          return
-        }
-        // 관리자 권한 확인
-        const r = await fetch('/api/auth/check-admin', { cache: 'no-store' })
-        const data = await r.json()
-        if (!r.ok || !data?.isAdmin) {
-          router.push('/')
-          return
-        }
-        setIsLoading(false)
-      } catch (e) {
-        console.error('Admin check error:', e)
-        router.push('/')
+      if (isLoading) return;
+      
+      if (!session?.user) {
+        router.push('/login');
+        return;
       }
-    }
-    checkAdmin()
-  }, [router])
+
+      try {
+        const response = await fetch('/api/auth/check-admin');
+        const data = await response.json();
+        
+        if (!response.ok || !data.isAdmin) {
+          router.push('/');
+          return;
+        }
+        
+        setIsCheckingPermission(false);
+      } catch (error) {
+        console.error('Admin check error:', error);
+        router.push('/');
+      }
+    };
+
+    checkAdmin();
+  }, [session, isLoading, router]);
 
   const menuItems = [
     { href: '/admin', label: '대시보드', icon: LayoutDashboard },
@@ -80,7 +83,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/settings', label: '설정', icon: Settings },
   ];
 
-  if (isLoading) {
+  if (isLoading || isCheckingPermission) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
@@ -164,26 +167,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="lg:hidden p-4 border-t border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-                  {user?.image ? (
+                  {session?.user?.image ? (
                     <Image
-                      src={user.image}
-                      alt={user.name || '프로필'}
+                      src={session.user.image}
+                      alt={session.user.name || '프로필'}
                       width={40}
                       height={40}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-sm font-medium dark:text-white">
-                      {user?.name?.[0] || 'A'}
+                      {session?.user?.name?.[0] || 'A'}
                     </span>
                   )}
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium dark:text-white">
-                    {user?.name || '관리자'}
+                    {session?.user?.name || '관리자'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {user?.email}
+                    {session?.user?.email}
                   </p>
                 </div>
               </div>

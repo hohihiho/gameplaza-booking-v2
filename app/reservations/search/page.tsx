@@ -1,10 +1,11 @@
 'use client';
-// supabase 의존 제거
 
 import { useState } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { Search, Calendar, Clock, Hash, Gamepad2, AlertCircle, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+// Supabase 제거됨 - Cloudflare D1 사용
 import { formatTimeKST, parseKSTDate } from '@/lib/utils/kst-date';
 
 export default function ReservationSearchPage() {
@@ -27,15 +28,37 @@ export default function ReservationSearchPage() {
     setReservation(null);
 
     try {
-      const num = encodeURIComponent(searchQuery.trim().toUpperCase())
-      // 공개 조회용 API로 위임 (서버 구현 필요할 수 있음)
-      const res = await fetch(`/api/public/reservations/by-number?number=${num}`)
-      if (!res.ok) {
-        setError('해당 예약번호로 예약을 찾을 수 없습니다')
-        return
+      // const supabase = getDb() // D1 사용;
+      const { data, error } = await supabase
+        .from('reservations')
+        .select(`
+          *,
+          devices (
+            device_number,
+            device_types (
+              name,
+              device_categories (
+                name
+              )
+            )
+          ),
+          users (
+            name,
+            email,
+            phone
+          )
+        `)
+        .eq('reservation_number', searchQuery.trim().toUpperCase())
+        .maybeSingle();
+
+      if (error) {
+        console.error('검색 오류:', error);
+        setError('예약 조회 중 오류가 발생했습니다');
+      } else if (!data) {
+        setError('해당 예약번호로 예약을 찾을 수 없습니다');
+      } else {
+        setReservation(data);
       }
-      const json = await res.json()
-      setReservation(json?.data || json || null)
     } catch (error) {
       console.error('예약 검색 실패:', error);
       setError('예약 조회 중 오류가 발생했습니다');

@@ -21,7 +21,7 @@ import {
   Database,
   RefreshCw
 } from 'lucide-react';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
 
 type BankAccount = {
   bank: string;

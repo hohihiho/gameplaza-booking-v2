@@ -18,10 +18,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const hideNavigation = pathname === '/signup' || pathname === '/login' || pathname === '/privacy' || pathname === '/terms' || pathname === '/welcome';
   
   // 프로필 체크 중이거나 세션 로딩 중일 때 로딩 화면 표시 (특정 페이지 제외)
-  // 홈페이지(/)는 로그인 없이도 접근 가능하므로 제외
-  const excludedPaths = ['/', '/signup', '/login', '/privacy', '/terms', '/welcome', '/api/auth', '/guide', '/ranking'];
-  const shouldShowLoading = (isCheckingProfile || isLoading) && 
-                           !excludedPaths.some(path => pathname === path || (path !== '/' && pathname.startsWith(path)));
+  // 홈페이지(/)도 제외 - 스플래시 화면이 있으므로
+  const excludedPaths = ['/signup', '/login', '/privacy', '/terms', '/welcome', '/api/auth'];
+  const shouldShowLoading = (isCheckingProfile || isLoading) &&
+                           pathname !== '/' && // 홈페이지 제외
+                           !excludedPaths.some(path => pathname.startsWith(path));
   
   // 로딩 화면 표시
   if (shouldShowLoading) {

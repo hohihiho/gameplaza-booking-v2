@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { motion } from 'framer-motion';
 import { 
   DollarSign,
@@ -25,6 +26,7 @@ import {
   Info
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+// Supabase 제거됨 - Cloudflare D1 사용
 
 // 타입 정의
 type Category = {
@@ -463,6 +465,7 @@ const DeviceCard = memo(function DeviceCard({
 export default function DevicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // const supabase = getDb() // D1 사용);
   
   // 카테고리 관련 상태
   const [categories, setCategories] = useState<Category[]>([]);
@@ -633,11 +636,11 @@ export default function DevicesPage() {
       const types = await response.json();
 
       // 각 기종별 기기 수 계산 및 play_modes 정렬 (API에서 이미 처리됨)
-      const typesWithCounts = (types || []).map((type: any) => ({
+      const typesWithCounts = (types || []).map(type => ({
         ...type,
         device_count: type.device_count || 0,
         active_count: type.active_count || 0,
-        play_modes: type.play_modes ? type.play_modes.sort((a: { display_order?: number }, b: { display_order?: number }) =>
+        play_modes: type.play_modes ? type.play_modes.sort((a: any, b: any) => 
           (a.display_order || 0) - (b.display_order || 0)
         ) : []
       }));
@@ -714,7 +717,7 @@ export default function DevicesPage() {
             table: 'devices',
             filter: `device_type_id=eq.${selectedDeviceType.id}`
           },
-          (payload: { new?: any; old?: any; eventType?: string }) => {
+          (payload) => {
             if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
               setDevices(prev => prev.map(device => 
                 device.id === payload.new.id 
@@ -724,7 +727,7 @@ export default function DevicesPage() {
             }
           }
         )
-        .subscribe((status: string, err?: any) => {
+        .subscribe((status, err) => {
           if (status === 'CLOSED' && retryCount < maxRetries) {
             retryCount++;
             timeoutId = setTimeout(() => {

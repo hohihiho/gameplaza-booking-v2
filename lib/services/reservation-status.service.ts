@@ -1,12 +1,13 @@
-// 예약 상태 자동 업데이트 서비스
+    // 예약 체크 로직
 // 크론잡 없이 조회 시점에 상태를 동적으로 처리
 
-import { createAdminClient } from '@/lib/db';
+import { createAdminClient } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 
 export class ReservationStatusService {
   // 예약 목록 조회 시 상태 자동 업데이트
   static async getReservationsWithAutoUpdate() {
-    import { getDB, supabase } from '@/lib/db';
+    const supabase = null; // TODO: getDb() 사용
     const now = new Date();
     const currentDate = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -51,7 +52,7 @@ export class ReservationStatusService {
 
   // 단일 예약 조회 시 상태 확인 및 업데이트
   static async checkAndUpdateReservationStatus(reservationId: string) {
-    import { getDB, supabase } from '@/lib/db';
+    const supabase = null; // TODO: getDb() 사용
     
     // 예약 조회
     const { data: reservation, error } = await supabase

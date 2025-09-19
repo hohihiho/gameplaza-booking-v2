@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-// import removed - using Better Auth;
+import { useSession } from './BetterAuthProvider';
 import { useRouter, usePathname } from 'next/navigation';
 
 // 회원가입 체크가 필요없는 경로들

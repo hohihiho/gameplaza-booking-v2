@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SkeletonProps {
   className?: string;
   variant?: 'default' | 'card' | 'list' | 'detail';
   animation?: 'pulse' | 'wave' | 'shimmer';
@@ -109,7 +109,7 @@ export function DetailSkeleton() {
 }
 
 // 테이블 스켈레톤
-export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) {
+export function TableSkeleton({ rows = 5, columns = 4 }) {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* 테이블 헤더 */}
@@ -138,7 +138,7 @@ export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; column
 }
 
 // 페이지 전체 스켈레톤
-export function PageSkeleton({ title = true, content = 'list' }: { title?: boolean; content?: 'list' | 'grid' | 'detail' | 'table' }) {
+export function PageSkeleton({ title = true, content = 'list' }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gradient-start via-gradient-middle to-gradient-end dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
@@ -175,8 +175,8 @@ export function PageSkeleton({ title = true, content = 'list' }: { title?: boole
 }
 
 // 버튼 스켈레톤
-export function ButtonSkeleton({ size = 'default' }: { size?: 'sm' | 'default' | 'lg' }) {
-  const sizeClasses: Record<'sm' | 'default' | 'lg', string> = {
+export function ButtonSkeleton({ size = 'default' }) {
+  const sizeClasses = {
     sm: 'h-8 w-16',
     default: 'h-10 w-24',
     lg: 'h-12 w-32'
@@ -186,7 +186,7 @@ export function ButtonSkeleton({ size = 'default' }: { size?: 'sm' | 'default' |
 }
 
 // 텍스트 스켈레톤
-export function TextSkeleton({ lines = 3 }: { lines?: number }) {
+export function TextSkeleton({ lines = 3 }) {
   return (
     <div className="space-y-2">
       {[...Array(lines)].map((_, i) => (
@@ -201,8 +201,8 @@ export function TextSkeleton({ lines = 3 }: { lines?: number }) {
 }
 
 // 아바타 스켈레톤
-export function AvatarSkeleton({ size = 'default' }: { size?: 'sm' | 'default' | 'lg' | 'xl' }) {
-  const sizeClasses: Record<'sm' | 'default' | 'lg' | 'xl', string> = {
+export function AvatarSkeleton({ size = 'default' }) {
+  const sizeClasses = {
     sm: 'h-8 w-8',
     default: 'h-10 w-10',
     lg: 'h-12 w-12',
@@ -213,8 +213,8 @@ export function AvatarSkeleton({ size = 'default' }: { size?: 'sm' | 'default' |
 }
 
 // 이미지 스켈레톤
-export function ImageSkeleton({ aspectRatio = 'square' }: { aspectRatio?: 'square' | 'video' | 'portrait' }) {
-  const aspectClasses: Record<'square' | 'video' | 'portrait', string> = {
+export function ImageSkeleton({ aspectRatio = 'square' }) {
+  const aspectClasses = {
     square: 'aspect-square',
     video: 'aspect-video',
     portrait: 'aspect-[3/4]'

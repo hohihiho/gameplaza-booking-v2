@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '../components/BetterAuthProvider';
+import { useSession } from '@/app/components/BetterAuthProvider';
 import { useEffect, useState, useRef } from 'react';
 
 // 관리자 권한 캐시 - 메모리에 저장하여 불필요한 API 호출 방지
@@ -11,14 +11,14 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 const pendingRequests = new Map<string, Promise<any>>();
 
 export function useAdminCheck() {
-  const { session, user } = useAuth();
+  const { data: session } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const lastEmailRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    const currentEmail = user?.email;
+    const currentEmail = session?.user?.email;
     
     console.log('[useAdminCheck] useEffect 실행:', { 
       currentEmail, 
@@ -124,7 +124,7 @@ export function useAdminCheck() {
     return () => {
       isMounted = false;
     };
-  }, [user?.email]); // isLoading 의존성 제거
+  }, [session?.user?.email]); // isLoading 의존성 제거
 
   return { isAdmin, isLoading };
 }

@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export function useRealtimeReservations(onUpdate: () => void) {
-//   import { getDB, supabase } from '@/lib/db';
+  const supabase = createClient()
 
   useEffect(() => {
     // 예약 테이블의 변경사항 구독
@@ -33,7 +34,7 @@ export function useRealtimeReservations(onUpdate: () => void) {
     })
 
     return () => {
-      supabase.removeChannel(channel)
+    supabase.removeChannel(channel)
     }
   }, [supabase, onUpdate])
 }

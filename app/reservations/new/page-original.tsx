@@ -1,14 +1,14 @@
 // 예약 신청 페이지
 // 비전공자 설명: 새로운 게임기 예약을 신청하는 페이지입니다
 'use client';
-import { useSession } from '@/lib/hooks/useAuth'
-// supabase 의존 제거
 
 import { useState, useEffect } from 'react';
+import { supabase, supabaseAdmin } from '@/lib/db/dummy-client'; // 임시 더미 클라이언트
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Calendar, Clock, Gamepad2, Hash, Users, Check, ChevronLeft, Loader2, AlertCircle, Coins } from 'lucide-react';
-// import removed - using Better Auth;
+// Better Auth 사용 - useSession 제거;
+// Supabase 제거됨 - Cloudflare D1 사용
 import { parseKSTDate, formatKSTDate, createKSTDateTime, isWithin24Hours, formatKoreanDate } from '@/lib/utils/kst-date';
 import { useReservationStore } from '@/app/store/reservation-store';
 
@@ -64,6 +64,7 @@ type TimeSlot = {
 export default function NewReservationPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  // const supabase = getDb() // D1 사용);
   const setLastReservationId = useReservationStore((state) => state.setLastReservationId);
   
   // 예약 확인사항
@@ -81,6 +82,7 @@ export default function NewReservationPage() {
   useEffect(() => {
     const loadReservationRules = async () => {
       try {
+        // const supabase = getDb() // D1 사용;
         const { data, error } = await supabase.from('reservation_rules')
           .select('*')
           .eq('is_active', true)
@@ -134,6 +136,7 @@ export default function NewReservationPage() {
         setIsLoadingDevices(true);
         
         // Supabase에서 대여 가능한 기기 타입만 가져오기
+        // const supabase = getDb() // D1 사용;
         const { data: deviceTypesData, error: typesError } = await supabase.from('device_types')
           .select(`
             *,
@@ -210,6 +213,7 @@ export default function NewReservationPage() {
         setError(null);
         
         // Supabase에서 해당 기기의 고정 시간대 가져오기
+        // const supabase = getDb() // D1 사용;
         const { data: slotsData, error: slotsError } = await supabase.from('rental_time_slots')
           .select('*')
           .eq('device_type_id', selectedDevice)
@@ -419,8 +423,8 @@ export default function NewReservationPage() {
       setError(null);
       
       // 선택한 기기 번호와 타입 확인
-      const { data: availableDevice, error: deviceError } = // @ts-ignore
-    await Promise.resolve({ data: [], error: null })
+      // const supabase = getDb() // D1 사용;
+      const { data: availableDevice, error: deviceError } = await supabase.from('devices')
         .select('*')
         .eq('device_type_id', selectedDevice)
         .eq('device_number', selectedDeviceNumber)
@@ -445,6 +449,7 @@ export default function NewReservationPage() {
       }
 
       // users 테이블에서 사용자 ID 찾기
+      // const supabase = getDb() // D1 사용;
       const { data: userData, error: userError } = await supabase.from('users')
         .select('id')
         .eq('email', session.user.email)
@@ -472,6 +477,7 @@ export default function NewReservationPage() {
       
       console.log('예약 생성 데이터:', reservationData);
       
+      // const supabase = getDb() // D1 사용;
       const { data: newReservation, error: reservationError } = await supabase.from('reservations')
         .insert(reservationData)
         .select()
